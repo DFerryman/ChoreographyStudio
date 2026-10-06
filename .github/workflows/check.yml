@@ -2,6 +2,7 @@ name: Check preview
 on:
   push:
     branches: [main]
+    paths-ignore: ['**/*.md']
   pull_request:
 permissions:
   contents: read

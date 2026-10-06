@@ -12,6 +12,7 @@ import { createHash } from 'node:crypto';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { extname, relative, resolve, sep } from 'node:path';
 import { gzipSync } from 'node:zlib';
+import { readWorkerConfig, workerMetadata } from './worker-metadata.mjs';
 
 const [assetsArgument, workerArgument, outputArgument, ...extra] = process.argv.slice(2);
 if (!assetsArgument || !workerArgument || !outputArgument || extra.length) {
@@ -85,12 +86,7 @@ function parseHeaders(source) {
   return rules;
 }
 
-// Keep the metadata derived from the same version-controlled Wrangler config.
-function parseJsonc(source) {
-  const noComments = source.replace(/"(?:\\.|[^"\\])*"|\/\/[^\r\n]*|\/\*[\s\S]*?\*\//g, token => token.startsWith('"') ? token : '');
-  return JSON.parse(noComments.replace(/"(?:\\.|[^"\\])*"|,\s*(?=[}\]])/g, token => token.startsWith('"') ? token : ''));
-}
-const config = parseJsonc(await readFile(new URL('../wrangler.jsonc', import.meta.url), 'utf8'));
+const config = await readWorkerConfig();
 const binding = config.assets?.binding;
 if (!/^[A-Za-z_$][\w$]*$/.test(binding || '')) throw new Error('Wrangler assets.binding is required');
 if (config.assets.not_found_handling !== 'single-page-application') throw new Error('Inline preview expects SPA asset routing');
@@ -190,12 +186,7 @@ export default {
 };
 `;
 const module = staticModule + '\n' + original + '\n' + wrapper;
-const metadata = {
-  main_module: 'index.js', compatibility_date: config.compatibility_date,
-  compatibility_flags: config.compatibility_flags || [],
-  bindings: Object.entries(config.vars || {}).map(([name, value]) => ({ type: 'plain_text', name, text: typeof value === 'string' ? value : JSON.stringify(value) })),
-  ...(config.observability ? { observability: config.observability } : {}),
-};
+const metadata = workerMetadata(config);
 const moduleSha256 = createHash('sha256').update(module).digest('hex');
 const boundary = 'choreo-inline-' + moduleSha256.slice(0, 24);
 const multipart = [

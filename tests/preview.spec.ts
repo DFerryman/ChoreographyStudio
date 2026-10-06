@@ -145,7 +145,7 @@ test('uploads original fixture audio and restores saved project and identical au
   await ready(page);
   const wave = waveFixture();
   const expectedHash = createHash('sha256').update(wave).digest('hex');
-  await page.getByRole('button', { name: '新建 / 上传音乐' }).click();
+  await page.getByRole('button', { name: '导入音乐', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('作品名称').fill('保存恢复测试组合');
   await dialog.getByLabel('上传音乐文件').setInputFiles({ name: 'original-fixture.wav', mimeType: 'audio/wav', buffer: wave });
@@ -217,7 +217,7 @@ for (const width of [390, 320]) {
     const body = await overflow();
     expect(body.scroll).toBeLessThanOrEqual(body.width);
     await expect(page.getByRole('img', { name: '原创人偶的编舞动作预览' })).toBeVisible();
-    await page.getByRole('button', { name: '新建 / 上传音乐' }).click();
+    await page.getByRole('button', { name: '导入音乐', exact: true }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
     const modal = await overflow();
     expect(modal.scroll).toBeLessThanOrEqual(modal.width);

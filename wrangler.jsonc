@@ -12,5 +12,12 @@
     "run_worker_first": ["/api/*"]
   },
   "observability": { "enabled": true },
+  "ratelimits": [
+    {
+      "name": "API_RATE_LIMITER",
+      "namespace_id": "2026100601",
+      "simple": { "limit": 20, "period": 60 }
+    }
+  ],
   "vars": { "RELEASE_STAGE": "S0-interactive-preview" }
 }

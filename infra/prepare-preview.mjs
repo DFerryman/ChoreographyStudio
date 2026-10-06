@@ -10,6 +10,7 @@
 import { createHash } from 'node:crypto';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { extname, relative, resolve, sep } from 'node:path';
+import { readWorkerConfig, workerMetadata } from './worker-metadata.mjs';
 
 const [assetsArgument, workerArgument, outputArgument] = process.argv.slice(2);
 if (!assetsArgument || !workerArgument || !outputArgument) {
@@ -72,9 +73,11 @@ await collect(assetRoot);
 if (!manifest['/index.html']) throw new Error('Build must contain index.html');
 const worker = await readFile(resolve(workerArgument), 'utf8');
 if (!worker.includes('fetch')) throw new Error('Expected a bundled Worker fetch handler');
+const config = await readWorkerConfig();
 const prepared = {
-  workerName: 'choreo-studio-preview',
-  compatibilityDate: '2026-10-06',
+  workerName: config.name,
+  compatibilityDate: config.compatibility_date,
+  metadata: workerMetadata(config),
   manifest,
   assets,
   assetConfiguration,

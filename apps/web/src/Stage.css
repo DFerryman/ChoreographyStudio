@@ -2,14 +2,56 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: #e9ece5;
+  background: #171b24;
 }
 
 .stage3d-canvas {
   display: block;
   width: 100%;
   height: 100%;
+  touch-action: none;
+  cursor: grab;
 }
+
+.stage3d-canvas.is-joint-hover { cursor: pointer; }
+.stage3d-canvas.is-dragging { cursor: grabbing; }
+.stage3d-canvas:focus-visible { outline: 2px solid #7e92f7; outline-offset: -2px; }
+
+.stage3d-gizmo {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  width: 68px;
+  height: 68px;
+  border: 1px solid #ffffff0d;
+  border-radius: 11px;
+  background: #131823b3;
+  pointer-events: none;
+}
+
+.stage3d-gizmo svg { display: block; width: 100%; height: 100%; }
+.stage3d-gizmo text { fill: #152031; font: 700 9px system-ui, sans-serif; }
+
+.stage3d-joint-tooltip {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  border: 1px solid #8c9dc345;
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: #151c2aed;
+  color: #f1f4fc;
+  box-shadow: 0 4px 15px #00000026;
+  font-size: 11px;
+  line-height: 1.3;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.stage3d-joint-tooltip span { color: #9faec9; font-size: 10px; }
+.stage3d-selection-announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 
 .stage3d-fallback {
   position: absolute;
@@ -20,26 +62,15 @@
   justify-content: center;
   align-items: center;
   padding: 30px;
-  color: #475647;
-  background: #e9ece5;
+  color: #eef0f6;
+  background: radial-gradient(ellipse at 50% 40%, #252d3c 0%, #171b24 65%);
   text-align: center;
 }
 
-.stage3d-fallback svg {
-  width: 180px;
-  height: 220px;
-  max-height: 52%;
-}
+.stage3d-fallback svg { width: 180px; height: 220px; max-height: 52%; }
+.stage3d-fallback p { margin: 16px 0 8px; font-size: 16px; font-weight: 500; letter-spacing: 0.02em; }
+.stage3d-fallback span { max-width: 270px; color: #99a3b7; font-size: 13px; line-height: 1.6; }
 
-.stage3d-fallback p {
-  margin: 16px 0 8px;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.stage3d-fallback span {
-  max-width: 270px;
-  color: #778170;
-  font-size: 13px;
-  line-height: 1.6;
+@media (max-width: 430px) {
+  .stage3d-gizmo { width: 58px; height: 58px; bottom: 11px; left: 11px; }
 }
