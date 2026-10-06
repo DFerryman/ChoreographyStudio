@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.wrangler/
+.env*
+.dev.vars*
+!.env.example
+test-results/
+playwright-report/
+__pycache__/
+*.pyc
+*.zip
+local-runs/
+private/
+worker-configuration.d.ts
