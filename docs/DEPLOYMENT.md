@@ -56,33 +56,34 @@ Cloudflare's current authorization documentation distinguishes `Editor` (deploy
 existing Workers) from Workers-product `Admin` (create new Workers). The exact
 scope of the connected OAuth identity was not exposed. Updating an existing
 Worker has not been attempted: unrelated existing Workers were intentionally
-left unchanged. Creating an empty target Worker in the dashboard is the next
-minimal setup step; it avoids granting broader account administration access.
+left unchanged. The preferred next step is reconnecting the Cloudflare app with
+Workers creation/deployment permissions for the selected account, then retrying
+deployment directly. The user only performs provider authorization.
 
 - [Workers roles and permissions](https://developers.cloudflare.com/workers/authorization/workers/)
 - [Workers Static Assets direct upload](https://developers.cloudflare.com/workers/static-assets/direct-upload/)
 
-## 最少操作：先创建空 Worker
+## 重新授权入口
 
-1. 打开目标账号的 [Workers & Pages](https://dash.cloudflare.com/84e421f26c708c0cf437e287eed11fa1/workers-and-pages)。
-2. 点击 **Create application**（创建应用）→ **Create Worker**。如果出现模板选择，选 **Start with Hello World!** → **Get started**。
-3. 名称填写 **`choreo-studio-preview`**，保留默认示例代码，点击 **Deploy**。
-4. 告知已创建；接着重试连接身份对这个目标 Worker 的更新和静态资产上传。
+打开官方 [Cloudflare 插件页](https://chatgpt.com/plugins/cloudflare)，在账号连接设置中使用
+**Reconnect / 重新连接**；如果界面要求重新连接流程，则按提示断开该账号后再连接。
+授权应选目标 Cloudflare 账号，并包含创建和部署 Worker 所需的写权限。
+ChatGPT 的“何时询问”设置与 Cloudflare 账号的 OAuth 权限是两回事；更改前者不会解决这个 403。
 
-无需填写代码、上传音乐、创建数据库或提供 token。空 Worker 只作为目标容器；
-创建完成不代表编舞应用已上线。现有 Worker 的编辑权限仍需实际重试确认。
-如果对这个新 Worker 的更新仍被拒绝，再单独检查此 Worker 的 Editor 授权。
+该链接是官方插件入口，并不是已经创建的 OAuth 会话。OAuth 授权页由连接流程生成；
+当前可用工具无法直接生成新的授权会话链接。无需提供 token、填写代码或手工创建 Worker。
+授权后重试实际创建、资源上传和部署，成功前继续将预览状态标为未上线。
 
-官方创建流程来源：[Create your first Worker](https://developers.cloudflare.com/learning-paths/workers/get-started/first-worker/)、[D1 dashboard setup](https://developers.cloudflare.com/d1/get-started/)（确认 Hello World 选项与命名步骤）。
+官方说明：[OpenAI 账号连接与重新连接](https://help.openai.com/en/articles/20001494-connecting-and-managing-app-accounts-in-chatgpt)、
+[Cloudflare MCP 授权模板与账号范围](https://developers.cloudflare.com/agent-setup/visual-studio-code/detailed-walkthrough/)。
 
 ## Deploy after identity setup
 
-Prefer creating the empty `choreo-studio-preview` Worker as described above and
-retrying the connected identity for this existing target. If needed, authorize
-the deployment identity as Editor for this Worker. An identity authorized to
-create Workers in the account is another route, but is not required for the
-preferred setup. Configure any CLI credentials securely through the environment
-or deployment platform; do not commit token values.
+Reconnect the Cloudflare app as described above, then retry the connected
+identity for the new `choreo-studio-preview` Worker. Confirm actual write access
+by the deployment result. If a CLI identity is used instead, configure its
+credentials securely through the environment or deployment platform; do not
+commit token values.
 
 With an authenticated Wrangler identity:
 
