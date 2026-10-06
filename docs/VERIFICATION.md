@@ -27,4 +27,10 @@
 
 以上是功能与数学验证。没有测量真实设备的输出延迟、蓝牙、帧率或跨生产求值器误差；没有教师试跳或动作许可/接触质量证据。M0–M3 仍未通过，MP4 尚未实现。
 
-源码推送与线上结果另见 `DEPLOYMENT.md`。GitHub Actions 工作流已准备，尚不能把本机通过写成 GitHub CI 已通过。
+## GitHub 发布与 CI
+
+源码已发布到 public 仓库 `DFerryman/ChoreographyStudio` 的 `main`：[首次源码提交 `d05bf5ae1d502b3d32a75b246888ffeca993a56b`](https://github.com/DFerryman/ChoreographyStudio/commit/d05bf5ae1d502b3d32a75b246888ffeca993a56b)。远端 34 个源码文件与本地提交树一致，保留原初始提交与未修改的 MIT LICENSE；未发布私有文档、音乐、真实动作素材、凭据或构建/测试输出。
+
+该提交的 [GitHub Actions `Check preview`](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37442000689) 已实际执行并以 `success` 完成。`npm ci`、`npm run check`（22 项 core 检查与生产构建）、Worker 类型检查、Chromium 安装和 7 项浏览器流程检查全部通过。这是独立的远端 CI 结果，不是把本机结果视作远端通过。
+
+GitHub 发布及 CI 通过不等于 Cloudflare 已上线，也不替代真实动作、教师、MP4 或原 M0–M3 验收。线上部署的实际状态另见 [`DEPLOYMENT.md`](DEPLOYMENT.md)。
