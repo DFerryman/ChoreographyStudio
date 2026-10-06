@@ -61,4 +61,8 @@
 
 最终 version 4 的完整线上 10 项 Playwright 流程在 `2026-10-06T14:05:04.566Z` 开始，102.922 秒全部通过，无跳过、flaky 或 unexpected；10 个 console attachment 的 errors/warnings 均为空，pageerror 为空。覆盖原 7 项流程及新增相机/骨骼/坐标、多场景音频/相机独立保存与复制新 ID 后刷新/删除、未保存改动保护和模拟 quota 保存失败。只执行这一轮公网流程，没有循环测试或压测。
 
-这轮迭代由 [#5](https://github.com/DFerryman/ChoreographyStudio/issues/5) 跟踪。本轮源码发布与远端 CI 的实际 SHA/run 将在完成后记录，CI 通过前保持 open。main 的纯 Markdown 更新忽略整套 CI，PR 检查不变；避免回填记录重复运行相同功能检查。完整手动关键帧编辑是已确认的 P1 需求，本轮不宣称已写入关键帧。
+本轮功能源码已发布：[提交 `127d4cd3eef7349b44d31f8004edca81c9b7115b`](https://github.com/DFerryman/ChoreographyStudio/commit/127d4cd3eef7349b44d31f8004edca81c9b7115b)。远端 40 个文件的 Git tree `9a3104c2fcb5206d641c9aaa0e4b22bbf98e8ac8` 与本地暂存树完全一致，MIT LICENSE 保持原 blob `5a39dbe0352e210c31c6289236e2a9437930ccdb`，保留原提交历史；没有发布私有原文、用户音乐、凭据或生成/测试输出。
+
+该源码提交的 [GitHub Actions `Check preview` · run 37476822139](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37476822139) 已实际完成并为 `success`，run 更新时间 `2026-10-06T14:13:58Z`。`npm ci`、`npm run check`、Worker 类型检查、Chromium 安装与 `npm run test:e2e` 步骤均为 success；失败产物上传按条件 skipped。本段为后续纯 Markdown 回填；main 的纯 Markdown 更新忽略整套 CI，PR 检查不变，不重复已通过的功能验收。
+
+本轮 [#5](https://github.com/DFerryman/ChoreographyStudio/issues/5) 的 S0 范围已经完成线上和远端 CI 退出检查。完整手动关键帧编辑是已确认的 P1 需求，本轮不宣称已写入关键帧；S1 与原 M0–M3 仍未完成。
