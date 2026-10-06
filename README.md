@@ -4,9 +4,10 @@
 
 **当前交付：S0 交互预览。** 程序化人偶、动作与节奏样例均为原创演示；采用固定模板，不调用生成模型。真实动作、人物素材、教师验收、生产服务和 MP4 尚未接入。当前 `preview-1` 契约不冒充原工程包 2.1.0 的生产契约。
 
-- 预计预览地址（尚未上线）：`https://choreo-studio-preview.danuberiverferryman.workers.dev`
+- 在线预览：[打开八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)
 - [阶段计划](docs/ROADMAP.md)
 - [实现状态与阻塞](docs/IMPLEMENTATION_STATUS.md)
+- [部署与验收记录](docs/DEPLOYMENT.md)
 
 ## 这版可以操作什么
 
@@ -44,7 +45,9 @@ docs/                    阶段计划、实现状态、验证记录
 
 ## Cloudflare 部署
 
-`wrangler.jsonc` 配置 Workers Static Assets，静态构建与 API 在同一次部署发布。已认证的环境运行：
+当前线上使用同一份 Web 构建与 API，通过可复现的 inline gzip 后备模块发布；Cloudflare 记录为 `has_assets=false`。生成工具为 `infra/prepare-inline-preview.mjs`，实际部署 ID、验证及再现步骤见部署记录。音乐仍只在浏览器本地处理。
+
+`wrangler.jsonc` 配置的 Workers Static Assets 是标准部署路径，后续恢复官方资产上传后使用。已认证的 Wrangler 环境运行：
 
 ```sh
 npm run deploy

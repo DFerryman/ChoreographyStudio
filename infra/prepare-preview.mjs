@@ -37,6 +37,7 @@ const mimeTypes = {
 };
 const manifest = {};
 const assets = {};
+const assetConfiguration = {};
 
 async function collect(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -48,6 +49,11 @@ async function collect(directory) {
     if (!entry.isFile()) throw new Error(`Unsupported build entry: ${fullPath}`);
     const route = '/' + relative(assetRoot, fullPath).split(sep).join('/');
     const content = await readFile(fullPath);
+    // These reserved routing files belong in upload metadata, not public assets.
+    if (route === '/_headers' || route === '/_redirects') {
+      assetConfiguration[route.slice(1)] = content.toString('utf8');
+      continue;
+    }
     // Follow the direct-upload example: include extension so equal bytes with
     // different MIME types are registered as distinct assets.
     const hash = createHash('sha256')
@@ -71,6 +77,7 @@ const prepared = {
   compatibilityDate: '2026-10-06',
   manifest,
   assets,
+  assetConfiguration,
   worker,
 };
 await writeFile(resolve(outputArgument), JSON.stringify(prepared));
