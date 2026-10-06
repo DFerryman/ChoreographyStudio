@@ -14,6 +14,7 @@
 }
 
 .stage3d-canvas.is-joint-hover { cursor: pointer; }
+.stage3d-canvas.is-rotation-hover { cursor: crosshair; }
 .stage3d-canvas.is-dragging { cursor: grabbing; }
 .stage3d-canvas:focus-visible { outline: 2px solid #7e92f7; outline-offset: -2px; }
 
@@ -51,6 +52,26 @@
 }
 
 .stage3d-joint-tooltip span { color: #9faec9; font-size: 10px; }
+.stage3d-edit-indicator {
+  position: absolute;
+  top: 53px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 28px);
+  border: 1px solid #8196db40;
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: #182136dc;
+  color: #cbd6f5;
+  font-size: 10px;
+  line-height: 1.4;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.stage3d-edit-indicator span { padding-left: 10px; border-left: 1px solid #98a8cd40; color: #9facce; }
 .stage3d-selection-announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 
 .stage3d-fallback {
@@ -70,6 +91,10 @@
 .stage3d-fallback svg { width: 180px; height: 220px; max-height: 52%; }
 .stage3d-fallback p { margin: 16px 0 8px; font-size: 16px; font-weight: 500; letter-spacing: 0.02em; }
 .stage3d-fallback span { max-width: 270px; color: #99a3b7; font-size: 13px; line-height: 1.6; }
+
+@media (max-width: 600px) {
+  .stage3d-edit-indicator { top: 38px; padding: 4px 7px; }
+}
 
 @media (max-width: 430px) {
   .stage3d-gizmo { width: 58px; height: 58px; bottom: 11px; left: 11px; }

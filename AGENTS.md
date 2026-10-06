@@ -4,9 +4,9 @@ Read `README.md`, `docs/ROADMAP.md`, and `docs/IMPLEMENTATION_STATUS.md` before 
 
 ## Current stage
 
-S0 is an interactive, original synthetic preview. `preview-1` is a separate contract, not the original 2.1.0 machine contract. Do not call template output model generation, mark it as teacher approved, or treat the procedural rig as a licensed production Avatar. The user has authorized viewport and local scene foundations: a readable selectable skeleton, free orbit/pan/zoom, side/top/reset views, and multiple saved local scenes including audio, playback session, camera and view settings with migration of existing local data. These foundations do not include writing keyframes. Do not add IK, unrestricted timeline editing, multiplayer, or additional dance packs to the first product scope.
+S0 and P1 are original synthetic previews. P1 manual keyframe and bone editing is implemented and deployed as version 5; local checks passed, with full online and source CI acceptance in progress. Read `docs/MANUAL_KEYFRAMES.md` for the agreed editing contract. `preview-1` remains separate from the original 2.1.0 machine contract. Do not call template or manual output model generation, mark it as teacher approved, or treat the procedural rig as a licensed production Avatar. Do not add IK, bone-length editing, unrestricted music/timeline duration changes, cloud saving, multiplayer, or additional dance packs to this scope.
 
-Use a right-handed scene: Y up, +Z front, meters, and the XZ ground plane. Keep imported motion, the rig, camera presets, grids and axis indicators consistent with this convention. Camera navigation and skeleton selection must not alter the authoritative motion. Full manual keyframe editing is a confirmed product requirement for later P1 delivery; define its editable bones, transform constraints, frame data, interpolation and playback/export relationship before implementing it. Never present node selection as a completed keyframe editor.
+Use a right-handed scene: Y up, +Z front, meters, and the XZ ground plane. Keep motion, the rig, camera presets, grids and axis indicators consistent with this convention. Camera navigation and skeleton selection must not alter authoritative motion. P1 changes authoritative motion through explicit write/delete K, neutral-base or template commits; do not present a Pose draft or node selection as a saved keyframe.
 
 The original engineering ZIP is not in this public repository. When it becomes available in an authorized private workspace, read its root instructions, run its verification, and document migration before integrating its generated contracts. Do not copy private source documents, contracts, uploaded audio or unlicensed motion files into the public repository.
 
@@ -21,6 +21,18 @@ The original engineering ZIP is not in this public repository. When it becomes a
 - Save reports success only after IndexedDB commits, including the original audio. Never claim server storage or cross-device sync.
 - Public preview API does not accept audio/project writes. Do not add secret-bearing browser code.
 
+## P1 manual keyframes
+
+- The confirmed CountMap fixes the entire scene duration. Keys use integer frames at 30 fps; the last frame is `ceil(duration * 30)` at the exact duration, including a short final interval.
+- Edit 19 joints with parent-local absolute normalized XYZW quaternions and a separate Root XYZ position in meters; six terminal joints remain read-only. Intrinsic XYZ Euler degrees are an input representation, not the persisted rotation contract. Preserve bone lengths, hierarchy and static offsets.
+- Numeric controls and local rotation handles preview a full Pose draft. Require explicit single-track or full-pose write K. Resolve unwritten drafts before seeking, playing, mode/scene switching, history actions, template generation or saving. Do not save a draft as authoritative animation.
+- Store sparse per-joint rotation tracks and a Root position track with an immutable `Snapshot.manual.baseTake`. Unwritten endpoints use base poses at 0 and exact duration; explicit endpoint keys override them. Use shortest-path SLERP and Root linear interpolation between neighboring anchors; editing a track affects that interval, not only the current frame or phrase.
+- Preserve base explicit times, phrase boundaries and the exact final sample; add key times without regenerating from plan. Unedited tracks use base motion. Deleting all keys preserves original poses/times while issuing a new animation version. Validate finite values, legal joints, integer frames, nonzero quaternions, the 4096 total-track-key limit and the 6001 explicit-sample input/output limit; reject excess resources.
+- The current UI delete action removes every explicit track key at the current frame. Single-track deletion exists only in the core API; do not describe it as an available UI control.
+- Every committed motion change produces a new take/animation ID, revision and shared scene history entry; stale candidates cannot overwrite it. Preserve manual tracks, base, authoritative take, undo history and original audio in scene transactions. Old scenes without manual data restore their exact take without re-baking.
+- Starting from a neutral stance and clearing keys must be undoable. Template adoption consumes the authoritative candidate, explicitly warns that current motion is flattened into the next base and clears old editable tracks; undo restores the prior manual sequence. Never retain old tracks and apply them again to a new base.
+- Mirror is for viewing. Local manipulation must use unmirrored data; camera movement cannot write transforms. P1 math/editing/baking/saving stays in the browser, with no business API, D1 writes or automatic cloud save.
+
 ## Verification and deployment
 
 Run `npm run check`, `npm run typecheck:worker`, and relevant `npm run test:e2e` checks. Browser tests use a local original WAV and procedural rig; they do not validate dance quality, device frame-rate or measured audio-output latency.
@@ -31,7 +43,7 @@ Keep credentials outside the repository, retain the original MIT license, and pr
 
 ## Request and database write budget
 
-The user requires low request frequency and explicit control of database rows written. S0 keeps music/projects in the browser and must not introduce D1 writes for playback, health checks, polling or telemetry.
+The user requires low request frequency and explicit control of database rows written. S0/P1 keep music, scenes and manual edits in the browser and must not introduce D1 writes for playback, keyframes, health checks, polling or telemetry.
 
 - Perform necessary verification in one bounded pass per meaningful change. Do not run recurring production test loops, load tests or repeated write-producing probes. Reuse validated evidence when the relevant source and assets are unchanged.
 - Protect API calls with server-side rate limits; missing or failed protection must reject the protected request. Static assets and local editor operations must not consume database writes.

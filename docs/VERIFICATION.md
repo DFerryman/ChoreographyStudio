@@ -1,4 +1,4 @@
-# S0 验证记录
+# 预览验证记录
 
 日期：2026-10-06。对象为当前仓库的原创合成预览，不是原工程包 2.1.0、真实动作或教学发布验收。
 
@@ -65,4 +65,24 @@
 
 该源码提交的 [GitHub Actions `Check preview` · run 37476822139](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37476822139) 已实际完成并为 `success`，run 更新时间 `2026-10-06T14:13:58Z`。`npm ci`、`npm run check`、Worker 类型检查、Chromium 安装与 `npm run test:e2e` 步骤均为 success；失败产物上传按条件 skipped。本段为后续纯 Markdown 回填；main 的纯 Markdown 更新忽略整套 CI，PR 检查不变，不重复已通过的功能验收。
 
-本轮 [#5](https://github.com/DFerryman/ChoreographyStudio/issues/5) 的 S0 范围已经完成线上和远端 CI 退出检查。完整手动关键帧编辑是已确认的 P1 需求，本轮不宣称已写入关键帧；S1 与原 M0–M3 仍未完成。
+本轮 [#5](https://github.com/DFerryman/ChoreographyStudio/issues/5) 的 S0 范围已经完成线上和远端 CI 退出检查。该交付尚未包含手 K；S1 与原 M0–M3 仍未完成。
+
+## P1 手动关键帧 · 已部署，完整线上与CI验收中
+
+用户已授权继续写帧与骨骼编辑，规则见 [MANUAL_KEYFRAMES.md](MANUAL_KEYFRAMES.md)。本轮检查需覆盖固定时长与精确末帧、局部四元数/Root 插值、稀疏轨和不可变基底、显式草稿提交与保护、版本/候选失效、撤销及 Scene 保存恢复、旧 take 不重烘焙，以及站姿和模板固化边界。
+
+本轮 `npm run check` 已实际通过 52 项检查：22 项原 core、16 项手 K、7 项 API mock、7 项 IndexedDB；生产构建与 Worker 类型检查通过。手 K 的资源检查区分 4096 条轨键与输入/输出各 6001 个显式样本；编辑 UI 删除当前帧全部显式轨键，单轨删除只由 core API 提供。
+
+14 项本地浏览器首轮执行发现测试 fixture 的统一 dialog dismiss 会在 reload 时拒绝 beforeunload，导致导航阻塞；该轮已中止，失败/中断报告保留。仅修正测试脚本为 beforeunload accept、其他 dialog dismiss，生产代码未改。
+
+第二轮于 `2026-10-06T14:56:35.348Z` 开始，219.4 秒完成，13 项通过、1 项 unexpected，0 skipped/flaky；旧 10 项及新增 A/C/D 均通过，C 的延迟保存分支确认保存过程中仍可编辑。流程 B 的测试脚本使用 `poses[45]`，错误假设输出为完整 30 fps 均匀数组；实际契约保留基底非均匀 times 并加入显式键，8 样本 fixture 因此触发测试侧 TypeError，非页面运行错误。生产 bundle 未变，B 修正后的单项复核仍在执行。当前不将第二轮记为 14 项一次全绿，也不再跑整套抹去这次失败。
+
+B 后续复核还发现测试选择的 4–8 秒区间只有边界、没有内部样本，原替换规则会明确拒绝。测试调整为先确认拒绝且权威动画不变，再选择包含内部样本的 0–4 秒区间检查固化、取消、范围外与撤销；生产核心和旧 source 均不修改或密化。
+
+最终 B 单项于 `2026-10-06T15:05:19.710Z` 开始，测试用时 26.130 秒、报告总时长 28.122 秒，1/1 通过，无 skipped/unexpected/flaky，报告 errors 为空。由第二轮 13 项与最终 B 单项组成的本地 14 项范围均有通过证据；先前尝试、失败与脚本修正记录保留，不把它改写成一次 14 全绿。这些浏览器脚本修正未改生产逻辑。
+
+随后 8 状态布局检查均无横向溢出或 console 错误。视觉审阅发现 390px 的提示略盖头，仅调整 `Stage.css` 的手机提示位置/内距并重新构建；最终 320/390px 对应截图已针对性复核，头部无遮挡，无横向溢出或 console 错误。最终 JavaScript SHA-256 与此前功能已测版相同，只有 CSS/HTML 改变，Worker/API 未变；没有为该小样式改动重跑整套。本地范围已放行，正式部署及其证据仍待记录。
+
+本轮 version 5 已实际发布：version `2fac9fa5-5387-425c-9bbb-23a5379d162d`，deployment `1479fdaf-2aa0-44f1-a5dc-10e3f58b1624`，100% 流量，`2026-10-06T15:13:08.85059Z`。下载模块200、345890 bytes，SHA-256 `508ed426ae18b0c74e300c14068513ffa3611b80a97752bfff16d441569c92e8` 与生成器完全一致。`2026-10-06T15:14:55.350Z` 的必要单轮7HTTP全部通过：4资产内容/安全headers、health/capabilities 200与POST projects 501。
+
+唯一完整线上14项与本轮GitHub功能源码/CI正在验收，尚不关闭 [#6](https://github.com/DFerryman/ChoreographyStudio/issues/6)。当前实际bindings仍仅API_RATE_LIMITER与RELEASE_STAGE，无D1/KV/DO/Cloudflare ASSETS；没有新增业务API、公网429 burst或高频验证。上述version4证据保留为历史，不代替P1验收。

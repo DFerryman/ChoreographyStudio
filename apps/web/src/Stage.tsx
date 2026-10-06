@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { JOINT_NAMES, sampleTake, type BakedTake, type JointName, type Pose, type Vec3 } from '../../../packages/core/src';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { EDITABLE_JOINT_NAMES, JOINT_NAMES, sampleTake, type BakedTake, type JointName, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
 import './Stage.css';
 
 export type StageView = 'front' | 'back' | 'left' | 'right' | 'top' | 'free';
@@ -13,6 +14,7 @@ export const STAGE_JOINT_LABELS: Record<JointName, string> = {
   LeftUpperLeg: '左髋', LeftLowerLeg: '左膝', LeftFoot: '左踝', LeftToe: '左脚尖', LeftHeel: '左脚跟',
   RightUpperLeg: '右髋', RightLowerLeg: '右膝', RightFoot: '右踝', RightToe: '右脚尖', RightHeel: '右脚跟',
 };
+const EDITABLE_JOINT_SET = new Set<JointName>(EDITABLE_JOINT_NAMES);
 
 type StageProps = {
   take: BakedTake | null;
@@ -25,10 +27,14 @@ type StageProps = {
   selectedJoint?: JointName | null;
   gridVisible?: boolean;
   axesVisible?: boolean;
+  poseOverride?: Pose | null;
+  editMode?: boolean;
+  playing?: boolean;
   onSelectJoint?: (joint: JointName | null) => void;
   onCameraChange?: (camera: StageCamera) => void;
   onCameraInteraction?: () => void;
   onJointPositionChange?: (position: Vec3 | null) => void;
+  onJointRotationChange?: (joint: JointName, rotation: Quat, phase: 'start' | 'change' | 'end') => void;
 };
 
 type PreviewRig = {
@@ -127,9 +133,10 @@ function createPreviewRig(): PreviewRig {
   return { root, joints, markers, targets };
 }
 
-function applyPose(rig: PreviewRig, pose: Pose | null) {
+function applyPose(rig: PreviewRig, pose: Pose | null, draggingJoint: JointName | null = null) {
   rig.root.position.set(...(pose?.root ?? [0, 1.05, 0]));
   for (const name of JOINT_NAMES) {
+    if (name === draggingJoint) continue;
     const joint = rig.joints.get(name)!;
     const q = pose?.joints[name];
     if (q) joint.quaternion.set(q[0], q[1], q[2], q[3]);
@@ -177,7 +184,7 @@ function StageFallback({ error }: { error: string }) {
 }
 
 export function Stage(props: StageProps) {
-  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, selectedJoint, gridVisible, axesVisible } = props;
+  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, selectedJoint, gridVisible, axesVisible, poseOverride, editMode, playing } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const current = useRef(props);
   const requestDraw = useRef<() => void>(() => {});
@@ -185,6 +192,7 @@ export function Stage(props: StageProps) {
   const [internalSelection, setInternalSelection] = useState<JointName | null>(null);
   const [hover, setHover] = useState<{ joint: JointName; x: number; y: number } | null>(null);
   const [gizmo, setGizmo] = useState<GizmoAxis[]>([]);
+  const [rotationAxis, setRotationAxis] = useState<string | null>(null);
   current.current = props;
   const selection = selectedJoint === undefined ? internalSelection : selectedJoint;
   const selectionRef = useRef(selection);
@@ -227,6 +235,14 @@ export function Stage(props: StageProps) {
     controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
     controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
     controls.listenToKeyEvents(canvas);
+    const transform = new TransformControls(camera, canvas);
+    transform.setMode('rotate');
+    transform.setSpace('local');
+    transform.setSize(0.95);
+    transform.showE = false;
+    transform.showXYZE = false;
+    transform.enabled = false;
+    const transformHelper = transform.getHelper();
     scene.add(new THREE.HemisphereLight('#dce5ff', '#111722', 1.5));
     const keyLight = new THREE.DirectionalLight('#f5f5ff', 3);
     keyLight.position.set(-3, 6, 4);
@@ -261,6 +277,10 @@ export function Stage(props: StageProps) {
     const rig = createPreviewRig();
     mirrorGroup.add(rig.root);
     scene.add(mirrorGroup);
+    scene.add(transformHelper);
+    const localAxes = new THREE.AxesHelper(0.14);
+    localAxes.visible = false;
+    scene.add(localAxes);
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -276,10 +296,12 @@ export function Stage(props: StageProps) {
     let previousRestore: number | undefined;
     let previousTake: BakedTake | null | undefined;
     let previousTime = Number.NaN;
+    let previousOverride: Pose | null | undefined;
+    let draggingJoint: JointName | null = null;
     let hovered: JointName | null = null;
     let cameraSignature = '';
     let jointSignature = '';
-    let pointerStart: { id: number; x: number; y: number; dragged: boolean; button: number } | null = null;
+    let pointerStart: { id: number; x: number; y: number; dragged: boolean; button: number; gizmo: boolean } | null = null;
     const activePointers = new Set<number>();
 
     function schedule() {
@@ -355,6 +377,30 @@ export function Stage(props: StageProps) {
       }
     }
 
+    function canRotate() {
+      const state = current.current;
+      const selected = selectionRef.current;
+      return !!state.editMode && !state.playing && !state.mirror && !!selected && EDITABLE_JOINT_SET.has(selected);
+    }
+
+    function syncOrbit() {
+      controls.enabled = !transform.enabled || (!transform.dragging && transform.axis === null);
+    }
+
+    function rotationFeedback(phase: 'start' | 'change' | 'end') {
+      if (!draggingJoint || !canRotate()) return;
+      const rotation = rig.joints.get(draggingJoint)!.quaternion.clone().normalize().toArray() as Quat;
+      current.current.onJointRotationChange?.(draggingJoint, rotation, phase);
+    }
+
+    function cancelTransform() {
+      draggingJoint = null;
+      transform.dragging = false;
+      transform.detach();
+      if (pointerStart?.gizmo) pointerStart.dragged = true;
+      syncOrbit();
+    }
+
     function draw() {
       frame = 0;
       if (stopped || width <= 0 || height <= 0) return;
@@ -377,13 +423,27 @@ export function Stage(props: StageProps) {
       previousView = state.view;
       previousReset = state.cameraResetKey;
       previousRestore = state.cameraRestoreKey;
+      const selected = selectionRef.current;
+      const editable = canRotate();
+      const attachedJoint = editable && selected ? rig.joints.get(selected)! : undefined;
+      const cancelDrag = transform.dragging && (!editable || draggingJoint !== selected || restoreChanged);
+      if (cancelDrag) cancelTransform();
+      transform.enabled = editable;
+      if (attachedJoint) {
+        if (transform.object !== attachedJoint) transform.attach(attachedJoint);
+        if (localAxes.parent !== attachedJoint) attachedJoint.add(localAxes);
+      } else if (transform.object) transform.detach();
+      localAxes.visible = editable;
+      syncOrbit();
       mirrorGroup.scale.x = state.mirror ? -1 : 1;
       grid.visible = state.gridVisible !== false;
       axes.visible = state.axesVisible !== false;
-      if (state.take !== previousTake || state.time !== previousTime) {
-        applyPose(rig, state.take ? sampleTake(state.take, state.time) : null);
+      const override = state.playing ? null : state.poseOverride;
+      if (state.take !== previousTake || state.time !== previousTime || override !== previousOverride || cancelDrag) {
+        applyPose(rig, override ?? (state.take ? sampleTake(state.take, state.time) : null), transform.dragging ? draggingJoint : null);
         previousTake = state.take;
         previousTime = state.time;
+        previousOverride = override;
       }
       for (const [name, marker] of rig.markers) {
         const selected = name === selectionRef.current;
@@ -443,7 +503,7 @@ export function Stage(props: StageProps) {
         if (pointerStart) pointerStart.dragged = true;
         return;
       }
-      pointerStart = { id: event.pointerId, x: event.clientX, y: event.clientY, dragged: false, button: event.button };
+      pointerStart = { id: event.pointerId, x: event.clientX, y: event.clientY, dragged: false, button: event.button, gizmo: transform.enabled && (transform.dragging || transform.axis !== null) };
       canvas.classList.add('is-dragging');
       canvas.focus({ preventScroll: true });
       clearHover();
@@ -455,6 +515,10 @@ export function Stage(props: StageProps) {
         return;
       }
       if (event.pointerType === 'touch') return;
+      if (transform.enabled && (transform.dragging || transform.axis !== null)) {
+        clearHover();
+        return;
+      }
       const joint = pick(event);
       hovered = joint;
       const bounds = canvas.getBoundingClientRect();
@@ -469,7 +533,7 @@ export function Stage(props: StageProps) {
       const start = pointerStart;
       pointerStart = null;
       canvas.classList.remove('is-dragging');
-      if (!start.dragged && start.button === 0 && activePointers.size === 0) {
+      if (!start.dragged && !start.gizmo && !transform.dragging && start.button === 0 && activePointers.size === 0) {
         const joint = pick(event);
         setInternalSelection(joint);
         selectionRef.current = joint;
@@ -482,7 +546,43 @@ export function Stage(props: StageProps) {
       activePointers.delete(event.pointerId);
       pointerStart = null;
       canvas.classList.remove('is-dragging');
+      if (transform.dragging) {
+        rotationFeedback('end');
+        cancelTransform();
+      }
       clearHover();
+    }
+
+    function onPointerLeave() {
+      clearHover();
+      if (!transform.dragging) transform.axis = null;
+      syncOrbit();
+    }
+
+    function onTransformChange() {
+      syncOrbit();
+      setRotationAxis(transform.enabled ? transform.axis : null);
+      canvas.classList.toggle('is-rotation-hover', transform.enabled && transform.axis !== null);
+      schedule();
+    }
+
+    function onTransformStart() {
+      if (!canRotate() || !transform.object) return;
+      draggingJoint = transform.object.name as JointName;
+      rotationFeedback('start');
+      clearHover();
+    }
+
+    function onTransformObjectChange() {
+      if (!transform.dragging) return;
+      rotationFeedback('change');
+      schedule();
+    }
+
+    function onTransformEnd() {
+      rotationFeedback('end');
+      draggingJoint = null;
+      schedule();
     }
 
     function onControlsChange() {
@@ -501,11 +601,15 @@ export function Stage(props: StageProps) {
     }
 
     controls.addEventListener('change', onControlsChange);
+    transform.addEventListener('change', onTransformChange);
+    transform.addEventListener('mouseDown', onTransformStart);
+    transform.addEventListener('objectChange', onTransformObjectChange);
+    transform.addEventListener('mouseUp', onTransformEnd);
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('pointerup', onPointerUp);
     canvas.addEventListener('pointercancel', onPointerCancel);
-    canvas.addEventListener('pointerleave', clearHover);
+    canvas.addEventListener('pointerleave', onPointerLeave);
     canvas.addEventListener('webglcontextlost', onContextLost);
     const observer = new ResizeObserver(resize);
     observer.observe(container);
@@ -518,11 +622,17 @@ export function Stage(props: StageProps) {
       observer.disconnect();
       controls.removeEventListener('change', onControlsChange);
       controls.dispose();
+      transform.removeEventListener('change', onTransformChange);
+      transform.removeEventListener('mouseDown', onTransformStart);
+      transform.removeEventListener('objectChange', onTransformObjectChange);
+      transform.removeEventListener('mouseUp', onTransformEnd);
+      scene.remove(transformHelper);
+      transform.dispose();
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('pointercancel', onPointerCancel);
-      canvas.removeEventListener('pointerleave', clearHover);
+      canvas.removeEventListener('pointerleave', onPointerLeave);
       canvas.removeEventListener('webglcontextlost', onContextLost);
       const geometries = new Set<THREE.BufferGeometry>();
       const materials = new Set<THREE.Material>();
@@ -541,7 +651,7 @@ export function Stage(props: StageProps) {
 
   useEffect(() => {
     requestDraw.current();
-  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, selection, gridVisible, axesVisible]);
+  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, selection, gridVisible, axesVisible, poseOverride, editMode, playing]);
 
   return (
     <div className="stage3d" ref={containerRef}>
@@ -557,6 +667,9 @@ export function Stage(props: StageProps) {
           </svg>
         </div>}
         {hover && <div className="stage3d-joint-tooltip" style={{ left: hover.x, top: hover.y }} aria-hidden="true">{STAGE_JOINT_LABELS[hover.joint]}<span>点击选择</span></div>}
+        {editMode && <div className="stage3d-edit-indicator" aria-label="关节局部旋转">
+          {playing ? '播放期间不可编辑' : mirror ? '关闭镜像后编辑' : !selection ? '选择关节后旋转' : !EDITABLE_JOINT_SET.has(selection) ? '末端关节仅查看' : <>局部旋转草稿<span>{rotationAxis ? `${rotationAxis}轴` : '拖动彩色环'}</span></>}
+        </div>}
         <span className="stage3d-selection-announcement" aria-live="polite">{selection ? `已选中${STAGE_JOINT_LABELS[selection]}` : '未选中关节'}</span>
       </>}
     </div>

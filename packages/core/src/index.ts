@@ -4,18 +4,10 @@
  * Coordinates: meters, right handed, +Y up, +Z forward. Local rest limbs point down.
  * A pose's root includes the 1.05 m neutral hip height. Quaternions are [x,y,z,w].
  */
-export type Vec3 = [number, number, number];
-export type Quat = [number, number, number, number];
-
-export const JOINT_NAMES = [
-  'Hips', 'Spine', 'Chest', 'Neck', 'Head',
-  'LeftShoulder', 'LeftUpperArm', 'LeftForeArm', 'LeftHand', 'LeftHandTip',
-  'RightShoulder', 'RightUpperArm', 'RightForeArm', 'RightHand', 'RightHandTip',
-  'LeftUpperLeg', 'LeftLowerLeg', 'LeftFoot', 'LeftToe', 'LeftHeel',
-  'RightUpperLeg', 'RightLowerLeg', 'RightFoot', 'RightToe', 'RightHeel',
-] as const;
-export type JointName = typeof JOINT_NAMES[number];
-export interface Pose { root: Vec3; joints: Record<JointName, Quat> }
+import { JOINT_NAMES, type BakedTake, type JointName, type Pose, type Quat, type Vec3 } from './motion-types';
+export { JOINT_NAMES } from './motion-types';
+export type { BakedTake, JointName, Pose, Quat, Vec3 } from './motion-types';
+export * from './keyframes';
 
 export interface CountMap {
   id: string;
@@ -76,18 +68,6 @@ export interface ArrangementPlan {
   slots: ArrangementSlot[];
   provenance: 'synthetic-demo';
 }
-export interface BakedTake {
-  id: string;
-  schemaVersion: 'preview-1';
-  planId: string;
-  countMapId: string;
-  durationSeconds: number;
-  /** Explicit sample times. The exact ending and all slot boundaries are included. */
-  times: number[];
-  poses: Pose[];
-  provenance: 'synthetic-demo';
-}
-
 const EPSILON = 1e-9;
 const FPS = 30;
 let fallbackId = 0;

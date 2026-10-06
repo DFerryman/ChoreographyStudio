@@ -1,6 +1,8 @@
 # Cloudflare 预览部署
 
-2026-10-06：S0 工作台、骨骼视口、多个本机场景与 API 限频版已上线，并通过本轮实际浏览器和 HTTP 验证。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+2026-10-06：当前 version 5 已上线 P1 本机手动关键帧，包含姿态/Root编辑、显式写K、稀疏轨插值、站姿起稿与历史/场景保存。单轮7HTTP已通过；本地52项检查、13+1浏览器及布局已有通过证据，完整线上14项和本次源码CI正在验收。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+
+API/原生限频及无D1边界继续沿用；下面的IDs/资产对应实际P1发布，既有S0浏览器证据另标为历史，不冒充P1线上验收。
 
 ## 当前线上版本
 
@@ -8,15 +10,15 @@
 | --- | --- |
 | Worker | `choreo-studio-preview` |
 | Account | `84e421f26c708c0cf437e287eed11fa1` |
-| Deployment ID | `ad2a639c-3868-4d3d-83fe-466beb702521` |
-| Version ID | `03b0f070-6f73-4578-8b93-dafaaf23b90d` |
-| Version / 流量 | 4 / 100% |
-| 发布时间 | `2026-10-06T14:02:50.901922Z` |
+| Deployment ID | `1479fdaf-2aa0-44f1-a5dc-10e3f58b1624` |
+| Version ID | `2fac9fa5-5387-425c-9bbb-23a5379d162d` |
+| Version / 流量 | 5 / 100% |
+| 发布时间 | `2026-10-06T15:13:08.85059Z` |
 | 发布方式 | API multipart 上传包含 gzip 静态资产的 Worker 模块 |
 | Cloudflare assets 状态 | `has_assets=false`；本次没有 Cloudflare ASSETS 绑定 |
 | 实际 bindings | `API_RATE_LIMITER`（ratelimit）与 `RELEASE_STAGE`（plain_text） |
-| 模块大小 | 325534 bytes |
-| 实际下载模块 SHA-256 | `b13d47093e3fc15f7fc848a58c7c8e3a99dd5c67716c032d90d00f0d4bf718af` |
+| 模块大小 | 345890 bytes |
+| 实际下载模块 SHA-256 | `508ed426ae18b0c74e300c14068513ffa3611b80a97752bfff16d441569c92e8` |
 
 实际从 Cloudflare 下载的 `index.js` 与仓库 `infra/prepare-inline-preview.mjs` 的稳定生成物逐字节一致。模块包含本次 Web 与带限频保护的 API 构建；生成器为同一 API handler 提供本地 fetch 兼容的资产接口。兼容日期、flags、vars、限频 binding 与 headers 来自版本控制中的 `wrangler.jsonc` 和构建的 `_headers`。两个发布准备工具通过 `infra/worker-metadata.mjs` 保留相同的限频配置。
 
@@ -30,7 +32,7 @@
 
 ## 验证记录
 
-version 4 于 `2026-10-06T14:03:59.584Z` 完成一次必要的 7 项 HTTP 检查，全部通过：
+version 5 于 `2026-10-06T15:14:55.350Z` 完成一次必要的 7 项 HTTP 检查，全部通过：
 
 - HTML、favicon、JavaScript、CSS 返回 200，4 个资产的 SHA-256 与 `dist` 完全相同，安全 headers 生效。
 - `/api/health`、`/api/capabilities` 返回 200；健康结果明确 `S0-interactive-preview`、`preview-1`、`synthetic-demo`。
@@ -39,16 +41,20 @@ version 4 于 `2026-10-06T14:03:59.584Z` 完成一次必要的 7 项 HTTP 检查
 
 | 资产 | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `index.html` | 645 | `1d553e4a9b3cf1844debc4d15fbbb40c097ca1a2a38388a5d40eb2f3ed234a73` |
+| `index.html` | 645 | `6f8ef6d457648f6c9db7ee6d106524ddf9010d363ccdbbde4b7aed7059478ce0` |
 | `favicon.svg` | 322 | `883028cbbedddb4251346f961e58174dfe92b20d8fdd7351d7373005f4c2b6ac` |
-| `assets/index-Ddh52BJG.js` | 855280 | `9eb5bc5749ca40303b62284820018195342864e3a22457ea1912e43b43ed1b87` |
-| `assets/index-7EKvYVHx.css` | 34774 | `16ed496233e5fb0d9b5727e2ac94062aac0206b7815cd389497cfb1d85aabe5e` |
+| `assets/index-cqLXFl6s.js` | 907440 | `729511114a8df0d398763d475e319332d96320cf0da7d859a50f03b0f5156b99` |
+| `assets/index-Dh91RS4i.css` | 42602 | `39d3c950dd4d8d7a0e48df9a40116d68ebf211507b04a586141f0dcdc954c3a1` |
+
+当前version5的唯一完整线上14项正在执行，结果尚待记录；本轮源码CI也待实际完成。保存的是正式轨道/基底与权威take，未写入Pose草稿不视为已保存动画；没有云保存或D1写入。实现规则与本地失败/修正记录见 [MANUAL_KEYFRAMES.md](MANUAL_KEYFRAMES.md) 和 [VERIFICATION.md](VERIFICATION.md)。
+
+## 历史S0浏览器检查
 
 version 4 的完整 10 项 Playwright 流程在 `2026-10-06T14:05:04.566Z` 开始，102.922 秒全部通过：原 7 项编舞流程，以及相机/骨骼/坐标、多场景独立保存与复制后刷新/删除、未保存改动保护及保存失败 3 项新增流程。10 个浏览器 console attachment 均无 errors/warnings，pageerror 为空，无跳过、重试不稳定或不符合预期的用例。公网只执行这一轮完整流程。
 
 此前 version 3 的 7 项视觉流程在 `2026-10-06T13:25:18.181Z` 开始，38.752 秒全部通过；该结果发生在新 Scene 功能之前，作为历史记录保留，当前新增范围使用上述 version 4 的真实验证。
 
-基础后备生成器曾通过 39 项直接、25 项 workerd HTTP，以及 34 项旧/新等价和动态 headers 检查。本轮追加 7 项纯 mock API 保护检查和 6 项部署 metadata 断言，通过 429/503 与两个发布路径保留限频配置的验证。构建、36 项 core/API/存储检查、Worker 类型检查与 GitHub CI 结果见 [VERIFICATION.md](VERIFICATION.md)。
+基础后备生成器曾通过39项直接、25项workerd HTTP和34项旧/新等价与动态headers检查。既有7项API mock与6项metadata断言验证429/503和两发布路径保留限频；本轮未改API/infra。当前52项core/手K/API/存储、构建/Worker类型及完整浏览器和CI结果见 [VERIFICATION.md](VERIFICATION.md)。
 
 ## 复现当前发布构建
 

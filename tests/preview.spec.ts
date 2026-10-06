@@ -66,7 +66,7 @@ test.beforeEach(async ({ page }, testInfo) => {
     if (message.type() === 'error') problems.push(detail);
     if (message.type() === 'error' || message.type() === 'warning') consoleMessages.push(`${message.type()}: ${detail}`);
   });
-  page.on('dialog', dialog => { void dialog.dismiss(); });
+  page.on('dialog', dialog => { void (dialog.type() === 'beforeunload' ? dialog.accept() : dialog.dismiss()); });
   testInfo.annotations.push({ type: 'browser-check', description: 'Chromium smoke checks do not establish real-device audio/video synchronization or production rendering performance.' });
   (page as Page & { diagnostics?: () => Promise<void> }).diagnostics = async () => {
     await testInfo.attach('browser-console', { body: consoleMessages.join('\n') || 'No console errors or warnings.', contentType: 'text/plain' });

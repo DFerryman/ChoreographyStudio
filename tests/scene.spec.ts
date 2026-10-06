@@ -23,7 +23,7 @@ test.beforeEach(async ({ page }) => {
     if (message.type() === 'error') messages.errors.push(message.text());
     if (message.type() === 'warning') messages.warnings.push(message.text());
   });
-  page.on('dialog', dialog => { void dialog.dismiss(); });
+  page.on('dialog', dialog => { void (dialog.type() === 'beforeunload' ? dialog.accept() : dialog.dismiss()); });
 });
 test.afterEach(async ({ page }, testInfo) => {
   const messages = diagnostics.get(page)!;

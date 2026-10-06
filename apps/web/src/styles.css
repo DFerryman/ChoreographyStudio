@@ -293,6 +293,9 @@ h2 { font-size: 14px; line-height: 1.5; font-weight: 650; }
 .spin { animation: spin 1.2s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.workspace-toolbar .workspace-mode { display: inline-flex; align-items: center; gap: 3px; background: #e9edf5; border: 1px solid #dfe5ef; border-radius: 7px; padding: 3px; margin-left: auto; }
+.workspace-mode button { color: #8898b5; border-radius: 4px; font-size: 11px; min-height: 28px; padding: 0 12px; white-space: nowrap; }
+.workspace-mode button.selected { background: #fff; color: #6078aa; box-shadow: 0 1px 3px #243b6310; }
 /* Scene view and local library */
 .rename-current { width: 25px; height: 26px; margin-left: -5px; color: #a0acc0; }
 .mobile-camera-hint { display: none; }
@@ -399,7 +402,10 @@ h2 { font-size: 14px; line-height: 1.5; font-weight: 650; }
   .save-state { font-size: 10px; margin-right: auto; }
   .workspace-content { padding: 19px 18px 16px; }
   .workspace-toolbar { margin-bottom: 14px; }
+  .workspace-toolbar { flex-wrap: wrap; }
   .workspace-toolbar > div { gap: 10px; }
+  .workspace-toolbar .workspace-mode { gap: 3px; }
+  .workspace-mode button { padding: 0 9px; }
   .workspace-toolbar > div > span { padding-left: 10px; gap: 6px; font-size: 10px; }
   .version-pill { font-size: 10px; }
   .viewer-toolbar { min-height: 52px; padding: 12px 14px; flex-wrap: wrap; gap: 11px; }
@@ -469,6 +475,8 @@ h2 { font-size: 14px; line-height: 1.5; font-weight: 650; }
   .project-tools .scene-library-button { order: -1; }
   .workspace-content { padding-left: 13px; padding-right: 13px; }
   .workspace-toolbar > div { gap: 0; }
+  .workspace-toolbar .workspace-mode { width: 100%; margin-left: 0; }
+  .workspace-mode button { flex: 1; min-height: 30px; }
   .workspace-toolbar h2 { font-size: 13px; }
   .workspace-toolbar > div > span { border: 0; padding-left: 9px; font-size: 10px; }
   .version-pill { display: none; }
