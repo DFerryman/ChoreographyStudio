@@ -4,7 +4,7 @@ Read `README.md`, `docs/ROADMAP.md`, and `docs/IMPLEMENTATION_STATUS.md` before 
 
 ## Current stage
 
-S0 and P1 are original synthetic previews. P1 manual keyframe and bone editing is implemented and deployed as version 5; local checks passed, with full online and source CI acceptance in progress. Read `docs/MANUAL_KEYFRAMES.md` for the agreed editing contract. `preview-1` remains separate from the original 2.1.0 machine contract. Do not call template or manual output model generation, mark it as teacher approved, or treat the procedural rig as a licensed production Avatar. Do not add IK, bone-length editing, unrestricted music/timeline duration changes, cloud saving, multiplayer, or additional dance packs to this scope.
+S0 and P1 are delivered original synthetic previews. P1 manual keyframe and bone editing is deployed as version 5; local checks, the single full online pass and source CI passed. Read `docs/MANUAL_KEYFRAMES.md` for the agreed editing contract. `preview-1` remains separate from the original 2.1.0 machine contract. Do not call template or manual output model generation, mark it as teacher approved, or treat the procedural rig as a licensed production Avatar. Do not add IK, bone-length editing, unrestricted music/timeline duration changes, cloud saving, multiplayer, or additional dance packs to this scope.
 
 Use a right-handed scene: Y up, +Z front, meters, and the XZ ground plane. Keep motion, the rig, camera presets, grids and axis indicators consistent with this convention. Camera navigation and skeleton selection must not alter authoritative motion. P1 changes authoritative motion through explicit write/delete K, neutral-base or template commits; do not present a Pose draft or node selection as a saved keyframe.
 

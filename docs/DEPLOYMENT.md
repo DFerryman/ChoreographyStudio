@@ -1,6 +1,6 @@
 # Cloudflare 预览部署
 
-2026-10-06：当前 version 5 已上线 P1 本机手动关键帧，包含姿态/Root编辑、显式写K、稀疏轨插值、站姿起稿与历史/场景保存。单轮7HTTP已通过；本地52项检查、13+1浏览器及布局已有通过证据，完整线上14项和本次源码CI正在验收。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+2026-10-06：当前version5已上线P1本机手动关键帧，包含姿态/Root编辑、显式写K、稀疏轨插值、站姿起稿与历史/场景保存。本地52项、13+1浏览器/布局、单轮7HTTP、唯一完整线上14项与实际源码CI均通过。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
 
 API/原生限频及无D1边界继续沿用；下面的IDs/资产对应实际P1发布，既有S0浏览器证据另标为历史，不冒充P1线上验收。
 
@@ -46,7 +46,9 @@ version 5 于 `2026-10-06T15:14:55.350Z` 完成一次必要的 7 项 HTTP 检查
 | `assets/index-cqLXFl6s.js` | 907440 | `729511114a8df0d398763d475e319332d96320cf0da7d859a50f03b0f5156b99` |
 | `assets/index-Dh91RS4i.css` | 42602 | `39d3c950dd4d8d7a0e48df9a40116d68ebf211507b04a586141f0dcdc954c3a1` |
 
-当前version5的唯一完整线上14项正在执行，结果尚待记录；本轮源码CI也待实际完成。保存的是正式轨道/基底与权威take，未写入Pose草稿不视为已保存动画；没有云保存或D1写入。实现规则与本地失败/修正记录见 [MANUAL_KEYFRAMES.md](MANUAL_KEYFRAMES.md) 和 [VERIFICATION.md](VERIFICATION.md)。
+version5的唯一完整线上14项于 `2026-10-06T15:16:19.311Z` 开始，190.445秒全部通过，0 skipped/unexpected/flaky；14个console附件均无errors/warnings或pageerror。验证包括原10项和新增4项手K、旧场景/模板固化、保存失败/延迟保存与小屏流程；慢保存时可继续编辑。实际源码CI run37486474465已completed/success，详见验证记录。
+
+保存的是正式轨道/基底与权威take，未写入Pose草稿不视为已保存动画；没有云保存或D1写入。实现规则与本地失败/脚本修正、CSS针对性复核记录见 [MANUAL_KEYFRAMES.md](MANUAL_KEYFRAMES.md) 和 [VERIFICATION.md](VERIFICATION.md)。
 
 ## 历史S0浏览器检查
 
@@ -77,4 +79,4 @@ node infra/prepare-inline-preview.mjs dist /tmp/choreo-worker-build/index.js /tm
 
 恢复官方资产上传后，在已认证的 Wrangler 环境可执行 `npm run deploy`。标准 API 准备工具 `infra/prepare-preview.mjs` 已将 `_headers`/`_redirects` 保留为配置元数据，不作为公开资产。GitHub 自动 CI 已启用，自动 Cloudflare 发布尚未配置。
 
-S0 上线只代表原创演示的交互闭环。真实动作、Avatar、许可、教师验证、生产服务和 MP4 尚未完成；原 M0–M3 仍未通过。
+S0/P1上线代表原创演示和本机编辑闭环。真实动作、Avatar、许可、教师验证、生产服务和MP4尚未完成；原M0–M3仍未通过。

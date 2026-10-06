@@ -67,7 +67,7 @@
 
 本轮 [#5](https://github.com/DFerryman/ChoreographyStudio/issues/5) 的 S0 范围已经完成线上和远端 CI 退出检查。该交付尚未包含手 K；S1 与原 M0–M3 仍未完成。
 
-## P1 手动关键帧 · 已部署，完整线上与CI验收中
+## P1 手动关键帧 · 已上线并完成本轮验收
 
 用户已授权继续写帧与骨骼编辑，规则见 [MANUAL_KEYFRAMES.md](MANUAL_KEYFRAMES.md)。本轮检查需覆盖固定时长与精确末帧、局部四元数/Root 插值、稀疏轨和不可变基底、显式草稿提交与保护、版本/候选失效、撤销及 Scene 保存恢复、旧 take 不重烘焙，以及站姿和模板固化边界。
 
@@ -81,8 +81,14 @@ B 后续复核还发现测试选择的 4–8 秒区间只有边界、没有内�
 
 最终 B 单项于 `2026-10-06T15:05:19.710Z` 开始，测试用时 26.130 秒、报告总时长 28.122 秒，1/1 通过，无 skipped/unexpected/flaky，报告 errors 为空。由第二轮 13 项与最终 B 单项组成的本地 14 项范围均有通过证据；先前尝试、失败与脚本修正记录保留，不把它改写成一次 14 全绿。这些浏览器脚本修正未改生产逻辑。
 
-随后 8 状态布局检查均无横向溢出或 console 错误。视觉审阅发现 390px 的提示略盖头，仅调整 `Stage.css` 的手机提示位置/内距并重新构建；最终 320/390px 对应截图已针对性复核，头部无遮挡，无横向溢出或 console 错误。最终 JavaScript SHA-256 与此前功能已测版相同，只有 CSS/HTML 改变，Worker/API 未变；没有为该小样式改动重跑整套。本地范围已放行，正式部署及其证据仍待记录。
+随后8状态布局检查均无横向溢出或console错误。视觉审阅发现390px提示略盖头，仅调整Stage.css手机提示位置/内距并重新构建；最终320/390px截图已针对性复核，头部无遮挡，无横向溢出或console错误。最终JavaScript SHA-256与此前功能已测版相同，只有CSS/HTML改变，Worker/API未变；没有为小样式改动重跑整套。正式版本证据如下。
 
 本轮 version 5 已实际发布：version `2fac9fa5-5387-425c-9bbb-23a5379d162d`，deployment `1479fdaf-2aa0-44f1-a5dc-10e3f58b1624`，100% 流量，`2026-10-06T15:13:08.85059Z`。下载模块200、345890 bytes，SHA-256 `508ed426ae18b0c74e300c14068513ffa3611b80a97752bfff16d441569c92e8` 与生成器完全一致。`2026-10-06T15:14:55.350Z` 的必要单轮7HTTP全部通过：4资产内容/安全headers、health/capabilities 200与POST projects 501。
 
-唯一完整线上14项与本轮GitHub功能源码/CI正在验收，尚不关闭 [#6](https://github.com/DFerryman/ChoreographyStudio/issues/6)。当前实际bindings仍仅API_RATE_LIMITER与RELEASE_STAGE，无D1/KV/DO/Cloudflare ASSETS；没有新增业务API、公网429 burst或高频验证。上述version4证据保留为历史，不代替P1验收。
+version5唯一完整线上14项于 `2026-10-06T15:16:19.311Z` 开始，190.445秒全部通过，expected14、unexpected/flaky/skipped均为0；14个console附件errors/warnings（含pageerror）均为空。新增4流程覆盖显式姿态/Root写K与草稿保护、旧场景精确恢复和模板固化/取消/范围外/撤销、保存失败及延迟保存中继续编辑、小屏手K操作；延迟保存分支 `editableDuringSave:true`。没有为成功证据重跑第二轮公网流程。
+
+功能源码为 [7a19fbdd9c6b6c8911fa294675de1dca6bcfa29a](https://github.com/DFerryman/ChoreographyStudio/commit/7a19fbdd9c6b6c8911fa294675de1dca6bcfa29a)。47文件Git tree `a9cbdbaa427e962c345d043fc1a282c39eff8842` 与本地暂存完全一致，原MIT blob `5a39dbe0352e210c31c6289236e2a9437930ccdb` 与提交历史保留；不包含私有文档、音乐、凭据或生成/测试输出。
+
+该源码的 [GitHub Actions run37486474465](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37486474465) 已实际completed/success，run更新时间 `2026-10-06T15:22:04Z`；npm ci、check/生产构建、Worker类型、Chromium安装与e2e全部success，失败产物上传按条件skipped。本段及交付状态仅通过后续纯Markdown回填，main paths-ignore避免重复已通过的整套CI，PR检查不变。
+
+[#6](https://github.com/DFerryman/ChoreographyStudio/issues/6) 的本轮P1退出证据已齐。实际bindings仍仅API_RATE_LIMITER与RELEASE_STAGE，无D1/KV/DO/Cloudflare ASSETS；没有新增业务API、公网429 burst或高频验证。version4证据保留为历史，不替代P1验收；S1及原M0–M3仍未完成。

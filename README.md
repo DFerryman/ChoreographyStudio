@@ -4,9 +4,9 @@
 
 **当前交付：S0 工作台与 P1 本机手动关键帧预览。** 程序化骨架、动作与节奏样例均为原创演示；模板与手 K 不调用生成模型。真实动作、人物素材、教师验收、生产服务和 MP4 尚未接入。当前 `preview-1` 契约不冒充原工程包 2.1.0 的生产契约。
 
-version 5 已上线实际姿态编辑、显式写 K、插值播放和场景保存。52 项本地检查、本地浏览器范围（13 项加最终单项复核）及布局通过；部署单轮 7 HTTP 通过，线上完整 14 项与本次源码 CI 正在验收，具体证据见记录。
+version 5 已上线实际姿态编辑、显式写 K、插值播放和场景保存。52 项本地检查、本地浏览器范围（13 项加最终单项复核）及布局通过；部署单轮7HTTP、唯一线上完整14项与本次源码CI全部通过，具体证据见记录。
 
-P1 删除按钮移除当前帧的全部显式轨键。规则见 [手动关键帧设计](docs/MANUAL_KEYFRAMES.md)，由 [#6](https://github.com/DFerryman/ChoreographyStudio/issues/6) 跟踪；源码 CI 与完整线上验收通过后关闭。
+P1 删除按钮移除当前帧的全部显式轨键。规则见 [手动关键帧设计](docs/MANUAL_KEYFRAMES.md)，交付与真实证据由 [#6](https://github.com/DFerryman/ChoreographyStudio/issues/6) 跟踪。
 
 - 在线预览：[打开八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)
 - [阶段计划](docs/ROADMAP.md)
