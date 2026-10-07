@@ -117,7 +117,7 @@ version5唯一完整线上14项于 `2026-10-06T15:16:19.311Z` 开始，190.445�
 
 [#7](https://github.com/DFerryman/ChoreographyStudio/issues/7) 的本轮退出证据齐全，后续只提交实际验收的 Markdown 回填，main 的 paths-ignore 不重跑整套源码 CI。上一轮 v5 证据保留为历史，不代替本次验证；core/API/infra 不变，没有公网 429 burst、高频或 D1 写入测试。S1 及原 M0–M3 仍未通过。
 
-## 2026-10-07 按轨查看、定位和删除 · version 7 本地验证
+## 2026-10-07 按轨查看、定位和删除 · version 7 已上线并验收
 
 本轮补齐选中关节/Root 的显式键状态与单轨删除、全部/选中关节/Root 时间线筛选，以及严格上一/下一显式 K。筛选只改变视图，不写历史或扩展场景契约；待执行删除绑定原来的轨、关节和帧，缺键不提交。core、API、限频及基础设施未改，编辑和保存留在浏览器。阶段跟踪为 [#8](https://github.com/DFerryman/ChoreographyStudio/issues/8)。
 
@@ -125,4 +125,14 @@ version5唯一完整线上14项于 `2026-10-06T15:16:19.311Z` 开始，190.445�
 
 本地单轮 7 项浏览器检查于 `2026-10-07T06:42:49.773Z` 开始，143.118 秒全部通过，unexpected/flaky/skipped 均为 0，7 个 console 附件零 errors/warnings。新增 4 项覆盖单关节删除保留同帧其它轨、Root 删除与空键/末端边界、过滤及跳 K 草稿保护、320/390px 触达/无横向溢出/音频及完整历史保存重开；另外复核 3 个既有流程：旧 v4 精确动作与音频、草稿/保存失败、小屏及真实旋转环/相机隔离。4 个新增流程均实际没有 API 请求。
 
-补充 Root 删除的「写入完整姿态后继续」断言，针对性检查它先写完整姿态再只删 Root、保留 19 旋转与两次提交、撤销重做；该新增分支首轮于 `2026-10-07T06:46:07.204Z` 开始，183.551 秒后超时：脚本在撤销/重做按既有规则回到 0 帧后，未返回有键的 90 帧就点击已禁用的全帧删除。完整姿态写入与仅 Root 删除的前置断言已通过；测试增加明确跳回 90 帧，最终 Root 单项于 `2026-10-07T06:50:05.829Z` 开始，23.945 秒全部通过，零 unexpected/flaky/skipped，console 零 errors/warnings、无 API 请求。产品代码未因这次脚本错误改变，首次失败保留。线上部署、单轮相关流程和实际源码 CI 待发布后补入下文，不用旧 v6 结果替代。
+补充 Root 删除的「写入完整姿态后继续」断言，针对性检查它先写完整姿态再只删 Root、保留 19 旋转与两次提交、撤销重做；该新增分支首轮于 `2026-10-07T06:46:07.204Z` 开始，183.551 秒后超时：脚本在撤销/重做按既有规则回到 0 帧后，未返回有键的 90 帧就点击已禁用的全帧删除。完整姿态写入与仅 Root 删除的前置断言已通过；测试增加明确跳回 90 帧，最终 Root 单项于 `2026-10-07T06:50:05.829Z` 开始，23.945 秒全部通过，零 unexpected/flaky/skipped，console 零 errors/warnings、无 API 请求。产品代码未因这次脚本错误改变，首次失败保留。线上与源码 CI 的实际结果如下，不用旧 v6 证据替代。
+
+线上首次尝试于 `2026-10-07T06:56:30.813Z` 开始，10.823 秒内 4 个页面导航均遇到 `ERR_CERT_AUTHORITY_INVALID`，尚未进入编辑流程；这不是功能通过记录。执行环境的公开代理 CA 公钥 SHA-256 与已有在线 Chromium 包装器的受信 SPKI `n9jEr2dCP1tg9exQzr7xEpZ4TjG2QWO02LUFhmAzII4=` 核对一致；恢复此前已验证的在线浏览器启动配置，保留继承代理和限定证书信任，仅重试这 4 个相关流程，实际结果见下文。没有修改应用或再次上传部署，也未重跑未改范围。
+
+最终 v7 为 `2eb92bb1-7d34-448b-afae-3dfd4c0d28e4`，首次功能 deployment `5e4bde38-3f4f-476f-8374-4fe410b36878`，100%，`2026-10-07T06:55:05.960593Z`。实际下载模块 352118 bytes，SHA-256 `62663af9260aa723948941accc93afc7f276e8b115379fdec0491a4b377363a1` 与生成物逐字节相同；单轮 5 HTTP 于 `06:56:18.166541Z`–`06:56:19.093700Z` 通过，4 资产哈希/安全 headers 一致、health 200。API/infra 未变，未重复 capabilities/POST 或限频 burst。
+
+恢复受信在线浏览器后，实际进入功能流程的一轮相关 4 项于 `2026-10-07T07:00:25.215Z` 开始，63.861 秒全部通过，unexpected/flaky/skipped 均为 0，4 份 console 零 errors/warnings/pageerror，API 请求均为 0。完整覆盖本次单轨删除与基底恢复/其它轨保留、Root 草稿取消/放弃/写入完整姿态后仅删 Root、过滤及相邻 K/草稿保护、320/390px 44px 触达和正式轨/历史/原音频保存重开。桌面和手机截图从这同一轮获取，未另开公网截图会话或重跑未变的整套。浏览器为软件 Chromium/SwiftShader，不将其作为目标设备性能或教学质量证据。
+
+[功能源码 b6dbd231](https://github.com/DFerryman/ChoreographyStudio/commit/b6dbd231a17d4da58ee5f78e122960542da4edb2) 已推送 main，48 文件 Git tree `aac22eb577548698d1bf77cc6e5c31254d5df7ea` 与本地一致，原 MIT blob `5a39dbe0352e210c31c6289236e2a9437930ccdb` 和历史保留；未提交私有文档、用户音频、凭据或生成/测试输出。[真实 GitHub Actions run37584120545](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37584120545) 已 completed/success，head 为本轮功能提交，更新时间 `2026-10-07T07:00:09Z`。npm ci、52 项检查/构建、Worker 类型、Chromium 及完整 e2e 步骤均成功；原始日志明确 `Running 22 tests` / `22 passed (5.0m)`，失败产物上传按条件 skipped，没有触发 CI 重跑。
+
+本轮 [#8](https://github.com/DFerryman/ChoreographyStudio/issues/8) 范围验收完成。当前 binding 仍仅原生 API_RATE_LIMITER 和 RELEASE_STAGE，无 D1/KV/R2/DO；所有编舞、手 K 与 IndexedDB 保存仍在本机，本轮不新增 D1 写入。最终验证记录通过纯 Markdown 提交回填，不重复源码 CI；Cloudflare 同版部署 message 关联最终文档提交，复用以上未变的运行版本和有效检查。S1 真实内容/原契约、教师、MP4、云端场景及 M0–M3 按原门槛保留。

@@ -1,16 +1,47 @@
 # Cloudflare 预览部署
 
-2026-10-07：当前 version 6 已上线直接可见的关节旋转与整体移动操作、Root 世界空间 XYZ 箭头及数值/写 K 入口；修正拖动取消和第二触点隔离。52 项既有检查、最终构建/Worker 类型、本地 18 项范围、单轮 7 HTTP、唯一相关线上 4 项及实际源码 CI 的完整 18 项全部通过。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+2026-10-07：当前 version 7 已上线按关节/Root 查看、单轨删除及筛选跳 K，继续使用显式草稿提交、撤销与本机场景。52 项既有检查、最终构建/Worker 类型、本地 7 项与追加 Root 单项、实际部署及单轮 5 HTTP 通过；恢复浏览器受信代理后相关线上 4 项、实际源码 CI 完整 22 项也全部通过，首次失败与恢复记录保留。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
 
-API/原生限频及无 D1 边界继续沿用；下面的当前 IDs/资产对应实际 v6 发布。既有 S0/v5 证据标为历史，不冒充本次线上验收。
+API/原生限频及无 D1 边界继续沿用；下面的当前 IDs/资产对应实际 v7 发布。既有 S0/v5/v6 证据保留为历史。
 
 ## 固定交付要求
 
 用户要求每轮修改最终都提交并 push 到 `DFerryman/ChoreographyStudio`，同步部署到本 Cloudflare 预览。交付前核对远端提交、实际运行版本和预览结果，验证记录也提交；不能只留本地改动或把构建成功当作发布完成。此要求已写入根目录 `AGENTS.md`。
 
-仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署及必要健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。下表保留 v6 功能版本首次发布记录；后续同版部署的实际 ID、时间及提交由 Cloudflare 部署记录核对。
+仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署及必要健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。当前表保留 v7 功能版本首次发布记录；后续纯文档的同版同步在部署 message 中记录最终源码提交，实际 ID/时间由 Cloudflare 部署记录核对。v6 记录保留在历史章节。
 
-## 当前线上版本
+## 当前线上版本 · version 7
+
+| 项目 | 实际结果 |
+| --- | --- |
+| Worker | `choreo-studio-preview` |
+| Account | `84e421f26c708c0cf437e287eed11fa1` |
+| v7 功能首次发布 Deployment ID | `5e4bde38-3f4f-476f-8374-4fe410b36878` |
+| Version ID | `2eb92bb1-7d34-448b-afae-3dfd4c0d28e4` |
+| Version / 流量 | 7 / 100% |
+| 发布时间 | `2026-10-07T06:55:05.960593Z` |
+| 功能源码 | [b6dbd231](https://github.com/DFerryman/ChoreographyStudio/commit/b6dbd231a17d4da58ee5f78e122960542da4edb2) |
+| 发布方式 | API multipart 上传包含 gzip 静态资产的 Worker；`has_assets=false` |
+| 实际 bindings | `API_RATE_LIMITER`（20/60、namespace 2026100601）与 `RELEASE_STAGE` |
+| 模块大小 | 352118 bytes |
+| 实际下载模块 SHA-256 | `62663af9260aa723948941accc93afc7f276e8b115379fdec0491a4b377363a1` |
+
+实际下载的 `index.js` 与最终可复现生成物逐字节一致；version message 关联同一功能 Git SHA。只保留原生限频与阶段变量，无 D1/KV/R2/DO/真实 ASSETS 绑定。音乐、编舞、轨道编辑、播放和 IndexedDB 场景保存留在本机。
+
+## 当前 version 7 验证
+
+必要单轮 5 HTTP 于 `2026-10-07T06:56:18.166541Z` 开始，`06:56:19.093700Z` 完成，全部通过：4 资产 200 且 bytes/SHA 与最终 dist 一致，安全 headers 保留；health 200 / no-store，stage、preview-1 和 synthetic-demo 正确。API/infra 没有改动，复用此前 API 保护/501 拒绝证据，没有再跑 capabilities/POST 或公网限频 burst。
+
+| 当前资产 | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `assets/index-C_Hml5-F.js` | 920967 | `8448fc352b75ae899ce0b7599d4d0c33b14c70db93c345ab15ba76b4d8b6bc89` |
+| `assets/index-C2d_8p-4.css` | 48287 | `58d5ac45b78de57be7e8d204ae57b4e5a0dd69764f03c01d72962d8468b15f63` |
+| `favicon.svg` | 322 | `883028cbbedddb4251346f961e58174dfe92b20d8fdd7351d7373005f4c2b6ac` |
+| `index.html` | 645 | `76e9bdaad093055e676ca78643a8161a92e350380bbe8dc9bd8f0a09b75c2ed2` |
+
+本地 7 项与追加 Root 单项通过。首次在线浏览器导航因默认执行方式未使用受信代理证书而失败，尚未进入功能；恢复已验证启动配置后，一轮相关线上 4 项于 `2026-10-07T07:00:25.215Z` 开始，63.861 秒全部通过，零 unexpected/flaky/skipped、console errors/warnings 和 API 请求。桌面/手机截图来自此同一轮；保留追加脚本的首轮超时和代理证书失败及对应恢复，未另跑公网整套或截图会话。实际 [源码 CI run37584120545](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37584120545) completed/success、`2026-10-07T07:00:09Z` 更新，日志确认 52 检查与完整 22 项 e2e 通过，head 对应上述功能提交。详情见 [VERIFICATION.md](VERIFICATION.md)。
+
+## 历史 version 6 线上版本
 
 | 项目 | 实际结果 |
 | --- | --- |
@@ -36,7 +67,7 @@ API/原生限频及无 D1 边界继续沿用；下面的当前 IDs/资产对应�
 
 原生限频按 Cloudflare 节点生效且最终一致，共享出口 IP 共用额度；后续鉴权服务应改用账号身份。它不是账户全局费用硬上限，429 仍计 Worker 请求，当前 inline 静态交付也会执行 Worker。后续开放写入前还需业务幂等、写入合并和日写入预算门槛，当前没有宣称生产写入额度已完成。平台边界见 [Rate Limiting binding](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/) 与 [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/)。
 
-## 当前 version 6 验证
+## 历史 version 6 验证
 
 `2026-10-07T05:04:47.316968Z` 至 `05:04:48.743614Z` 执行一次必要的 7 HTTP 检查，全部通过：4 个资产返回 200，SHA-256 与最终 `dist` 完全一致，安全 headers 生效；health/capabilities 返回 200，项目 POST 仍返回 501。实际下载 Worker 模块返回 200，与可复现生成物逐字节一致；settings 仍仅有上述两个 bindings。没有公网 burst、循环检查或服务器写入。
 
