@@ -93,7 +93,7 @@ version5唯一完整线上14项于 `2026-10-06T15:16:19.311Z` 开始，190.445�
 
 [#6](https://github.com/DFerryman/ChoreographyStudio/issues/6) 的本轮P1退出证据已齐。实际bindings仍仅API_RATE_LIMITER与RELEASE_STAGE，无D1/KV/DO/Cloudflare ASSETS；没有新增业务API、公网429 burst或高频验证。version4证据保留为历史，不替代P1验收；S1及原M0–M3仍未完成。
 
-## 2026-10-07 关节操作入口与 Root 箭头 · 本地通过，发布待验
+## 2026-10-07 关节操作入口与 Root 箭头 · version 6 已上线并验收
 
 本次修正默认编排模式选中关节后没有直接编辑入口：选中区域与舞台工具栏提供旋转/整体移动操作、Root 世界空间 XYZ 箭头及数值与写 K 跳转。关节继续父相对旋转，Root 只作整体位移；同帧切工具保留草稿，候选/镜像/教学的显式编辑入口返回原稿。core、API 和部署辅助工具未改，不新增 D1 或业务 API 调用。
 
@@ -107,4 +107,12 @@ version5唯一完整线上14项于 `2026-10-06T15:16:19.311Z` 开始，190.445�
 
 最终仅对新增手势和受影响的原相机流程做针对性复核，于 `2026-10-07T05:02:09.982Z` 开始，33.240 秒完成，2/2 通过，无 unexpected/flaky/skipped。检查使用真实 CDP touch 事件验证 Root 拖动被第二触点打断时姿态/相机保持、之后双指相机手势恢复；按住鼠标切换工具并在画布外松开后，实际选点、相机和新的 Root 拖动恢复。共 18 项本地范围由首轮 16 项和两次相关复核组成，21 个 console 附件均为零 errors/warnings；保留首轮失败与脚本修正，不改写成一次 18 项全绿。
 
-Cloudflare 部署/必要单轮线上流程与本次源码 CI 结果待实际完成后回填。上一轮 v5 的结果保留为历史，不代替本次验证；不重复整套本地测试。
+本次 version 6 已实际发布：version `68f57f01-3e85-4811-a577-83a9e879d854`，deployment `3e4d1b20-04a7-477b-bf3d-9da12bb4b77e`，100% 流量，`2026-10-07T05:03:42.985483Z`。下载模块返回 200，349962 bytes，SHA-256 `7247fe5be3a50f606bf9ad6032e79264e1eaea8ff67829344ec0d9eff4e87dc2` 与生成物一致。`2026-10-07T05:04:47.316968Z` 的必要单轮 7 HTTP 全部通过：4 资产的内容/安全 headers、health/capabilities 200、项目 POST 501；无 D1/KV/DO/R2/真实 ASSETS 绑定或公开写入。
+
+唯一相关线上 4 项于 `2026-10-07T05:05:54.325Z` 开始，56.932 秒全部通过，expected 4，unexpected/flaky/skipped 均为 0；4 个 console 附件均零 errors/warnings。覆盖真实选点后的直接旋转/K 与候选保护、Root 世界箭头/K/撤销/保存/旧场景、手机 320/390px 与 44px 按钮及同帧工具保稿、实际鼠标取消和 CDP 多触点隔离/恢复。新桌面和手机截图均从同一流程获取，不另开公网截图或重跑旧完整套件；未改范围沿用已有证据。
+
+功能源码已发布：[88ad1fdf4e0ac75ead076848d933660b62e98e07](https://github.com/DFerryman/ChoreographyStudio/commit/88ad1fdf4e0ac75ead076848d933660b62e98e07)。47 文件远端 tree `2ecc71a948dc7277a0c2c1b0a819a0f9e211f320` 与本地暂存完全一致，保留原 MIT blob `5a39dbe0352e210c31c6289236e2a9437930ccdb` 和提交历史；不含私有文档、用户音乐、凭据或生成/测试产物。
+
+[GitHub Actions run37574696859](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37574696859) 已实际 completed/success，head 与上述功能 SHA 一致，更新时间 `2026-10-07T05:11:10Z`。npm ci、check/构建、Worker 类型、Chromium 和 e2e 全部 success，失败产物上传按条件 skipped；job logs 明确为 `18 passed (3.8m)`，是一次完整源码 CI。此结论与本地 16/17 后相关复核的记录分别保留，未将本地失败抹去。
+
+[#7](https://github.com/DFerryman/ChoreographyStudio/issues/7) 的本轮退出证据齐全，后续只提交实际验收的 Markdown 回填，main 的 paths-ignore 不重跑整套源码 CI。上一轮 v5 证据保留为历史，不代替本次验证；core/API/infra 不变，没有公网 429 burst、高频或 D1 写入测试。S1 及原 M0–M3 仍未通过。

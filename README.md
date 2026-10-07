@@ -4,11 +4,11 @@
 
 **当前交付：S0 工作台与 P1 本机手动关键帧预览。** 程序化骨架、动作与节奏样例均为原创演示；模板与手 K 不调用生成模型。真实动作、人物素材、教师验收、生产服务和 MP4 尚未接入。当前 `preview-1` 契约不冒充原工程包 2.1.0 的生产契约。
 
-version 5 已上线实际姿态编辑、显式写 K、插值播放和场景保存。52 项本地检查、本地浏览器范围（13 项加最终单项复核）及布局通过；部署单轮7HTTP、唯一线上完整14项与本次源码CI全部通过，具体证据见记录。
+version 6 已上线直接可见的关节旋转/整体移动工具、Root 世界空间箭头和数值/写 K 跳转。姿态先成为草稿，显式写 K 后才改变动画；原有插值、历史和场景保存继续可用。
 
-本次修正选中关节后缺少操作入口的问题：增加可见的旋转/整体移动工具、Root 世界空间箭头和数值/写 K 跳转。本次本地 18 项范围经首轮与相关复核通过，最终构建通过；实际发布与源码 CI 仍待记录，version 5 的结果仅代表上一轮。
+52 项既有检查、最终构建/Worker 类型、本地 18 项范围经首轮与相关复核通过；本次部署单轮 7 HTTP、唯一相关线上 4 项和实际源码 CI 的完整 18 项全部通过。具体证据与历史 v5 范围见记录。
 
-P1 删除按钮移除当前帧的全部显式轨键。规则见 [手动关键帧设计](docs/MANUAL_KEYFRAMES.md)，交付与真实证据由 [#6](https://github.com/DFerryman/ChoreographyStudio/issues/6) 跟踪。
+P1 删除按钮移除当前帧的全部显式轨键。规则见 [手动关键帧设计](docs/MANUAL_KEYFRAMES.md)，初版由 [#6](https://github.com/DFerryman/ChoreographyStudio/issues/6) 记录，本次操作修正由 [#7](https://github.com/DFerryman/ChoreographyStudio/issues/7) 跟踪。
 
 - 在线预览：[打开八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)
 - [阶段计划](docs/ROADMAP.md)

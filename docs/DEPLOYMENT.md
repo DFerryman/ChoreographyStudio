@@ -1,8 +1,8 @@
 # Cloudflare 预览部署
 
-2026-10-06：当前version5已上线P1本机手动关键帧，包含姿态/Root编辑、显式写K、稀疏轨插值、站姿起稿与历史/场景保存。本地52项、13+1浏览器/布局、单轮7HTTP、唯一完整线上14项与实际源码CI均通过。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+2026-10-07：当前 version 6 已上线直接可见的关节旋转与整体移动操作、Root 世界空间 XYZ 箭头及数值/写 K 入口；修正拖动取消和第二触点隔离。52 项既有检查、最终构建/Worker 类型、本地 18 项范围、单轮 7 HTTP、唯一相关线上 4 项及实际源码 CI 的完整 18 项全部通过。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
 
-API/原生限频及无D1边界继续沿用；下面的IDs/资产对应实际P1发布，既有S0浏览器证据另标为历史，不冒充P1线上验收。
+API/原生限频及无 D1 边界继续沿用；下面的当前 IDs/资产对应实际 v6 发布。既有 S0/v5 证据标为历史，不冒充本次线上验收。
 
 ## 当前线上版本
 
@@ -10,15 +10,15 @@ API/原生限频及无D1边界继续沿用；下面的IDs/资产对应实际P1�
 | --- | --- |
 | Worker | `choreo-studio-preview` |
 | Account | `84e421f26c708c0cf437e287eed11fa1` |
-| Deployment ID | `1479fdaf-2aa0-44f1-a5dc-10e3f58b1624` |
-| Version ID | `2fac9fa5-5387-425c-9bbb-23a5379d162d` |
-| Version / 流量 | 5 / 100% |
-| 发布时间 | `2026-10-06T15:13:08.85059Z` |
+| Deployment ID | `3e4d1b20-04a7-477b-bf3d-9da12bb4b77e` |
+| Version ID | `68f57f01-3e85-4811-a577-83a9e879d854` |
+| Version / 流量 | 6 / 100% |
+| 发布时间 | `2026-10-07T05:03:42.985483Z` |
 | 发布方式 | API multipart 上传包含 gzip 静态资产的 Worker 模块 |
 | Cloudflare assets 状态 | `has_assets=false`；本次没有 Cloudflare ASSETS 绑定 |
 | 实际 bindings | `API_RATE_LIMITER`（ratelimit）与 `RELEASE_STAGE`（plain_text） |
-| 模块大小 | 345890 bytes |
-| 实际下载模块 SHA-256 | `508ed426ae18b0c74e300c14068513ffa3611b80a97752bfff16d441569c92e8` |
+| 模块大小 | 349962 bytes |
+| 实际下载模块 SHA-256 | `7247fe5be3a50f606bf9ad6032e79264e1eaea8ff67829344ec0d9eff4e87dc2` |
 
 实际从 Cloudflare 下载的 `index.js` 与仓库 `infra/prepare-inline-preview.mjs` 的稳定生成物逐字节一致。模块包含本次 Web 与带限频保护的 API 构建；生成器为同一 API handler 提供本地 fetch 兼容的资产接口。兼容日期、flags、vars、限频 binding 与 headers 来自版本控制中的 `wrangler.jsonc` 和构建的 `_headers`。两个发布准备工具通过 `infra/worker-metadata.mjs` 保留相同的限频配置。
 
@@ -30,7 +30,26 @@ API/原生限频及无D1边界继续沿用；下面的IDs/资产对应实际P1�
 
 原生限频按 Cloudflare 节点生效且最终一致，共享出口 IP 共用额度；后续鉴权服务应改用账号身份。它不是账户全局费用硬上限，429 仍计 Worker 请求，当前 inline 静态交付也会执行 Worker。后续开放写入前还需业务幂等、写入合并和日写入预算门槛，当前没有宣称生产写入额度已完成。平台边界见 [Rate Limiting binding](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/) 与 [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/)。
 
-## 验证记录
+## 当前 version 6 验证
+
+`2026-10-07T05:04:47.316968Z` 至 `05:04:48.743614Z` 执行一次必要的 7 HTTP 检查，全部通过：4 个资产返回 200，SHA-256 与最终 `dist` 完全一致，安全 headers 生效；health/capabilities 返回 200，项目 POST 仍返回 501。实际下载 Worker 模块返回 200，与可复现生成物逐字节一致；settings 仍仅有上述两个 bindings。没有公网 burst、循环检查或服务器写入。
+
+| 当前资产 | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `index.html` | 645 | `5b1175ed187a8c58d1ff88eea7b0a056dde210a041b6a532931ba02a92dc444e` |
+| `favicon.svg` | 322 | `883028cbbedddb4251346f961e58174dfe92b20d8fdd7351d7373005f4c2b6ac` |
+| `assets/index-CkuO6Doc.js` | 916330 | `9a3204e0d8404f95cf623035662d1cfcf8926740d33835005f4f5c801af8751c` |
+| `assets/index-CXrg_P_F.css` | 45397 | `0bdca2f97bde79406cb45dbea93cf20d19e920ae69173279554a5963143c9371` |
+
+唯一相关线上 4 项于 `2026-10-07T05:05:54.325Z` 开始，56.932 秒全部通过，unexpected/flaky/skipped 均为 0，4 个 console 附件零 errors/warnings。覆盖默认模式真实关节选择/旋转/写 K 与候选隔离、Root 世界箭头/写 K/撤销/保存恢复/旧场景兼容、320/390px 的 44px 操作入口与同帧工具保稿、真实取消与 CDP 多触点后的选点/相机恢复。桌面和手机截图从此单轮流程获取；未额外跑公网整套或截图会话。
+
+功能源码为 [88ad1fdf4e0ac75ead076848d933660b62e98e07](https://github.com/DFerryman/ChoreographyStudio/commit/88ad1fdf4e0ac75ead076848d933660b62e98e07)，47 文件 tree `2ecc71a948dc7277a0c2c1b0a819a0f9e211f320` 与本地完全一致，保留原 MIT 和提交历史。[源码 CI run37574696859](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37574696859) 已实际 completed/success，更新时间 `2026-10-07T05:11:10Z`；npm ci、check/构建、Worker 类型、Chromium 与完整 18 项 e2e 全部通过，失败产物上传按条件 skipped。本轮 [#7](https://github.com/DFerryman/ChoreographyStudio/issues/7) 的退出条件完成；旧 #5/#6 保持完成。此处为后续纯 Markdown 回填，不触发重复源码 CI。
+
+操作仍先形成浏览器内 Pose 草稿，显式写 K 才修改权威动画；正式轨道、原音频和视口/工具设置按 Scene 保存，没有云保存或 D1 写入。详细本地首轮失败、相关复核和当前 CI 结论见 [VERIFICATION.md](VERIFICATION.md)。
+
+## 历史 P1 version 5 验证
+
+上一轮 version `2fac9fa5-5387-425c-9bbb-23a5379d162d`、deployment `1479fdaf-2aa0-44f1-a5dc-10e3f58b1624` 于 `2026-10-06T15:13:08.85059Z` 发布；模块 345890 bytes，SHA-256 `508ed426ae18b0c74e300c14068513ffa3611b80a97752bfff16d441569c92e8`。以下检查与资产均对应该历史版本。
 
 version 5 于 `2026-10-06T15:14:55.350Z` 完成一次必要的 7 项 HTTP 检查，全部通过：
 
