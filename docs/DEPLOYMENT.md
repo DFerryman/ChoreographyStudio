@@ -1,16 +1,44 @@
 # Cloudflare 预览部署
 
-2026-10-07：当前 version 8 已上线场景内姿态复制与两种草稿粘贴，仍须显式写 K。52 项既有检查、最终构建/Worker 类型、单轮新增本地 4 项与线上 4 项、5 HTTP，以及[实际源码 CI 完整 26 项](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37613142651)均通过。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+2026-10-07：当前 version 9 已上线全身取景与选中关节聚焦，保留当前观看方向和可见姿态，不修改动作/草稿或暂停播放。60 项检查/构建/Worker 类型、本地 4 项范围及相关复核、单轮线上 4 项和 5 HTTP，以及[实际源码 CI 完整 30 项](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37627848531)均通过。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
 
-API/原生限频及无 D1 边界继续沿用；下面的当前 IDs/资产对应实际 v8 发布。既有 S0/v5/v6/v7 证据保留为历史。
+API/原生限频及无 D1 边界继续沿用；下面当前 IDs/资产对应实际 v9 发布。S0/v5–v8 证据保留为历史。
 
 ## 固定交付要求
 
 用户要求每轮修改最终都提交并 push 到 `DFerryman/ChoreographyStudio`，同步部署到本 Cloudflare 预览。交付前核对远端提交、实际运行版本和预览结果，验证记录也提交；不能只留本地改动或把构建成功当作发布完成。此要求已写入根目录 `AGENTS.md`。
 
-仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署及必要健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。当前表保留 v8 功能版本首次发布记录；后续纯文档的同版同步在部署 message 中记录最终源码提交，实际 ID/时间由 Cloudflare 部署记录核对。v6/v7 记录保留在历史章节。
+仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署及必要健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。当前表保留 v9 功能版本首次发布记录；后续纯文档的同版同步在部署 message 中记录最终源码提交，实际 ID/时间由 Cloudflare 部署记录核对。v6/v7 记录保留在历史章节。
 
-## 当前线上版本 · version 8
+## 当前线上版本 · version 9
+
+| 项目 | 实际结果 |
+| --- | --- |
+| Worker / Account | `choreo-studio-preview` / `84e421f26c708c0cf437e287eed11fa1` |
+| v9 功能首次发布 Deployment ID | `fc8c7bcb-378b-4d15-9f68-639bb7179db4` |
+| Version ID / number / 流量 | `4f83a485-6508-4f10-9e8e-6a3b0c8ec796` / 9 / 100% |
+| 发布时间 | `2026-10-07T13:22:43.653545Z` |
+| 功能源码 | [b4381724](https://github.com/DFerryman/ChoreographyStudio/commit/b43817249a9ade4e68bc9900ef273b3e47fdec0f) |
+| 发布方式 | multipart 上传包含 gzip 静态资产的 Worker；`has_assets=false` |
+| 实际 bindings | `API_RATE_LIMITER`（20/60）与 `RELEASE_STAGE`，无 D1/KV/R2/DO/真实 ASSETS |
+| 实际模块大小 / SHA-256 | 355346 bytes / `d39e30c0e5c52f925a3a53bc2590bd151a7fa8b8e0fb0dbf5706d904ea3a8add` |
+
+## 当前 version 9 验证
+
+60 项检查、最终构建、Worker 类型与离线 dry-run 通过。本地 4 个新增范围由首轮 3 项和最终相关单项复核覆盖，保留数值格式断言及加强画布指针断言的记录。实际线上单轮 4 项于 `2026-10-07T13:24:30.561Z` 开始，53.841 秒全部通过，errors/warnings/API 请求和 unexpected/flaky/skipped 为 0；新增 320/390px 控件 >=44px，无横向溢出，相机/正式动作/原音频保存恢复一致。
+
+唯一 5 HTTP 于 `2026-10-07T13:23:52.194430+00:00`–`2026-10-07T13:23:53.167641+00:00` 全通过，4 资产内容/安全 headers 与 health 200/no-store 匹配。没有未改 API 的重复探测、公网限频 burst 或 D1 写入。实际 [源码 CI run37627848531](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37627848531) completed/success，`2026-10-07T13:27:45Z` 更新，完整 60 检查与 30 浏览器流程成功；不触发重跑。
+
+| 当前资产 | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `assets/index-Ba2BRLq3.css` | 50274 | `6a31b7163e91973f5ae5b2eb30399637d9dac16090b8877f2a4cf0db1d756231` |
+| `assets/index-Ctpwz7OU.js` | 927472 | `d64510d02c2e837925302410c14a47eda59bc8539fa0b9d601de3cabc917374b` |
+| `favicon.svg` | 322 | `883028cbbedddb4251346f961e58174dfe92b20d8fdd7351d7373005f4c2b6ac` |
+| `index.html` | 645 | `dd7fd01c4bfc87d101a5c4ce33de79d7a60348bb9af0a56beaf44f5c3ed02dda` |
+
+最终文档以纯 Markdown 提交 push，Cloudflare 复用同一 v9 version 的 deployment message 关联最终文档 SHA；无运行代码/资产变化，不再次上传或重跑公共验证。详细结果见 [VERIFICATION.md](VERIFICATION.md)。
+
+## 历史 version 8 线上版本
 
 | 项目 | 实际结果 |
 | --- | --- |
@@ -25,11 +53,11 @@ API/原生限频及无 D1 边界继续沿用；下面的当前 IDs/资产对应�
 
 实际下载模块与可复现生成物逐字节一致，version message 关联完整功能 Git SHA；API bundle 与 v7 相同。无 D1/KV/R2/DO/真实 ASSETS 绑定，音乐、姿态复用、K/烘焙与 IndexedDB 保存均在浏览器。
 
-## 当前 version 8 验证
+## 历史 version 8 验证
 
 唯一 5 HTTP 于 `2026-10-07T11:20:25.454604Z`–`11:20:27.111684Z` 全通过，4 资产 bytes/hash/安全 headers 与最终 dist 相同，health 200/no-store。API/infra 未改，复用既有 API 保护/501 证据，未另跑 capabilities、POST 或限频 burst。
 
-| 当前资产 | Bytes | SHA-256 |
+| v8 历史资产 | Bytes | SHA-256 |
 | --- | ---: | --- |
 | `assets/index-Br0b-ptV.css` | 49517 | `a2255a09e7e9891ebd7e6556f3b9ef4ee2f1a45b38b9d880d2e523f4ebe40cdb` |
 | `assets/index-CvrUMSNe.js` | 923879 | `d1ce8917038d3cfc54b724e4d942e433e9221985ca108eadeb2b61f0a9394f3c` |
