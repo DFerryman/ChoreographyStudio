@@ -16,6 +16,18 @@
 .kf-draft-note, .kf-readonly-note { color: #a48961; background: #fffaf2; border: 1px solid #f0e3ce; border-radius: 5px; padding: 9px 10px; font-size: 11px; line-height: 1.8; margin-top: 13px; }
 .kf-draft-note button { color: #9a845f; margin-left: 8px; font-size: 11px; padding: 2px 0; text-decoration: underline; text-underline-offset: 3px; }
 .kf-readonly-note { color: #8292b0; border-color: #e2e9f8; background: #f5f8ff; }
+.kf-pose-reuse { margin-top: 16px; min-width: 0; padding: 12px; border: 1px solid #e4eaf4; border-radius: 7px; background: #f9fbff; }
+.kf-pose-reuse .kf-group-heading { flex-wrap: wrap; gap: 5px 10px; }
+.kf-pose-reuse .kf-group-heading > span { font-size: 10px; color: #95a1b7; }
+.kf-clipboard-status { margin: 7px 0 9px; color: #95a1b7; font-size: 11px; line-height: 1.8; font-variant-numeric: tabular-nums; }
+.kf-clipboard-status.ready { color: #617fae; }
+.kf-pose-copy, .kf-pose-paste-actions > button { display: inline-flex; justify-content: center; align-items: center; gap: 5px; min-width: 0; min-height: 44px; padding: 7px 6px; border: 1px solid #dde5f1; border-radius: 5px; background: #fff; color: #607797; font-size: 11px; line-height: 1.5; transition: background .15s, border-color .15s; }
+.kf-pose-copy { width: 100%; }
+.kf-pose-paste-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+.kf-pose-copy:not(:disabled):hover, .kf-pose-paste-actions > button:not(:disabled):hover { background: #f0f5ff; border-color: #b8c9e8; }
+.kf-pose-copy:disabled, .kf-pose-paste-actions > button:disabled { opacity: .45; cursor: not-allowed; }
+.kf-pose-reuse > p { color: #7e8ca3; font-size: 10px; line-height: 1.8; margin-top: 9px; }
+.kf-clipboard-note { display: block; color: #9aa5b9; font-size: 10px; line-height: 1.8; margin-top: 4px; }
 .kf-transform-group { margin-top: 18px; border-top: 1px solid #edf1f8; padding-top: 15px; }
 .kf-transform-active { border-top-color: #b8c9ef; }
 .kf-transform-active .kf-group-heading h3 { color: #4f73b9; }

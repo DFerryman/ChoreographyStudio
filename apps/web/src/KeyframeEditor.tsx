@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Diamond, RotateCcw, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ClipboardPaste, Copy, Diamond, RotateCcw, Trash2 } from 'lucide-react';
 import { EDITABLE_JOINT_NAMES, ROOT_TRANSLATION_LIMITS, frameTime, getKeyframeFrames, lastFrame, rotationFromDegrees, rotationToDegrees, type JointName, type KeyframeSequence, type Pose, type Vec3 } from '../../../packages/core/src';
 import { STAGE_JOINT_LABELS, type StageTransformTool } from './Stage';
 import './KeyframeEditor.css';
@@ -14,6 +14,7 @@ export type KeyframeEditorProps = {
   mirror: boolean;
   readOnly?: boolean;
   transformTool?: StageTransformTool;
+  clipboard: { frame: number; fromDraft: boolean } | null;
   onFrame: (frame: number) => void;
   onTime: (time: number) => void;
   onPose: (pose: Pose) => void;
@@ -25,6 +26,8 @@ export type KeyframeEditorProps = {
   onDeleteJoint: () => void;
   onDeleteRoot: () => void;
   onNeutral: () => void;
+  onCopyPose: () => void;
+  onPastePose: (includeRoot: boolean) => void;
 };
 
 function neighboringFrames(frames: number[], frame: number) {
@@ -98,6 +101,17 @@ export function KeyframeEditor(props: KeyframeEditorProps) {
     {mirror && <div className="kf-readonly-note">镜像仅用于观看。点舞台「旋转」或「移动（整体）」关闭镜像并继续编辑；已有草稿会保留。</div>}
     {props.readOnly && <div className="kf-readonly-note">当前为观看状态。点舞台旋转或移动，回原稿编辑。</div>}
     {playing && <div className="kf-readonly-note">播放中暂停编辑。点舞台旋转或移动，暂停到当前帧。</div>}
+    <section className="kf-pose-reuse" aria-label="姿态复用">
+      <div className="kf-group-heading"><h3>姿态复用</h3><span>仅当前场景</span></div>
+      <div className={`kf-clipboard-status ${props.clipboard ? 'ready' : ''}`} aria-label="已复制姿态" role="status">{props.clipboard ? `第 ${props.clipboard.frame} 帧 · ${props.clipboard.fromDraft ? '姿态草稿' : '动画姿态'}` : '未复制姿态'}</div>
+      <button className="kf-pose-copy" disabled={locked} onClick={props.onCopyPose}><Copy size={13} aria-hidden="true" />复制当前姿态</button>
+      <div className="kf-pose-paste-actions">
+        <button disabled={!props.clipboard || locked} onClick={() => props.onPastePose(false)}><ClipboardPaste size={13} aria-hidden="true" />粘贴关节姿态</button>
+        <button disabled={!props.clipboard || locked} onClick={() => props.onPastePose(true)}><ClipboardPaste size={13} aria-hidden="true" />粘贴姿态与位置</button>
+      </div>
+      <p>粘贴先成为草稿，写 K 后生效。关节姿态保留当前位置，姿态与位置同时复用 Root。</p>
+      <span className="kf-clipboard-note">内存暂存 · 切换场景或刷新后清空</span>
+    </section>
     <div id="kf-rotation-controls" className={`kf-transform-group ${props.transformTool === 'rotate' ? 'kf-transform-active' : ''}`}>
       <div className="kf-group-heading"><h3>局部旋转</h3><span>{selectedJoint ? STAGE_JOINT_LABELS[selectedJoint] : '请选择关节'}</span></div>
       <p>{selectedJoint && !editable ? '末端节点只读；请选择肩、肘、髋等可旋转骨骼。' : props.transformTool === 'rotate' ? '拖动舞台旋转环，或填写 XYZ 角度（相对父骨骼）。' : '相对父骨骼 · XYZ 角度 · 舞台旋转工具可显示操作环'}</p>

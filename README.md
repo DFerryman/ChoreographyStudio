@@ -6,9 +6,11 @@
 
 version 7 已上线按关节/Root 查看、单轨删除与筛选跳 K，保留直接可见的关节旋转/整体移动工具、Root 世界空间箭头和数值/写 K 跳转。姿态先成为草稿，显式写 K 后才改变动画；原有插值、历史和场景保存继续可用。
 
-本轮 52 项既有检查、最终构建/Worker 类型、7 项本地范围及追加 Root 单项通过；实际 v7 部署、5 HTTP、相关线上 4 项和源码 CI 完整 22 项全部通过。首次脚本超时和浏览器代理证书失败及相应恢复保留在验证记录；v5/v6 证据为历史。
+v7 的 52 项既有检查、最终构建/Worker 类型、7 项本地范围及追加 Root 单项通过；实际 v7 部署、5 HTTP、相关线上 4 项和源码 CI 完整 22 项全部通过。首次脚本超时和浏览器代理证书失败及相应恢复保留在验证记录；v5/v6 证据为历史。
 
 version 7 的轨道编辑可用：查看当前关节/Root 的显式 K 状态，分别删除当前关节、Root 或此帧全部轨键，按上一个/下一个 K 导航，并筛选全部、当前关节或 Root 时间线。本轮实际验收与发布记录已齐，由 [#8](https://github.com/DFerryman/ChoreographyStudio/issues/8) 跟踪。规则见 [手动关键帧设计](docs/MANUAL_KEYFRAMES.md)；初版与入口修正分别由 [#6](https://github.com/DFerryman/ChoreographyStudio/issues/6)、[#7](https://github.com/DFerryman/ChoreographyStudio/issues/7) 记录。
+
+**当前开发：version 8 姿态复用。** 在同一场景复制当前原稿姿态或草稿，再到另一帧粘贴为待写草稿，减少重复摆姿。可选择只复制旋转、保留目标 Root，或连同 Root 一起复制；只读末端旋转保持目标姿态。复制不修改作品，粘贴仍须显式写 K。此阶段正在实现，尚未完成验收与发布；剪贴板仅在页面内存，不调用系统剪贴板或服务，不增加 D1 写入。
 
 - 在线预览：[打开八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)
 - [阶段计划](docs/ROADMAP.md)

@@ -136,3 +136,13 @@ version5唯一完整线上14项于 `2026-10-06T15:16:19.311Z` 开始，190.445�
 [功能源码 b6dbd231](https://github.com/DFerryman/ChoreographyStudio/commit/b6dbd231a17d4da58ee5f78e122960542da4edb2) 已推送 main，48 文件 Git tree `aac22eb577548698d1bf77cc6e5c31254d5df7ea` 与本地一致，原 MIT blob `5a39dbe0352e210c31c6289236e2a9437930ccdb` 和历史保留；未提交私有文档、用户音频、凭据或生成/测试输出。[真实 GitHub Actions run37584120545](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37584120545) 已 completed/success，head 为本轮功能提交，更新时间 `2026-10-07T07:00:09Z`。npm ci、52 项检查/构建、Worker 类型、Chromium 及完整 e2e 步骤均成功；原始日志明确 `Running 22 tests` / `22 passed (5.0m)`，失败产物上传按条件 skipped，没有触发 CI 重跑。
 
 本轮 [#8](https://github.com/DFerryman/ChoreographyStudio/issues/8) 范围验收完成。当前 binding 仍仅原生 API_RATE_LIMITER 和 RELEASE_STAGE，无 D1/KV/R2/DO；所有编舞、手 K 与 IndexedDB 保存仍在本机，本轮不新增 D1 写入。最终验证记录通过纯 Markdown 提交回填，不重复源码 CI；Cloudflare 同版部署 message 关联最终文档提交，复用以上未变的运行版本和有效检查。S1 真实内容/原契约、教师、MP4、云端场景及 M0–M3 按原门槛保留。
+
+## 2026-10-07 场景内姿态复用 · version 8 验证中
+
+本轮只补充当前原稿/草稿的内存复制，以及关节旋转或旋转加 Root 粘贴。粘贴仍为草稿，显式 K 才提交；保留目标六个只读末端。复制缓冲不进入场景、历史或 JSON；应用场景、确认改音乐及刷新清空。core、Stage、API、基础设施和既有数据契约均未改。
+
+`npm run check` 于 11:09:19 UTC 执行：52 项既有检查与 TypeScript/Vite 生产构建通过。实现最终状态另经 `npm run build` 通过；Worker 类型及使用临时日志/配置目录的 Wrangler 4.147.0 离线 dry-run 通过。构建保留既有超过 500 kB 的 chunk 提示，未把它当作性能达标或已上线证据。
+
+本地单轮新增 4 项于 `2026-10-07T11:12:23.918Z` 开始，84.161 秒全部通过，unexpected/flaky/skipped 和报告 errors 均为 0；四份浏览器诊断的 errors/warnings/API 请求均为 0。覆盖来源草稿与独立复制缓冲、只粘旋转保留 Root、目标 6 个末端保留、部分/完整 K、相同粘贴无草稿/提交、已有草稿取消/放弃/写入后继续、旧 take 超界 Root 粘贴限制、撤销重做、保存重开原音频 SHA、缓存清空和 320/390px 新控件 >=44px/无页面横向溢出。
+
+GitHub/Cloudflare 发布与必要线上验收正在进行；结果在完成后回填，不复用 v7 的浏览器或 CI 数量作为本轮成绩。本轮编辑保持浏览器本机，未新增 D1 调用或云端写入。

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDownToLine, ArrowRight, ArrowUpRight, Check, CheckCircle2, CircleHelp, Copy, FileAudio, FolderOpen, GitBranch, Headphones, Layers3, LoaderCircle, MousePointer2, Move3D, Pause, Pencil, Play, Plus, Redo2, Repeat2, Rotate3D, RotateCcw, Save, SlidersHorizontal, Sparkles, Undo2, Upload, Volume2, X } from 'lucide-react';
-import { bakePlan, bakeKeyframeSequence, countAt, createNeutralTake, EDITABLE_JOINT_NAMES, frameAtTime, frameTime, getKeyframeCount, makeCountMap, makeKeyframeSequence, makePlan, removePoseKeyframe, removeRootKeyframe, removeRotationKeyframe, replaceSlot, sampleTake, setPoseKeyframe, upsertRootKeyframe, upsertRotationKeyframe, type ArrangementPlan, JOINT_NAMES, type BakedTake, type CountMap, type JointName, type KeyframeSequence, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
+import { bakePlan, bakeKeyframeSequence, countAt, createNeutralTake, EDITABLE_JOINT_NAMES, frameAtTime, frameTime, getKeyframeCount, makeCountMap, makeKeyframeSequence, makePlan, removePoseKeyframe, removeRootKeyframe, removeRotationKeyframe, replaceSlot, ROOT_TRANSLATION_LIMITS, sampleTake, setPoseKeyframe, upsertRootKeyframe, upsertRotationKeyframe, type ArrangementPlan, JOINT_NAMES, type BakedTake, type CountMap, type JointName, type KeyframeSequence, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
 import { Stage, STAGE_JOINT_LABELS, type StageCamera, type StageTransformTool, type StageView } from './Stage';
 import { demoAudio } from './demoAudio';
 import { deleteScene, duplicateScene, listScenes, loadCurrentScene, loadScene, renameScene, saveScene, setCurrentScene as selectStoredScene } from './storage';
@@ -11,7 +11,9 @@ type Snapshot = { title: string; countMap: CountMap; plan: ArrangementPlan | nul
 type Session = { history: Snapshot[]; historyIndex: number; revision: number; audioDuration: number; teacherCheckedRevision: number | null };
 type SceneAction = { type: 'new' } | { type: 'open' | 'copy' | 'delete'; id: string };
 type KeyframeDeleteTarget = { kind: 'joint'; joint: JointName; frame: number } | { kind: 'root' | 'pose'; frame: number };
-type PoseAction = { type: 'seek'; time: number } | { type: 'mode'; mode: 'arrange' | 'keyframes' } | { type: 'scene'; action: SceneAction } | { type: 'history'; direction: -1 | 1 } | { type: 'selection'; index: number } | { type: 'candidate'; simpler: boolean } | { type: 'deleteKey'; target: KeyframeDeleteTarget } | { type: 'play' | 'save' | 'music' | 'generate' | 'adopt' | 'neutral' | 'teaching' };
+type PoseClipboard = { pose: Pose; frame: number; fromDraft: boolean; sceneId: string };
+type PosePasteAction = { type: 'pastePose'; pose: Pose; includeRoot: boolean; frame: number; sceneId: string; countMapId: string };
+type PoseAction = { type: 'seek'; time: number } | { type: 'mode'; mode: 'arrange' | 'keyframes' } | { type: 'scene'; action: SceneAction } | { type: 'history'; direction: -1 | 1 } | { type: 'selection'; index: number } | { type: 'candidate'; simpler: boolean } | { type: 'deleteKey'; target: KeyframeDeleteTarget } | PosePasteAction | { type: 'play' | 'save' | 'music' | 'generate' | 'adopt' | 'neutral' | 'teaching' };
 type ResetAction = 'generate' | 'adopt' | 'music' | 'neutral';
 type Candidate = { baseRevision: number; slotIndex: number; plan: ArrangementPlan; take: BakedTake };
 const initialMap = () => makeCountMap({ bpm: 120, musicBeatsPerDanceCount: 1, firstCountSourceSeconds: 0, startOctet: 0, octetCount: 8, audioDurationSeconds: 40 });
@@ -57,6 +59,7 @@ export default function App() {
   const [editorMode, setEditorMode] = useState<'arrange' | 'keyframes'>('arrange');
   const [transformTool, setTransformTool] = useState<StageTransformTool>('select');
   const [poseDraft, setPoseDraft] = useState<Pose | null>(null);
+  const [poseClipboard, setPoseClipboard] = useState<PoseClipboard | null>(null);
   const [pendingPoseAction, setPendingPoseAction] = useState<PoseAction | null>(null);
   const [queuedPoseAction, setQueuedPoseAction] = useState<PoseAction | null>(null);
   const [pendingResetAction, setPendingResetAction] = useState<ResetAction | null>(null);
@@ -271,6 +274,7 @@ export default function App() {
     setCandidate(null); setPreviewCandidate(false); setPage('studio'); setEditorMode(viewer.editorMode ?? 'arrange');
     setTransformTool(viewer.transformTool ?? (viewer.editorMode === 'keyframes' ? 'rotate' : 'select'));
     poseDraftRef.current = null; setPoseDraft(null); poseDraftBaseline.current = null;
+    setPoseClipboard(null);
     sceneChangeVersion.current += 1; setSaveStatus(saved ? 'saved' : 'dirty');
   }
   async function save(): Promise<boolean> { if (guardPose({ type: 'save' })) return false; return performSave(); }
@@ -406,7 +410,7 @@ export default function App() {
     stopAudition(); pause();
     setAudioBlob(draftBlob); setAudioName(draftName); setCandidate(null); setPreviewCandidate(false); setTime(0); setSelected(0);
     setSession(previous => ({ history: [{ title: draftTitle.trim() || '未命名组合', countMap: draftMap!, plan: null, take: null }], historyIndex: 0, revision: previous.revision + 1, audioDuration: draftDuration, teacherCheckedRevision: null }));
-    clearPoseDraft(); setPendingPoseAction(null); setQueuedPoseAction(null); markSceneDirty(); setCreateOpen(false); setPage('studio'); setEditorMode('arrange'); setTransformTool('select');
+    clearPoseDraft(); setPoseClipboard(null); setPendingPoseAction(null); setQueuedPoseAction(null); markSceneDirty(); setCreateOpen(false); setPage('studio'); setEditorMode('arrange'); setTransformTool('select');
     setCurrentScene(previous => ({ ...previous, name: draftTitle.trim() || '未命名场景' }));
     setNotice('当前场景的数拍和选段已确认。现在可以生成模板初稿。');
   }
@@ -425,6 +429,33 @@ export default function App() {
     if (!posesDiffer(next, reference)) { clearPoseDraft(true); return; }
     if (!poseDraftRef.current) poseDraftBaseline.current = { status: saveStatus === 'saving' ? 'dirty' : saveStatus, version: sceneChangeVersion.current };
     const copied = clonePose(next); poseDraftRef.current = copied; setPoseDraft(copied); setSaveStatus('dirty');
+  }
+  function copyPose() {
+    if (!active.take || !manualEditing || playing || mirror || busy) return;
+    const fromDraft = !!poseDraftRef.current;
+    const source = poseDraftRef.current ?? sampleTake(active.take, frameTime(editorFrame, active.countMap.durationSeconds));
+    setPoseClipboard({ pose: clonePose(source), frame: editorFrame, fromDraft, sceneId: currentScene.id });
+    setNotice(`已复制第 ${editorFrame} 帧${fromDraft ? '的姿态草稿' : '的原稿姿态'}，可在本场景其他帧粘贴为草稿。`);
+  }
+  function pastePose(includeRoot: boolean) {
+    if (!active.take || !poseClipboard || poseClipboard.sceneId !== currentScene.id || !manualEditing || playing || mirror || busy) return;
+    const action: PosePasteAction = { type: 'pastePose', pose: clonePose(poseClipboard.pose), includeRoot, frame: editorFrame, sceneId: currentScene.id, countMapId: active.countMap.id };
+    if (guardPose(action)) return;
+    performPastePose(action);
+  }
+  function performPastePose(action: PosePasteAction) {
+    if (!active.take || !manualEditing || playing || mirror || busy) return;
+    if (action.sceneId !== currentScene.id || action.frame !== editorFrame || action.countMapId !== active.countMap.id) { setNotice('目标场景、帧或数拍已改变，请重新粘贴姿态。'); return; }
+    const reference = sampleTake(active.take, frameTime(action.frame, active.countMap.durationSeconds));
+    const next = clonePose(reference);
+    for (const joint of EDITABLE_JOINT_NAMES) next.joints[joint] = [...action.pose.joints[joint]];
+    if (action.includeRoot) {
+      const bounds = [ROOT_TRANSLATION_LIMITS.x, ROOT_TRANSLATION_LIMITS.y, ROOT_TRANSLATION_LIMITS.z];
+      next.root = action.pose.root.map((value, axis) => Math.max(bounds[axis][0], Math.min(bounds[axis][1], value))) as Vec3;
+    }
+    const differs = posesDiffer(next, reference);
+    updatePoseDraft(next);
+    setNotice(differs ? `已粘贴${action.includeRoot ? '完整姿态' : '局部旋转'}到第 ${action.frame} 帧，显式写 K 后才进入动画。` : '粘贴姿态与本帧相同，没有新增草稿或关键帧。');
   }
   function handleJointRotation(joint: JointName, rotation: Quat, phase: 'start' | 'change' | 'end') {
     if (!active.take || !EDITABLE_JOINT_NAMES.includes(joint) || !manualEditing || playing || mirror || phase === 'start') return;
@@ -528,6 +559,7 @@ export default function App() {
       case 'adopt': adopt(); break;
       case 'neutral': startNeutral(); break;
       case 'deleteKey': deleteKeyframe(action.target); break;
+      case 'pastePose': performPastePose(action); break;
       case 'teaching': openTeachingPreview(); break;
     }
   }
@@ -584,7 +616,7 @@ export default function App() {
             <div className="scene-spacebar"><span>右手坐标 · Y↑ · +Z前向 · XZ地面 · 1单位=1m</span><span className="camera-coordinates" aria-label="相机世界坐标">相机 <b>X</b>{camera?.position[0].toFixed(2) ?? '—'} <b>Y</b>{camera?.position[1].toFixed(2) ?? '—'} <b>Z</b>{camera?.position[2].toFixed(2) ?? '—'}</span></div>
             <div className="player"><div className="player-main"><button className="play-button" aria-label={playing ? '暂停' : '播放'} disabled={!displayedTake || !ready} onClick={togglePlay}>{playing ? <Pause size={19} fill="currentColor" /> : <Play size={19} fill="currentColor" />}</button><span className="time-display">{seconds(time)}<span> / {seconds(active.countMap.durationSeconds)}</span></span><input aria-label="播放进度" type="range" min={0} max={active.countMap.durationSeconds} step={0.01} value={time} disabled={!displayedTake} onChange={event => seek(Number(event.target.value))} style={{ '--progress': `${time / active.countMap.durationSeconds * 100}%` } as React.CSSProperties} /><button className={`icon-button ${loop ? 'toggled' : ''}`} aria-label="循环当前八拍" title="循环当前八拍" aria-pressed={loop} onClick={() => { setLoop(!loop); markSceneDirty(); if (!loop) seek(selected * active.countMap.durationSeconds / active.countMap.octetCount); }}><Repeat2 size={18} /></button><select aria-label="播放速度" value={rate} onChange={event => { setRate(Number(event.target.value)); markSceneDirty(); }}><option value={0.5}>0.5×</option><option value={0.75}>0.75×</option><option value={1}>1×</option></select></div><div className="player-options"><button className={mirror ? 'option active' : 'option'} aria-pressed={mirror} onClick={() => changeMirror(!mirror)}><Copy size={14} />镜像观看</button><button className={countSound ? 'option active' : 'option'} aria-pressed={countSound} onClick={() => { setCountSound(!countSound); markSceneDirty(); }}><Volume2 size={15} />节拍提示</button><span>{mirror ? "镜像仅影响观看，坐标保持原始世界空间" : "播放与视角不修改动作数据"}</span></div></div><div className="joint-inspector"><label>{editorMode === 'keyframes' ? '选择关节 · 局部旋转' : '选择关节 · 世界坐标'}<select aria-label="选择关节" value={selectedJoint ?? ""} onChange={event => chooseJoint((event.target.value || null) as JointName | null)}><option value="">未选择</option>{JOINT_NAMES.map(joint => <option key={joint} value={joint}>{STAGE_JOINT_LABELS[joint]}</option>)}</select></label><div className="joint-coordinates" aria-label="选中关节世界坐标"><span>{selectedJoint ? `${STAGE_JOINT_LABELS[selectedJoint]} · 世界坐标（m）` : "点击骨架关节点查看坐标"}</span><strong>{jointPosition ? jointPosition.map((value, index) => <span key={index}><b>{["X", "Y", "Z"][index]}</b>{value.toFixed(3)}</span>) : <span className="joint-selection-note">选择关节后，可直接旋转摆姿；移动作用于整个角色。</span>}</strong></div><div className="joint-actions"><span>{previewCandidate ? '候选预览 · 回原稿再编辑' : selectedJoint && !editableSelectedJoint ? '末端只读 · 可以移动角色' : '摆好姿态后，显式写入 K'}</span><div><button className="joint-action-button" disabled={!!rotateUnavailable} title={rotateUnavailable ?? (previewCandidate ? '回原稿并编辑关节旋转' : '暂停，显示选中关节的局部旋转环')} onClick={() => chooseTransformTool('rotate')}><Rotate3D size={14} />旋转关节</button><button className="joint-action-button" disabled={!active.take || !!busy} title={!active.take ? '先生成动作初稿' : previewCandidate ? '回原稿并移动整个角色' : 'Root 世界空间位移；移动整个角色'} onClick={() => chooseTransformTool('translate')}><Move3D size={14} />移动角色</button></div>{rotateUnavailable && <small>{rotateUnavailable}</small>}</div></div>
           </section>
-          <aside className={editorMode === 'keyframes' ? 'inspector keyframe-inspector' : 'inspector'}>{editorMode === 'keyframes' && manualSequence && editorPose ? <KeyframeEditor sequence={manualSequence} pose={editorPose} frame={editorFrame} selectedJoint={selectedJoint} dirty={!!poseDraft} playing={playing} mirror={mirror} readOnly={!manualEditing} transformTool={transformTool} onFrame={frame => seek(frameTime(frame, active.countMap.durationSeconds))} onTime={next => seek(frameTime(frameAtTime(next, active.countMap.durationSeconds), active.countMap.durationSeconds))} onPose={updatePoseDraft} onWriteJoint={() => { writeKeyframe('joint'); }} onWriteRoot={() => { writeKeyframe('root'); }} onWritePose={() => { writeKeyframe('pose'); }} onDiscard={() => clearPoseDraft(true)} onDelete={() => deleteKeyframe()} onDeleteJoint={() => { if (selectedJoint) deleteKeyframe({ kind: 'joint', joint: selectedJoint, frame: editorFrame }); }} onDeleteRoot={() => deleteKeyframe({ kind: 'root', frame: editorFrame })} onNeutral={startNeutral} /> : <>
+          <aside className={editorMode === 'keyframes' ? 'inspector keyframe-inspector' : 'inspector'}>{editorMode === 'keyframes' && manualSequence && editorPose ? <KeyframeEditor sequence={manualSequence} pose={editorPose} frame={editorFrame} selectedJoint={selectedJoint} dirty={!!poseDraft} playing={playing} mirror={mirror} readOnly={!manualEditing || !!busy} transformTool={transformTool} clipboard={poseClipboard ? { frame: poseClipboard.frame, fromDraft: poseClipboard.fromDraft } : null} onCopyPose={copyPose} onPastePose={pastePose} onFrame={frame => seek(frameTime(frame, active.countMap.durationSeconds))} onTime={next => seek(frameTime(frameAtTime(next, active.countMap.durationSeconds), active.countMap.durationSeconds))} onPose={updatePoseDraft} onWriteJoint={() => { writeKeyframe('joint'); }} onWriteRoot={() => { writeKeyframe('root'); }} onWritePose={() => { writeKeyframe('pose'); }} onDiscard={() => clearPoseDraft(true)} onDelete={() => deleteKeyframe()} onDeleteJoint={() => { if (selectedJoint) deleteKeyframe({ kind: 'joint', joint: selectedJoint, frame: editorFrame }); }} onDeleteRoot={() => deleteKeyframe({ kind: 'root', frame: editorFrame })} onNeutral={startNeutral} /> : <>
             <section className="music-card"><div className="section-heading"><div className="module-title"><span className="module-index">01</span><h2>音乐与数拍</h2></div><button className="text-button" onClick={openCreate} disabled={!ready || !!busy}>调整</button></div><div className="music-file"><span className="file-icon"><FileAudio size={21} /></span><div><strong title={audioName}>{audioName}</strong><small>{audioName === '八拍节奏示例.wav' ? '原创节奏示例 · 本机生成' : '本机音频 · 不上传服务器'}</small></div></div><div className="waveform" aria-hidden="true">{Array.from({ length: 52 }, (_, index) => <i key={index} style={{ height: `${8 + Math.abs(Math.sin(index * 1.7) * Math.cos(index * 0.47)) * 30}px`, opacity: index / 52 <= time / active.countMap.durationSeconds ? 1 : 0.34 }} />)}</div><div className="music-metrics"><div><strong>{active.countMap.bpm}<small> BPM</small></strong><span>稳定节奏 · 手动确认</span></div><div><strong>{active.countMap.octetCount}<small> 个八拍</small></strong><span>{Math.round(active.countMap.durationSeconds * 10) / 10} 秒完整选段</span></div></div><div className="confirmed-note"><CheckCircle2 size={14} />数拍已确认<span>4/4</span></div></section>
             <section className="edit-card"><div className="section-heading"><div className="module-title"><span className="module-index">02</span><h2>{page === 'studio' ? '修改这一段' : '当前教学段落'}</h2></div><span className="octet-pill">{(selected + 1).toString().padStart(2, '0')} / {active.countMap.octetCount.toString().padStart(2, '0')}</span></div><div className="selected-phrase"><h3>{selectedSlot?.label ?? '等待编排'}</h3><p>{selectedSlot?.teachingCue ?? '选择一个八拍查看动作提示'}</p><span>第 {selected + 1} 个八拍 · {selectedSlot?.startSeconds.toFixed(1)} – {selectedSlot?.endSeconds.toFixed(1)} 秒</span></div>{page === 'studio' ? <><button className="button primary full" onClick={() => requestCandidate()} disabled={!active.take || !!busy}><Sparkles size={16} />换一个八拍<ArrowRight size={16} /></button><button className="button secondary full" onClick={() => requestCandidate(true)} disabled={!active.take || !!busy}><Layers3 size={16} />试试更简单</button><p className="edit-footnote">预览后采用，只替换选中的八拍。</p></> : <><button className="button primary full" onClick={() => { setLoop(true); markSceneDirty(); seek(selectedSlot.startSeconds); if (!playing) void togglePlay(); }} disabled={!active.take}><Repeat2 size={16} />循环练习这一段</button><button className="button secondary full" onClick={() => { setSession(previous => ({ ...previous, teacherCheckedRevision: previous.revision })); markSceneDirty(); setNotice('已记录本版试看。演示记录不代表真实动作已通过教学审核。'); }} disabled={!active.take || previewCandidate || session.teacherCheckedRevision === session.revision} title={previewCandidate ? '请先切回原稿，再记录这一版试看' : undefined}><Check size={16} />{session.teacherCheckedRevision === session.revision ? '已记录本版试看' : '标记本版已试看'}</button><p className="edit-footnote">本版是合成动作演示。<br />真实教学素材与视频导出正在后续阶段接入。</p></>}</section>
             {candidate && <section className={`candidate-card ${stale ? 'expired' : ''}`} aria-label="替换候选"><div className="candidate-title"><span className="candidate-icon"><Sparkles size={15} /></span><strong>{stale ? '候选已过期' : '替换候选'}</strong><span>第 {candidate.slotIndex + 1} 段</span></div><p>{stale ? '作品版本已经改变。可以观看，但需重新生成才能采用。' : candidate.plan.slots[candidate.slotIndex].label}</p><button className="text-button" onClick={() => { pause(); setPreviewCandidate(!previewCandidate); seek(candidate.slotIndex * active.countMap.durationSeconds / active.countMap.octetCount); }}>{previewCandidate ? '切回原稿' : '查看替换预览'} <ArrowRight size={14} /></button><div className="candidate-actions"><button className="button primary compact" disabled={!!stale} onClick={adopt}><Check size={14} />采用</button><button className="button secondary compact" onClick={() => { pause(); setCandidate(null); setPreviewCandidate(false); }}>放弃</button></div></section>}
