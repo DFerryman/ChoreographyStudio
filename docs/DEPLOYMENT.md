@@ -1,22 +1,46 @@
 # Cloudflare 预览部署
 
-2026-10-07：当前 version 9 已上线全身取景与选中关节聚焦，保留当前观看方向和可见姿态，不修改动作/草稿或暂停播放。60 项检查/构建/Worker 类型、本地 4 项范围及相关复核、单轮线上 4 项和 5 HTTP，以及[实际源码 CI 完整 30 项](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37627848531)均通过。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+2026-10-07：当前 version 10 已上线完整场景备份/原音乐恢复、K 时刻移动复制和键盘模态。107 项本地检查、构建/类型与离线 dry-run、相关本地范围以及单轮线上 8 项和 5 HTTP 通过；首次实际源码 CI 37/38 失败，已通过相关本地测试坐标修正，待新源码 CI 补最终结果。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
 
-API/原生限频及无 D1 边界继续沿用；下面当前 IDs/资产对应实际 v9 发布。S0/v5–v8 证据保留为历史。
-
-## version 10 发布准备
-
-完整场景备份/原音乐恢复、K 时刻移动复制和键盘模态已经本地实现并通过相关范围：107 检查、构建/类型、8 个不同流程及缺音乐恢复单项、离线 Wrangler dry-run。初次脚本/启动失败和相关复核保持在 [VERIFICATION.md](VERIFICATION.md)。源码 CI 和实际上线尚待完成，下面当前运行回执仍为 v9。
-
-最终生成物 `/tmp/choreo-preai-inline-summary.json`：module 370986 bytes / SHA-256 `be024bed5d7b45667436e28099f2a57eed604cf77f0997b67049f6cf8ae71d87`。API bundle 与 v9 相同；本次仍只使用原生限频和阶段变量，不增加 D1/存储绑定。
+API bundle 与 v9 逐字节相同，原生限频及无 D1 边界继续沿用。新增备份、恢复、K 操作与保存均在浏览器完成；历史 v9 及 S0/v5–v8 记录保留。
 
 ## 固定交付要求
 
 用户要求每轮修改最终都提交并 push 到 `DFerryman/ChoreographyStudio`，同步部署到本 Cloudflare 预览。交付前核对远端提交、实际运行版本和预览结果，验证记录也提交；不能只留本地改动或把构建成功当作发布完成。此要求已写入根目录 `AGENTS.md`。
 
-仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署及必要健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。当前表保留 v9 功能版本首次发布记录；后续纯文档的同版同步在部署 message 中记录最终源码提交，实际 ID/时间由 Cloudflare 部署记录核对。v6/v7 记录保留在历史章节。
+仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署及必要健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。当前表保留 v10 功能版本首次发布记录；后续纯文档的同版同步在部署 message 中记录最终源码提交，实际 ID/时间由 Cloudflare 部署记录核对。v6/v7 记录保留在历史章节。
 
-## 当前线上版本 · version 9
+## 当前线上版本 · version 10
+
+| 项目 | 实际结果 |
+| --- | --- |
+| Worker / Account | `choreo-studio-preview` / `84e421f26c708c0cf437e287eed11fa1` |
+| v10 功能首次发布 Deployment ID | `aae5ec8b-a8f2-4f39-88d6-8c53d49b02b2` |
+| Version ID / number / 流量 | `6df3fd31-141f-4834-b25c-e871f5a8bbf7` / 10 / 100% |
+| 发布时间 | `2026-10-07T14:06:35.603261Z` |
+| 功能源码 | [9fbc115f](https://github.com/DFerryman/ChoreographyStudio/commit/9fbc115f12d2580ff76b7cf5354fa581081579d8) |
+| 发布方式 | 恰一次 multipart 真实上传，Worker 内含 gzip 静态资产；`has_assets=false` |
+| 实际 bindings | 原生 `API_RATE_LIMITER`（20/60，namespace 2026100601）与 `RELEASE_STAGE`；无 D1/KV/R2/DO/真实 ASSETS |
+| 实际模块大小 / SHA-256 | 370986 bytes / `be024bed5d7b45667436e28099f2a57eed604cf77f0997b67049f6cf8ae71d87` |
+
+## 当前 version 10 验证
+
+107 项检查、最终构建、前端/Worker 类型与离线 dry-run 通过。8 个不同本地流程通过首轮 7 项和手机定向复核覆盖，新增缺音乐恢复只复核相关单项；10 份实际本地诊断零错误/警告/API。首次脚本/启动失败及对应恢复保留在 [VERIFICATION.md](VERIFICATION.md)。
+
+单轮线上 8 项于 `2026-10-07T14:07:56.792Z` 开始，140.295 秒全部通过，8 份实际 errors/warnings/API 请求和 unexpected/flaky/skipped/报告 errors 为 0；320/390px 无横向溢出，新操作至少 44px，备份/音乐恢复保留精确动作、历史、原音乐和相机。截图来自同一轮，未另开公网截图会话。
+
+唯一 5 HTTP 于 `2026-10-07T14:07:39.746323+00:00`–`2026-10-07T14:07:41.275334+00:00` 全通过，4 资产逐字节哈希/安全 headers 与 health 200/no-store 匹配。未重复 capabilities、POST、限频 burst 或完整公网回归，无 D1 写入。首次实际源码 CI run37633679536 在 2026-10-07T14:13:57Z completed/failure：107 检查、37/38 浏览器通过，唯一失败是旧手势测试在 footer 下载后复用过期坐标。trace 确认两触点在画布下方；仅测试重新定位并新增命中断言，相关本地复现/修正单项已完成。待修正源码的新 CI completed/success 和日志核对，才能记录完整 38 流程通过；运行代码/资产不变，复用既有实际线上证据。
+
+| 当前资产 | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `assets/index-CHg8RZiz.js` | 961578 | `8f325ec23d342397809b8889ab79b5ba0256821ddff83332e58b42e5e177b968` |
+| `assets/index-gL39YgCa.css` | 53308 | `387f8f28f0730a9fe0141af8a22500e44a394af0c188c00618aafe8a969e844b` |
+| `favicon.svg` | 322 | `883028cbbedddb4251346f961e58174dfe92b20d8fdd7351d7373005f4c2b6ac` |
+| `index.html` | 645 | `f0400eefb6718521ad5b0a3c5f3655a1980e376e718b1c39272cd90f83bcf710` |
+
+初次部署调用因自动审批服务 capacity 未执行；沿同一审批路径、同 payload 的重试成功，只有一次实际 upload。最终 9 份 Markdown 验证文档提交 push 后，将复用这份完全相同的运行版本，以部署 message 关联最终源码 SHA；不再上传资产、重跑 CI 或公网浏览器。原生产契约/素材/教师/MP4 与 M0–M3 保留。
+
+## 历史 version 9 线上版本
 
 | 项目 | 实际结果 |
 | --- | --- |
@@ -29,7 +53,7 @@ API/原生限频及无 D1 边界继续沿用；下面当前 IDs/资产对应实�
 | 实际 bindings | `API_RATE_LIMITER`（20/60）与 `RELEASE_STAGE`，无 D1/KV/R2/DO/真实 ASSETS |
 | 实际模块大小 / SHA-256 | 355346 bytes / `d39e30c0e5c52f925a3a53bc2590bd151a7fa8b8e0fb0dbf5706d904ea3a8add` |
 
-## 当前 version 9 验证
+## 历史 version 9 验证
 
 60 项检查、最终构建、Worker 类型与离线 dry-run 通过。本地 4 个新增范围由首轮 3 项和最终相关单项复核覆盖，保留数值格式断言及加强画布指针断言的记录。实际线上单轮 4 项于 `2026-10-07T13:24:30.561Z` 开始，53.841 秒全部通过，errors/warnings/API 请求和 unexpected/flaky/skipped 为 0；新增 320/390px 控件 >=44px，无横向溢出，相机/正式动作/原音频保存恢复一致。
 

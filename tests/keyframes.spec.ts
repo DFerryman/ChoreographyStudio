@@ -850,10 +850,18 @@ test.describe('native gesture recovery', () => {
     await page.getByRole('button', { name: '选择工具', exact: true }).click();
     await expect(page.getByRole('button', { name: '选择工具', exact: true })).toHaveAttribute('aria-pressed', 'true');
     const ordinaryTouchCamera = (await backup(page)).scene.viewer.camera;
-    const blankA = { x: box.x + box.width * 0.72, y: box.y + box.height * 0.16, id: 31 };
-    const blankB = { x: box.x + box.width * 0.9, y: box.y + box.height * 0.22, id: 32 };
+    // Downloading the backup scrolls to the footer. Native CDP touches use
+    // viewport coordinates, so locate the visible canvas again after it.
+    await first.canvas.scrollIntoViewIfNeeded();
+    await rendered();
+    const cameraBox = (await first.canvas.boundingBox())!;
+    const blankA = { x: cameraBox.x + cameraBox.width * 0.72, y: cameraBox.y + cameraBox.height * 0.16, id: 31 };
+    const blankB = { x: cameraBox.x + cameraBox.width * 0.9, y: cameraBox.y + cameraBox.height * 0.22, id: 32 };
+    const movedA = { ...blankA, x: blankA.x - 35, y: blankA.y + 20 };
+    const movedB = { ...blankB, x: blankB.x + 25, y: blankB.y + 20 };
+    expect(await first.canvas.evaluate((canvas, points) => points.every(point => document.elementFromPoint(point.x, point.y) === canvas), [blankA, blankB, movedA, movedB])).toBe(true);
     await touch('touchStart', [blankA, blankB]);
-    await touch('touchMove', [{ ...blankA, x: blankA.x - 35, y: blankA.y + 20 }, { ...blankB, x: blankB.x + 25, y: blankB.y + 20 }]);
+    await touch('touchMove', [movedA, movedB]);
     await touch('touchEnd', []);
     await expect.poll(async () => (await backup(page)).scene.viewer.camera).not.toEqual(ordinaryTouchCamera);
     await expect(page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true })).toHaveValue(touchDraftX);
