@@ -20,6 +20,8 @@ export type SceneViewer = {
   rigMode?: 'skeleton' | 'body';
   /** Optional so existing choreo-scene-1 saves reopen without rebaking motion. */
   editorMode?: 'arrange' | 'keyframes';
+  /** Optional editor view setting; selecting a tool never changes animation data. */
+  transformTool?: 'select' | 'rotate' | 'translate';
 };
 
 export type SceneCoordinateSystem = {
@@ -60,7 +62,7 @@ export function defaultSceneViewer(): SceneViewer {
   return {
     camera: null, view: 'front', mirror: false, rate: 1, loop: false,
     countSound: false, selectedSlot: 0, selectedJoint: null, time: 0,
-    gridVisible: true, axesVisible: true, rigMode: 'skeleton', editorMode: 'arrange',
+    gridVisible: true, axesVisible: true, rigMode: 'skeleton', editorMode: 'arrange', transformTool: 'select',
   };
 }
 

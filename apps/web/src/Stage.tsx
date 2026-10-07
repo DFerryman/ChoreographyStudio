@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
-import { EDITABLE_JOINT_NAMES, JOINT_NAMES, sampleTake, type BakedTake, type JointName, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
+import { EDITABLE_JOINT_NAMES, JOINT_NAMES, ROOT_TRANSLATION_LIMITS, sampleTake, type BakedTake, type JointName, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
 import './Stage.css';
 
 export type StageView = 'front' | 'back' | 'left' | 'right' | 'top' | 'free';
 export type StageCamera = { position: Vec3; target: Vec3; zoom?: number };
+export type StageTransformTool = 'select' | 'rotate' | 'translate';
 export const STAGE_JOINT_LABELS: Record<JointName, string> = {
   Hips: '骨盆', Spine: '腰椎', Chest: '胸椎', Neck: '颈部', Head: '头部',
   LeftShoulder: '左锁骨', LeftUpperArm: '左肩', LeftForeArm: '左肘', LeftHand: '左腕', LeftHandTip: '左指尖',
@@ -30,11 +31,13 @@ type StageProps = {
   poseOverride?: Pose | null;
   editMode?: boolean;
   playing?: boolean;
+  transformTool?: StageTransformTool;
   onSelectJoint?: (joint: JointName | null) => void;
   onCameraChange?: (camera: StageCamera) => void;
   onCameraInteraction?: () => void;
   onJointPositionChange?: (position: Vec3 | null) => void;
   onJointRotationChange?: (joint: JointName, rotation: Quat, phase: 'start' | 'change' | 'end') => void;
+  onRootPositionChange?: (position: Vec3, phase: 'start' | 'change' | 'end') => void;
 };
 
 type PreviewRig = {
@@ -133,8 +136,8 @@ function createPreviewRig(): PreviewRig {
   return { root, joints, markers, targets };
 }
 
-function applyPose(rig: PreviewRig, pose: Pose | null, draggingJoint: JointName | null = null) {
-  rig.root.position.set(...(pose?.root ?? [0, 1.05, 0]));
+function applyPose(rig: PreviewRig, pose: Pose | null, draggingJoint: JointName | null = null, draggingRoot = false) {
+  if (!draggingRoot) rig.root.position.set(...(pose?.root ?? [0, 1.05, 0]));
   for (const name of JOINT_NAMES) {
     if (name === draggingJoint) continue;
     const joint = rig.joints.get(name)!;
@@ -184,7 +187,7 @@ function StageFallback({ error }: { error: string }) {
 }
 
 export function Stage(props: StageProps) {
-  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, selectedJoint, gridVisible, axesVisible, poseOverride, editMode, playing } = props;
+  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, selectedJoint, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool = 'rotate' } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const current = useRef(props);
   const requestDraw = useRef<() => void>(() => {});
@@ -192,7 +195,7 @@ export function Stage(props: StageProps) {
   const [internalSelection, setInternalSelection] = useState<JointName | null>(null);
   const [hover, setHover] = useState<{ joint: JointName; x: number; y: number } | null>(null);
   const [gizmo, setGizmo] = useState<GizmoAxis[]>([]);
-  const [rotationAxis, setRotationAxis] = useState<string | null>(null);
+  const [transformAxis, setTransformAxis] = useState<string | null>(null);
   current.current = props;
   const selection = selectedJoint === undefined ? internalSelection : selectedJoint;
   const selectionRef = useRef(selection);
@@ -241,6 +244,14 @@ export function Stage(props: StageProps) {
     transform.setSize(0.95);
     transform.showE = false;
     transform.showXYZE = false;
+    transform.showXY = false;
+    transform.showYZ = false;
+    transform.showXZ = false;
+    Object.assign(transform, {
+      minX: ROOT_TRANSLATION_LIMITS.x[0], maxX: ROOT_TRANSLATION_LIMITS.x[1],
+      minY: ROOT_TRANSLATION_LIMITS.y[0], maxY: ROOT_TRANSLATION_LIMITS.y[1],
+      minZ: ROOT_TRANSLATION_LIMITS.z[0], maxZ: ROOT_TRANSLATION_LIMITS.z[1],
+    });
     transform.enabled = false;
     const transformHelper = transform.getHelper();
     scene.add(new THREE.HemisphereLight('#dce5ff', '#111722', 1.5));
@@ -298,11 +309,15 @@ export function Stage(props: StageProps) {
     let previousTime = Number.NaN;
     let previousOverride: Pose | null | undefined;
     let draggingJoint: JointName | null = null;
+    let draggingRoot = false;
+    let poseNeedsApply = false;
     let hovered: JointName | null = null;
     let cameraSignature = '';
     let jointSignature = '';
     let pointerStart: { id: number; x: number; y: number; dragged: boolean; button: number; gizmo: boolean } | null = null;
     const activePointers = new Set<number>();
+    const blockedTransformPointers = new Set<number>();
+    let cameraGesture = false;
 
     function schedule() {
       if (!stopped && !frame) frame = window.requestAnimationFrame(draw);
@@ -377,35 +392,86 @@ export function Stage(props: StageProps) {
       }
     }
 
-    function canRotate() {
+    function activeTool() {
+      return current.current.transformTool ?? 'rotate';
+    }
+
+    function canEdit() {
       const state = current.current;
+      return !!state.editMode && !state.playing && !state.mirror && !cameraGesture && blockedTransformPointers.size === 0;
+    }
+
+    function canRotate() {
       const selected = selectionRef.current;
-      return !!state.editMode && !state.playing && !state.mirror && !!selected && EDITABLE_JOINT_SET.has(selected);
+      return canEdit() && activeTool() === 'rotate' && !!selected && EDITABLE_JOINT_SET.has(selected);
+    }
+
+    function canTranslate() {
+      return canEdit() && activeTool() === 'translate';
     }
 
     function syncOrbit() {
-      controls.enabled = !transform.enabled || (!transform.dragging && transform.axis === null);
+      controls.enabled = blockedTransformPointers.size === 0 && (!transform.enabled || (!transform.dragging && transform.axis === null));
     }
 
-    function rotationFeedback(phase: 'start' | 'change' | 'end') {
-      if (!draggingJoint || !canRotate()) return;
-      const rotation = rig.joints.get(draggingJoint)!.quaternion.clone().normalize().toArray() as Quat;
-      current.current.onJointRotationChange?.(draggingJoint, rotation, phase);
+    function transformFeedback(phase: 'start' | 'change' | 'end') {
+      if (draggingRoot && canTranslate()) {
+        const position = rig.root.position;
+        if (![position.x, position.y, position.z].every(Number.isFinite)) {
+          const state = current.current;
+          position.set(...((state.poseOverride ?? (state.take ? sampleTake(state.take, state.time) : null))?.root ?? [0, 1.05, 0]));
+          return;
+        }
+        // Native limits constrain the object itself; keep emitted draft data in
+        // the same bounds even if another control changes the object mid-drag.
+        position.x = THREE.MathUtils.clamp(position.x, ...ROOT_TRANSLATION_LIMITS.x);
+        position.y = THREE.MathUtils.clamp(position.y, ...ROOT_TRANSLATION_LIMITS.y);
+        position.z = THREE.MathUtils.clamp(position.z, ...ROOT_TRANSLATION_LIMITS.z);
+        current.current.onRootPositionChange?.(position.toArray() as Vec3, phase);
+      } else if (draggingJoint && canRotate()) {
+        const quaternion = rig.joints.get(draggingJoint)!.quaternion;
+        if (!quaternion.toArray().every(Number.isFinite) || quaternion.lengthSq() <= Number.EPSILON) return;
+        const rotation = quaternion.clone().normalize().toArray() as Quat;
+        current.current.onJointRotationChange?.(draggingJoint, rotation, phase);
+      }
     }
 
     function cancelTransform() {
+      const canceledPointerId = pointerStart?.id;
+      // Capture can be released while the pointer is still held; its eventual
+      // pointerup may land outside this canvas. Clear our gesture state now.
+      pointerStart = null;
+      activePointers.clear();
+      cameraGesture = false;
       draggingJoint = null;
+      draggingRoot = false;
+      poseNeedsApply = true;
       transform.dragging = false;
       transform.detach();
-      if (pointerStart?.gizmo) pointerStart.dragged = true;
+      // TransformControls otherwise retains its gesture pointermove hook when
+      // editing is disabled before pointerup. Reconnect its public lifecycle.
+      transform.disconnect();
+      transform.connect(canvas);
+      if (canceledPointerId !== undefined && canvas.hasPointerCapture(canceledPointerId)) canvas.releasePointerCapture(canceledPointerId);
+      hovered = null;
+      setHover(null);
+      setTransformAxis(null);
+      canvas.classList.remove('is-transform-hover', 'is-joint-hover', 'is-dragging');
       syncOrbit();
     }
 
+    function desiredTransformObject() {
+      if (canTranslate()) return rig.root;
+      if (canRotate()) return rig.joints.get(selectionRef.current!)!;
+      return undefined;
+    }
+
     function draw() {
+      const state = current.current;
       frame = 0;
       if (stopped || width <= 0 || height <= 0) return;
-      const state = current.current;
       const restoreChanged = state.cameraRestoreKey !== previousRestore;
+      const cameraViewChanged = state.view !== previousView || state.cameraResetKey !== previousReset;
       // A scene switch can clear the consumer's state even when its camera and
       // selected joint match the previous scene. Publish fresh scene feedback.
       if (!initialized || restoreChanged) {
@@ -423,15 +489,23 @@ export function Stage(props: StageProps) {
       previousView = state.view;
       previousReset = state.cameraResetKey;
       previousRestore = state.cameraRestoreKey;
-      const selected = selectionRef.current;
-      const editable = canRotate();
-      const attachedJoint = editable && selected ? rig.joints.get(selected)! : undefined;
-      const cancelDrag = transform.dragging && (!editable || draggingJoint !== selected || restoreChanged);
+      const attachedObject = desiredTransformObject();
+      const editable = !!attachedObject;
+      const cancelDrag = transform.dragging && (
+        transform.object !== attachedObject || restoreChanged || cameraViewChanged ||
+        state.take !== previousTake || state.time !== previousTime ||
+        (state.poseOverride == null && previousOverride != null)
+      );
       if (cancelDrag) cancelTransform();
+      const tool = activeTool();
+      const mode = tool === 'translate' ? 'translate' : 'rotate';
+      const space = tool === 'translate' ? 'world' : 'local';
+      if (transform.mode !== mode) transform.setMode(mode);
+      if (transform.space !== space) transform.setSpace(space);
       transform.enabled = editable;
-      if (attachedJoint) {
-        if (transform.object !== attachedJoint) transform.attach(attachedJoint);
-        if (localAxes.parent !== attachedJoint) attachedJoint.add(localAxes);
+      if (attachedObject) {
+        if (transform.object !== attachedObject) transform.attach(attachedObject);
+        if (localAxes.parent !== attachedObject) attachedObject.add(localAxes);
       } else if (transform.object) transform.detach();
       localAxes.visible = editable;
       syncOrbit();
@@ -439,11 +513,12 @@ export function Stage(props: StageProps) {
       grid.visible = state.gridVisible !== false;
       axes.visible = state.axesVisible !== false;
       const override = state.playing ? null : state.poseOverride;
-      if (state.take !== previousTake || state.time !== previousTime || override !== previousOverride || cancelDrag) {
-        applyPose(rig, override ?? (state.take ? sampleTake(state.take, state.time) : null), transform.dragging ? draggingJoint : null);
+      if (state.take !== previousTake || state.time !== previousTime || override !== previousOverride || poseNeedsApply) {
+        applyPose(rig, override ?? (state.take ? sampleTake(state.take, state.time) : null), transform.dragging ? draggingJoint : null, transform.dragging && draggingRoot);
         previousTake = state.take;
         previousTime = state.time;
         previousOverride = override;
+        poseNeedsApply = false;
       }
       for (const [name, marker] of rig.markers) {
         const selected = name === selectionRef.current;
@@ -497,6 +572,62 @@ export function Stage(props: StageProps) {
       schedule();
     }
 
+    function onPointerPrepare(event: PointerEvent) {
+      if (blockedTransformPointers.size > 0) {
+        blockedTransformPointers.add(event.pointerId);
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+      if (transform.dragging && pointerStart?.id !== event.pointerId) {
+        // A second touch must not feed the native control's pointerMove/up,
+        // which do not distinguish pointer IDs. Retain the last valid draft,
+        // then block this whole touch group until all fingers are released.
+        const gesturePointers = [...activePointers, event.pointerId];
+        transformFeedback('end');
+        cancelTransform();
+        for (const id of gesturePointers) blockedTransformPointers.add(id);
+        transform.enabled = false;
+        syncOrbit();
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        schedule();
+        return;
+      }
+      if (cameraGesture) return;
+      if (!transform.enabled || transform.dragging) return;
+      if (event.button !== 0) {
+        transform.axis = null;
+        syncOrbit();
+        return;
+      }
+      const bounds = canvas.getBoundingClientRect();
+      // Resolve touch presses before OrbitControls sees pointerdown. Mouse
+      // hover already performs this lookup, but touch has no hover phase.
+      transform.pointerHover({
+        x: ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
+        y: -((event.clientY - bounds.top) / bounds.height) * 2 + 1,
+        button: event.button,
+      } as PointerEvent);
+      syncOrbit();
+    }
+
+    function onBlockedPointerMove(event: PointerEvent) {
+      if (blockedTransformPointers.size === 0) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+
+    function onBlockedPointerEnd(event: PointerEvent) {
+      if (!blockedTransformPointers.delete(event.pointerId)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (blockedTransformPointers.size === 0) {
+        syncOrbit();
+        schedule();
+      }
+    }
+
     function onPointerDown(event: PointerEvent) {
       activePointers.add(event.pointerId);
       if (activePointers.size > 1) {
@@ -504,6 +635,16 @@ export function Stage(props: StageProps) {
         return;
       }
       pointerStart = { id: event.pointerId, x: event.clientX, y: event.clientY, dragged: false, button: event.button, gizmo: transform.enabled && (transform.dragging || transform.axis !== null) };
+      if (!pointerStart.gizmo) {
+        // Camera gestures own all their touches. Hide/disable transform
+        // picking until the gesture ends, including a second camera finger.
+        cameraGesture = true;
+        transform.enabled = false;
+        transform.axis = null;
+        transform.disconnect();
+        transform.connect(canvas);
+        syncOrbit();
+      }
       canvas.classList.add('is-dragging');
       canvas.focus({ preventScroll: true });
       clearHover();
@@ -529,6 +670,10 @@ export function Stage(props: StageProps) {
 
     function onPointerUp(event: PointerEvent) {
       activePointers.delete(event.pointerId);
+      if (activePointers.size === 0) {
+        cameraGesture = false;
+        schedule();
+      }
       if (pointerStart?.id !== event.pointerId) return;
       const start = pointerStart;
       pointerStart = null;
@@ -544,10 +689,11 @@ export function Stage(props: StageProps) {
 
     function onPointerCancel(event: PointerEvent) {
       activePointers.delete(event.pointerId);
+      if (activePointers.size === 0) cameraGesture = false;
       pointerStart = null;
       canvas.classList.remove('is-dragging');
       if (transform.dragging) {
-        rotationFeedback('end');
+        transformFeedback('end');
         cancelTransform();
       }
       clearHover();
@@ -559,29 +705,35 @@ export function Stage(props: StageProps) {
       syncOrbit();
     }
 
+    function onLostPointerCapture(event: PointerEvent) {
+      if (transform.dragging && pointerStart?.id === event.pointerId) onPointerCancel(event);
+    }
+
     function onTransformChange() {
       syncOrbit();
-      setRotationAxis(transform.enabled ? transform.axis : null);
-      canvas.classList.toggle('is-rotation-hover', transform.enabled && transform.axis !== null);
+      setTransformAxis(transform.enabled ? transform.axis : null);
+      canvas.classList.toggle('is-transform-hover', transform.enabled && transform.axis !== null);
       schedule();
     }
 
     function onTransformStart() {
-      if (!canRotate() || !transform.object) return;
-      draggingJoint = transform.object.name as JointName;
-      rotationFeedback('start');
+      if (!transform.object || transform.object !== desiredTransformObject()) return;
+      draggingRoot = canTranslate() && transform.object === rig.root;
+      draggingJoint = draggingRoot ? null : transform.object.name as JointName;
+      transformFeedback('start');
       clearHover();
     }
 
     function onTransformObjectChange() {
       if (!transform.dragging) return;
-      rotationFeedback('change');
+      transformFeedback('change');
       schedule();
     }
 
     function onTransformEnd() {
-      rotationFeedback('end');
+      transformFeedback('end');
       draggingJoint = null;
+      draggingRoot = false;
       schedule();
     }
 
@@ -605,10 +757,15 @@ export function Stage(props: StageProps) {
     transform.addEventListener('mouseDown', onTransformStart);
     transform.addEventListener('objectChange', onTransformObjectChange);
     transform.addEventListener('mouseUp', onTransformEnd);
+    canvas.addEventListener('pointerdown', onPointerPrepare, true);
+    canvas.addEventListener('pointermove', onBlockedPointerMove, true);
+    document.addEventListener('pointerup', onBlockedPointerEnd, true);
+    document.addEventListener('pointercancel', onBlockedPointerEnd, true);
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('pointerup', onPointerUp);
     canvas.addEventListener('pointercancel', onPointerCancel);
+    canvas.addEventListener('lostpointercapture', onLostPointerCapture);
     canvas.addEventListener('pointerleave', onPointerLeave);
     canvas.addEventListener('webglcontextlost', onContextLost);
     const observer = new ResizeObserver(resize);
@@ -628,10 +785,15 @@ export function Stage(props: StageProps) {
       transform.removeEventListener('mouseUp', onTransformEnd);
       scene.remove(transformHelper);
       transform.dispose();
+      canvas.removeEventListener('pointerdown', onPointerPrepare, true);
+      canvas.removeEventListener('pointermove', onBlockedPointerMove, true);
+      document.removeEventListener('pointerup', onBlockedPointerEnd, true);
+      document.removeEventListener('pointercancel', onBlockedPointerEnd, true);
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('pointercancel', onPointerCancel);
+      canvas.removeEventListener('lostpointercapture', onLostPointerCapture);
       canvas.removeEventListener('pointerleave', onPointerLeave);
       canvas.removeEventListener('webglcontextlost', onContextLost);
       const geometries = new Set<THREE.BufferGeometry>();
@@ -651,7 +813,7 @@ export function Stage(props: StageProps) {
 
   useEffect(() => {
     requestDraw.current();
-  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, selection, gridVisible, axesVisible, poseOverride, editMode, playing]);
+  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, selection, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool]);
 
   return (
     <div className="stage3d" ref={containerRef}>
@@ -667,8 +829,8 @@ export function Stage(props: StageProps) {
           </svg>
         </div>}
         {hover && <div className="stage3d-joint-tooltip" style={{ left: hover.x, top: hover.y }} aria-hidden="true">{STAGE_JOINT_LABELS[hover.joint]}<span>点击选择</span></div>}
-        {editMode && <div className="stage3d-edit-indicator" aria-label="关节局部旋转">
-          {playing ? '播放期间不可编辑' : mirror ? '关闭镜像后编辑' : !selection ? '选择关节后旋转' : !EDITABLE_JOINT_SET.has(selection) ? '末端关节仅查看' : <>局部旋转草稿<span>{rotationAxis ? `${rotationAxis}轴` : '拖动彩色环'}</span></>}
+        {editMode && <div className="stage3d-edit-indicator" aria-label={transformTool === 'translate' ? 'Root 世界位移' : transformTool === 'rotate' ? '关节局部旋转' : '关节选择'}>
+          {playing ? '播放期间不可编辑' : mirror ? '关闭镜像后编辑' : transformTool === 'select' ? '选择关节 · 用旋转或移动摆姿' : transformTool === 'translate' ? <>整体位移草稿<span>{transformAxis ? `${transformAxis}轴` : '拖动世界坐标箭头'}</span></> : !selection ? '选择关节后旋转' : !EDITABLE_JOINT_SET.has(selection) ? '末端关节仅查看' : <>局部旋转草稿<span>{transformAxis ? `${transformAxis}轴` : '拖动彩色环'}</span></>}
         </div>}
         <span className="stage3d-selection-announcement" aria-live="polite">{selection ? `已选中${STAGE_JOINT_LABELS[selection]}` : '未选中关节'}</span>
       </>}

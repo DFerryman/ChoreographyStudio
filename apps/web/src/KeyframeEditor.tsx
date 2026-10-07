@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Diamond, RotateCcw, Trash2 } from 'lucide-react';
 import { EDITABLE_JOINT_NAMES, ROOT_TRANSLATION_LIMITS, frameTime, getKeyframeFrames, lastFrame, rotationFromDegrees, rotationToDegrees, type JointName, type KeyframeSequence, type Pose, type Vec3 } from '../../../packages/core/src';
-import { STAGE_JOINT_LABELS } from './Stage';
+import { STAGE_JOINT_LABELS, type StageTransformTool } from './Stage';
 import './KeyframeEditor.css';
 
 export type KeyframeEditorProps = {
@@ -12,6 +12,8 @@ export type KeyframeEditorProps = {
   dirty: boolean;
   playing: boolean;
   mirror: boolean;
+  readOnly?: boolean;
+  transformTool?: StageTransformTool;
   onFrame: (frame: number) => void;
   onTime: (time: number) => void;
   onPose: (pose: Pose) => void;
@@ -48,7 +50,7 @@ export function KeyframeEditor(props: KeyframeEditorProps) {
   const duration = sequence.baseTake.durationSeconds;
   const end = lastFrame(duration), time = frameTime(frame, duration);
   const editable = selectedJoint !== null && EDITABLE_JOINT_NAMES.includes(selectedJoint);
-  const locked = playing || mirror;
+  const locked = playing || mirror || props.readOnly === true;
   const angles: Vec3 = selectedJoint ? rotationToDegrees(pose.joints[selectedJoint]) : [0, 0, 0];
   const keyFrames = useMemo(() => getKeyframeFrames(sequence), [sequence]);
   const keyed = keyFrames.includes(frame);
@@ -67,9 +69,11 @@ export function KeyframeEditor(props: KeyframeEditorProps) {
     <div className="kf-frame-controls"><button className="icon-button" aria-label="上一帧" disabled={frame === 0 || playing} onClick={() => props.onFrame(frame - 1)}><ChevronLeft size={17} /></button><label>帧<input aria-label="当前帧" type="number" min={0} max={end} step={1} value={frame} disabled={playing} onChange={event => { const next = Number(event.target.value); if (Number.isFinite(next)) props.onFrame(Math.max(0, Math.min(end, Math.round(next)))); }} /></label><button className="icon-button" aria-label="下一帧" disabled={frame === end || playing} onClick={() => props.onFrame(frame + 1)}><ChevronRight size={17} /></button><label className="kf-time-field">秒<input aria-label="当前时间（秒）" type="number" min={0} max={duration} step={1 / 30} value={Number(time.toFixed(6))} disabled={playing} onChange={event => { const next = Number(event.target.value); if (Number.isFinite(next)) props.onTime(Math.max(0, Math.min(duration, next))); }} /></label></div>
     <div className="kf-frame-note"><span>30 FPS · 0–{end} 帧</span><span>{keyed ? '本帧已有关键帧' : '本帧没有关键帧'}</span></div>
     {dirty && <div className="kf-draft-note" role="status">姿态草稿 · 尚未写入关键帧<button onClick={props.onDiscard}>撤回草稿</button></div>}
-    {mirror && <div className="kf-readonly-note">镜像仅用于观看。关闭镜像后编辑原始局部坐标。</div>}
-    <div className="kf-transform-group"><div className="kf-group-heading"><h3>局部旋转</h3><span>{selectedJoint ? STAGE_JOINT_LABELS[selectedJoint] : '请选择关节'}</span></div><p>{selectedJoint && !editable ? '末端节点只读；请选择肩、肘、髋等可旋转骨骼。' : '相对父骨骼 · XYZ 角度 · 可拖动旋转环'}</p>{(['X', 'Y', 'Z'] as const).map((axis, index) => <AxisField key={axis} prefix="关节" axis={axis} value={angles[index]} bounds={[-180, 180]} step={0.1} disabled={!editable || locked} onChange={value => updateRotation(index, value)} />)}<button className="button secondary compact full" disabled={!editable || locked} onClick={props.onWriteJoint}><Diamond size={13} />K 当前关节</button></div>
-    <div className="kf-transform-group"><div className="kf-group-heading"><h3>Root 位移</h3><span>世界空间 · 米</span></div><p>世界坐标：X/Z ±5 m，Y 0–3 m，包含髋部高度。</p>{(['X', 'Y', 'Z'] as const).map((axis, index) => <AxisField key={axis} prefix="Root" axis={axis} value={pose.root[index]} bounds={[ROOT_TRANSLATION_LIMITS.x, ROOT_TRANSLATION_LIMITS.y, ROOT_TRANSLATION_LIMITS.z][index]} step={0.01} disabled={locked} onChange={value => updateRoot(index, value)} />)}<button className="button secondary compact full" disabled={locked} onClick={props.onWriteRoot}><Diamond size={13} />K 位移</button></div>
+    {mirror && <div className="kf-readonly-note">镜像仅用于观看。点舞台「旋转」或「移动（整体）」关闭镜像并继续编辑；已有草稿会保留。</div>}
+    {props.readOnly && <div className="kf-readonly-note">当前为观看状态。点舞台旋转或移动，回原稿编辑。</div>}
+    {playing && <div className="kf-readonly-note">播放中暂停编辑。点舞台旋转或移动，暂停到当前帧。</div>}
+    <div id="kf-rotation-controls" className={`kf-transform-group ${props.transformTool === 'rotate' ? 'kf-transform-active' : ''}`}><div className="kf-group-heading"><h3>局部旋转</h3><span>{selectedJoint ? STAGE_JOINT_LABELS[selectedJoint] : '请选择关节'}</span></div><p>{selectedJoint && !editable ? '末端节点只读；请选择肩、肘、髋等可旋转骨骼。' : props.transformTool === 'rotate' ? '拖动舞台旋转环，或填写 XYZ 角度（相对父骨骼）。' : '相对父骨骼 · XYZ 角度 · 舞台旋转工具可显示操作环'}</p>{(['X', 'Y', 'Z'] as const).map((axis, index) => <AxisField key={axis} prefix="关节" axis={axis} value={angles[index]} bounds={[-180, 180]} step={0.1} disabled={!editable || locked} onChange={value => updateRotation(index, value)} />)}<button className="button secondary compact full" disabled={!editable || locked} onClick={props.onWriteJoint}><Diamond size={13} />K 当前关节</button></div>
+    <div id="kf-root-controls" className={`kf-transform-group ${props.transformTool === 'translate' ? 'kf-transform-active' : ''}`}><div className="kf-group-heading"><h3>Root 位移</h3><span>世界空间 · 米</span></div><p>{props.transformTool === 'translate' ? '拖动舞台 XYZ 箭头，或填写坐标；移动整个角色。' : '整体世界位置：X/Z ±5 m，Y 0–3 m；保持骨长。'}</p>{(['X', 'Y', 'Z'] as const).map((axis, index) => <AxisField key={axis} prefix="Root" axis={axis} value={pose.root[index]} bounds={[ROOT_TRANSLATION_LIMITS.x, ROOT_TRANSLATION_LIMITS.y, ROOT_TRANSLATION_LIMITS.z][index]} step={0.01} disabled={locked} onChange={value => updateRoot(index, value)} />)}<button className="button secondary compact full" disabled={locked} onClick={props.onWriteRoot}><Diamond size={13} />K 位移</button></div>
     <div className="kf-write-actions"><button className="button primary full" disabled={locked} onClick={props.onWritePose}><Diamond size={15} />K 完整姿态</button><span>记录本帧的 19 个局部旋转与 Root 位移</span><button className="kf-delete-button" disabled={!keyed || locked} onClick={props.onDelete}><Trash2 size={13} />删除当前帧关键帧</button></div>
     <button className="kf-neutral-button" disabled={locked} onClick={props.onNeutral}><RotateCcw size={13} />从站姿开始</button>
   </section>;

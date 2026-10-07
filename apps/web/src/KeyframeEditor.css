@@ -12,6 +12,8 @@
 .kf-draft-note button { color: #9a845f; margin-left: 8px; font-size: 11px; padding: 2px 0; text-decoration: underline; text-underline-offset: 3px; }
 .kf-readonly-note { color: #8292b0; border-color: #e2e9f8; background: #f5f8ff; }
 .kf-transform-group { margin-top: 18px; border-top: 1px solid #edf1f8; padding-top: 15px; }
+.kf-transform-active { border-top-color: #b8c9ef; }
+.kf-transform-active .kf-group-heading h3 { color: #4f73b9; }
 .kf-group-heading h3 { font-size: 12px; color: #4f6384; font-weight: 600; }
 .kf-group-heading > span { color: #758093; font-size: 11px; }
 .kf-transform-group > p { font-size: 11px; line-height: 1.8; color: #758093; margin: 5px 0 8px; }
