@@ -1,6 +1,6 @@
 # Cloudflare 预览部署
 
-2026-10-07：当前 version 10 已上线完整场景备份/原音乐恢复、K 时刻移动复制和键盘模态。107 项本地检查、构建/类型与离线 dry-run、相关本地范围以及单轮线上 8 项和 5 HTTP 通过；首次实际源码 CI 37/38 失败，已通过相关本地测试坐标修正，待新源码 CI 补最终结果。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+2026-10-07：当前 version 10 已上线完整场景备份/原音乐恢复、K 时刻移动复制和键盘模态。107 项本地检查、构建/类型与离线 dry-run、相关本地范围以及单轮线上 8 项和 5 HTTP 通过；首次 CI 的旧触控坐标失败与修正保留；新精确源码 CI 已完整通过 107 检查及 38 浏览器流程。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
 
 API bundle 与 v9 逐字节相同，原生限频及无 D1 边界继续沿用。新增备份、恢复、K 操作与保存均在浏览器完成；历史 v9 及 S0/v5–v8 记录保留。
 
@@ -18,7 +18,8 @@ API bundle 与 v9 逐字节相同，原生限频及无 D1 边界继续沿用。�
 | v10 功能首次发布 Deployment ID | `aae5ec8b-a8f2-4f39-88d6-8c53d49b02b2` |
 | Version ID / number / 流量 | `6df3fd31-141f-4834-b25c-e871f5a8bbf7` / 10 / 100% |
 | 发布时间 | `2026-10-07T14:06:35.603261Z` |
-| 功能源码 | [9fbc115f](https://github.com/DFerryman/ChoreographyStudio/commit/9fbc115f12d2580ff76b7cf5354fa581081579d8) |
+| 功能运行源码 | [9fbc115f](https://github.com/DFerryman/ChoreographyStudio/commit/9fbc115f12d2580ff76b7cf5354fa581081579d8) |
+| 测试坐标修正源码 / 实际 CI | [1719439d](https://github.com/DFerryman/ChoreographyStudio/commit/1719439d993cd893f19c771f90c2cf902ef46886) / [run37636175196](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37636175196) |
 | 发布方式 | 恰一次 multipart 真实上传，Worker 内含 gzip 静态资产；`has_assets=false` |
 | 实际 bindings | 原生 `API_RATE_LIMITER`（20/60，namespace 2026100601）与 `RELEASE_STAGE`；无 D1/KV/R2/DO/真实 ASSETS |
 | 实际模块大小 / SHA-256 | 370986 bytes / `be024bed5d7b45667436e28099f2a57eed604cf77f0997b67049f6cf8ae71d87` |
@@ -29,7 +30,7 @@ API bundle 与 v9 逐字节相同，原生限频及无 D1 边界继续沿用。�
 
 单轮线上 8 项于 `2026-10-07T14:07:56.792Z` 开始，140.295 秒全部通过，8 份实际 errors/warnings/API 请求和 unexpected/flaky/skipped/报告 errors 为 0；320/390px 无横向溢出，新操作至少 44px，备份/音乐恢复保留精确动作、历史、原音乐和相机。截图来自同一轮，未另开公网截图会话。
 
-唯一 5 HTTP 于 `2026-10-07T14:07:39.746323+00:00`–`2026-10-07T14:07:41.275334+00:00` 全通过，4 资产逐字节哈希/安全 headers 与 health 200/no-store 匹配。未重复 capabilities、POST、限频 burst 或完整公网回归，无 D1 写入。首次实际源码 CI run37633679536 在 2026-10-07T14:13:57Z completed/failure：107 检查、37/38 浏览器通过，唯一失败是旧手势测试在 footer 下载后复用过期坐标。trace 确认两触点在画布下方；仅测试重新定位并新增命中断言，相关本地复现/修正单项已完成。待修正源码的新 CI completed/success 和日志核对，才能记录完整 38 流程通过；运行代码/资产不变，复用既有实际线上证据。
+唯一 5 HTTP 于 `2026-10-07T14:07:39.746323+00:00`–`2026-10-07T14:07:41.275334+00:00` 全通过，4 资产逐字节哈希/安全 headers 与 health 200/no-store 匹配。未重复 capabilities、POST、限频 burst 或完整公网回归，无 D1 写入。首次实际源码 CI run37633679536 在 2026-10-07T14:13:57Z completed/failure：107 检查、37/38 浏览器通过，唯一失败是旧手势测试在 footer 下载后复用过期坐标。trace 确认两触点在画布下方；仅测试重新定位并新增命中断言，相关本地复现/修正单项已完成。修正源码 1719439d 的 [新实际 CI run37636175196](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37636175196) 于 `2026-10-07T14:29:27Z` completed/success，实际日志 107 passed (107)、Running 38 tests / 38 passed (6.0m)；原双指项明确成功 13.2s。所有安装/构建/类型步骤成功，无 workflow rerun。运行代码/资产不变，复用既有实际线上证据。
 
 | 当前资产 | Bytes | SHA-256 |
 | --- | ---: | --- |
@@ -38,7 +39,7 @@ API bundle 与 v9 逐字节相同，原生限频及无 D1 边界继续沿用。�
 | `favicon.svg` | 322 | `883028cbbedddb4251346f961e58174dfe92b20d8fdd7351d7373005f4c2b6ac` |
 | `index.html` | 645 | `f0400eefb6718521ad5b0a3c5f3655a1980e376e718b1c39272cd90f83bcf710` |
 
-初次部署调用因自动审批服务 capacity 未执行；沿同一审批路径、同 payload 的重试成功，只有一次实际 upload。最终 9 份 Markdown 验证文档提交 push 后，将复用这份完全相同的运行版本，以部署 message 关联最终源码 SHA；不再上传资产、重跑 CI 或公网浏览器。原生产契约/素材/教师/MP4 与 M0–M3 保留。
+初次部署调用因自动审批服务 capacity 未执行；沿同一审批路径、同 payload 的重试成功，只有一次实际 upload。最终 9 份 Markdown 验证文档也提交 push，复用这份完全相同的运行版本，以部署 message 关联最终源码 SHA；不再上传资产、重跑 CI 或公网浏览器。原生产契约/素材/教师/MP4 与 M0–M3 保留。
 
 ## 历史 version 9 线上版本
 

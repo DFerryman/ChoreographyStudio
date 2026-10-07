@@ -172,7 +172,7 @@ v9 version `4f83a485-6508-4f10-9e8e-6a3b0c8ec796` / 100%，首次功能 deployme
 实际仍只绑定原生 API 限频 20/60 与阶段变量，无 D1/KV/R2/DO/真实 ASSETS。最终验证 Markdown 也提交 push，并以同一已验证 v9 的 deployment message 同步最终文档 SHA，复用未变运行资产和有效检查，不重跑公网或 CI。AI 前完整场景备份、K 时刻操作及模态完善另由 [#11](https://github.com/DFerryman/ChoreographyStudio/issues/11) 开发；原生产门槛继续保留。
 
 
-## 2026-10-07 AI 接入前本机闭环 · version 10 本地通过，发布待验收
+## 2026-10-07 AI 接入前本机闭环 · version 10 已上线并验收
 
 本輪由 [#11](https://github.com/DFerryman/ChoreographyStudio/issues/11) 跟踪，新增带原音频的 `.choreo` 完整场景备份/新 ID 事务恢复、旧 JSON 原曲关联和已有场景缺失音乐恢复、显式 K 的按范围移动/复制及冲突确认、顶层模态键盘焦点。备份保留精确 Take、manual/baseTake、CountMap、历史和相机，不从 plan 重新生成；草稿先明确处理，教师记录清空，原场景不覆盖。
 
@@ -182,7 +182,7 @@ v9 version `4f83a485-6508-4f10-9e8e-6a3b0c8ec796` / 100%，首次功能 deployme
 
 新增原音乐缺失恢复分支只复核既有旧备份流程：初次受本地 webServer 沙箱启动限制，`2026-10-07T13:52:24.660Z`、0 测试/0.931 秒，不作验收；授予本地监听所需网络权限后，`2026-10-07T13:54:21.108Z` 开始，39.066 秒相关单项通过，unexpected/flaky/skipped/报告 errors 和本轮 1 份 errors/warnings/API 诊断均零。实际覆盖音频空 src、停止播放与禁保存/完整包、拒绝仅覆盖选段的错误时长原曲、草稿显式写 K 后带最新历史/相机恢复到新 ID，以及旧保存场景仍为原项目且 audio=null。未扩大全部本地回归，也未调用业务服务。
 
-本地截图取自上述既有流程，桌面和手机已视觉检查，无额外浏览器截图会话。离线生成模块 370986 bytes，SHA-256 `be024bed5d7b45667436e28099f2a57eed604cf77f0997b67049f6cf8ae71d87`。功能源码与 Cloudflare 已实际发布，相关公网流程通过；首次实际源码 CI 37/38 失败，坐标修正后的新源码 CI 尚待完成，不把本地/相关公网通过当作完整回归成功。原契约、真实内容/许可、教师、生产云场景、实际 MP4 与 M0–M3 仍保留。
+本地截图取自上述既有流程，桌面和手机已视觉检查，无额外浏览器截图会话。离线生成模块 370986 bytes，SHA-256 `be024bed5d7b45667436e28099f2a57eed604cf77f0997b67049f6cf8ae71d87`。功能源码与 Cloudflare 已实际发布，相关公网流程通过；首次实际源码 CI 37/38 的测试坐标失败及修正保留；新精确源码 CI 已实际 completed/success，107 检查及完整 38 流程通过。原契约、真实内容/许可、教师、生产云场景、实际 MP4 与 M0–M3 仍保留。
 
 
 功能源码 [9fbc115f](https://github.com/DFerryman/ChoreographyStudio/commit/9fbc115f12d2580ff76b7cf5354fa581081579d8) 已 push，62 文件 tree `1bf1f34a6f79c471eff580416fc79566f6e44e98` 完全对应冻结 22 路径修改，历史/MIT 保留。一个不可变 blob 首次 connector 响应未匹配预期 SHA，仅同对象重试后匹配；没有源修改或 CI 重跑。Cloudflare v10 `6df3fd31-141f-4834-b25c-e871f5a8bbf7` / 100%，功能首次 deployment `aae5ec8b-a8f2-4f39-88d6-8c53d49b02b2`、`2026-10-07T14:06:35.603261Z`，实际模块 370986 bytes / SHA-256 `be024bed5d7b45667436e28099f2a57eed604cf77f0997b67049f6cf8ae71d87` 与生成物相同。发布请求首次自动审批服务因 capacity 未执行；原审批路径同 payload 重试成功，恰一次真实 upload。实际 bindings 只有原生限频 20/60 与阶段变量，无 D1/KV/R2/DO/真实 ASSETS。
@@ -194,4 +194,7 @@ v9 version `4f83a485-6508-4f10-9e8e-6a3b0c8ec796` / 100%，首次功能 deployme
 
 trace 精确确认脚本在 `(123, 0, 956, 826.984375)` 读取画布矩形后点击 footer 下载备份，自动滚动使画布 top=-722、bottom=104.984375；旧双指坐标 `(811.32,132.3175)` 与 `(983.4,181.93656)` 都在当前画布下方，因此没有相机手势。主程序/Stage 未变。相关本地原脚本于 `2026-10-07T14:16:51.814Z` 开始、31.409 秒复现相同失败，保留报告。最小修正为最后一次下载后滚回画布、等两帧、重新获取矩形，并明确断言两个起点和移动终点 `elementFromPoint` 都命中真实 canvas；仍发送实际 CDP 双指，保留相机必须变化、原草稿必须不变、后续鼠标/关节/Root 手势恢复等全部原断言。
 
-仅复核相关一项，`2026-10-07T14:18:45.108Z` 开始、39.091 秒通过，unexpected/flaky/skipped/报告 errors=0。该修正只改变测试与记录，不改运行代码或资产；单轮线上 8 项和 5 HTTP 的同模块有效证据继续复用，不新增公网测试/上传或 D1。修正提交将触发一次新的真实源码 CI，尚待完整 107+38 结果；最终 9 份 Markdown 与同版 Cloudflare message 同步仍待完成。
+仅复核相关一项，`2026-10-07T14:18:45.108Z` 开始、39.091 秒通过，unexpected/flaky/skipped/报告 errors=0。该修正只改变测试与记录，不改运行代码或资产；单轮线上 8 项和 5 HTTP 的同模块有效证据继续复用，不新增公网测试/上传或 D1。修正源码 [1719439d](https://github.com/DFerryman/ChoreographyStudio/commit/1719439d993cd893f19c771f90c2cf902ef46886) 已 push，tree `366f97d28b120ea2429985a1fc0f0344bcc2874f`，仅测试与两份记录改变。新的 [实际源码 CI run37636175196](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37636175196) completed/success，job112842877630 于 `2026-10-07T14:29:27Z` 完成；完整日志 107 passed (107)、Running 38 tests / 38 passed (6.0m)，原 native gesture 项明确于 `2026-10-07T14:26:29.1382222Z` 成功（13.2s）。浏览器步骤从 `14:23:24.5684477Z` 到 `14:29:24.6050622Z`，没有 rerun，失败 artifact 步骤跳过。
+
+
+本轮 AI 前本机编辑闭环全部通过实际功能/源码 CI 验收，完成 [#11](https://github.com/DFerryman/ChoreographyStudio/issues/11) 的本地范围。最终 9 份 Markdown 验证记录也提交 push，再以已验证 v10 的 deployment message 同步最终文档 SHA；运行资产、bindings 和业务代码完全不变，复用有效的实际公网 8 项/5 HTTP 与 corrected-source CI，不重复上传、测试或新增 D1 写入。清单见 [PRE_AI_CHECKLIST.md](PRE_AI_CHECKLIST.md)；原工程契约、真实素材/许可/教师、生产身份/云场景、动作处理和 MP4 与 M0–M3 不因本机闭环完成而通过。
