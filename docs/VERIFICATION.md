@@ -116,3 +116,13 @@ version5唯一完整线上14项于 `2026-10-06T15:16:19.311Z` 开始，190.445�
 [GitHub Actions run37574696859](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37574696859) 已实际 completed/success，head 与上述功能 SHA 一致，更新时间 `2026-10-07T05:11:10Z`。npm ci、check/构建、Worker 类型、Chromium 和 e2e 全部 success，失败产物上传按条件 skipped；job logs 明确为 `18 passed (3.8m)`，是一次完整源码 CI。此结论与本地 16/17 后相关复核的记录分别保留，未将本地失败抹去。
 
 [#7](https://github.com/DFerryman/ChoreographyStudio/issues/7) 的本轮退出证据齐全，后续只提交实际验收的 Markdown 回填，main 的 paths-ignore 不重跑整套源码 CI。上一轮 v5 证据保留为历史，不代替本次验证；core/API/infra 不变，没有公网 429 burst、高频或 D1 写入测试。S1 及原 M0–M3 仍未通过。
+
+## 2026-10-07 按轨查看、定位和删除 · version 7 本地验证
+
+本轮补齐选中关节/Root 的显式键状态与单轨删除、全部/选中关节/Root 时间线筛选，以及严格上一/下一显式 K。筛选只改变视图，不写历史或扩展场景契约；待执行删除绑定原来的轨、关节和帧，缺键不提交。core、API、限频及基础设施未改，编辑和保存留在浏览器。阶段跟踪为 [#8](https://github.com/DFerryman/ChoreographyStudio/issues/8)。
+
+`npm run check` 的 52 项既有检查与生产构建通过；最终 CSS 权重修正后再次生产构建通过，最终资产为 `assets/index-C_Hml5-F.js` / `assets/index-C2d_8p-4.css`。Worker 类型检查通过。首次 Wrangler dry-run 因默认日志/配置目录 `/home/agent/.config/.wrangler` 不存在而启动失败；将该离线打包的日志与配置目录指定到 `/tmp`、关闭 telemetry 后 dry-run 通过，没有发布请求或源码修改。保留首次失败，不将其写成一次成功。
+
+本地单轮 7 项浏览器检查于 `2026-10-07T06:42:49.773Z` 开始，143.118 秒全部通过，unexpected/flaky/skipped 均为 0，7 个 console 附件零 errors/warnings。新增 4 项覆盖单关节删除保留同帧其它轨、Root 删除与空键/末端边界、过滤及跳 K 草稿保护、320/390px 触达/无横向溢出/音频及完整历史保存重开；另外复核 3 个既有流程：旧 v4 精确动作与音频、草稿/保存失败、小屏及真实旋转环/相机隔离。4 个新增流程均实际没有 API 请求。
+
+补充 Root 删除的「写入完整姿态后继续」断言，针对性检查它先写完整姿态再只删 Root、保留 19 旋转与两次提交、撤销重做；该新增分支首轮于 `2026-10-07T06:46:07.204Z` 开始，183.551 秒后超时：脚本在撤销/重做按既有规则回到 0 帧后，未返回有键的 90 帧就点击已禁用的全帧删除。完整姿态写入与仅 Root 删除的前置断言已通过；测试增加明确跳回 90 帧，最终 Root 单项于 `2026-10-07T06:50:05.829Z` 开始，23.945 秒全部通过，零 unexpected/flaky/skipped，console 零 errors/warnings、无 API 请求。产品代码未因这次脚本错误改变，首次失败保留。线上部署、单轮相关流程和实际源码 CI 待发布后补入下文，不用旧 v6 结果替代。
