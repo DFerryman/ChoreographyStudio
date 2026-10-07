@@ -137,7 +137,7 @@ version5唯一完整线上14项于 `2026-10-06T15:16:19.311Z` 开始，190.445�
 
 本轮 [#8](https://github.com/DFerryman/ChoreographyStudio/issues/8) 范围验收完成。当前 binding 仍仅原生 API_RATE_LIMITER 和 RELEASE_STAGE，无 D1/KV/R2/DO；所有编舞、手 K 与 IndexedDB 保存仍在本机，本轮不新增 D1 写入。最终验证记录通过纯 Markdown 提交回填，不重复源码 CI；Cloudflare 同版部署 message 关联最终文档提交，复用以上未变的运行版本和有效检查。S1 真实内容/原契约、教师、MP4、云端场景及 M0–M3 按原门槛保留。
 
-## 2026-10-07 场景内姿态复用 · version 8 验证中
+## 2026-10-07 场景内姿态复用 · version 8 已上线并验收
 
 本轮只补充当前原稿/草稿的内存复制，以及关节旋转或旋转加 Root 粘贴。粘贴仍为草稿，显式 K 才提交；保留目标六个只读末端。复制缓冲不进入场景、历史或 JSON；应用场景、确认改音乐及刷新清空。core、Stage、API、基础设施和既有数据契约均未改。
 
@@ -145,4 +145,10 @@ version5唯一完整线上14项于 `2026-10-06T15:16:19.311Z` 开始，190.445�
 
 本地单轮新增 4 项于 `2026-10-07T11:12:23.918Z` 开始，84.161 秒全部通过，unexpected/flaky/skipped 和报告 errors 均为 0；四份浏览器诊断的 errors/warnings/API 请求均为 0。覆盖来源草稿与独立复制缓冲、只粘旋转保留 Root、目标 6 个末端保留、部分/完整 K、相同粘贴无草稿/提交、已有草稿取消/放弃/写入后继续、旧 take 超界 Root 粘贴限制、撤销重做、保存重开原音频 SHA、缓存清空和 320/390px 新控件 >=44px/无页面横向溢出。
 
-GitHub/Cloudflare 发布与必要线上验收正在进行；结果在完成后回填，不复用 v7 的浏览器或 CI 数量作为本轮成绩。本轮编辑保持浏览器本机，未新增 D1 调用或云端写入。
+[功能源码 `200f943b`](https://github.com/DFerryman/ChoreographyStudio/commit/200f943b751b519ae6c19f31b744e4638fc3da18)已提交并 push；49 文件 tree `d0291d2c32ccb122f57fff7b93388d2cfef53176` 与本地完全一致，原 MIT 和历史保留，没有私有文档、用户音频、凭据或构建/测试输出。[实际源码 CI run37613142651](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37613142651) completed/success，`2026-10-07T11:24:56Z` 更新；npm ci、52 检查/构建、Worker 类型、Chromium 和完整 26 项 e2e 均通过，日志明确 Running 26 tests / 26 passed，未触发重跑。
+
+v8 version `bc806141-6418-44f7-b4c3-f6003ad48dcd` / 100%，首次功能 deployment `ebc26399-df3b-4b50-8de7-fb44b7f71821`，`2026-10-07T11:19:12.561597Z`。实际下载模块 353666 bytes / SHA-256 `1b182013eb22915c5cf94a8d0f2feca02231912e29d827696971071dfcff1d78` 与最终生成物相同；4 资产逐字节对应最终 dist，版本 message 关联完整功能 SHA。唯一 5 HTTP 于 `11:20:25.454604Z`–`11:20:27.111684Z` 全通过，4 资产 bytes/hash/安全 headers 相同，health 200/no-store。
+
+实际新增线上单轮 4 项于 `2026-10-07T11:20:44.256Z` 开始，74.446 秒全通过，unexpected/flaky/skipped/报告 errors 为 0；四份诊断 errors/warnings/API 请求均为 0。320/390px 新操作 >=44px、无横向溢出，正式键/历史及原音频 hash 保存重开一致。桌面/手机截图来自同一轮，未另开公网截图或完整回归会话。
+
+API bundle 与 v7 逐字节相同，实际仍仅原生限频 20/60 和阶段变量，has_assets=false，无 D1/KV/R2/DO；未重复 capabilities/POST 或公网限频 burst。本轮编辑/存储留在浏览器，不新增 D1 写入。最终纯 Markdown 验证回填也提交 push，并以同一已验证 v8 runtime 的部署 message 同步最终提交；运行资产未变，复用有效检查。此范围不关闭真实内容、教师、云端场景、MP4、原工程契约或 M0–M3。

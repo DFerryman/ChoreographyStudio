@@ -4,13 +4,13 @@
 
 **当前交付：S0 工作台与 P1 本机手动关键帧预览。** 程序化骨架、动作与节奏样例均为原创演示；模板与手 K 不调用生成模型。真实动作、人物素材、教师验收、生产服务和 MP4 尚未接入。当前 `preview-1` 契约不冒充原工程包 2.1.0 的生产契约。
 
-version 7 已上线按关节/Root 查看、单轨删除与筛选跳 K，保留直接可见的关节旋转/整体移动工具、Root 世界空间箭头和数值/写 K 跳转。姿态先成为草稿，显式写 K 后才改变动画；原有插值、历史和场景保存继续可用。
+version 8 已上线场景内姿态复制与草稿粘贴，可选择只复用关节旋转或同时复用角色位置。沿用关节/Root 轨道查看、单轨删除、筛选跳 K、直接旋转/整体移动工具及场景保存；粘贴先预览，显式写 K 后才改变动画。
 
 v7 的 52 项既有检查、最终构建/Worker 类型、7 项本地范围及追加 Root 单项通过；实际 v7 部署、5 HTTP、相关线上 4 项和源码 CI 完整 22 项全部通过。首次脚本超时和浏览器代理证书失败及相应恢复保留在验证记录；v5/v6 证据为历史。
 
 version 7 的轨道编辑可用：查看当前关节/Root 的显式 K 状态，分别删除当前关节、Root 或此帧全部轨键，按上一个/下一个 K 导航，并筛选全部、当前关节或 Root 时间线。本轮实际验收与发布记录已齐，由 [#8](https://github.com/DFerryman/ChoreographyStudio/issues/8) 跟踪。规则见 [手动关键帧设计](docs/MANUAL_KEYFRAMES.md)；初版与入口修正分别由 [#6](https://github.com/DFerryman/ChoreographyStudio/issues/6)、[#7](https://github.com/DFerryman/ChoreographyStudio/issues/7) 记录。
 
-**当前开发：version 8 姿态复用。** 在同一场景复制当前原稿姿态或草稿，再到另一帧粘贴为待写草稿，减少重复摆姿。可选择只复制旋转、保留目标 Root，或连同 Root 一起复制；只读末端旋转保持目标姿态。复制不修改作品，粘贴仍须显式写 K。此阶段正在实现，尚未完成验收与发布；剪贴板仅在页面内存，不调用系统剪贴板或服务，不增加 D1 写入。
+**version 8 姿态复用已交付。** 复制当前原稿或草稿到其他帧，保留目标只读末端，已有草稿先确认处理。52 项既有检查、最终构建/Worker 类型、单轮新增本地 4 项与线上 4 项、5 HTTP，以及[实际源码 CI 完整 26 项](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37613142651)均通过；[功能源码](https://github.com/DFerryman/ChoreographyStudio/commit/200f943b751b519ae6c19f31b744e4638fc3da18)已 push 并部署，阶段由 [#9](https://github.com/DFerryman/ChoreographyStudio/issues/9) 跟踪。复制缓存只在页面内存，切换场景/刷新/确认改音乐后清空，不调用系统剪贴板或服务，不增加 D1 写入。
 
 - 在线预览：[打开八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)
 - [阶段计划](docs/ROADMAP.md)

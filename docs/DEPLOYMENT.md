@@ -1,16 +1,44 @@
 # Cloudflare 预览部署
 
-2026-10-07：当前 version 7 已上线按关节/Root 查看、单轨删除及筛选跳 K，继续使用显式草稿提交、撤销与本机场景。52 项既有检查、最终构建/Worker 类型、本地 7 项与追加 Root 单项、实际部署及单轮 5 HTTP 通过；恢复浏览器受信代理后相关线上 4 项、实际源码 CI 完整 22 项也全部通过，首次失败与恢复记录保留。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+2026-10-07：当前 version 8 已上线场景内姿态复制与两种草稿粘贴，仍须显式写 K。52 项既有检查、最终构建/Worker 类型、单轮新增本地 4 项与线上 4 项、5 HTTP，以及[实际源码 CI 完整 26 项](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37613142651)均通过。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
 
-API/原生限频及无 D1 边界继续沿用；下面的当前 IDs/资产对应实际 v7 发布。既有 S0/v5/v6 证据保留为历史。
+API/原生限频及无 D1 边界继续沿用；下面的当前 IDs/资产对应实际 v8 发布。既有 S0/v5/v6/v7 证据保留为历史。
 
 ## 固定交付要求
 
 用户要求每轮修改最终都提交并 push 到 `DFerryman/ChoreographyStudio`，同步部署到本 Cloudflare 预览。交付前核对远端提交、实际运行版本和预览结果，验证记录也提交；不能只留本地改动或把构建成功当作发布完成。此要求已写入根目录 `AGENTS.md`。
 
-仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署及必要健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。当前表保留 v7 功能版本首次发布记录；后续纯文档的同版同步在部署 message 中记录最终源码提交，实际 ID/时间由 Cloudflare 部署记录核对。v6 记录保留在历史章节。
+仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署及必要健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。当前表保留 v8 功能版本首次发布记录；后续纯文档的同版同步在部署 message 中记录最终源码提交，实际 ID/时间由 Cloudflare 部署记录核对。v6/v7 记录保留在历史章节。
 
-## 当前线上版本 · version 7
+## 当前线上版本 · version 8
+
+| 项目 | 实际结果 |
+| --- | --- |
+| Worker / Account | `choreo-studio-preview` / `84e421f26c708c0cf437e287eed11fa1` |
+| v8 功能首次发布 Deployment ID | `ebc26399-df3b-4b50-8de7-fb44b7f71821` |
+| Version ID / number / 流量 | `bc806141-6418-44f7-b4c3-f6003ad48dcd` / 8 / 100% |
+| 发布时间 | `2026-10-07T11:19:12.561597Z` |
+| 功能源码 | [200f943b](https://github.com/DFerryman/ChoreographyStudio/commit/200f943b751b519ae6c19f31b744e4638fc3da18) |
+| 发布方式 | multipart 上传含 gzip 静态资产的 Worker；`has_assets=false` |
+| 实际 bindings | `API_RATE_LIMITER`（20/60、namespace 2026100601）与 `RELEASE_STAGE` |
+| 实际模块大小 / SHA-256 | 353666 bytes / `1b182013eb22915c5cf94a8d0f2feca02231912e29d827696971071dfcff1d78` |
+
+实际下载模块与可复现生成物逐字节一致，version message 关联完整功能 Git SHA；API bundle 与 v7 相同。无 D1/KV/R2/DO/真实 ASSETS 绑定，音乐、姿态复用、K/烘焙与 IndexedDB 保存均在浏览器。
+
+## 当前 version 8 验证
+
+唯一 5 HTTP 于 `2026-10-07T11:20:25.454604Z`–`11:20:27.111684Z` 全通过，4 资产 bytes/hash/安全 headers 与最终 dist 相同，health 200/no-store。API/infra 未改，复用既有 API 保护/501 证据，未另跑 capabilities、POST 或限频 burst。
+
+| 当前资产 | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `assets/index-Br0b-ptV.css` | 49517 | `a2255a09e7e9891ebd7e6556f3b9ef4ee2f1a45b38b9d880d2e523f4ebe40cdb` |
+| `assets/index-CvrUMSNe.js` | 923879 | `d1ce8917038d3cfc54b724e4d942e433e9221985ca108eadeb2b61f0a9394f3c` |
+| `favicon.svg` | 322 | `883028cbbedddb4251346f961e58174dfe92b20d8fdd7351d7373005f4c2b6ac` |
+| `index.html` | 645 | `7d4714485c9d665a2903512edc21a254b43e932b6c90d098792df4daffd4020a` |
+
+本地单轮新增 4 项于 `11:12:23.918Z`、84.161 秒通过；实际新增线上单轮 4 项于 `2026-10-07T11:20:44.256Z`、74.446 秒全通过，两轮均无 unexpected/flaky/skipped/报告 errors，诊断 errors/warnings/API 请求均为 0。320/390px 新控件 >=44px/无横向溢出，原音频 hash 和正式动作/历史保存重开一致；截图来自同一轮，未重复公网会话。实际 [源码 CI run37613142651](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37613142651) completed/success、`2026-10-07T11:24:56Z` 更新，日志确认 52 检查和完整 26 项 e2e 通过。最终纯文档提交复用同一运行版本，以部署 message 同步最终 SHA，不再次上传资产或公网测试。详见 [VERIFICATION.md](VERIFICATION.md)。
+
+## 历史 version 7 线上版本
 
 | 项目 | 实际结果 |
 | --- | --- |
@@ -28,11 +56,11 @@ API/原生限频及无 D1 边界继续沿用；下面的当前 IDs/资产对应�
 
 实际下载的 `index.js` 与最终可复现生成物逐字节一致；version message 关联同一功能 Git SHA。只保留原生限频与阶段变量，无 D1/KV/R2/DO/真实 ASSETS 绑定。音乐、编舞、轨道编辑、播放和 IndexedDB 场景保存留在本机。
 
-## 当前 version 7 验证
+## 历史 version 7 验证
 
 必要单轮 5 HTTP 于 `2026-10-07T06:56:18.166541Z` 开始，`06:56:19.093700Z` 完成，全部通过：4 资产 200 且 bytes/SHA 与最终 dist 一致，安全 headers 保留；health 200 / no-store，stage、preview-1 和 synthetic-demo 正确。API/infra 没有改动，复用此前 API 保护/501 拒绝证据，没有再跑 capabilities/POST 或公网限频 burst。
 
-| 当前资产 | Bytes | SHA-256 |
+| v7 历史资产 | Bytes | SHA-256 |
 | --- | ---: | --- |
 | `assets/index-C_Hml5-F.js` | 920967 | `8448fc352b75ae899ce0b7599d4d0c33b14c70db93c345ab15ba76b4d8b6bc89` |
 | `assets/index-C2d_8p-4.css` | 48287 | `58d5ac45b78de57be7e8d204ae57b4e5a0dd69764f03c01d72962d8468b15f63` |
