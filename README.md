@@ -12,6 +12,8 @@ version 7 的轨道编辑可用：查看当前关节/Root 的显式 K 状态，�
 
 **version 8 姿态复用已交付。** 复制当前原稿或草稿到其他帧，保留目标只读末端，已有草稿先确认处理。52 项既有检查、最终构建/Worker 类型、单轮新增本地 4 项与线上 4 项、5 HTTP，以及[实际源码 CI 完整 26 项](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37613142651)均通过；[功能源码](https://github.com/DFerryman/ChoreographyStudio/commit/200f943b751b519ae6c19f31b744e4638fc3da18)已 push 并部署，阶段由 [#9](https://github.com/DFerryman/ChoreographyStudio/issues/9) 跟踪。复制缓存只在页面内存，切换场景/刷新/确认改音乐后清空，不调用系统剪贴板或服务，不增加 D1 写入。
 
+**version 9 正在开发相机取景。** 计划提供「全身取景」和「聚焦关节」，方便角色移远后重新入镜和近距离摆关节；取景针对当前可见姿态，保留观察方向，只改变相机。此阶段尚未完成验证与发布，当前最新已验证版仍为 v8。
+
 - 在线预览：[打开八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)
 - [阶段计划](docs/ROADMAP.md)
 - [实现状态与阻塞](docs/IMPLEMENTATION_STATUS.md)
@@ -32,6 +34,8 @@ version 7 的轨道编辑可用：查看当前关节/Root 的显式 K 状态，�
 本地音乐不发送服务器。每个设备/浏览器独立保存；清理浏览器数据会删除本机项目。下载的 JSON 是数据备份，当前尚无导入 UI，请另行保留原音乐。
 
 3D 场景使用右手系、Y 向上、+Z 为角色正面、米单位和 XZ 地面；镜像仅改变观看，节点选择和相机操作不修改动作。P1 不包含 IK、骨长编辑、云保存、真实动作或教学 MP4。
+
+v9 的取景范围以当前可见骨架为准，包括未写 K 的草稿、镜像、候选和教学观看。全身取景按舞台实际宽高比留出边缘，聚焦关节也支持只读末端；没有动作或没有选中关节时给出相应禁用状态。点击取景不暂停播放、不跳帧、不写 K，不切换原稿/候选或清空草稿；相机随本机场景保存。它是一次明确操作，跳帧或调整窗口后不自动再次取景。
 
 ## P1 手 K 操作范围
 

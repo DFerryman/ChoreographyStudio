@@ -3,10 +3,12 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { EDITABLE_JOINT_NAMES, JOINT_NAMES, ROOT_TRANSLATION_LIMITS, sampleTake, type BakedTake, type JointName, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
+import { fitPerspectiveBounds } from './cameraFraming';
 import './Stage.css';
 
 export type StageView = 'front' | 'back' | 'left' | 'right' | 'top' | 'free';
 export type StageCamera = { position: Vec3; target: Vec3; zoom?: number };
+export type StageCameraFocus = { key: number; kind: 'actor' | 'joint'; joint?: JointName };
 export type StageTransformTool = 'select' | 'rotate' | 'translate';
 export const STAGE_JOINT_LABELS: Record<JointName, string> = {
   Hips: '骨盆', Spine: '腰椎', Chest: '胸椎', Neck: '颈部', Head: '头部',
@@ -25,6 +27,7 @@ type StageProps = {
   cameraResetKey?: number;
   cameraState?: StageCamera;
   cameraRestoreKey?: number;
+  cameraFocus?: StageCameraFocus;
   selectedJoint?: JointName | null;
   gridVisible?: boolean;
   axesVisible?: boolean;
@@ -45,6 +48,7 @@ type PreviewRig = {
   joints: Map<JointName, THREE.Group>;
   markers: Map<JointName, THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>>;
   targets: THREE.Mesh[];
+  framingMeshes: THREE.Mesh[];
 };
 
 type GizmoAxis = { name: 'X' | 'Y' | 'Z'; color: string; x: number; y: number; depth: number };
@@ -55,6 +59,7 @@ function createPreviewRig(): PreviewRig {
   const joints = new Map<JointName, THREE.Group>();
   const markers = new Map<JointName, THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>>();
   const targets: THREE.Mesh[] = [];
+  const framingMeshes: THREE.Mesh[] = [];
   const sphereGeometry = new THREE.SphereGeometry(1, 16, 12);
   const boneGeometry = new THREE.CylinderGeometry(1, 1, 1, 8);
   const boneMaterial = new THREE.MeshStandardMaterial({ color: '#aeb8d1', roughness: 0.86 });
@@ -77,6 +82,7 @@ function createPreviewRig(): PreviewRig {
       bone.scale.set(0.014, length, 0.014);
       bone.castShadow = true;
       parentGroup.add(bone);
+      framingMeshes.push(bone);
     }
 
     const material = new THREE.MeshStandardMaterial({
@@ -90,6 +96,7 @@ function createPreviewRig(): PreviewRig {
     marker.castShadow = true;
     group.add(marker);
     markers.set(name, marker);
+    framingMeshes.push(marker);
     // Generous invisible targets improve selection without changing visible joint size.
     const target = new THREE.Mesh(sphereGeometry, targetMaterial);
     target.scale.setScalar(name === 'Hips' ? 0.088 : 0.07);
@@ -111,6 +118,7 @@ function createPreviewRig(): PreviewRig {
   headOutline.position.y = 0.08;
   headOutline.scale.y = 1.22;
   head.add(headOutline);
+  framingMeshes.push(headOutline);
   const direction = new THREE.Mesh(
     new THREE.ConeGeometry(0.022, 0.055, 8),
     new THREE.MeshBasicMaterial({ color: '#7c93ff' }),
@@ -118,6 +126,7 @@ function createPreviewRig(): PreviewRig {
   direction.position.set(0, 0.08, 0.142);
   direction.rotation.x = Math.PI / 2;
   head.add(direction);
+  framingMeshes.push(direction);
 
   for (const side of ['Left', 'Right'] as const) {
     const sign = side === 'Left' ? 1 : -1;
@@ -133,7 +142,7 @@ function createPreviewRig(): PreviewRig {
     joint(`${side}Heel`, `${side}Foot`, 0, -0.035, -0.065);
   }
   root.position.set(0, 1.05, 0);
-  return { root, joints, markers, targets };
+  return { root, joints, markers, targets, framingMeshes };
 }
 
 function applyPose(rig: PreviewRig, pose: Pose | null, draggingJoint: JointName | null = null, draggingRoot = false) {
@@ -187,7 +196,7 @@ function StageFallback({ error }: { error: string }) {
 }
 
 export function Stage(props: StageProps) {
-  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, selectedJoint, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool = 'rotate' } = props;
+  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraFocus, selectedJoint, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool = 'rotate' } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const current = useRef(props);
   const requestDraw = useRef<() => void>(() => {});
@@ -305,6 +314,7 @@ export function Stage(props: StageProps) {
     let previousView: StageView | undefined;
     let previousReset: number | undefined;
     let previousRestore: number | undefined;
+    let previousFocusKey = current.current.cameraFocus?.key;
     let previousTake: BakedTake | null | undefined;
     let previousTime = Number.NaN;
     let previousOverride: Pose | null | undefined;
@@ -466,11 +476,67 @@ export function Stage(props: StageProps) {
       return undefined;
     }
 
+    function cancelForCameraFocus() {
+      const heldPointers = new Set(activePointers);
+      if (pointerStart) heldPointers.add(pointerStart.id);
+      // The last objectChange already produced the current draft. Ending a
+      // camera action must not emit another pose change or commit it.
+      cancelTransform();
+      controls.disconnect();
+      controls.connect(canvas);
+      controls.listenToKeyEvents(canvas);
+      for (const id of heldPointers) {
+        blockedTransformPointers.add(id);
+        if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
+      }
+      // Retain an existing second-touch isolation group until every touch ends.
+      syncOrbit();
+    }
+
+    function focusCamera(request: StageCameraFocus) {
+      const bounds = new THREE.Box3();
+      if (request.kind === 'joint') {
+        const joint = request.joint ? rig.joints.get(request.joint) : undefined;
+        if (!joint) return;
+        const center = joint.getWorldPosition(new THREE.Vector3());
+        bounds.setFromCenterAndSize(center, new THREE.Vector3(0.6, 0.6, 0.6));
+      } else {
+        // Explicit actor meshes exclude the ground, world axes, invisible pick
+        // targets, TransformControls and local axes attached under the rig.
+        for (const mesh of rig.framingMeshes) {
+          if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+          if (mesh.geometry.boundingBox) bounds.union(mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrixWorld));
+        }
+      }
+      const fit = fitPerspectiveBounds({
+        bounds, position: camera.position, target: controls.target, up: camera.up,
+        aspect: camera.aspect, fov: camera.fov, near: camera.near,
+        minDistance: request.kind === 'joint' ? 1.5 : controls.minDistance,
+        maxDistance: controls.maxDistance, padding: request.kind === 'joint' ? 1.05 : 1.18,
+      });
+      if (!fit) return;
+      applyingCamera = true;
+      camera.zoom = 1;
+      camera.updateProjectionMatrix();
+      controls.target.copy(fit.target);
+      camera.position.copy(fit.position);
+      controls.update();
+      applyingCamera = false;
+      manuallyMoved = true;
+      current.current.onCameraInteraction?.();
+      // Even a repeated framing at the same position publishes concrete state.
+      cameraSignature = '';
+    }
+
     function draw() {
       const state = current.current;
       frame = 0;
       if (stopped || width <= 0 || height <= 0) return;
       const restoreChanged = state.cameraRestoreKey !== previousRestore;
+      const wasInitialized = initialized;
+      const focusChanged = state.cameraFocus?.key !== previousFocusKey;
+      previousFocusKey = state.cameraFocus?.key;
+      const focusRequest = wasInitialized && !restoreChanged && state.take && focusChanged ? state.cameraFocus : undefined;
       const cameraViewChanged = state.view !== previousView || state.cameraResetKey !== previousReset;
       // A scene switch can clear the consumer's state even when its camera and
       // selected joint match the previous scene. Publish fresh scene feedback.
@@ -496,7 +562,8 @@ export function Stage(props: StageProps) {
         state.take !== previousTake || state.time !== previousTime ||
         (state.poseOverride == null && previousOverride != null)
       );
-      if (cancelDrag) cancelTransform();
+      if (focusRequest) cancelForCameraFocus();
+      else if (cancelDrag) cancelTransform();
       const tool = activeTool();
       const mode = tool === 'translate' ? 'translate' : 'rotate';
       const space = tool === 'translate' ? 'world' : 'local';
@@ -529,6 +596,7 @@ export function Stage(props: StageProps) {
         marker.scale.setScalar(radius * (selected ? 1.38 : over ? 1.18 : 1));
       }
       scene.updateMatrixWorld(true);
+      if (focusRequest) focusCamera(focusRequest);
       renderer.render(scene, camera);
       cameraFeedback();
       selectionFeedback();
@@ -813,7 +881,7 @@ export function Stage(props: StageProps) {
 
   useEffect(() => {
     requestDraw.current();
-  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, selection, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool]);
+  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraFocus, selection, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool]);
 
   return (
     <div className="stage3d" ref={containerRef}>

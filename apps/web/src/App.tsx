@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDownToLine, ArrowRight, ArrowUpRight, Check, CheckCircle2, CircleHelp, Copy, FileAudio, FolderOpen, GitBranch, Headphones, Layers3, LoaderCircle, MousePointer2, Move3D, Pause, Pencil, Play, Plus, Redo2, Repeat2, Rotate3D, RotateCcw, Save, SlidersHorizontal, Sparkles, Undo2, Upload, Volume2, X } from 'lucide-react';
+import { ArrowDownToLine, ArrowRight, ArrowUpRight, Check, CheckCircle2, CircleHelp, Copy, FileAudio, Focus, FolderOpen, GitBranch, Headphones, Layers3, LoaderCircle, MousePointer2, Move3D, Pause, Pencil, Play, Plus, Redo2, Repeat2, Rotate3D, RotateCcw, Save, Scan, SlidersHorizontal, Sparkles, Undo2, Upload, Volume2, X } from 'lucide-react';
 import { bakePlan, bakeKeyframeSequence, countAt, createNeutralTake, EDITABLE_JOINT_NAMES, frameAtTime, frameTime, getKeyframeCount, makeCountMap, makeKeyframeSequence, makePlan, removePoseKeyframe, removeRootKeyframe, removeRotationKeyframe, replaceSlot, ROOT_TRANSLATION_LIMITS, sampleTake, setPoseKeyframe, upsertRootKeyframe, upsertRotationKeyframe, type ArrangementPlan, JOINT_NAMES, type BakedTake, type CountMap, type JointName, type KeyframeSequence, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
-import { Stage, STAGE_JOINT_LABELS, type StageCamera, type StageTransformTool, type StageView } from './Stage';
+import { Stage, STAGE_JOINT_LABELS, type StageCamera, type StageCameraFocus, type StageTransformTool, type StageView } from './Stage';
 import { demoAudio } from './demoAudio';
 import { deleteScene, duplicateScene, listScenes, loadCurrentScene, loadScene, renameScene, saveScene, setCurrentScene as selectStoredScene } from './storage';
 import { createScene, type SceneDocument } from './scene';
@@ -48,6 +48,8 @@ export default function App() {
   const [view, setView] = useState<StageView>('front');
   const [camera, setCamera] = useState<StageCamera | null>(null);
   const [cameraResetKey, setCameraResetKey] = useState(0);
+  const [cameraFocus, setCameraFocus] = useState<StageCameraFocus | null>(null);
+  const cameraFocusCounter = useRef(0);
   const [cameraRestoreKey, setCameraRestoreKey] = useState(0);
   const [selectedJoint, setSelectedJoint] = useState<JointName | null>(null);
   const [jointPosition, setJointPosition] = useState<Vec3 | null>(null);
@@ -252,6 +254,10 @@ export default function App() {
   const handleJointPosition = useCallback((position: Vec3 | null) => { setJointPosition(position); }, []);
   function chooseJoint(joint: JointName | null) { setSelectedJoint(joint); markSceneDirty(); }
   function chooseView(next: Exclude<StageView, 'free'>) { setView(next); setCameraResetKey(previous => previous + 1); markSceneDirty(); }
+  function focusCamera(kind: 'actor' | 'joint') {
+    if (!displayedTake || !ready || busy || (kind === 'joint' && !selectedJoint)) return;
+    setCameraFocus({ key: ++cameraFocusCounter.current, kind, joint: kind === 'joint' ? selectedJoint! : undefined });
+  }
   async function refreshScenes() { setSceneList(await listScenes()); }
   async function openLibrary() {
     pause(); setLibraryOpen(true); setLibraryBusy(true);
@@ -271,6 +277,7 @@ export default function App() {
     setSelectedJoint(viewer.selectedJoint); setJointPosition(null);
     cameraRef.current = viewer.camera; setCamera(viewer.camera);
     setCameraRestoreKey(previous => previous + 1);
+    setCameraFocus(null);
     setCandidate(null); setPreviewCandidate(false); setPage('studio'); setEditorMode(viewer.editorMode ?? 'arrange');
     setTransformTool(viewer.transformTool ?? (viewer.editorMode === 'keyframes' ? 'rotate' : 'select'));
     poseDraftRef.current = null; setPoseDraft(null); poseDraftBaseline.current = null;
@@ -604,7 +611,8 @@ export default function App() {
         <div className="studio-grid">
           <section className="viewer-panel" aria-label="3D动作预览">
             <div className="viewer-toolbar"><span className="viewer-title"><span className="live-dot" />{previewCandidate ? '替换预览' : '动作预览'}<span className="muted-divider">/</span><span className="viewer-muted">{view === 'free' ? '自由视角' : active.manual ? '手动编舞' : '关节骨架'}</span></span><div className="camera-toolbar"><div className="segmented" aria-label="观看视角">{([['front', '正面'], ['back', '背面'], ['left', '左侧'], ['right', '右侧'], ['top', '顶视']] as const).map(([preset, label]) => <button key={preset} className={view === preset ? 'selected' : ''} aria-pressed={view === preset} onClick={() => chooseView(preset)}>{label}</button>)}</div><button className="icon-button camera-reset" aria-label="复位相机" title="复位到正面全身" onClick={() => chooseView('front')}><RotateCcw size={16} /></button></div></div>
-            <div className="stage-wrap"><Stage take={displayedTake} time={time} view={view} mirror={mirror} cameraState={camera ?? undefined} cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction} selectedJoint={selectedJoint} onSelectJoint={chooseJoint} onJointPositionChange={handleJointPosition} poseOverride={manualEditing ? poseDraft : null} editMode={manualEditing} transformTool={activeTransformTool} playing={playing} onJointRotationChange={handleJointRotation} onRootPositionChange={handleRootPosition} /><div className="stage-status"><span className="stage-tag">25 关节 · 原创骨架</span><span className="stage-hint"><span className="desktop-camera-hint">拖动旋转 · 右键平移 · 滚轮缩放</span><span className="mobile-camera-hint">单指旋转 · 双指平移/缩放</span></span></div><div className="count-overlay"><span>第 {currentCount.octet} 个八拍</span><strong>{currentCount.count}<small> / 8</small></strong></div>{!active.take && <div className="empty-overlay"><Sparkles size={24} /><strong>音乐准备好了</strong><p>生成模板初稿，开始查看你的组合。</p></div>}</div>
+            <div className="camera-framing-toolbar" role="group" aria-label="相机取景"><button disabled={!displayedTake || !ready || !!busy} title="保持当前方向，将眼前角色完整收入画面" onClick={() => focusCamera('actor')}><Scan size={14} aria-hidden="true" />全身取景</button><button disabled={!displayedTake || !selectedJoint || !ready || !!busy} title={!selectedJoint ? '先选择一个关节，再聚焦查看' : `保持当前方向，近看${STAGE_JOINT_LABELS[selectedJoint]}`} onClick={() => focusCamera('joint')}><Focus size={14} aria-hidden="true" />聚焦关节</button><span>{!displayedTake ? '生成动作后可取景' : !selectedJoint ? '取景只调整相机 · 选中关节可近看' : `取景只调整相机 · ${STAGE_JOINT_LABELS[selectedJoint]}`}</span></div>
+            <div className="stage-wrap"><Stage take={displayedTake} time={time} view={view} mirror={mirror} cameraState={camera ?? undefined} cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} cameraFocus={cameraFocus ?? undefined} onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction} selectedJoint={selectedJoint} onSelectJoint={chooseJoint} onJointPositionChange={handleJointPosition} poseOverride={manualEditing ? poseDraft : null} editMode={manualEditing} transformTool={activeTransformTool} playing={playing} onJointRotationChange={handleJointRotation} onRootPositionChange={handleRootPosition} /><div className="stage-status"><span className="stage-tag">25 关节 · 原创骨架</span><span className="stage-hint"><span className="desktop-camera-hint">拖动旋转 · 右键平移 · 滚轮缩放</span><span className="mobile-camera-hint">单指旋转 · 双指平移/缩放</span></span></div><div className="count-overlay"><span>第 {currentCount.octet} 个八拍</span><strong>{currentCount.count}<small> / 8</small></strong></div>{!active.take && <div className="empty-overlay"><Sparkles size={24} /><strong>音乐准备好了</strong><p>生成模板初稿，开始查看你的组合。</p></div>}</div>
             <div className="stage-edit-tools">
               <div className="stage-tool-buttons" role="group" aria-label="舞台编辑工具">
                 <button aria-label="选择工具" aria-pressed={activeTransformTool === 'select'} className={activeTransformTool === 'select' ? 'selected' : ''} onClick={() => chooseTransformTool('select')} title="选择关节与移动相机；收起操作手柄"><MousePointer2 size={15} />选择</button>
