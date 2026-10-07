@@ -4,6 +4,12 @@
 
 API/原生限频及无 D1 边界继续沿用；下面当前 IDs/资产对应实际 v9 发布。S0/v5–v8 证据保留为历史。
 
+## version 10 发布准备
+
+完整场景备份/原音乐恢复、K 时刻移动复制和键盘模态已经本地实现并通过相关范围：107 检查、构建/类型、8 个不同流程及缺音乐恢复单项、离线 Wrangler dry-run。初次脚本/启动失败和相关复核保持在 [VERIFICATION.md](VERIFICATION.md)。源码 CI 和实际上线尚待完成，下面当前运行回执仍为 v9。
+
+最终生成物 `/tmp/choreo-preai-inline-summary.json`：module 370986 bytes / SHA-256 `be024bed5d7b45667436e28099f2a57eed604cf77f0997b67049f6cf8ae71d87`。API bundle 与 v9 相同；本次仍只使用原生限频和阶段变量，不增加 D1/存储绑定。
+
 ## 固定交付要求
 
 用户要求每轮修改最终都提交并 push 到 `DFerryman/ChoreographyStudio`，同步部署到本 Cloudflare 预览。交付前核对远端提交、实际运行版本和预览结果，验证记录也提交；不能只留本地改动或把构建成功当作发布完成。此要求已写入根目录 `AGENTS.md`。

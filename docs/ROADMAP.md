@@ -94,9 +94,13 @@ version 5 的删除 UI 只处理当前帧全部显式轨键，单轨删除当时
 
 退出条件为移动 Root 和窄屏全身构图、保持视角方向、节点/末端聚焦、当前可见姿态边界、播放及权威数据不变、保存重开、一次性请求和场景/操作柄生命周期通过本地验收；随后做必要单轮公网流程、实际 GitHub push 与 Cloudflare 同步。该轮 60 项检查、构建/Worker 类型与 dry run、4 项相关本地范围经首轮及复核、5 HTTP、单轮线上 4 项和[实际源码 CI 完整 30 项](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37627848531)通过；[功能源码](https://github.com/DFerryman/ChoreographyStudio/commit/b43817249a9ade4e68bc9900ef273b3e47fdec0f)已 push 同步 Cloudflare，完成 [#10](https://github.com/DFerryman/ChoreographyStudio/issues/10) 的本机范围；首次本地数值字符串断言与恢复保留，v8 为历史证据。
 
-### AI 接入前的实用本机闭环 · version 10 开发中
+### AI 接入前的实用本机闭环 · version 10 本地验收通过，待发布
 
-用户要求继续完成基本的 AI 接入前工作，[#11](https://github.com/DFerryman/ChoreographyStudio/issues/11) 规划完整场景备份/恢复、关键帧时刻移动/复制及模态焦点和键盘取消。按相关本地验收、必要单轮线上检查、实际 push 与 Cloudflare 同步逐次交付；当前开发中，未宣称已发布。音乐和正式动画须原样恢复，键移动遵守草稿/冲突/历史保护，不新增模型调用、云保存或 D1 写入。原素材、契约与生产门槛继续保留。
+用户要求继续完成基本的 AI 接入前工作，[#11](https://github.com/DFerryman/ChoreographyStudio/issues/11) 已在本地实现完整场景备份/恢复、关键帧时刻移动/复制及模态焦点和键盘取消。107 项基础检查、最终构建/Worker 类型与 dry run、8 个不同本地浏览器范围经首轮/手机定向复核，以及缺失原音乐恢复相关单项通过；首次脚本及测试前环境启动问题与恢复保留。最新完整验证仍为 v9，v10 尚待必要公网、实际源码 CI、push 和 Cloudflare 同步，不宣称已发布。
+
+备份以新场景恢复原音乐、精确 Take/手 K/历史和相机，严格资源、协议、hash 与实际解码校验；旧 JSON 重新关联原音乐。键移动/复制仅转移指定范围的显式键，保持基底和目标其他轨，草稿先处理、碰撞明确确认、旧确认拒绝，正式修改可撤销保存。模态遵循最上层焦点、Tab 环绕和安全 Escape；操作细则见 [手 K 规则](MANUAL_KEYFRAMES.md)、[场景备份](SCENE_BACKUPS.md) 和 [AI 接入前清单](PRE_AI_CHECKLIST.md)。不新增模型调用、云保存或 D1，原素材、契约与生产门槛继续保留。
+
+本轮还补齐已保存场景缺音乐的明确恢复：保留动作和 CountMap，禁用播放/保存/完整包但允许项目 JSON；关联原曲、通过实际解码后，将草稿处理后的最新正式 K/历史/相机保存为新场景，旧场景不覆盖，不自动使用示例音乐或重建动画。该新增分支已通过相关本地单项，不复用前八项作为它的通过证据。
 
 ## 请求频率与写入预算
 

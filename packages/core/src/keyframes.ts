@@ -21,6 +21,25 @@ export interface KeyframeSequence {
   root: RootKeyframe[];
 }
 
+export type KeyframeTransferScope = { kind: 'all' } | { kind: 'joint'; joint: JointName } | { kind: 'root' };
+export type KeyframeTransferTrack = Exclude<KeyframeTransferScope, { kind: 'all' }>;
+export type KeyframeTransferRequest = {
+  operation: 'move' | 'copy';
+  scope: KeyframeTransferScope;
+  sourceFrame: number;
+  targetFrame: number;
+  /** Replacing occupied tracks requires explicit confirmation by the caller. */
+  collision?: 'reject' | 'replace';
+};
+export type KeyframeTransferResult = {
+  sequence: KeyframeSequence;
+  sourceKeyCount: number;
+} & (
+  { status: 'noop'; reason: 'same-frame' | 'empty-source' | 'unchanged' } |
+  { status: 'conflict'; collisions: KeyframeTransferTrack[] } |
+  { status: 'changed'; replaced: KeyframeTransferTrack[] }
+);
+
 const FPS = 30;
 let fallbackId = 0;
 const newId = (prefix: string) => `${prefix}_${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}_${++fallbackId}`}`;
@@ -241,6 +260,51 @@ export function removePoseKeyframe(sequence: KeyframeSequence, frame: number): K
     else delete next.rotations[joint];
   }
   return next;
+}
+
+/** Transfer only explicit source keys; destination-only tracks remain untouched. */
+export function transferKeyframes(sequence: KeyframeSequence, request: KeyframeTransferRequest): KeyframeTransferResult {
+  validateSequence(sequence);
+  if (!request || !['move', 'copy'].includes(request.operation) || !request.scope || !['all', 'joint', 'root'].includes(request.scope.kind) || (request.collision !== undefined && !['reject', 'replace'].includes(request.collision))) throw new Error('关键帧移动或复制请求无效。');
+  const { operation, scope, sourceFrame, targetFrame, collision = 'reject' } = request;
+  if (scope.kind === 'joint') assertEditable(scope.joint);
+  frameTime(sourceFrame, sequence.baseTake.durationSeconds);
+  frameTime(targetFrame, sequence.baseTake.durationSeconds);
+  const joints = scope.kind === 'root' ? [] : scope.kind === 'joint' ? [scope.joint] : EDITABLE_JOINT_NAMES;
+  const rotations = joints.flatMap(joint => {
+    const key = sequence.rotations[joint]?.find(key => key.frame === sourceFrame);
+    return key ? [{ joint, rotation: key.rotation }] : [];
+  });
+  const root = scope.kind === 'joint' ? undefined : sequence.root.find(key => key.frame === sourceFrame);
+  const sourceKeyCount = rotations.length + (root ? 1 : 0);
+  if (sourceFrame === targetFrame) return { status: 'noop', reason: 'same-frame', sequence, sourceKeyCount };
+  if (!sourceKeyCount) return { status: 'noop', reason: 'empty-source', sequence, sourceKeyCount };
+
+  const collisions: KeyframeTransferTrack[] = rotations
+    .filter(({ joint }) => sequence.rotations[joint]?.some(key => key.frame === targetFrame))
+    .map(({ joint }) => ({ kind: 'joint', joint }));
+  const targetRoot = root ? sequence.root.find(key => key.frame === targetFrame) : undefined;
+  if (targetRoot) collisions.push({ kind: 'root' });
+  if (collisions.length && collision === 'reject') return { status: 'conflict', sequence, sourceKeyCount, collisions };
+
+  // A confirmed copy of identical explicit payloads is not an animation change.
+  if (operation === 'copy' && rotations.every(({ joint, rotation }) => {
+    const target = sequence.rotations[joint]?.find(key => key.frame === targetFrame);
+    return target && rotation.every((value, axis) => value === target.rotation[axis]);
+  }) && (!root || (targetRoot && root.position.every((value, axis) => value === targetRoot.position[axis])))) return { status: 'noop', reason: 'unchanged', sequence, sourceKeyCount };
+
+  const count = sequence.root.length + Object.values(sequence.rotations).reduce((sum, keys) => sum + keys!.length, 0);
+  if (operation === 'copy' && count + sourceKeyCount - collisions.length > MAX_KEYFRAME_COUNT) throw new Error(`当前预览最多支持 ${MAX_KEYFRAME_COUNT} 条关键帧记录。`);
+  const next = copySequence(sequence);
+  for (const { joint, rotation } of rotations) {
+    const retained = (next.rotations[joint] ?? []).filter(key => operation !== 'move' || key.frame !== sourceFrame);
+    next.rotations[joint] = upsert(retained, { frame: targetFrame, rotation: [...rotation] as Quat });
+  }
+  if (root) {
+    const retained = next.root.filter(key => operation !== 'move' || key.frame !== sourceFrame);
+    next.root = upsert(retained, { frame: targetFrame, position: [...root.position] as Vec3 });
+  }
+  return { status: 'changed', sequence: finishMutation(next), sourceKeyCount, replaced: collisions };
 }
 
 export function getKeyframeFrames(sequence: KeyframeSequence): number[] {

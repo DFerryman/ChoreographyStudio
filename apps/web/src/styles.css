@@ -601,3 +601,28 @@ h2 { font-size: 14px; line-height: 1.5; font-weight: 650; }
   * { scroll-behavior: auto !important; transition: none !important; }
   .spin { animation: none; }
 }
+
+.backup-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
+.backup-actions > button { min-height: 44px; }
+.backup-actions > button:disabled { opacity: .4; cursor: not-allowed; }
+.import-backdrop { z-index: 35; }
+.backup-import-modal { max-width: 580px; }
+.backup-upload { margin-bottom: 16px; }
+.backup-summary { display: grid; gap: 7px; padding: 14px; margin: 14px 0; border: 1px solid #e1e5ee; border-radius: 8px; background: #f7f9fc; overflow-wrap: anywhere; }
+.backup-summary > span { font-size: 12px; color: #748198; }
+.legacy-audio { font-size: 12px; line-height: 1.7; padding: 12px 14px; border-radius: 8px; background: #fff8e7; color: #81672c; }
+.legacy-audio .field { margin-top: 12px; }
+.legacy-audio input[type="file"] { max-width: 100%; width: 100%; min-height: 44px; padding: 7px; }
+.transfer-collisions { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0; }
+.transfer-collisions > span { padding: 5px 8px; border-radius: 5px; background: #edf1fa; color: #536aa0; font-size: 12px; }
+.library-toolbar { flex-wrap: wrap; }
+@media (max-width: 600px) {
+ .backup-actions { justify-content: flex-end; }
+ .library-toolbar > span { flex-basis: 100%; }
+ .backup-import-modal .modal-actions { flex-wrap: wrap; }
+ .backup-import-modal .modal-actions > button { min-height: 44px; }
+}
+
+.missing-audio { padding: 12px 14px; margin-bottom: 16px; border: 1px solid #f0ddaa; border-radius: 7px; background: #fff9eb; color: #8c702f; font-size: 12px; line-height: 1.7; }
+.missing-audio > p { margin: 6px 0 10px; }
+.missing-audio > button { min-height: 44px; }

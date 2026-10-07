@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, ClipboardPaste, Copy, Diamond, RotateCcw, Trash2 } from 'lucide-react';
-import { EDITABLE_JOINT_NAMES, ROOT_TRANSLATION_LIMITS, frameTime, getKeyframeFrames, lastFrame, rotationFromDegrees, rotationToDegrees, type JointName, type KeyframeSequence, type Pose, type Vec3 } from '../../../packages/core/src';
+import { ArrowRight, ChevronLeft, ChevronRight, ClipboardPaste, Copy, Diamond, RotateCcw, Trash2 } from 'lucide-react';
+import { EDITABLE_JOINT_NAMES, ROOT_TRANSLATION_LIMITS, frameTime, getKeyframeFrames, lastFrame, rotationFromDegrees, rotationToDegrees, type JointName, type KeyframeSequence, type KeyframeTransferRequest, type KeyframeTransferScope, type Pose, type Vec3 } from '../../../packages/core/src';
 import { STAGE_JOINT_LABELS, type StageTransformTool } from './Stage';
 import './KeyframeEditor.css';
 
@@ -131,8 +131,21 @@ export function KeyframeEditor(props: KeyframeEditorProps) {
   </section>;
 }
 
-export function KeyframeTimeline({ sequence, frame, selectedJoint, onFrame, playing }: { sequence: KeyframeSequence; frame: number; selectedJoint: JointName | null; onFrame: (frame: number) => void; playing: boolean }) {
+type KeyframeTimelineProps = {
+  sequence: KeyframeSequence;
+  frame: number;
+  selectedJoint: JointName | null;
+  onFrame: (frame: number) => void;
+  playing: boolean;
+  mirror?: boolean;
+  readOnly?: boolean;
+  onTransferKeyframes: (request: Omit<KeyframeTransferRequest, 'collision'>) => void;
+};
+
+export function KeyframeTimeline({ sequence, frame, selectedJoint, onFrame, playing, mirror = false, readOnly = false, onTransferKeyframes }: KeyframeTimelineProps) {
   const [filter, setFilter] = useState<'all' | 'joint' | 'root'>('all');
+  const [targetText, setTargetText] = useState(() => String(Math.min(frame + 30, lastFrame(sequence.baseTake.durationSeconds))));
+  useEffect(() => { setTargetText(String(Math.min(frame + 30, lastFrame(sequence.baseTake.durationSeconds)))); }, [sequence.baseTake.id]);
   const editable = selectedJoint !== null && EDITABLE_JOINT_NAMES.includes(selectedJoint);
   const frames = useMemo(() => {
     if (filter === 'root') return sequence.root.map(key => key.frame);
@@ -141,12 +154,27 @@ export function KeyframeTimeline({ sequence, frame, selectedJoint, onFrame, play
   }, [sequence, filter, selectedJoint, editable]);
   const duration = sequence.baseTake.durationSeconds, end = lastFrame(duration);
   const rotationTracks = useMemo(() => Object.entries(sequence.rotations), [sequence]);
+  const sourceKeyCount = filter === 'root' ? Number(sequence.root.some(key => key.frame === frame)) : filter === 'joint' ? Number(!!(editable && selectedJoint && sequence.rotations[selectedJoint]?.some(key => key.frame === frame))) : rotationTracks.filter(([, keys]) => keys!.some(key => key.frame === frame)).length + Number(sequence.root.some(key => key.frame === frame));
+  const targetFrame = Number(targetText);
+  const targetValid = !!targetText.trim() && Number.isInteger(targetFrame) && targetFrame >= 0 && targetFrame <= end;
+  const transferUnavailable = playing ? '播放中请先暂停，再移动或复制关键帧。' : mirror ? '镜像仅用于观看，请回原始视图编辑关键帧。' : readOnly ? '当前仅可观看，请返回原稿编辑关键帧。' : filter === 'joint' && !editable ? selectedJoint ? '末端节点只读，没有可移动或复制的旋转 K。' : '请先选择一个可编辑关节。' : !sourceKeyCount ? '本帧在当前范围内没有显式 K；插值姿态和基底端点不参与操作。' : !targetValid ? `请输入 0–${end} 范围内的整数目标帧。` : targetFrame === frame ? '目标与源帧相同，请选择另一个目标帧。' : null;
+  function requestTransfer(operation: 'move' | 'copy') {
+    if (transferUnavailable) return;
+    const scope: KeyframeTransferScope = filter === 'joint' && selectedJoint ? { kind: 'joint', joint: selectedJoint } : { kind: filter === 'root' ? 'root' : 'all' };
+    onTransferKeyframes({ operation, scope, sourceFrame: frame, targetFrame });
+  }
   const trackName = filter === 'root' ? 'Root 位移' : filter === 'joint' ? selectedJoint ? `${STAGE_JOINT_LABELS[selectedJoint]} · 局部旋转` : '未选关节' : '全部轨道';
   const trackStatus = filter === 'joint' && !editable ? selectedJoint ? '末端节点只读' : '请选择关节' : `${frames.includes(frame) ? '本帧已写 K' : '本帧未写 K'} · ${frames.length} 个关键时刻`;
   const empty = filter === 'joint' ? !selectedJoint ? '请在舞台或列表选择关节，查看它的旋转关键帧。' : !editable ? '这个末端节点只读，没有可编辑旋转轨。请选择肩、肘、髋等骨骼。' : `${STAGE_JOINT_LABELS[selectedJoint]}尚无显式旋转 K，当前使用基底动画；写入「K 当前关节」后在此查看。` : filter === 'root' ? 'Root 尚无显式位移 K，当前使用基底动画；写入「K 位移」后在此查看。' : '还没有手动关键帧。调整姿态后点击 K，将这一帧写入序列。';
   return <section className="kf-timeline" aria-label="手动关键帧时间线">
     <div className="timeline-heading"><div className="module-title"><span className="module-index">30</span><h2>关键帧序列 <span>{frames.length} 个关键时刻</span></h2></div><span className="kf-timeline-duration">{duration.toFixed(3)} s · {end} 帧</span></div>
     <div className="kf-timeline-controls"><label className="kf-filter-field"><span>查看轨道</span><select aria-label="关键帧轨道筛选" value={filter} onChange={event => setFilter(event.target.value as typeof filter)}><option value="all">全部轨道</option><option value="joint">选中关节</option><option value="root">Root 位移</option></select></label><div className="kf-filter-status" aria-label="筛选轨道状态"><strong>{trackName}</strong><span>{trackStatus}</span></div><KeyNavigation frames={frames} frame={frame} playing={playing} onFrame={onFrame} timeline /></div>
+    <section className="kf-transfer-panel" aria-label="关键帧移动与复制">
+      <div className="kf-transfer-heading"><strong>调整关键时刻</strong><span>第 {frame} 帧 · {sourceKeyCount} 个显式 K · {trackName}</span></div>
+      <div className="kf-transfer-controls"><label className="kf-transfer-destination"><span>目标帧</span><input type="number" data-modal-focus-fallback aria-label="关键帧目标帧" min={0} max={end} step={1} value={targetText} disabled={playing || mirror || readOnly} onChange={event => setTargetText(event.target.value)} /></label><div className="kf-transfer-actions"><button aria-label="复制当前范围关键帧" title={transferUnavailable ?? '保留源帧，将当前范围内的显式 K 复制到目标帧'} disabled={!!transferUnavailable} onClick={() => requestTransfer('copy')}><Copy size={14} aria-hidden="true" />复制到目标帧</button><button aria-label="移动当前范围关键帧" title={transferUnavailable ?? '移除源帧，将当前范围内的显式 K 移到目标帧'} disabled={!!transferUnavailable} onClick={() => requestTransfer('move')}><ArrowRight size={14} aria-hidden="true" />移动到目标帧</button></div></div>
+      <p className="kf-transfer-status" aria-label="关键帧移动与复制状态" role="status">{transferUnavailable ?? `将本帧 ${sourceKeyCount} 个显式 K ${targetValid ? `放到第 ${targetFrame} 帧` : ''}；目标已有同轨 K 时先确认替换。`}</p>
+      <span className="kf-transfer-note">按上方轨道范围操作 · 会改变相邻区间的插值 · 音乐与场景时长保持不变</span>
+    </section>
     <div className="kf-track"><input aria-label="关键帧时间线进度" type="range" min={0} max={end} step={1} value={frame} disabled={playing} onChange={event => onFrame(Number(event.target.value))} /><div className="kf-markers">{frames.map(keyFrame => <button key={keyFrame} className={keyFrame === frame ? 'selected' : ''} aria-label={`跳到第 ${keyFrame} 帧关键帧`} title={`${keyFrame} 帧 · ${frameTime(keyFrame, duration).toFixed(3)} 秒`} style={{ left: `${keyFrame / end * 100}%` }} disabled={playing} onClick={() => onFrame(keyFrame)}><Diamond size={11} fill="currentColor" /></button>)}<span className="kf-playhead" style={{ left: `${frame / end * 100}%` }} /></div></div>
     <div className="kf-track-labels"><span>0 帧</span><span>{frame} 帧 · {frameTime(frame, duration).toFixed(3)} 秒</span><span>{end} 帧</span></div>
     {frames.length ? <div className="kf-key-list" role="list" aria-label="关键帧列表">{frames.map(keyFrame => {
