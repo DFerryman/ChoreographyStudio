@@ -42,6 +42,12 @@ Use `wrangler.jsonc` and generate Worker types with Wrangler. Cloudflare serves 
 
 Keep credentials outside the repository, retain the original MIT license, and preserve clear synthetic provenance and stage boundaries in UI and documentation.
 
+## Required delivery
+
+The user requires every completed modification to be committed and pushed to `DFerryman/ChoreographyStudio`, with the corresponding application synchronized to the authorized Cloudflare preview `choreo-studio-preview`. This is a standing delivery requirement: finish repository publication and Cloudflare deployment before handing off a change; a local edit or successful build alone is not delivery.
+
+Verify the remote commit, active Cloudflare version/deployment and matching runtime assets, then record the actual outcome and preview link. Commit and push the verification documentation too. Keep private documents, user audio, credentials and generated artifacts out of the public repository. Reuse valid checks when runtime files are unchanged, and keep online verification bounded by the request/database budget below.
+
 ## Request and database write budget
 
 The user requires low request frequency and explicit control of database rows written. S0/P1 keep music, scenes and manual edits in the browser and must not introduce D1 writes for playback, keyframes, health checks, polling or telemetry.
