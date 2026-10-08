@@ -246,7 +246,8 @@ export function Stage(props: StageProps) {
     controls.screenSpacePanning = true;
     controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
     controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
-    controls.listenToKeyEvents(canvas);
+    let cameraKeyboardEnabled = !current.current.editMode;
+    if (cameraKeyboardEnabled) controls.listenToKeyEvents(canvas);
     const transform = new TransformControls(camera, canvas);
     transform.setMode('rotate');
     transform.setSpace('local');
@@ -530,6 +531,11 @@ export function Stage(props: StageProps) {
 
     function draw() {
       const state = current.current;
+      if (cameraKeyboardEnabled === !!state.editMode) {
+        cameraKeyboardEnabled = !state.editMode;
+        if (cameraKeyboardEnabled) controls.listenToKeyEvents(canvas);
+        else controls.stopListenToKeyEvents();
+      }
       frame = 0;
       if (stopped || width <= 0 || height <= 0) return;
       const restoreChanged = state.cameraRestoreKey !== previousRestore;
@@ -884,7 +890,7 @@ export function Stage(props: StageProps) {
   }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraFocus, selection, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool]);
 
   return (
-    <div className="stage3d" ref={containerRef}>
+    <div className="stage3d" ref={containerRef} tabIndex={editMode ? 0 : undefined} role="region" aria-label="3D 动画舞台" aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space K Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y' : undefined} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }}>
       {error ? <StageFallback error={error} /> : <>
         {axesVisible !== false && <div className="stage3d-gizmo" aria-label="世界坐标方向">
           <svg viewBox="0 0 68 68" aria-hidden="true">

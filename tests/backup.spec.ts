@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import { clickRevealed } from './helpers';
 
 // Independent legacy-compatible scene: a non-uniform base, moving Root and
 // Head arc expose accidental rebaking or data loss during local backup import.
@@ -99,7 +100,7 @@ async function openScene(page: Page) {
 }
 async function backup(page: Page): Promise<Backup> {
   const pending = page.waitForEvent('download');
-  await page.getByRole('button', { name: '下载项目备份', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await pending).path(); expect(path).toBeTruthy();
   return JSON.parse(await readFile(path!, 'utf8')) as Backup;
 }
@@ -132,7 +133,7 @@ async function save(page: Page) {
 }
 async function bundle(page: Page) {
   const pending = page.waitForEvent('download');
-  await page.getByRole('button', { name: '下载完整场景包', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '下载完整场景包', exact: true, includeHidden: true }));
   const downloaded = await pending, path = await downloaded.path();
   expect(downloaded.suggestedFilename()).toMatch(/\.choreo$/);
   expect(path).toBeTruthy();
@@ -203,7 +204,7 @@ test('@backup full scene bundles round-trip exact original audio, non-uniform an
   await rotationKey(page, 30, 'LeftUpperArm', 35); await rootKey(page, 75, 1.2); await rotationKey(page, 120, 'RightUpperArm', -35);
   await page.getByRole('button', { name: '撤销', exact: true }).click();
   await frame(page, 75); await joint(page, 'LeftForeArm');
-  await page.getByRole('button', { name: '复制当前姿态', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '复制当前姿态', exact: true, includeHidden: true }));
   await expect(page.getByLabel('已复制姿态', { exact: true })).toContainText('第 75 帧');
   await page.getByRole('button', { name: '背面', exact: true }).click();
   await page.getByRole('combobox', { name: '播放速度', exact: true }).selectOption('0.5');
@@ -299,7 +300,7 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
   await expect(page.getByRole('alert').filter({ hasText: '原音乐缺失' })).toBeVisible();
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: '保存', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: '下载完整场景包', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '下载完整场景包', exact: true, includeHidden: true })).toBeDisabled();
   expect(await page.locator('audio').evaluate((audio: HTMLAudioElement) => ({ src: audio.getAttribute('src'), currentSrc: audio.currentSrc }))).toEqual({ src: null, currentSrc: '' });
   const missing = await backup(page);
   expect(missing.scene.id).toBe(imported.scene.id); expect(missing.scene.project).toEqual(imported.scene.project);
@@ -357,12 +358,12 @@ test('@backup mobile export/import preserves draft cancellation and current scen
   const original = await backup(page);
   await numeric(page, '关节 Z 旋转（度）', 45);
   const downloads: string[] = []; page.on('download', download => downloads.push(download.suggestedFilename()));
-  await page.getByRole('button', { name: '下载完整场景包', exact: true }).click(); await expect(guard(page)).toBeVisible();
+  await clickRevealed(page, page.getByRole('button', { name: '下载完整场景包', exact: true, includeHidden: true })); await expect(guard(page)).toBeVisible();
   await guard(page).getByRole('button', { name: '取消', exact: true }).click();
   await expect(draft(page)).toBeVisible(); expect(downloads).toEqual([]);
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
   const pending = page.waitForEvent('download');
-  await page.getByRole('button', { name: '下载完整场景包', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '下载完整场景包', exact: true, includeHidden: true }));
   await guard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
   const path = await (await pending).path(); expect(path).toBeTruthy();
   const bytes = await readFile(path!); expect(rawBundle(bytes).audio).toEqual(source.wave);

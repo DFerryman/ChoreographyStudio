@@ -99,6 +99,7 @@ test('renders a nonblank 3D pose and advances audio time during playback', async
 
 test('previews a replacement, adopts only the selected octet, and supports undo/redo', async ({ page }) => {
   await ready(page);
+  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
   const before = await timelineLabels(page);
   await page.getByRole('listitem', { name: /^第2个八拍/ }).click();
   await expect(page.getByRole('slider', { name: '播放进度' })).toHaveValue('4');
@@ -108,7 +109,7 @@ test('previews a replacement, adopts only the selected octet, and supports undo/
   await expect(page.locator('.viewer-title')).toContainText('替换预览');
   expect(await timelineLabels(page)).toEqual(before);
   await candidate.getByRole('button', { name: '切回原稿' }).click();
-  await expect(page.locator('.viewer-title')).toContainText('动作预览');
+  await expect(page.locator('.viewer-title')).toContainText('舞台');
   await candidate.getByRole('button', { name: '查看替换预览' }).click();
   await candidate.getByRole('button', { name: '采用', exact: true }).click();
   await expect(candidate).toHaveCount(0);
@@ -130,6 +131,7 @@ test('previews a replacement, adopts only the selected octet, and supports undo/
 
 test('explains when no simpler action exists and offers a simpler complex action', async ({ page }) => {
   await ready(page);
+  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
   await page.getByRole('listitem', { name: /^第1个八拍/ }).click();
   const original = await timelineLabels(page);
   await page.getByRole('button', { name: '试试更简单' }).click();
@@ -143,6 +145,7 @@ test('explains when no simpler action exists and offers a simpler complex action
 
 test('uploads original fixture audio and restores saved project and identical audio bytes', async ({ page }) => {
   await ready(page);
+  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
   const wave = waveFixture();
   const expectedHash = createHash('sha256').update(wave).digest('hex');
   await page.getByRole('button', { name: '导入音乐', exact: true }).click();
@@ -181,6 +184,7 @@ test('uploads original fixture audio and restores saved project and identical au
 
 test('rejects invalid count ranges and clears the old take when CountMap changes', async ({ page }) => {
   await ready(page);
+  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
   await page.getByRole('button', { name: '调整', exact: true }).click();
   const dialog = page.getByRole('dialog'), confirm = dialog.getByRole('button', { name: '确认数拍，进入工作台' });
   await dialog.getByLabel('选取几个完整八拍').fill('3');

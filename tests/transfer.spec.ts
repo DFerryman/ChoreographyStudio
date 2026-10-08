@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import { clickRevealed, reveal } from './helpers';
 import { PerspectiveCamera, Vector3 } from 'three';
 
 // Independent legacy-compatible scene: a non-uniform base, moving Root and
@@ -101,7 +102,7 @@ async function openScene(page: Page) {
 }
 async function backup(page: Page): Promise<Backup> {
   const pending = page.waitForEvent('download');
-  await page.getByRole('button', { name: '下载项目备份', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await pending).path(); expect(path).toBeTruthy();
   return JSON.parse(await readFile(path!, 'utf8')) as Backup;
 }
@@ -139,10 +140,10 @@ async function capture(page: Page, name: string) {
   await page.screenshot({ path: join(directory, name), fullPage: true });
 }
 
-const destination = (page: Page) => page.getByRole('spinbutton', { name: '关键帧目标帧', exact: true });
-const transfer = (page: Page, operation: 'copy' | 'move') => page.getByRole('button', { name: operation === 'copy' ? '复制当前范围关键帧' : '移动当前范围关键帧', exact: true });
+const destination = (page: Page) => page.getByRole('spinbutton', { name: '关键帧目标帧', exact: true, includeHidden: true });
+const transfer = (page: Page, operation: 'copy' | 'move') => page.getByRole('button', { name: operation === 'copy' ? '复制当前范围关键帧' : '移动当前范围关键帧', exact: true, includeHidden: true });
 const collision = (page: Page) => page.getByRole('dialog', { name: '目标帧已有关键帧', exact: true });
-async function target(page: Page, value: number | '') { await destination(page).fill(String(value)); await destination(page).press('Tab'); }
+async function target(page: Page, value: number | '') { await reveal(page, destination(page)); await destination(page).fill(String(value)); await destination(page).press('Tab'); }
 async function scope(page: Page, value: 'all' | 'joint' | 'root') { await page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true }).selectOption(value); }
 async function audioHash(page: Page) {
   return page.locator('audio').evaluate(async (audio: HTMLAudioElement) => {
@@ -185,7 +186,7 @@ test('@transfer current-joint copy asks before collision replacement; all-track 
   const canvas = await holdRootArrow(page, originalSequence.root[0].position, camera);
   // A keyboard transfer while the real Root handle remains held must cancel
   // manipulation; movement behind or after its modal cannot create a draft.
-  await transfer(page, 'copy').focus(); await page.keyboard.press('Enter'); await expect(collision(page)).toBeVisible();
+  await reveal(page, transfer(page, 'copy')); await transfer(page, 'copy').focus(); await page.keyboard.press('Enter'); await expect(collision(page)).toBeVisible();
   await canvas.scrollIntoViewIfNeeded(); const heldBox = (await canvas.boundingBox())!;
   await page.mouse.move(heldBox.x + heldBox.width * 0.76, heldBox.y + heldBox.height * 0.58, { steps: 6 });
   await expect(draft(page)).toHaveCount(0);
@@ -196,7 +197,7 @@ test('@transfer current-joint copy asks before collision replacement; all-track 
   await page.mouse.up({ button: 'left' }); await expect(draft(page)).toHaveCount(0);
   expect(Number(await page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true }).inputValue())).toBe(0.9);
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
-  await transfer(page, 'copy').click();
+  await clickRevealed(page, transfer(page, 'copy'));
   await collision(page).getByRole('button', { name: '替换并继续', exact: true }).click();
   const copied = await backup(page), copiedSequence = current(copied).manual!;
   expect(copied.scene.project.revision).toBe(original.scene.project.revision + 1);
@@ -206,7 +207,7 @@ test('@transfer current-joint copy asks before collision replacement; all-track 
   expect(copiedSequence.rotations.RightUpperArm).toEqual(originalSequence.rotations.RightUpperArm);
   expect(copiedSequence.root).toEqual(originalSequence.root); expect(copiedSequence.baseTake).toEqual(source.take);
   expect(current(copied).take.id).not.toBe(current(original).take.id);
-  await frame(page, 30); await scope(page, 'all'); await target(page, 60); await transfer(page, 'move').click();
+  await frame(page, 30); await scope(page, 'all'); await target(page, 60); await clickRevealed(page, transfer(page, 'move'));
   const moved = await backup(page), movedSequence = current(moved).manual!;
   expect(moved.scene.project.revision).toBe(copied.scene.project.revision + 1);
   expect(movedSequence.rotations.LeftUpperArm).toEqual([{ frame: 60, rotation: copiedSequence.rotations.LeftUpperArm![0].rotation }, copiedSequence.rotations.LeftUpperArm![1]]);
@@ -243,11 +244,11 @@ test('@transfer Root scope works independently of read-only selection; empty, fr
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 844 });
     for (const button of [transfer(page, 'copy'), transfer(page, 'move')]) {
-      await button.scrollIntoViewIfNeeded(); expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      await reveal(page, button); await button.scrollIntoViewIfNeeded(); expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   }
-  await transfer(page, 'move').click(); const moved = await backup(page), sequence = current(moved).manual!;
+  await clickRevealed(page, transfer(page, 'move')); const moved = await backup(page), sequence = current(moved).manual!;
   expect(sequence.root).toEqual([{ frame: 450, position: [0.8, 1.05, 0] }, { frame: 480, position: [1.2, 1.05, 0] }]);
   expect(sequence.rotations).toEqual(current(original).manual!.rotations); expect(sequence.baseTake).toEqual(source.take);
   expect(moved.scene.project.revision).toBe(original.scene.project.revision + 1); checkUneditedHead(current(moved), source.take);
@@ -264,15 +265,15 @@ test('@transfer draft cancellation and discard preserve source keys; write-befor
   await rotationKey(page, 150, 'LeftUpperArm', 60); await frame(page, 75); await joint(page, 'LeftUpperArm'); await scope(page, 'joint'); await target(page, 150);
   const original = await backup(page);
   await numeric(page, 'Root X 位移（米）', 2);
-  await transfer(page, 'copy').click(); await expect(guard(page)).toBeVisible();
+  await clickRevealed(page, transfer(page, 'copy')); await expect(guard(page)).toBeVisible();
   await guard(page).getByRole('button', { name: '取消', exact: true }).click();
   await expect(draft(page)).toBeVisible(); expect((await backup(page)).scene.project).toEqual(original.scene.project);
-  await transfer(page, 'copy').click(); await guard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
+  await clickRevealed(page, transfer(page, 'copy')); await guard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
   await expect(collision(page)).toBeVisible(); await collision(page).getByRole('button', { name: '取消', exact: true }).click();
   await expect(draft(page)).toHaveCount(0); expect((await backup(page)).scene.project).toEqual(original.scene.project);
 
   await numeric(page, 'Root X 位移（米）', 1.8);
-  await transfer(page, 'copy').click(); await expect(guard(page)).toBeVisible();
+  await clickRevealed(page, transfer(page, 'copy')); await expect(guard(page)).toBeVisible();
   // Simulate a queued view-state update while the confirmation is open. The
   // captured action must not read a changed filter/joint/target after writing.
   await destination(page).evaluate((input: HTMLInputElement) => {

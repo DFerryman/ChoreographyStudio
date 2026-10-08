@@ -44,8 +44,8 @@ function KeyNavigation({ frames, frame, playing, onFrame, timeline = false }: {
 }) {
   const { previous, next } = neighboringFrames(frames, frame);
   return <div className="kf-key-navigation" aria-label={timeline ? '筛选轨道关键帧跳转' : '全部轨道关键帧跳转'}>
-    <button aria-label={timeline ? '时间线上一关键帧' : '上一关键帧'} disabled={playing || previous === undefined} onClick={() => { if (previous !== undefined) onFrame(previous); }}><ChevronLeft size={14} />上一关键帧</button>
-    <button aria-label={timeline ? '时间线下一关键帧' : '下一关键帧'} disabled={playing || next === undefined} onClick={() => { if (next !== undefined) onFrame(next); }}>下一关键帧<ChevronRight size={14} /></button>
+    <button aria-label={timeline ? '时间线上一关键帧' : '上一关键帧'} disabled={playing || previous === undefined} onClick={() => { if (previous !== undefined) onFrame(previous); }}><ChevronLeft size={14} />上一 K</button>
+    <button aria-label={timeline ? '时间线下一关键帧' : '下一关键帧'} disabled={playing || next === undefined} onClick={() => { if (next !== undefined) onFrame(next); }}>下一 K<ChevronRight size={14} /></button>
   </div>;
 }
 
@@ -96,14 +96,28 @@ export function KeyframeEditor(props: KeyframeEditorProps) {
     <div className="kf-frame-controls"><button className="icon-button" aria-label="上一帧" disabled={frame === 0 || playing} onClick={() => props.onFrame(frame - 1)}><ChevronLeft size={17} /></button><label>帧<input aria-label="当前帧" type="number" min={0} max={end} step={1} value={frame} disabled={playing} onChange={event => { const next = Number(event.target.value); if (Number.isFinite(next)) props.onFrame(Math.max(0, Math.min(end, Math.round(next)))); }} /></label><button className="icon-button" aria-label="下一帧" disabled={frame === end || playing} onClick={() => props.onFrame(frame + 1)}><ChevronRight size={17} /></button><label className="kf-time-field">秒<input aria-label="当前时间（秒）" type="number" min={0} max={duration} step={1 / 30} value={Number(time.toFixed(6))} disabled={playing} onChange={event => { const next = Number(event.target.value); if (Number.isFinite(next)) props.onTime(Math.max(0, Math.min(duration, next))); }} /></label></div>
     <div className="kf-frame-note"><span>30 FPS · 0–{end} 帧</span><span>{keyed ? '本帧已有关键帧' : '本帧没有关键帧'}</span></div>
     <KeyNavigation frames={keyFrames} frame={frame} playing={playing} onFrame={props.onFrame} />
-    <span className="kf-navigation-note">跳转全部轨道中已写入的关键帧</span>
+    <div className="kf-write-actions"><button className="button primary full" title="写入本帧的 19 个局部旋转与 Root 位移" disabled={locked} onClick={props.onWritePose}><Diamond size={15} />K 完整姿态</button></div>
     {dirty && <div className="kf-draft-note" role="status">姿态草稿 · 尚未写入关键帧<button disabled={locked} onClick={props.onDiscard}>撤回草稿</button></div>}
     {mirror && <div className="kf-readonly-note">镜像仅用于观看。点舞台「旋转」或「移动（整体）」关闭镜像并继续编辑；已有草稿会保留。</div>}
     {props.readOnly && <div className="kf-readonly-note">当前为观看状态。点舞台旋转或移动，回原稿编辑。</div>}
     {playing && <div className="kf-readonly-note">播放中暂停编辑。点舞台旋转或移动，暂停到当前帧。</div>}
-    <section className="kf-pose-reuse" aria-label="姿态复用">
-      <div className="kf-group-heading"><h3>姿态复用</h3><span>仅当前场景</span></div>
-      <div className={`kf-clipboard-status ${props.clipboard ? 'ready' : ''}`} aria-label="已复制姿态" role="status">{props.clipboard ? `第 ${props.clipboard.frame} 帧 · ${props.clipboard.fromDraft ? '姿态草稿' : '动画姿态'}` : '未复制姿态'}</div>
+    <div id="kf-rotation-controls" className={`kf-transform-group ${props.transformTool === 'rotate' ? 'kf-transform-active' : ''}`}>
+      <div className="kf-group-heading"><h3 title="相对父骨骼 · XYZ 角度">局部旋转</h3><span>{selectedJoint ? STAGE_JOINT_LABELS[selectedJoint] : '请选择关节'}</span></div>
+      {selectedJoint && !editable && <p>末端节点只读；请选择肩、肘、髋等骨骼。</p>}
+      <div className={`kf-track-status ${jointKeyed ? 'keyed' : ''}`} aria-label="当前关节轨道状态">{!selectedJoint ? '未选关节' : !editable ? '末端节点只读 · 无可编辑旋转轨' : <><Diamond size={11} /><span>{jointKeyed ? '本帧已写旋转 K' : '本帧未写旋转 K'} · {jointKeys.length} 个键</span></>}</div>
+      {(['X', 'Y', 'Z'] as const).map((axis, index) => <AxisField key={axis} prefix="关节" axis={axis} value={angles[index]} bounds={[-180, 180]} step={0.1} disabled={!editable || locked} onChange={value => updateRotation(index, value)} />)}
+      <div className="kf-track-actions"><button className="button secondary compact" disabled={!editable || locked} onClick={props.onWriteJoint}><Diamond size={13} />K 当前关节</button></div>
+    </div>
+    <div id="kf-root-controls" className={`kf-transform-group ${props.transformTool === 'translate' ? 'kf-transform-active' : ''}`}>
+      <div className="kf-group-heading"><h3 title="整体世界位置 · X/Z ±5 m · Y 0–3 m">Root 位移</h3><span>世界空间 · 米</span></div>
+      <div className={`kf-track-status ${rootKeyed ? 'keyed' : ''}`} aria-label="Root 轨道状态"><Diamond size={11} /><span>{rootKeyed ? '本帧已写 Root K' : '本帧未写 Root K'} · {sequence.root.length} 个键</span></div>
+      {(['X', 'Y', 'Z'] as const).map((axis, index) => <AxisField key={axis} prefix="Root" axis={axis} value={pose.root[index]} bounds={[ROOT_TRANSLATION_LIMITS.x, ROOT_TRANSLATION_LIMITS.y, ROOT_TRANSLATION_LIMITS.z][index]} step={0.01} disabled={locked} onChange={value => updateRoot(index, value)} />)}
+      <div className="kf-track-actions"><button className="button secondary compact" disabled={locked} onClick={props.onWriteRoot}><Diamond size={13} />K 位移</button></div>
+    </div>
+    <details className="kf-disclosure kf-pose-reuse" aria-label="姿态复用">
+      <summary>姿态复用</summary>
+      <div className="kf-disclosure-content">
+        <div className={`kf-clipboard-status ${props.clipboard ? 'ready' : ''}`} aria-label="已复制姿态" role="status">{props.clipboard ? `第 ${props.clipboard.frame} 帧 · ${props.clipboard.fromDraft ? '姿态草稿' : '动画姿态'}` : '未复制姿态'}</div>
       <button className="kf-pose-copy" disabled={locked} onClick={props.onCopyPose}><Copy size={13} aria-hidden="true" />复制当前姿态</button>
       <div className="kf-pose-paste-actions">
         <button disabled={!props.clipboard || locked} onClick={() => props.onPastePose(false)}><ClipboardPaste size={13} aria-hidden="true" />粘贴关节姿态</button>
@@ -111,23 +125,26 @@ export function KeyframeEditor(props: KeyframeEditorProps) {
       </div>
       <p>粘贴先成为草稿，写 K 后生效。关节姿态保留当前位置，姿态与位置同时复用 Root。</p>
       <span className="kf-clipboard-note">内存暂存 · 切换场景或刷新后清空</span>
-    </section>
-    <div id="kf-rotation-controls" className={`kf-transform-group ${props.transformTool === 'rotate' ? 'kf-transform-active' : ''}`}>
-      <div className="kf-group-heading"><h3>局部旋转</h3><span>{selectedJoint ? STAGE_JOINT_LABELS[selectedJoint] : '请选择关节'}</span></div>
-      <p>{selectedJoint && !editable ? '末端节点只读；请选择肩、肘、髋等可旋转骨骼。' : props.transformTool === 'rotate' ? '拖动舞台旋转环，或填写 XYZ 角度（相对父骨骼）。' : '相对父骨骼 · XYZ 角度 · 舞台旋转工具可显示操作环'}</p>
-      <div className={`kf-track-status ${jointKeyed ? 'keyed' : ''}`} aria-label="当前关节轨道状态">{!selectedJoint ? '未选关节 · 请在舞台或列表选择' : !editable ? '末端节点只读 · 无可编辑旋转轨' : <><Diamond size={11} /><span>{jointKeyed ? '本帧已写旋转 K' : '本帧未写旋转 K'} · {jointKeys.length} 个显式键{!jointKeys.length && ' · 使用基底动画'}</span></>}</div>
-      {(['X', 'Y', 'Z'] as const).map((axis, index) => <AxisField key={axis} prefix="关节" axis={axis} value={angles[index]} bounds={[-180, 180]} step={0.1} disabled={!editable || locked} onChange={value => updateRotation(index, value)} />)}
-      <div className="kf-track-actions"><button className="button secondary compact" disabled={!editable || locked} onClick={props.onWriteJoint}><Diamond size={13} />K 当前关节</button><button className="kf-delete-button" disabled={!editable || !jointKeyed || locked} onClick={props.onDeleteJoint}><Trash2 size={13} />删除当前关节 K</button></div>
-    </div>
-    <div id="kf-root-controls" className={`kf-transform-group ${props.transformTool === 'translate' ? 'kf-transform-active' : ''}`}>
-      <div className="kf-group-heading"><h3>Root 位移</h3><span>世界空间 · 米</span></div>
-      <p>{props.transformTool === 'translate' ? '拖动舞台 XYZ 箭头，或填写坐标；移动整个角色。' : '整体世界位置：X/Z ±5 m，Y 0–3 m；保持骨长。'}</p>
-      <div className={`kf-track-status ${rootKeyed ? 'keyed' : ''}`} aria-label="Root 轨道状态"><Diamond size={11} /><span>{rootKeyed ? '本帧已写 Root K' : '本帧未写 Root K'} · {sequence.root.length} 个显式键{!sequence.root.length && ' · 使用基底动画'}</span></div>
-      {(['X', 'Y', 'Z'] as const).map((axis, index) => <AxisField key={axis} prefix="Root" axis={axis} value={pose.root[index]} bounds={[ROOT_TRANSLATION_LIMITS.x, ROOT_TRANSLATION_LIMITS.y, ROOT_TRANSLATION_LIMITS.z][index]} step={0.01} disabled={locked} onChange={value => updateRoot(index, value)} />)}
-      <div className="kf-track-actions"><button className="button secondary compact" disabled={locked} onClick={props.onWriteRoot}><Diamond size={13} />K 位移</button><button className="kf-delete-button" disabled={!rootKeyed || locked} onClick={props.onDeleteRoot}><Trash2 size={13} />删除 Root K</button></div>
-    </div>
-    <div className="kf-write-actions"><button className="button primary full" disabled={locked} onClick={props.onWritePose}><Diamond size={15} />K 完整姿态</button><span>记录本帧的 19 个局部旋转与 Root 位移</span><button className="kf-delete-button" disabled={!keyed || locked} onClick={props.onDelete}><Trash2 size={13} />删除当前帧关键帧</button><span className="kf-delete-note">移除本帧全部关节与 Root 的显式键</span></div>
-    <button className="kf-neutral-button" disabled={locked} onClick={props.onNeutral}><RotateCcw size={13} />从站姿开始</button>
+      </div>
+    </details>
+    <details className="kf-disclosure kf-more-actions">
+      <summary>更多编辑操作</summary>
+      <div className="kf-disclosure-content">
+        <button className="kf-delete-button" disabled={!editable || !jointKeyed || locked} onClick={props.onDeleteJoint}><Trash2 size={13} />删除当前关节 K</button>
+        <button className="kf-delete-button" disabled={!rootKeyed || locked} onClick={props.onDeleteRoot}><Trash2 size={13} />删除 Root K</button>
+        <button className="kf-delete-button" disabled={!keyed || locked} onClick={props.onDelete}><Trash2 size={13} />删除当前帧关键帧</button>
+        <span className="kf-delete-note">移除本帧全部关节与 Root 的显式键</span>
+        <button className="kf-neutral-button" disabled={locked} onClick={props.onNeutral}><RotateCcw size={13} />从站姿开始</button>
+      </div>
+    </details>
+    <details className="kf-shortcuts">
+      <summary>键盘快捷键</summary>
+      <div id="editor-shortcuts-help">
+        <p>先点击舞台，或用 Tab 聚焦舞台。输入框与按钮保留原有键盘操作。</p>
+        <dl><div><dt>← / →</dt><dd>上一帧 / 下一帧</dd></div><div><dt>空格</dt><dd>播放 / 暂停</dd></div><div><dt>K</dt><dd>写当前关节 K；移动工具写 Root K</dd></div><div><dt>Delete</dt><dd>删除当前关节 K；移动工具删除 Root K</dd></div><div><dt>Ctrl / ⌘ + Z</dt><dd>撤销</dd></div><div><dt>Ctrl / ⌘ + Shift + Z</dt><dd>重做；也可用 Ctrl + Y</dd></div></dl>
+        <p>播放时只响应空格。离开未写草稿仍需确认；观看、镜像和对话框中不编辑。</p>
+      </div>
+    </details>
   </section>;
 }
 
@@ -169,12 +186,6 @@ export function KeyframeTimeline({ sequence, frame, selectedJoint, onFrame, play
   return <section className="kf-timeline" aria-label="手动关键帧时间线">
     <div className="timeline-heading"><div className="module-title"><span className="module-index">30</span><h2>关键帧序列 <span>{frames.length} 个关键时刻</span></h2></div><span className="kf-timeline-duration">{duration.toFixed(3)} s · {end} 帧</span></div>
     <div className="kf-timeline-controls"><label className="kf-filter-field"><span>查看轨道</span><select aria-label="关键帧轨道筛选" value={filter} onChange={event => setFilter(event.target.value as typeof filter)}><option value="all">全部轨道</option><option value="joint">选中关节</option><option value="root">Root 位移</option></select></label><div className="kf-filter-status" aria-label="筛选轨道状态"><strong>{trackName}</strong><span>{trackStatus}</span></div><KeyNavigation frames={frames} frame={frame} playing={playing} onFrame={onFrame} timeline /></div>
-    <section className="kf-transfer-panel" aria-label="关键帧移动与复制">
-      <div className="kf-transfer-heading"><strong>调整关键时刻</strong><span>第 {frame} 帧 · {sourceKeyCount} 个显式 K · {trackName}</span></div>
-      <div className="kf-transfer-controls"><label className="kf-transfer-destination"><span>目标帧</span><input type="number" data-modal-focus-fallback aria-label="关键帧目标帧" min={0} max={end} step={1} value={targetText} disabled={playing || mirror || readOnly} onChange={event => setTargetText(event.target.value)} /></label><div className="kf-transfer-actions"><button aria-label="复制当前范围关键帧" title={transferUnavailable ?? '保留源帧，将当前范围内的显式 K 复制到目标帧'} disabled={!!transferUnavailable} onClick={() => requestTransfer('copy')}><Copy size={14} aria-hidden="true" />复制到目标帧</button><button aria-label="移动当前范围关键帧" title={transferUnavailable ?? '移除源帧，将当前范围内的显式 K 移到目标帧'} disabled={!!transferUnavailable} onClick={() => requestTransfer('move')}><ArrowRight size={14} aria-hidden="true" />移动到目标帧</button></div></div>
-      <p className="kf-transfer-status" aria-label="关键帧移动与复制状态" role="status">{transferUnavailable ?? `将本帧 ${sourceKeyCount} 个显式 K ${targetValid ? `放到第 ${targetFrame} 帧` : ''}；目标已有同轨 K 时先确认替换。`}</p>
-      <span className="kf-transfer-note">按上方轨道范围操作 · 会改变相邻区间的插值 · 音乐与场景时长保持不变</span>
-    </section>
     <div className="kf-track"><input aria-label="关键帧时间线进度" type="range" min={0} max={end} step={1} value={frame} disabled={playing} onChange={event => onFrame(Number(event.target.value))} /><div className="kf-markers">{frames.map(keyFrame => <button key={keyFrame} className={keyFrame === frame ? 'selected' : ''} aria-label={`跳到第 ${keyFrame} 帧关键帧`} title={`${keyFrame} 帧 · ${frameTime(keyFrame, duration).toFixed(3)} 秒`} style={{ left: `${keyFrame / end * 100}%` }} disabled={playing} onClick={() => onFrame(keyFrame)}><Diamond size={11} fill="currentColor" /></button>)}<span className="kf-playhead" style={{ left: `${frame / end * 100}%` }} /></div></div>
     <div className="kf-track-labels"><span>0 帧</span><span>{frame} 帧 · {frameTime(frame, duration).toFixed(3)} 秒</span><span>{end} 帧</span></div>
     {frames.length ? <div className="kf-key-list" role="list" aria-label="关键帧列表">{frames.map(keyFrame => {
@@ -182,6 +193,14 @@ export function KeyframeTimeline({ sequence, frame, selectedJoint, onFrame, play
       const trackLabel = filter === 'joint' && selectedJoint ? `${STAGE_JOINT_LABELS[selectedJoint]}旋转` : filter === 'root' ? 'Root 位移' : `${tracks ? `${tracks} 旋转` : ''}${tracks && root ? ' + ' : ''}${root ? 'Root' : ''}`;
       return <button key={keyFrame} role="listitem" className={keyFrame === frame ? 'selected' : ''} aria-label={`第 ${keyFrame} 帧关键帧`} disabled={playing} onClick={() => onFrame(keyFrame)}><Diamond size={12} /><strong>{keyFrame} <small>帧</small></strong><span>{frameTime(keyFrame, duration).toFixed(3)} 秒</span><small>{trackLabel}</small></button>;
     })}</div> : <div className="kf-empty">{empty}</div>}
-    <div className="kf-track-footer"><span>仅显示显式键 · 隐式基底端点不计入列表</span><span>旋转四元数插值 · 位移线性插值 · 草稿未写入</span></div>
+    <details className="kf-disclosure kf-transfer-panel" aria-label="关键帧移动与复制">
+      <summary>移动与复制关键帧</summary>
+      <div className="kf-disclosure-content">
+      <div className="kf-transfer-heading"><span>第 {frame} 帧 · {sourceKeyCount} 个显式 K · {trackName}</span></div>
+      <div className="kf-transfer-controls"><label className="kf-transfer-destination"><span>目标帧</span><input type="number" data-modal-focus-fallback aria-label="关键帧目标帧" min={0} max={end} step={1} value={targetText} disabled={playing || mirror || readOnly} onChange={event => setTargetText(event.target.value)} /></label><div className="kf-transfer-actions"><button aria-label="复制当前范围关键帧" title={transferUnavailable ?? '保留源帧，将当前范围内的显式 K 复制到目标帧'} disabled={!!transferUnavailable} onClick={() => requestTransfer('copy')}><Copy size={14} aria-hidden="true" />复制到目标帧</button><button aria-label="移动当前范围关键帧" title={transferUnavailable ?? '移除源帧，将当前范围内的显式 K 移到目标帧'} disabled={!!transferUnavailable} onClick={() => requestTransfer('move')}><ArrowRight size={14} aria-hidden="true" />移动到目标帧</button></div></div>
+      <p className="kf-transfer-status" aria-label="关键帧移动与复制状态" role="status">{transferUnavailable ?? `将本帧 ${sourceKeyCount} 个显式 K ${targetValid ? `放到第 ${targetFrame} 帧` : ''}；目标已有同轨 K 时先确认替换。`}</p>
+      <span className="kf-transfer-note">仅处理已写入的键 · 按上方轨道范围操作 · 会改变相邻区间的插值 · 音乐与场景时长保持不变</span>
+      </div>
+    </details>
   </section>;
 }

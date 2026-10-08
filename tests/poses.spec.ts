@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import { clickRevealed, reveal } from './helpers';
 
 // This original local fixture is independent of the editor. Its non-uniform
 // samples, moving Root and animated read-only terminals expose accidental
@@ -122,7 +123,7 @@ async function openFixture(page: Page, includeSecond = false, outsideSourceRoot 
 }
 async function backup(page: Page): Promise<Backup> {
   const pending = page.waitForEvent('download');
-  await page.getByRole('button', { name: '下载项目备份', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await pending).path(); expect(path).toBeTruthy();
   return JSON.parse(await readFile(path!, 'utf8')) as Backup;
 }
@@ -141,12 +142,12 @@ async function joint(page: Page, value: Joint) { await page.getByRole('combobox'
 const draft = (page: Page) => page.getByRole('status').filter({ hasText: '姿态草稿 · 尚未写入关键帧' });
 const guard = (page: Page) => page.getByRole('dialog', { name: '写入这份姿态草稿？', exact: true });
 const clipboard = (page: Page) => page.getByLabel('已复制姿态', { exact: true });
-const copy = (page: Page) => page.getByRole('button', { name: '复制当前姿态', exact: true });
-const paste = (page: Page, root = false) => page.getByRole('button', { name: root ? '粘贴姿态与位置' : '粘贴关节姿态', exact: true });
+const copy = (page: Page) => page.getByRole('button', { name: '复制当前姿态', exact: true, includeHidden: true });
+const paste = (page: Page, root = false) => page.getByRole('button', { name: root ? '粘贴姿态与位置' : '粘贴关节姿态', exact: true, includeHidden: true });
 async function copiedDraft(page: Page, root = 2) {
   await frame(page, 75); await joint(page, 'LeftUpperArm');
   await numeric(page, '关节 Z 旋转（度）', 45); await numeric(page, 'Root X 位移（米）', root);
-  await copy(page).click(); await expect(clipboard(page)).toContainText('第 75 帧 · 姿态草稿');
+  await clickRevealed(page, copy(page)); await expect(clipboard(page)).toContainText('第 75 帧 · 姿态草稿');
   // The source remains a preview: seeking explicitly discards it.
   await numeric(page, '当前帧', 120); await expect(guard(page)).toBeVisible();
   await guard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
@@ -187,7 +188,7 @@ test('@poses copied drafts reuse editable rotations without moving the target or
   await expect(paste(page)).toBeDisabled(); await expect(paste(page, true)).toBeDisabled();
   await copiedDraft(page);
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
-  await paste(page).click(); await expect(draft(page)).toBeVisible();
+  await clickRevealed(page, paste(page)); await expect(draft(page)).toBeVisible();
   await number(page, '关节 Z 旋转（度）', 45); await number(page, 'Root X 位移（米）', 0.05);
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
 
@@ -205,7 +206,7 @@ test('@poses copied drafts reuse editable rotations without moving the target or
   expectQuaternion(changedPose.manual!.rotations.LeftUpperArm![0].rotation, [0, 0, Math.SQRT1_2, Math.SQRT1_2]);
   expectTerminals(changedPose, 4, source.take.poses[3]);
 
-  await frame(page, 240); await paste(page, true).click(); await expect(draft(page)).toBeVisible();
+  await frame(page, 240); await clickRevealed(page, paste(page, true)); await expect(draft(page)).toBeVisible();
   await number(page, '关节 Z 旋转（度）', 45); await number(page, 'Root X 位移（米）', 2);
   await expect(clipboard(page)).toContainText('第 75 帧 · 姿态草稿');
   expect((await backup(page)).scene.project).toEqual(changed.scene.project);
@@ -222,7 +223,7 @@ test('@poses copied drafts reuse editable rotations without moving the target or
   expect(final.scene.project.revision).toBe(original.scene.project.revision + 3);
   expect(final.scene.project.history).toHaveLength(original.scene.project.history.length + 3);
   expect(final.scene.project.teacherCheckedRevision).toBeNull();
-  await paste(page).click(); await expect(draft(page)).toHaveCount(0);
+  await clickRevealed(page, paste(page)); await expect(draft(page)).toHaveCount(0);
   expect((await backup(page)).scene.project).toEqual(final.scene.project);
 });
 
@@ -231,18 +232,18 @@ test('@poses replacing a target draft supports cancel, discard and write-before-
   const source = await openFixture(page); await copiedDraft(page);
   const original = await backup(page);
   await numeric(page, '关节 Z 旋转（度）', 10); await numeric(page, 'Root X 位移（米）', 1.2);
-  await paste(page, true).click(); await expect(guard(page)).toBeVisible();
+  await clickRevealed(page, paste(page, true)); await expect(guard(page)).toBeVisible();
   await guard(page).getByRole('button', { name: '取消', exact: true }).click();
   await number(page, '关节 Z 旋转（度）', 10); await number(page, 'Root X 位移（米）', 1.2);
   await expect(draft(page)).toBeVisible();
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
 
-  await paste(page, true).click();
+  await clickRevealed(page, paste(page, true));
   await guard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
   await number(page, '关节 Z 旋转（度）', 45); await number(page, 'Root X 位移（米）', 2);
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
   await numeric(page, 'Root X 位移（米）', 1.4);
-  await paste(page, true).click();
+  await clickRevealed(page, paste(page, true));
   await guard(page).getByRole('button', { name: '写入完整姿态后继续', exact: true }).click();
   await expect(draft(page)).toBeVisible(); await number(page, 'Root X 位移（米）', 2);
   const writtenFirst = await backup(page);
@@ -262,18 +263,18 @@ test('@poses replacing a target draft supports cancel, discard and write-before-
 test('@poses mirror and playback lock pose reuse; saved keys, history and original audio survive reload while the clipboard clears on reload and scene opening', async ({ page }) => {
   test.setTimeout(180_000);
   const source = await openFixture(page, true, true);
-  await frame(page, 75); await copy(page).click();
+  await frame(page, 75); await clickRevealed(page, copy(page));
   await expect(clipboard(page)).toContainText('第 75 帧 · 动画姿态');
   const original = await backup(page);
-  await page.getByRole('button', { name: '镜像观看', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true }));
   for (const action of [copy(page), paste(page), paste(page, true)]) await expect(action).toBeDisabled();
-  await page.getByRole('button', { name: '镜像观看', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true }));
   await page.getByRole('button', { name: '播放', exact: true }).click();
   await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeVisible();
   for (const action of [copy(page), paste(page), paste(page, true)]) await expect(action).toBeDisabled();
   await page.getByRole('button', { name: '暂停', exact: true }).click();
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
-  await frame(page, 120); await paste(page, true).click();
+  await frame(page, 120); await clickRevealed(page, paste(page, true));
   await number(page, 'Root X 位移（米）', 5); await number(page, 'Root Y 位移（米）', 0); await number(page, 'Root Z 位移（米）', -5);
   await fullKey(page);
   const authored = current(await backup(page));
@@ -296,7 +297,7 @@ test('@poses mirror and playback lock pose reuse; saved keys, history and origin
     return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), value => value.toString(16).padStart(2, '0')).join('');
   });
   expect(audioHash).toBe(createHash('sha256').update(source.wave).digest('hex'));
-  await copy(page).click(); await expect(paste(page)).toBeEnabled();
+  await clickRevealed(page, copy(page)); await expect(paste(page)).toBeEnabled();
   await page.getByRole('button', { name: '场景', exact: true }).click();
   await page.getByRole('dialog', { name: '本机场景', exact: true }).getByRole('button', { name: '打开场景 姿态复用目标 B', exact: true }).click();
   await expect(page.locator('.project-title h1')).toHaveText('姿态复用目标 B'); await editor(page);
@@ -311,7 +312,7 @@ test('@poses mobile pose reuse stays reachable without overflow; new scenes and 
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 844 });
     for (const action of [copy(page), paste(page), paste(page, true)]) {
-      await action.scrollIntoViewIfNeeded(); await expect(action).toBeInViewport();
+      await reveal(page, action); await action.scrollIntoViewIfNeeded(); await expect(action).toBeInViewport();
       const box = (await action.boundingBox())!;
       expect(box.width).toBeGreaterThanOrEqual(40); expect(box.height).toBeGreaterThanOrEqual(44);
     }
@@ -319,15 +320,16 @@ test('@poses mobile pose reuse stays reachable without overflow; new scenes and 
     expect(geometry.scroll).toBeLessThanOrEqual(geometry.client);
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  await paste(page, true).click(); await number(page, '关节 Z 旋转（度）', 45); await number(page, 'Root X 位移（米）', 1.2);
+  await clickRevealed(page, paste(page, true)); await number(page, '关节 Z 旋转（度）', 45); await number(page, 'Root X 位移（米）', 1.2);
   await fullKey(page); await save(page); await capture(page, 'choreo-poses-mobile.png');
   await page.getByRole('button', { name: '场景', exact: true }).click();
   await page.getByRole('dialog', { name: '本机场景', exact: true }).getByRole('button', { name: '新建场景', exact: true }).click();
   await expect(page.locator('.project-title h1')).toHaveText('未命名场景'); await ready(page); await editor(page);
   await expect(clipboard(page)).toHaveText('未复制姿态'); await expect(paste(page, true)).toBeDisabled();
-  await copy(page).click(); await expect(paste(page, true)).toBeEnabled();
+  await clickRevealed(page, copy(page)); await expect(paste(page, true)).toBeEnabled();
   await page.getByRole('button', { name: '导入音乐', exact: true }).click();
   await page.getByRole('dialog', { name: '先把音乐和数拍准备好', exact: true }).getByRole('button', { name: '确认数拍，进入工作台', exact: true }).click();
+  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
   await expect(page.getByRole('button', { name: '生成模板初稿', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: '生成模板初稿', exact: true }).click(); await editor(page);
   await expect(clipboard(page)).toHaveText('未复制姿态'); await expect(paste(page)).toBeDisabled(); await expect(paste(page, true)).toBeDisabled();

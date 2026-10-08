@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { PerspectiveCamera, Vector3 } from 'three';
 import { expect, test, type Page } from '@playwright/test';
+import { clickRevealed, reveal } from './helpers';
 
 type Camera = { position: [number, number, number]; target: [number, number, number]; zoom?: number };
 type Backup = {
@@ -40,7 +41,7 @@ async function ready(page: Page) {
 
 async function backup(page: Page): Promise<Backup> {
   const downloading = page.waitForEvent('download');
-  await page.getByRole('button', { name: '下载项目备份', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await downloading).path();
   expect(path).toBeTruthy();
   return JSON.parse(await readFile(path!, 'utf8')) as Backup;
@@ -55,7 +56,7 @@ function sameCamera(actual: Camera, expected: Camera) {
     expect(value).toBeCloseTo([...expected.position, ...expected.target, expected.zoom ?? 1][i], 5);
   });
 }
-async function coordinateText(page: Page) { return page.getByLabel('相机世界坐标').innerText(); }
+async function coordinateText(page: Page) { await reveal(page, page.getByLabel('相机世界坐标')); return page.getByLabel('相机世界坐标').innerText(); }
 async function coordinateValues(page: Page) { return (await coordinateText(page)).match(/-?\d+\.\d+/g)?.map(Number) ?? []; }
 async function waitCamera(page: Page, camera: Camera) {
   await expect.poll(() => coordinateValues(page)).toEqual(camera.position.map(value => Number(value.toFixed(2))));
@@ -119,14 +120,14 @@ test('camera gestures and presets change the view, preserve the take, and keep j
   const original = await backup(page);
   const originalProject = projectHash(original);
   for (const [label, axis, direction] of [['背面', 2, -1], ['左侧', 0, 1], ['右侧', 0, -1], ['顶视', 1, 1], ['正面', 2, 1]] as const) {
-    await page.getByRole('button', { name: label, exact: true }).click();
+    await clickRevealed(page, page.getByRole('button', { name: label, exact: true, includeHidden: true }));
     await expect.poll(async () => {
       const position = await coordinateValues(page);
       const offset = position.map((value, i) => value - (i === 1 ? 0.95 : 0));
       return offset[axis] * direction > 0.5 && Math.abs(offset[axis]) > Math.max(...offset.filter((_, i) => i !== axis));
     }).toBe(true);
   }
-  await page.getByRole('button', { name: '复位相机', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '复位相机', exact: true, includeHidden: true }));
   await waitCamera(page, original.scene.viewer.camera);
   const resetPreset = await backup(page);
   sameCamera(resetPreset.scene.viewer.camera, original.scene.viewer.camera);
@@ -172,7 +173,7 @@ test('camera gestures and presets change the view, preserve the take, and keep j
   await expect.poll(() => coordinateText(page)).not.toBe(beforeZoom);
   const zoomed = await backup(page);
   expect(distance(zoomed.scene.viewer.camera)).toBeGreaterThan(distance(panned.scene.viewer.camera) + 0.05);
-  await page.getByRole('button', { name: '复位相机', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '复位相机', exact: true, includeHidden: true }));
   await waitCamera(page, original.scene.viewer.camera);
   await expect(page.getByRole('button', { name: '正面', exact: true })).toHaveAttribute('aria-pressed', 'true');
   const final = await backup(page);
@@ -183,6 +184,7 @@ test('camera gestures and presets change the view, preserve the take, and keep j
 test('saved scenes independently restore audio, choreography and camera settings, while copied scenes can change and be deleted', async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   await ready(page);
+  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
   const wave = fixtureWave(), expectedAudio = createHash('sha256').update(wave).digest('hex');
   await page.getByRole('button', { name: '导入音乐', exact: true }).click();
   const music = page.getByRole('dialog', { name: '先把音乐和数拍准备好', exact: true });
@@ -198,16 +200,16 @@ test('saved scenes independently restore audio, choreography and camera settings
   await expect(page.locator('.viewer-muted')).toHaveText('自由视角');
   await page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption('LeftHand');
   await page.getByRole('combobox', { name: '播放速度', exact: true }).selectOption('0.5');
-  await page.getByRole('button', { name: '镜像观看', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true }));
   await page.getByRole('button', { name: '循环当前八拍', exact: true }).click();
-  await page.getByRole('button', { name: '节拍提示', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '节拍提示', exact: true, includeHidden: true }));
   await save(page);
   const sceneA = await backup(page);
 
-  await newScene(page);
+  await newScene(page); await page.getByRole('button', { name: '八拍编排', exact: true }).click();
   await renameCurrent(page, '场景 B · 节奏示例');
   await page.getByRole('listitem', { name: /^第3个八拍/ }).click();
-  await page.getByRole('button', { name: '左侧', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '左侧', exact: true, includeHidden: true }));
   await page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption('RightHand');
   await page.getByRole('combobox', { name: '播放速度', exact: true }).selectOption('0.75');
   await save(page);
@@ -232,9 +234,9 @@ test('saved scenes independently restore audio, choreography and camera settings
   await expect(page.locator('.project-title h1')).toHaveText(sceneA.scene.name);
   await expect(page.getByRole('combobox', { name: '播放速度', exact: true })).toHaveValue('0.5');
   await expect(page.getByRole('combobox', { name: '选择关节', exact: true })).toHaveValue('LeftHand');
-  await expect(page.getByRole('button', { name: '镜像观看', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: '循环当前八拍', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('button', { name: '节拍提示', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: '节拍提示', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('listitem', { name: /^第2个八拍/ })).toHaveClass(/selected/);
   await waitCamera(page, sceneA.scene.viewer.camera);
   restored = await backup(page);
@@ -294,9 +296,10 @@ test('saved scenes independently restore audio, choreography and camera settings
 test('cancel, failed save and discard during a dirty scene switch preserve the correct drafts and saved scenes', async ({ page }) => {
   test.setTimeout(120_000);
   await ready(page);
+  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
   await renameCurrent(page, '保护场景 A'); await save(page);
   const sceneA = await backup(page);
-  await newScene(page); await renameCurrent(page, '保护场景 B'); await save(page);
+  await newScene(page); await page.getByRole('button', { name: '八拍编排', exact: true }).click(); await renameCurrent(page, '保护场景 B'); await save(page);
   await page.getByRole('listitem', { name: /^第2个八拍/ }).click();
   await page.getByRole('button', { name: '换一个八拍', exact: true }).click();
   await page.getByRole('region', { name: '替换候选' }).getByRole('button', { name: '采用', exact: true }).click();
@@ -338,7 +341,7 @@ test('cancel, failed save and discard during a dirty scene switch preserve the c
   await waitCamera(page, draft.scene.viewer.camera);
   const savedB = await backup(page);
   expect(projectHash(savedB)).toBe(projectHash(draft));
-  await page.getByRole('button', { name: '右侧', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '右侧', exact: true, includeHidden: true }));
   await openScene(page, sceneA.scene.name);
   await guard.getByRole('button', { name: '不保存，继续', exact: true }).click();
   await expect(page.locator('.project-title h1')).toHaveText(sceneA.scene.name);

@@ -4,6 +4,10 @@ Read `README.md`, `docs/ROADMAP.md`, and `docs/IMPLEMENTATION_STATUS.md` before 
 
 ## Current stage
 
+The user's 2026-10-08 direction is to improve a classic manual editor first and defer AI integration. Prioritize editing efficiency, reliable local audio and protection of local work. Version 11 is implemented and awaiting this turn's actual verification and release: stage shortcuts, stale-result isolation/cancellation for music decoding, audition and playback, restoration of the confirmed selection start, fresh/new-scene manual mode with saved old-scene modes preserved, and a simpler interface with secondary operations disclosed on demand. Read `docs/MANUAL_EDITOR.md` for the current contract. Do not record test counts, CI success, remote source or a deployed version until actually verified; version 10 remains the latest verified baseline below.
+
+Keep the interface minimal and modern, with a few essential buttons and obvious hierarchy. Stage tools, playback/time and explicit K stay readily visible; Pose reuse, delete/reset, key transfers, advanced camera options, coordinate details and backups open on demand. Disclosure changes view organization only: keep existing data, draft/collision/unsaved guards, errors and access to each operation. Decide the entry level and default visibility of every new feature before implementing it, rather than accumulating permanent buttons.
+
 S0 and P1 are delivered original synthetic previews. Version 10 is the latest verified deployment: complete scene backups/restoration, explicit keyframe time move/copy and keyboard modal focus management join camera framing, scene-local Pose reuse and manual editing. Local affected checks, the bounded online flow and actual source CI passed; feature source is committed/pushed and the corresponding runtime synchronized to Cloudflare. Read `docs/MANUAL_KEYFRAMES.md` for the agreed editing contract and `docs/VERIFICATION.md` / `docs/DEPLOYMENT.md` for actual release evidence. `preview-1` remains separate from the original 2.1.0 machine contract. Do not call template or manual output model generation, mark it as teacher approved, or treat the procedural rig as a licensed production Avatar. Do not add IK, bone-length editing, unrestricted music/timeline duration changes, cloud saving, multiplayer, or additional dance packs to this scope.
 
 Version 9 camera framing is delivered: explicit whole-body framing and selected-joint focus recover a moved rig and inspect the currently visible pose. The 60 local checks, build/Worker types and dry run, four affected local browser cases through their recorded correction/rechecks, five bounded HTTP requests and four bounded online browser cases passed. Source `b43817249a9ade4e68bc9900ef273b3e47fdec0f` was pushed and its corresponding runtime deployed; actual source CI run 37627848531 completed successfully with 60 checks and all 30 browser cases at 2026-10-07T13:27:45Z. Earlier versions remain historical evidence, not substitutes for this stage's checks.
@@ -12,7 +16,7 @@ The user has expanded the goal to finish practical local work before AI integrat
 
 Use a right-handed scene: Y up, +Z front, meters, and the XZ ground plane. Keep motion, the rig, camera presets, grids and axis indicators consistent with this convention. Camera navigation and skeleton selection must not alter authoritative motion. P1 changes authoritative motion through explicit write/delete K, neutral-base or template commits; do not present a Pose draft or node selection as a saved keyframe.
 
-The original engineering ZIP is not in this public repository. When it becomes available in an authorized private workspace, read its root instructions, run its verification, and document migration before integrating its generated contracts. Do not copy private source documents, contracts, uploaded audio or unlicensed motion files into the public repository.
+The original engineering ZIP is not in this public repository. Its absence blocks original contract integration, not the authorized classic manual editor on the procedural rig and `preview-1`. When it becomes available in an authorized private workspace, read its root instructions, run its verification, and document migration before integrating its generated contracts. Do not copy private source documents, contracts, uploaded audio or unlicensed motion files into the public repository.
 
 ## Invariants
 
@@ -62,6 +66,10 @@ The original engineering ZIP is not in this public repository. When it becomes a
 
 ## Verification and deployment
 
+Version 11 shortcuts must call the existing frame/play/write/delete/history operations. Left/Right steps by one bounded 30 fps frame; Space toggles playback; K/Delete targets the selected joint or Root under the translate tool. Ctrl/Cmd-Z undoes, Ctrl/Cmd-Shift-Z and Ctrl-Y redo. Preserve native focused-control/input/composition behavior and modal ownership; suppress repeated commits from held keys while allowing frame stepping. Existing draft, mirror, playback, candidate and read-only-track restrictions remain in force. New/fresh scenes default to manual mode, while old scenes restore their recorded mode and exact motion without migration to a new baseline.
+
+Invalidate pending music reads/decodes and audition starts on cancel, close or replacement; pause/scene changes also invalidate pending playback starts. Late results must not overwrite the current dialog, surface obsolete errors, resume discarded playback or change another scene. Clean up audio contexts, animation callbacks and object URLs as owned operations end. Reopening music settings restores the confirmed CountMap, including its nonzero eight-count start; cancellation does not modify the formal motion/audio/history. Actual verification of these v11 branches and disclosure/accessibility is still required.
+
 Run `npm run check`, `npm run typecheck:worker`, and relevant `npm run test:e2e` checks. Browser tests use a local original WAV and procedural rig; they do not validate dance quality, device frame-rate or measured audio-output latency.
 
 Use `wrangler.jsonc` and generate Worker types with Wrangler. Cloudflare serves Web and lightweight APIs; real Python motion processing and FFmpeg need a separately verified execution environment. Check build output and online health/browser flow when publishing an authorized stage. Record the exact result in `docs/VERIFICATION.md` and `docs/DEPLOYMENT.md`; distinguish tests, deployment, teaching validation and remote GitHub publication.
@@ -70,7 +78,7 @@ Keep credentials outside the repository, retain the original MIT license, and pr
 
 ## Required delivery
 
-The user requires every completed modification to be committed and pushed to `DFerryman/ChoreographyStudio`, with the corresponding application synchronized to the authorized Cloudflare preview `choreo-studio-preview`. This is a standing delivery requirement: finish repository publication and Cloudflare deployment before handing off a change; a local edit or successful build alone is not delivery.
+The user requires every completed modification to be committed and pushed to `main` in `DFerryman/ChoreographyStudio`, with the corresponding application synchronized to the authorized Cloudflare preview `choreo-studio-preview`. This is a standing delivery requirement: finish repository publication and Cloudflare deployment before handing off a change; a local edit or successful build alone is not delivery.
 
 Verify the remote commit, active Cloudflare version/deployment and matching runtime assets, then record the actual outcome and preview link. Commit and push the verification documentation too. Keep private documents, user audio, credentials and generated artifacts out of the public repository. Reuse valid checks when runtime files are unchanged, and keep online verification bounded by the request/database budget below.
 

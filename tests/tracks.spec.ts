@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import { clickRevealed, reveal } from './helpers';
 
 // Independent v4 scene: a non-uniform base, moving Root, and an untouched
 // Head arc make a mistaken whole-pose delete visible in exported motion.
@@ -98,7 +99,7 @@ async function openScene(page: Page) {
 }
 async function backup(page: Page): Promise<Backup> {
   const pending = page.waitForEvent('download');
-  await page.getByRole('button', { name: '下载项目备份', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await pending).path(); expect(path).toBeTruthy();
   return JSON.parse(await readFile(path!, 'utf8')) as Backup;
 }
@@ -143,7 +144,7 @@ test('@tracks deleting one joint at a shared frame restores that base track and 
   await rotationKey(page, 90, 'RightUpperArm', -40);
   await rootKey(page, 90, 1.3); await joint(page, 'LeftUpperArm');
   const before = await backup(page), authored = current(before);
-  await page.getByRole('button', { name: '删除当前关节 K', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '删除当前关节 K', exact: true, includeHidden: true }));
   const after = await backup(page), removed = current(after);
   expect(removed.manual!.rotations.LeftUpperArm).toBeUndefined();
   expect(removed.manual!.rotations.RightUpperArm).toEqual(authored.manual!.rotations.RightUpperArm);
@@ -161,7 +162,7 @@ test('@tracks deleting one joint at a shared frame restores that base track and 
     expect(pose.root).toEqual(authored.take.poses[index].root);
   }
   for (const [index, time] of source.take.times.entries()) expect(removed.take.poses[removed.take.times.indexOf(time)].joints.Head).toEqual(source.take.poses[index].joints.Head);
-  await expect(page.getByRole('button', { name: '删除当前关节 K', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '删除当前关节 K', exact: true, includeHidden: true })).toBeDisabled();
   await page.getByRole('button', { name: '撤销', exact: true }).click(); await unchanged(page, authored);
   if (process.env.CHOREO_SCREENSHOT_DIR) await frame(page, 90);
   await capture(page, 'choreo-tracks-desktop.png');
@@ -174,28 +175,28 @@ test('@tracks Root deletion resolves drafts explicitly and missing, unselected o
   await rotationKey(page, 90, 'LeftUpperArm', 50); await rootKey(page, 90, 1.4);
   const authored = current(await backup(page));
   await numeric(page, 'Root X 位移（米）', 2);
-  await page.getByRole('button', { name: '删除 Root K', exact: true }).click(); await expect(guard(page)).toBeVisible();
+  await clickRevealed(page, page.getByRole('button', { name: '删除 Root K', exact: true, includeHidden: true })); await expect(guard(page)).toBeVisible();
   await guard(page).getByRole('button', { name: '取消', exact: true }).click();
   await expect(draft(page)).toBeVisible(); await unchanged(page, authored);
-  await page.getByRole('button', { name: '删除 Root K', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '删除 Root K', exact: true, includeHidden: true }));
   await guard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
   const after = await backup(page), removed = current(after);
   expect(removed.manual!.root).toEqual([]); expect(removed.manual!.rotations).toEqual(authored.manual!.rotations);
   expect(removed.manual!.baseTake).toEqual(source.take);
   for (const [index, time] of source.take.times.entries()) expect(removed.take.poses[removed.take.times.indexOf(time)].root).toEqual(source.take.poses[index].root);
   await expect(draft(page)).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '删除 Root K', exact: true })).toBeDisabled();
-  await joint(page, 'RightUpperArm'); await expect(page.getByRole('button', { name: '删除当前关节 K', exact: true })).toBeDisabled();
-  await joint(page, ''); await expect(page.getByRole('button', { name: '删除当前关节 K', exact: true })).toBeDisabled();
-  await joint(page, 'LeftHandTip'); await expect(page.getByRole('button', { name: '删除当前关节 K', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '删除 Root K', exact: true, includeHidden: true })).toBeDisabled();
+  await joint(page, 'RightUpperArm'); await expect(page.getByRole('button', { name: '删除当前关节 K', exact: true, includeHidden: true })).toBeDisabled();
+  await joint(page, ''); await expect(page.getByRole('button', { name: '删除当前关节 K', exact: true, includeHidden: true })).toBeDisabled();
+  await joint(page, 'LeftHandTip'); await expect(page.getByRole('button', { name: '删除当前关节 K', exact: true, includeHidden: true })).toBeDisabled();
   await frame(page, 91); await joint(page, 'LeftUpperArm');
-  await expect(page.getByRole('button', { name: '删除当前关节 K', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: '删除当前帧关键帧', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '删除当前关节 K', exact: true, includeHidden: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '删除当前帧关键帧', exact: true, includeHidden: true })).toBeDisabled();
   expect((await backup(page)).scene.project).toEqual(after.scene.project);
   await rootKey(page, 90, 1.6);
   const beforeWriteAndDelete = await backup(page);
   await numeric(page, '关节 Z 旋转（度）', 80);
-  await page.getByRole('button', { name: '删除 Root K', exact: true }).click(); await expect(guard(page)).toBeVisible();
+  await clickRevealed(page, page.getByRole('button', { name: '删除 Root K', exact: true, includeHidden: true })); await expect(guard(page)).toBeVisible();
   await guard(page).getByRole('button', { name: '写入完整姿态后继续', exact: true }).click();
   await expect(draft(page)).toHaveCount(0);
   const writeAndDelete = await backup(page), removedAfterWrite = current(writeAndDelete);
@@ -212,7 +213,7 @@ test('@tracks Root deletion resolves drafts explicitly and missing, unselected o
   expect(fullPoseBeforeDelete.manual!.rotations).toEqual(removedAfterWrite.manual!.rotations);
   await page.getByRole('button', { name: '重做', exact: true }).click(); await unchanged(page, removedAfterWrite);
   await frame(page, 90);
-  await page.getByRole('button', { name: '删除当前帧关键帧', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '删除当前帧关键帧', exact: true, includeHidden: true }));
   const empty = current(await backup(page));
   expect(empty.manual!.root).toEqual([]); expect(empty.manual!.rotations).toEqual({});
   expect(empty.take.times).toEqual(source.take.times); expect(empty.take.poses).toEqual(source.take.poses);
@@ -271,14 +272,14 @@ test('@tracks mobile track actions are reachable and deletion, undo, save and re
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 844 });
     for (const name of ['删除当前关节 K', '删除 Root K', '上一关键帧', '下一关键帧']) {
-      const action = page.getByRole('button', { name, exact: true });
-      await action.scrollIntoViewIfNeeded(); await expect(action).toBeInViewport();
+      const action = page.getByRole('button', { name, exact: true, includeHidden: true });
+      await reveal(page, action); await action.scrollIntoViewIfNeeded(); await expect(action).toBeInViewport();
       const box = (await action.boundingBox())!; expect(box.width).toBeGreaterThanOrEqual(40); expect(box.height).toBeGreaterThanOrEqual(44);
     }
     const geometry = await page.evaluate(() => ({ client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
     expect(geometry.scroll).toBeLessThanOrEqual(geometry.client);
   }
-  await page.getByRole('button', { name: '删除当前关节 K', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '删除当前关节 K', exact: true, includeHidden: true }));
   expect(current(await backup(page)).manual!.root).toEqual(authored.manual!.root); await visibleFrames(page, []);
   await page.getByRole('button', { name: '撤销', exact: true }).click(); await unchanged(page, authored); await visibleFrames(page, [45]);
   await page.getByRole('button', { name: '保存', exact: true }).click(); await expect(page.locator('.save-state')).toHaveText('已保存到本机');

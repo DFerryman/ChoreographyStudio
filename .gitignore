@@ -10,5 +10,6 @@ __pycache__/
 *.pyc
 *.zip
 local-runs/
+work/
 private/
 worker-configuration.d.ts

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import { clickRevealed, reveal } from './helpers';
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
 
 // Original local data with non-uniform samples and a translated, articulated
@@ -24,7 +25,7 @@ type Snapshot = { take: Take; manual?: { root: { frame: number; position: Vec3 }
 type Backup = { scene: { id: string; name: string; project: { historyIndex: number; history: Snapshot[]; revision: number; teacherCheckedRevision: number | null }; viewer: { camera: Camera; view: string; mirror: boolean; time: number; selectedJoint: Joint | null; editorMode?: string; transformTool?: string } } };
 const current = (document: Backup) => document.scene.project.history[document.scene.project.historyIndex];
 const whole = (page: Page) => page.getByRole('button', { name: '全身取景', exact: true });
-const focus = (page: Page) => page.getByRole('button', { name: '聚焦关节', exact: true });
+const focus = (page: Page) => page.getByRole('button', { name: '聚焦关节', exact: true, includeHidden: true });
 const draft = (page: Page) => page.getByRole('status').filter({ hasText: '姿态草稿 · 尚未写入关键帧' });
 const guard = (page: Page) => page.getByRole('dialog', { name: '写入这份姿态草稿？', exact: true });
 const diagnostics = new WeakMap<Page, { errors: string[]; warnings: string[]; apiRequests: string[] }>();
@@ -116,7 +117,7 @@ async function openFixture(page: Page, second = false) {
 }
 async function backup(page: Page): Promise<Backup> {
   const pending = page.waitForEvent('download');
-  await page.getByRole('button', { name: '下载项目备份', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await pending).path(); expect(path).toBeTruthy();
   return JSON.parse(await readFile(path!, 'utf8')) as Backup;
 }
@@ -142,10 +143,10 @@ async function joint(page: Page, value: Joint) {
   await page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption(value);
   await expect(page.getByLabel('选中关节世界坐标').locator('strong')).toContainText('Y');
 }
-async function cameraText(page: Page) { return page.getByLabel('相机世界坐标').innerText(); }
+async function cameraText(page: Page) { await reveal(page, page.getByLabel('相机世界坐标')); return page.getByLabel('相机世界坐标').innerText(); }
 async function cameraAction(page: Page, kind: 'whole' | 'joint', expectChange = true) {
   const previous = await cameraText(page);
-  await (kind === 'whole' ? whole(page) : focus(page)).click();
+  await clickRevealed(page, kind === 'whole' ? whole(page) : focus(page));
   await expect(page.locator('.viewer-muted')).toHaveText('自由视角');
   if (expectChange) await expect.poll(() => cameraText(page)).not.toBe(previous);
   else await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
@@ -219,7 +220,7 @@ test('@framing whole-body framing brings a translated current pose into view wit
   const source = await openFixture(page);
   await expect(focus(page)).toBeDisabled();
   await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
-  await page.getByRole('button', { name: '左侧', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '左侧', exact: true, includeHidden: true }));
   await numeric(page, '当前帧', 75);
   await page.getByRole('button', { name: '保存', exact: true }).click();
   await expect(page.locator('.save-state')).toHaveText('已保存到本机');
@@ -258,8 +259,8 @@ test('@framing joint focus centers editable and read-only landmarks, honors mirr
   sameCamera((await backup(page)).scene.viewer.camera, focused.scene.viewer.camera);
   const terminal = await cameraAction(page, 'joint');
   nearPoint(terminal.scene.viewer.camera.target, worldRig(source.take.poses[2]).joint('LeftHandTip'));
-  await expect(page.getByRole('button', { name: '旋转关节', exact: true })).toBeDisabled();
-  await page.getByRole('button', { name: '镜像观看', exact: true }).click();
+  await expect(page.getByRole('button', { name: '旋转工具', exact: true })).toBeDisabled();
+  await clickRevealed(page, page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true }));
   const mirrored = await cameraAction(page, 'joint');
   nearPoint(mirrored.scene.viewer.camera.target, worldRig(source.take.poses[2], true).joint('LeftHandTip'));
   expect(mirrored.scene.viewer.selectedJoint).toBe('LeftHandTip'); expect(mirrored.scene.viewer.mirror).toBe(true);
@@ -284,7 +285,7 @@ test('@framing framing uses an unwritten pose without resolving it, and saved ca
   const pose = structuredClone(source.take.poses[2]);
   pose.root[0] = -5; pose.joints.LeftUpperArm = [0, 0, Math.sin(Math.PI / 6), Math.cos(Math.PI / 6)];
   await expect(draft(page)).toBeVisible();
-  await page.getByRole('button', { name: '复制当前姿态', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '复制当前姿态', exact: true, includeHidden: true }));
   await expect(page.getByLabel('已复制姿态', { exact: true })).toContainText('第 75 帧 · 姿态草稿');
   const framed = await cameraAction(page, 'whole'); await expectVisible(page, framed.scene.viewer.camera, pose);
   await joint(page, 'LeftForeArm'); const focused = await cameraAction(page, 'joint');
@@ -356,6 +357,7 @@ test('@framing portrait framing stays usable at 390 and 320 pixels, targets the 
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   }
   await joint(page, 'Hips');
+  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
   await page.getByRole('button', { name: '换一个八拍', exact: true }).click();
   const candidate = page.getByRole('region', { name: '替换候选', exact: true });
   await expect(candidate.getByRole('button', { name: '切回原稿', exact: false })).toBeVisible();
@@ -370,7 +372,7 @@ test('@framing portrait framing stays usable at 390 and 320 pixels, targets the 
   await page.getByRole('button', { name: '播放', exact: true }).click();
   await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeEnabled();
   const started = await page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.currentTime);
-  await whole(page).click(); await focus(page).click();
+  await clickRevealed(page, whole(page)); await clickRevealed(page, focus(page));
   await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeEnabled();
   expect(await page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.paused)).toBe(false);
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.currentTime)).toBeGreaterThan(started);

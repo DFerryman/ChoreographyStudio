@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
+import { clickRevealed, reveal } from './helpers';
 import { PerspectiveCamera, Vector3 } from 'three';
 
 // This fixture keeps the published v4 schema, without importing the new editor
@@ -59,7 +60,7 @@ async function ready(page: Page) {
 }
 async function backup(page: Page): Promise<Backup> {
   const downloading = page.waitForEvent('download');
-  await page.getByRole('button', { name: '下载项目备份', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await downloading).path();
   expect(path).toBeTruthy();
   return JSON.parse(await readFile(path!, 'utf8')) as Backup;
@@ -191,6 +192,7 @@ async function expectNumber(page: Page, label: string, value: number, tolerance 
   await expect.poll(async () => Math.abs(Number(await page.getByRole('spinbutton', { name: label, exact: true }).inputValue()) - value)).toBeLessThan(tolerance);
 }
 async function worldPosition(page: Page): Promise<number[]> {
+  await reveal(page, page.getByLabel('选中关节世界坐标', { exact: true }));
   const text = await page.getByLabel('选中关节世界坐标', { exact: true }).locator('strong').innerText();
   return Array.from(text.matchAll(/[XYZ]\s*(-?\d+(?:\.\d+)?)/g), match => Number(match[1]));
 }
@@ -221,7 +223,7 @@ test('pose drafts remain previews until explicit keys, interpolate real joint an
   test.setTimeout(180_000);
   await openLegacyScene(page);
   await editor(page);
-  await page.getByRole('button', { name: '从站姿开始', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '从站姿开始', exact: true, includeHidden: true }));
   await selectJoint(page, 'LeftUpperArm');
   const neutral = current(await backup(page));
   expect(neutral.manual?.root).toEqual([]);
@@ -285,7 +287,7 @@ test('pose drafts remain previews until explicit keys, interpolate real joint an
   expect(updated.manual!.rotations.LeftUpperArm).toHaveLength(2);
   expect(updated.manual!.rotations.LeftUpperArm![1].rotation[2]).toBeCloseTo(Math.sqrt(3) / 2, 8);
   expect(updated.manual!.root).toEqual(two.manual!.root);
-  await page.getByRole('button', { name: '删除当前帧关键帧', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '删除当前帧关键帧', exact: true, includeHidden: true }));
   const deleted = current(await backup(page));
   expect(deleted.manual!.root.map(key => key.frame)).toEqual([0]);
   expect(deleted.manual!.rotations.LeftUpperArm!.map(key => key.frame)).toEqual([0]);
@@ -294,7 +296,7 @@ test('pose drafts remain previews until explicit keys, interpolate real joint an
   await page.getByRole('button', { name: '重做', exact: true }).click();
   await sameSnapshot(page, deleted);
   await frame(page, 0);
-  await page.getByRole('button', { name: '删除当前帧关键帧', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '删除当前帧关键帧', exact: true, includeHidden: true }));
   const empty = current(await backup(page));
   expect(empty.take.times).toEqual(neutral.take.times);
   expect(empty.take.poses).toEqual(neutral.take.poses);
@@ -350,11 +352,11 @@ test('old v4 scenes retain their original audio and motion, while explicit joint
   await expectNumber(page, 'Root X 位移（米）', 1, 0.002);
   await selectJoint(page, 'Hips'); await expectWorld(page, [1, 1.05, 0]);
   const beforeMirror = current(await backup(page));
-  await page.getByRole('button', { name: '镜像观看', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true }));
   await expect(page.getByRole('button', { name: 'K 完整姿态', exact: true })).toBeDisabled();
   await expectWorld(page, [1, 1.05, 0]);
   await sameSnapshot(page, beforeMirror);
-  await page.getByRole('button', { name: '镜像观看', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true }));
   await selectJoint(page, 'LeftHandTip');
   await expect(page.getByRole('button', { name: 'K 当前关节', exact: true })).toBeDisabled();
   await expect(page.getByRole('spinbutton', { name: '关节 Z 旋转（度）', exact: true })).toBeDisabled();
@@ -525,9 +527,9 @@ test('dragging a visible local rotation ring edits a pose draft while orbiting c
   test.setTimeout(120_000);
   await openLegacyScene(page);
   await editor(page);
-  await page.getByRole('button', { name: '从站姿开始', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '从站姿开始', exact: true, includeHidden: true }));
   await selectJoint(page, 'Hips'); await expectWorld(page, [0, 1.05, 0]);
-  await page.getByRole('button', { name: '复位相机', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '复位相机', exact: true, includeHidden: true }));
   await expect(page.getByRole('button', { name: '正面', exact: true })).toHaveAttribute('aria-pressed', 'true');
   const before = await backup(page), original = current(before);
   const cameraBefore = before.scene.viewer.camera;
@@ -565,12 +567,19 @@ test('dragging a visible local rotation ring edits a pose draft while orbiting c
   expect(current(committed).manual!.rotations.Hips![0].rotation).not.toEqual([0, 0, 0, 1]);
   expect(committed.scene.viewer.camera).toEqual(cameraBefore);
 
+  await reveal(page, page.getByLabel('相机世界坐标', { exact: true }));
+  const coordinateBefore = await page.getByLabel('相机世界坐标', { exact: true }).innerText();
+  // Native disclosures can scroll the page and leave the camera popover over
+  // the stage. Close it, then locate and hit-test the actual canvas again.
+  await closeCameraOptions(page);
   await canvas.scrollIntoViewIfNeeded();
   const orbitBox = (await canvas.boundingBox())!;
-  const coordinateBefore = await page.getByLabel('相机世界坐标', { exact: true }).innerText();
-  await page.mouse.move(orbitBox.x + orbitBox.width * 0.84, orbitBox.y + orbitBox.height * 0.24);
+  const orbitStart = { x: orbitBox.x + orbitBox.width * 0.84, y: orbitBox.y + orbitBox.height * 0.24 };
+  const orbitEnd = { x: orbitBox.x + orbitBox.width * 0.93, y: orbitBox.y + orbitBox.height * 0.34 };
+  expect(await canvas.evaluate((element, points) => points.every(point => document.elementFromPoint(point.x, point.y) === element), [orbitStart, orbitEnd]), 'Orbit coordinates must hit the visible canvas').toBe(true);
+  await page.mouse.move(orbitStart.x, orbitStart.y);
   await page.mouse.down({ button: 'left' });
-  await page.mouse.move(orbitBox.x + orbitBox.width * 0.93, orbitBox.y + orbitBox.height * 0.34, { steps: 12 });
+  await page.mouse.move(orbitEnd.x, orbitEnd.y, { steps: 12 });
   await page.mouse.up({ button: 'left' });
   await expect.poll(() => page.getByLabel('相机世界坐标', { exact: true }).innerText()).not.toBe(coordinateBefore);
   await expect(draftNote(page)).toHaveCount(0);
@@ -579,6 +588,12 @@ test('dragging a visible local rotation ring edits a pose draft while orbiting c
   expect(current(orbited)).toEqual(current(committed));
   await expect(page.getByRole('combobox', { name: '选择关节', exact: true })).toHaveValue('Hips');
 });
+
+async function closeCameraOptions(page: Page) {
+  const options = page.locator('.camera-options');
+  if (await options.getAttribute('open') !== null) await options.locator(':scope > summary').click();
+  await expect(options).not.toHaveAttribute('open');
+}
 
 // Transform-control regressions start from the ordinary arrangement screen.
 // All handle targets are projected from the exported camera and public pose;
@@ -626,21 +641,22 @@ async function settledLandmark(page: Page, joint: Joint) {
 test('@controls-entry selecting a visible joint exposes direct rotation actions and keeps playback, mirror and terminal states explicit', async ({ page }) => {
   test.setTimeout(180_000);
   await openLegacyScene(page);
+  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
   await expect(page.getByRole('button', { name: '八拍编排', exact: true })).toHaveAttribute('aria-pressed', 'true');
   const original = await backup(page);
   await realHipsSelection(page, original);
-  const rotate = page.getByRole('button', { name: '旋转关节', exact: true });
-  const move = page.getByRole('button', { name: '移动角色', exact: true });
+  const rotate = page.getByRole('button', { name: '旋转工具', exact: true });
+  const move = page.getByRole('button', { name: '移动角色工具', exact: true });
   await expect(rotate).toBeVisible(); await expect(rotate).toBeEnabled();
   await expect(move).toBeVisible(); await expect(move).toBeEnabled();
   await sameSnapshot(page, current(original));
-  await page.getByRole('button', { name: '镜像观看', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true }));
   await page.getByRole('button', { name: '播放', exact: true }).click();
   await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeVisible();
   await rotate.click();
   await expect(page.getByRole('button', { name: '手动 K帧', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '镜像观看', exact: true })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'false');
   await expect(page.getByRole('button', { name: '旋转工具', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('spinbutton', { name: '关节 Z 旋转（度）', exact: true })).toBeEnabled();
   await sameSnapshot(page, current(original));
@@ -673,7 +689,7 @@ test('@controls-entry selecting a visible joint exposes direct rotation actions 
   await expect(candidate).toBeVisible();
   await expect(page.locator('.viewer-title')).toContainText('替换预览');
   await rotate.click();
-  await expect(page.locator('.viewer-title')).toContainText('动作预览');
+  await expect(page.locator('.viewer-title')).toContainText('舞台');
   await sameSnapshot(page, committed);
   await page.getByRole('button', { name: '八拍编排', exact: true }).click();
   await expect(candidate).toBeVisible();
@@ -697,7 +713,7 @@ test('@controls-entry dragging a world Root arrow moves the entire pose without 
   expect('transformTool' in fixture.scene.viewer).toBe(false);
   expect(original.scene.viewer.transformTool).toBe('select');
   await realHipsSelection(page, original);
-  await page.getByRole('button', { name: '移动角色', exact: true }).click();
+  await page.getByRole('button', { name: '移动角色工具', exact: true }).click();
   const inspected: Joint[] = ['Hips', 'LeftUpperArm', 'LeftForeArm', 'RightFoot'];
   const beforePositions: Partial<Record<Joint, number[]>> = {};
   for (const joint of inspected) beforePositions[joint] = await settledLandmark(page, joint);
@@ -798,7 +814,7 @@ test.describe('native gesture recovery', () => {
     await openLegacyScene(page);
     const original = await backup(page);
     await realHipsSelection(page, original);
-    await page.getByRole('button', { name: '移动角色', exact: true }).click();
+    await page.getByRole('button', { name: '移动角色工具', exact: true }).click();
     await page.evaluate(() => {
       const events: { type: string; pointerType: string; pointerId: number }[] = [];
       (window as Window & { choreoGestureEvents?: typeof events }).choreoGestureEvents = events;
@@ -865,7 +881,7 @@ test.describe('native gesture recovery', () => {
     await touch('touchEnd', []);
     await expect.poll(async () => (await backup(page)).scene.viewer.camera).not.toEqual(ordinaryTouchCamera);
     await expect(page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true })).toHaveValue(touchDraftX);
-    await page.getByRole('button', { name: '复位相机', exact: true }).click();
+    await clickRevealed(page, page.getByRole('button', { name: '复位相机', exact: true, includeHidden: true }));
     await rendered();
     await page.getByRole('button', { name: '移动角色工具', exact: true }).click();
     const held = await rootArrow(0.25);
@@ -890,15 +906,21 @@ test.describe('native gesture recovery', () => {
     const hips = hipsProjection.point([Number(heldDraftX), 1.05, 0]);
     await page.mouse.click(hips.x, hips.y);
     await expect(page.getByRole('combobox', { name: '选择关节', exact: true })).toHaveValue('Hips');
-    const orbitBox = (await hipsProjection.canvas.boundingBox())!;
+    await reveal(page, page.getByLabel('相机世界坐标', { exact: true }));
     const orbitBefore = await page.getByLabel('相机世界坐标', { exact: true }).innerText();
-    await page.mouse.move(orbitBox.x + orbitBox.width * 0.8, orbitBox.y + orbitBox.height * 0.2);
+    await closeCameraOptions(page);
+    await hipsProjection.canvas.scrollIntoViewIfNeeded();
+    const orbitBox = (await hipsProjection.canvas.boundingBox())!;
+    const orbitStart = { x: orbitBox.x + orbitBox.width * 0.8, y: orbitBox.y + orbitBox.height * 0.2 };
+    const orbitEnd = { x: orbitBox.x + orbitBox.width * 0.89, y: orbitBox.y + orbitBox.height * 0.3 };
+    expect(await hipsProjection.canvas.evaluate((element, points) => points.every(point => document.elementFromPoint(point.x, point.y) === element), [orbitStart, orbitEnd]), 'Recovered orbit coordinates must hit the visible canvas').toBe(true);
+    await page.mouse.move(orbitStart.x, orbitStart.y);
     await page.mouse.down({ button: 'left' });
-    await page.mouse.move(orbitBox.x + orbitBox.width * 0.89, orbitBox.y + orbitBox.height * 0.3, { steps: 8 });
+    await page.mouse.move(orbitEnd.x, orbitEnd.y, { steps: 8 });
     await page.mouse.up({ button: 'left' });
     await expect.poll(() => page.getByLabel('相机世界坐标', { exact: true }).innerText()).not.toBe(orbitBefore);
     await sameSnapshot(page, current(original));
-    await page.getByRole('button', { name: '复位相机', exact: true }).click();
+    await clickRevealed(page, page.getByRole('button', { name: '复位相机', exact: true, includeHidden: true }));
     await rendered();
     await page.getByRole('button', { name: '移动角色工具', exact: true }).click();
     const recovered = await rootArrow(0.25);

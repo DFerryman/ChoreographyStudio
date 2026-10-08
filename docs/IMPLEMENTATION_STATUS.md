@@ -1,10 +1,14 @@
 # 实现状态
 
-当前交付：**P1 本机手动关键帧预览已上线，最新已验证版为 version 10**，完成限定 AI 接入前本机闭环：完整场景备份/恢复、缺失原音乐恢复、关键帧时刻移动/复制和模态键盘操作；保留相机取景、姿态复用、关节/Root 轨道与场景管理。本仓库从 v2.1 原生规格与开发计划正文开始实现。原工程 ZIP 尚未取得，未执行 original 2.1.0 的验证，也未继承其中的工程验收结论。
+当前开发：**version 11 经典手动编辑器已实现，等待本轮验收与发布。** 2026-10-08 用户明确 AI 暂不接入，先提高本机编辑效率、音频可靠性和作品保护，并要求界面极简现代、少量必要按钮和清楚层级。当前源码包含舞台快捷键、解码/试听/播放异步取消与旧结果隔离、重开恢复原选段起点、首次使用/新场景默认手动且旧模式保持，以及次要操作按需展开；实际通过数量、远端提交、CI 与线上版本尚待本轮验证记录，不提前声明交付。契约见 [MANUAL_EDITOR.md](MANUAL_EDITOR.md)。
+
+最新已验证基线仍为 **version 10**，完成限定本机备份/恢复、缺失原音乐恢复、关键帧时刻移动/复制和模态键盘操作。原工程 ZIP 尚未取得，未执行 original 2.1.0 的验证，也未继承其中的验收结论；这只阻塞原契约集成，不阻塞用户当前授权的手动编辑完善。
+
+## 已验证基线与历史
 
 相机取景：**version 9 已交付**。60 项本地检查、构建/Worker 类型与 dry run、4 项相关本地范围及复核、5 HTTP、单轮线上 4 项和实际源码 CI 完整 30 项通过；功能源码已 push 并同步 Cloudflare，v8 及以前证据保留为历史。
 
-本轮交付：**version 10 已上线并验收**，由 [#11](https://github.com/DFerryman/ChoreographyStudio/issues/11) 跟踪。107 项基础检查、最终构建/Worker 类型与 dry run、8 个不同本地范围及缺音乐定向复核、5 HTTP 与单轮线上 8 项通过；[实际源码 CI](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37636175196)于 2026-10-07T14:29:27Z 成功完成 107 项检查和完整 38 项浏览器流程。[运行源码](https://github.com/DFerryman/ChoreographyStudio/commit/9fbc115f12d2580ff76b7cf5354fa581081579d8)已 push 并部署 Cloudflare v10 `6df3fd31-141f-4834-b25c-e871f5a8bbf7`。原 CI 37633679536 的 107 + 37/38 失败、过期画布坐标 trace/本地复现与[仅测试修正](https://github.com/DFerryman/ChoreographyStudio/commit/1719439d993cd893f19c771f90c2cf902ef46886)的定向通过保留；运行模块未变，沿用已通过的公网/部署证据。首次手机脚本和测试前启动问题也保留；不启用 AI、云保存或服务写入，最终验证文档提交与同版部署收据另列部署记录。
+上轮交付：**version 10 已上线并验收**，由 [#11](https://github.com/DFerryman/ChoreographyStudio/issues/11) 跟踪。107 项基础检查、最终构建/Worker 类型与 dry run、8 个不同本地范围及缺音乐定向复核、5 HTTP 与单轮线上 8 项通过；[实际源码 CI](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37636175196)于 2026-10-07T14:29:27Z 成功完成 107 项检查和完整 38 项浏览器流程。[运行源码](https://github.com/DFerryman/ChoreographyStudio/commit/9fbc115f12d2580ff76b7cf5354fa581081579d8)已 push 并部署 Cloudflare v10 `6df3fd31-141f-4834-b25c-e871f5a8bbf7`。原 CI 37633679536 的 107 + 37/38 失败、过期画布坐标 trace/本地复现与[仅测试修正](https://github.com/DFerryman/ChoreographyStudio/commit/1719439d993cd893f19c771f90c2cf902ef46886)的定向通过保留；运行模块未变，沿用已通过的公网/部署证据。首次手机脚本和测试前启动问题也保留；不启用 AI、云保存或服务写入，最终验证文档提交与同版部署收据另列部署记录。
 
 2026-10-07 的 v6 修正关节选择后的操作入口：默认编排模式显示旋转/整体移动动作，舞台提供旋转环和 Root 世界空间箭头；工具切换保留同帧草稿，显式写 K 规则不变。该版 18 项本地范围由首轮与相关复核通过，最终构建/Worker 类型、实际 v6 部署、7 HTTP、单轮相关线上 4 项及真实源码 CI 的完整 18 项全部通过。v5 的完整范围证据保留为历史。
 
@@ -14,6 +18,9 @@ v7 补充当前关节/Root 的显式键状态、各自独立删除、严格上�
 
 | 项目 | 边界 |
 | --- | --- |
+| v11 手动编辑快捷键 | 已实现/待本轮验收发布：左右逐帧、Space、当前关节或整体移动 Root 的 K/Delete、撤销/重做；输入、顶层模态、草稿及单轨保护复用原规则 |
+| v11 音频与模式恢复 | 已实现/待本轮验收发布：读取/解码、试听与播放启动可取消，旧结果隔离；重开恢复已确认选段起点；首次使用和新场景默认手动，旧场景按保存模式/工具及精确动作恢复 |
+| v11 极简界面 | 已实现/待本轮验收发布：舞台/播放/时间/写 K 常用操作可见，姿态复用、删除/重置、键转移、相机高级、坐标、备份按需展开；只改入口层级，保留错误、数据和全部保护 |
 | 工作台 | 分区工作台、音乐/数拍确认、八拍卡片、候选预览/采用/放弃、撤销和教学播放已上线；version 4 的 10 项浏览器流程通过 |
 | 3D 场景 | 已上线细杆骨架/关节选择、自由相机、直接旋转入口、局部旋转环、整体 Root 世界箭头及视角预设；右手系、Y 向上、+Z 正面、米单位及 XZ 地面，不含 IK |
 | 手动关键帧 | v5/v6 已部署固定 CountMap、30fps 精确末帧、19 局部旋转+Root 米制位置、稀疏轨/不可变基底、显式草稿提交、历史/Scene 兼容与直接视口工具；v7 已部署轨道状态、单轨删除、严格跳 K 与时间线筛选，本地/必要线上/实际源码 CI 通过 |
@@ -47,7 +54,7 @@ v7 补充当前关节/Root 的显式键状态、各自独立删除、严格上�
 
 [Cloudflare 在线预览](https://choreo-studio-preview.danuberiverferryman.workers.dev/) 已通过 S0 交互与部署检查；实际版本和可追溯结果见 [DEPLOYMENT.md](DEPLOYMENT.md)。
 
-## 下一步与显式阻塞
+## 已交付阶段补充记录
 
 2026-10-06 的 S0 v4 与 P1 v5 已由 [#5](https://github.com/DFerryman/ChoreographyStudio/issues/5)/[#6](https://github.com/DFerryman/ChoreographyStudio/issues/6) 完成。2026-10-07 的可发现编辑入口与 Root 3D 移动已发布 v6，本地、必要单轮相关线上、部署与真实源码 CI 全部通过，完成 [#7](https://github.com/DFerryman/ChoreographyStudio/issues/7) 的本轮退出条件；不新增服务或 D1 写入。下述原素材/契约与生产任务继续保留。
 
@@ -58,6 +65,14 @@ v8 按 [MANUAL_KEYFRAMES.md](MANUAL_KEYFRAMES.md) 实现场景内姿态复用。
 v9 按同一手 K 设计完成相机取景。明确点击全身取景或聚焦关节，针对当前可见草稿/镜像/候选/教学骨架计算，不隐式编辑动作或切换查看对象；保留相机方向，全身构图适配实际宽高比，只读末端可聚焦。取景不改当前帧、播放/音频、草稿、权威 take/revision/历史或教师确认；相机变化只通过现有本机场景视图保存。60 项本地检查、构建/Worker 类型与 dry run、4 项相关本地范围经首轮及数值显示断言修正后的复核、5 HTTP、单轮线上 4 项和[实际源码 CI 完整 30 项](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37627848531)通过；[功能源码](https://github.com/DFerryman/ChoreographyStudio/commit/b43817249a9ade4e68bc9900ef273b3e47fdec0f)已 push 并同步 Cloudflare，完成 [#10](https://github.com/DFerryman/ChoreographyStudio/issues/10) 的本机范围。首次脚本断言与复核保留，不以 v8 证据代替此轮检查。
 
 用户扩大目标后，v10 已交付限定的 AI 接入前本机闭环。完整包包含原音乐，旧 JSON 重新关联原音乐；新 ID 事务导入保留精确动画、基底、轨道、CountMap、历史和相机，清空教师确认，不重确认音乐或重烘焙 plan。缺原音乐时明确恢复并保留草稿处理后的最新正式 K，旧场景不覆盖；保存/导入容量失败不谎报成功，清楚提示并允许重试。键转移范围固定、碰撞明确确认、空操作无历史，模态焦点和 Escape 只处理最上层。[SCENE_BACKUPS.md](SCENE_BACKUPS.md) 与 [PRE_AI_CHECKLIST.md](PRE_AI_CHECKLIST.md) 记录规则、实际验收与剩余门槛。本轮 107 项基础检查、最终构建/Worker 类型与 dry run、相关本地范围、单轮线上 8 项、5 HTTP 与实际源码 CI 完整 38 项均通过，源码已 push 并同步 Cloudflare；仍无模型、云保存或新增 D1，原素材和生产任务继续保留。
+
+## 当前优先级与独立依赖
+
+先完成 v11 的实际本地/相关浏览器检查、必要有界线上验收、源码与最终验证文档 push 到 `main`，再同步授权 Cloudflare 预览并核对实际提交/运行资产。当前没有填入本轮通过数量、远端 SHA 或线上版本；结果由 [VERIFICATION.md](VERIFICATION.md) 和 [DEPLOYMENT.md](DEPLOYMENT.md) 据实更新。
+
+持续范围是经典手动编辑器：编辑效率、可靠音频与本机作品保护优先，每个新增功能先确定常驻、上下文或折叠入口。AI 暂缓；不新增 IK、骨长编辑、业务云写/D1、无证素材教学使用或自由改变音乐/场景时长。原 M0–M3、素材/教师/设备与正式 MP4 门槛保持。
+
+原生产/教学任务继续独立安排，不作为当前手动范围的开工阻塞：
 
 1. 取得 original 2.1.0 工程包，读根 `AGENTS.md`，在私有工作区验证；按原生成器接入契约并明确 `preview-1` 迁移方案。
 2. 落实一个真实合法的小包、一个 Avatar 与独立舞蹈审核；先满足完整组合和两个可替换中间槽位，再扩覆盖。
