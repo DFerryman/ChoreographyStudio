@@ -47,7 +47,7 @@ records the precise source, transformation and final asset measurements.
 This is generic display geometry, not an Unreal production character,
 motion-capture material or teacher-reviewed biomechanical reference.
 
-## Meta MHR full-body display candidate · v15 preparation
+## Meta MHR full-body display pipeline · v15
 
 [Meta MHR](https://github.com/facebookresearch/MHR) v1.0.1 publishes the source
 LOD3 mesh, native 127-joint hierarchy and skin weights, the compact skeletal
@@ -69,11 +69,12 @@ The asset preparation record identifies the exact source inputs,
 conversion and resulting files; application-specific author adaptation is
 separate from the upstream implementation.
 
-The v15 candidate preserves native display bones and published learned
+The v15 display pipeline preserves native display bones and published learned
 sparse-ReLU pose correctives for local skin computation. The primary editor
 continues to use its canonical 25-joint author/FK/IK contract; the 127 internal
-display bones do not add author controls. Calibration and skin verification have passed their documented local scope;
-remote source CI and release verification are still pending. These licenses
+display bones do not add author controls. Calibration, actual-loaded skin and full-body guidance have passed their
+documented local scope; latest-source remote CI and release are pending.
+Stress-pose verification is not a claim of ordinary human feasibility. These licenses
 do not establish biological accuracy, safety, motion-content permission or
 teacher acceptance. Local published-model pose correction is actual
 computation; the no-usage constraint concerns Workers AI inference and paid

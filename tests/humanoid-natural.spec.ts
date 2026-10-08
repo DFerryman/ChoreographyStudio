@@ -63,11 +63,15 @@ async function openPose(page: Page, name: string, rotations: Rotations, fullBody
     for (const pose of source.take.poses) for (const [joint, degrees] of Object.entries(rotations)) pose.joints[joint as JointName] = rotation(degrees);
   });
   await expect(loading(page)).toBeHidden();
+  await expect(page.getByText('3D 预览暂时不可用', { exact: true }), 'A fallback drawing is not a loaded humanoid').toHaveCount(0);
+  await expect(page.locator('.stage3d-selection-announcement'), 'The loaded skin must leave the actual stage interactive').toHaveCount(1);
   expect(current(await backup(page)).take).toEqual(source.take);
   return source;
 }
 
 async function captureCanvas(page: Page, info: TestInfo, name: string) {
+  await expect(page.getByText('3D 预览暂时不可用', { exact: true }), 'Only a live humanoid may be accepted in a skin screenshot').toHaveCount(0);
+  await expect(page.locator('.stage3d-selection-announcement')).toHaveCount(1);
   const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   await canvas.scrollIntoViewIfNeeded(); await page.mouse.move(1, 1);
   await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));

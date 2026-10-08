@@ -6,6 +6,8 @@ import { lastFrame, type KeyframeSequence } from '../../../packages/core/src/key
 import { evaluatePose } from '../../../packages/core/src/humanoid';
 import { footLockWeight } from '../../../packages/core/src/footLocks';
 import type { Pose } from '../../../packages/core/src/motion-types';
+import { getPoseGuidance } from './poseGuidance';
+import { STAGE_JOINT_LABELS } from './Stage';
 import './RealismPanel.css';
 
 export interface RealismPanelProps {
@@ -32,6 +34,7 @@ export function RealismPanel(props: RealismPanelProps) {
   const [foot, setFoot] = useState<'LeftFoot' | 'RightFoot'>('LeftFoot');
   const end = lastFrame(props.duration);
   const [endFrame, setEndFrame] = useState(end);
+  const poseGuidance = useMemo(() => getPoseGuidance(props.pose), [props.pose]);
   useEffect(() => { setEndFrame(end); }, [end, props.sequence.baseTake.id]);
   const analysis = useMemo(() => {
     if (!open) return { diagnostics: null, error: null };
@@ -56,9 +59,12 @@ export function RealismPanel(props: RealismPanelProps) {
   const selectedFootContact = diagnostics?.feet[foot === 'LeftFoot' ? 'Left' : 'Right'];
   const canLockSupport = !!selectedFootContact?.grounded && selectedFootContact.minimumHeightMeters >= -STANDARD_HUMAN_PROFILE.ground.penetrationToleranceMeters;
   return <details className="realism-panel" onToggle={event => setOpen(event.currentTarget.open)}>
-    <summary>真实约束</summary>
+    <summary aria-label="真实约束"><span>真实约束</span>{poseGuidance.outsideSuggestedRange.length > 0 && <span className="realism-warning" aria-label="关节超限数量"> · {poseGuidance.outsideSuggestedRange.length} 处超出建议</span>}{poseGuidance.shoulderCoupling.length > 0 && <span className="realism-warning"> · 肩部需配合</span>}</summary>
     {open && <div className="realism-content">
       <div className="realism-profile"><strong>标准中性人体 · {STANDARD_HUMAN_PROFILE.massKg} kg</strong><span>内置分段质量、质心、惯量与有限驱动</span><small>重力 {STANDARD_HUMAN_PROFILE.gravityMps2} m/s² · 摩擦 {STANDARD_HUMAN_PROFILE.ground.friction}</small></div>
+      {poseGuidance.outsideSuggestedRange.length > 0 && <p className="realism-warning" aria-label="全身关节超限部位">超出建议：{poseGuidance.outsideSuggestedRange.map(joint => STAGE_JOINT_LABELS[joint]).join('、')}。按老师原姿态保留，请检查这些部位的动作幅度。</p>}
+      {poseGuidance.shoulderCoupling.length > 0 && <p className="realism-warning" aria-label="肩部配合检查">大幅举臂请配合{poseGuidance.shoulderCoupling.map(side => side === 'Left' ? '左侧' : '右侧').join('、')}肩部，关键帧按老师原姿态保留。</p>}
+      <p className="realism-note">还需结合肩部配合、身体接触与动态支撑检查动作可行性。</p>
       {props.ikResidual != null && <p className={props.ikResidual > .01 ? 'realism-warning' : 'realism-note'} aria-label="IK 目标残差">IK 目标残差 {(props.ikResidual * 100).toFixed(1)} cm</p>}
       {analysis.error && <p role="alert" className="realism-warning">{analysis.error}</p>}
       {diagnostics && <div className="realism-diagnostics" aria-label="人体接触与支撑诊断">

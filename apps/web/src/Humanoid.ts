@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { type JointName } from '../../../packages/core/src';
-import { MHR_CORRECTIVES_ASSET_URL, MHR_CORRECTIVES_MAX_BYTES, MHRPoseCorrectives } from './MHRCorrectives';
+import { MHRPoseCorrectives } from './MHRCorrectives';
+import { readMHRCorrectives } from './MHRTransport';
 import { createMHRRigController, validateMHRRigDescription, type MHRRigDescription } from './MHRRig';
 
 // Versioned URLs leave assets available to editors opened before this update.
@@ -57,7 +58,7 @@ export async function loadHumanoid(joints: ReadonlyMap<JointName, THREE.Bone>, s
   const [data, descriptionBytes, correctiveBytes] = await Promise.all([
     readAsset(HUMANOID_ASSET_URL, 2 * 1024 * 1024, signal),
     readAsset(HUMANOID_RIG_ASSET_URL, 512 * 1024, signal),
-    readAsset(MHR_CORRECTIVES_ASSET_URL, MHR_CORRECTIVES_MAX_BYTES, signal),
+    readMHRCorrectives(signal),
   ]);
   const description: MHRRigDescription = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(descriptionBytes));
   validateMHRRigDescription(description);

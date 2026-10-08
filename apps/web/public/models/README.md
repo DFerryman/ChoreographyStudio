@@ -67,6 +67,30 @@ Output is in native centimeters and is added before skinning at 0.01 meters per
 centimeter. This is actual local learned deformation math, distinct from Workers
 AI or choreography generation; it consumes no paid model API request.
 
+### Corrective asset transport
+
+The browser downloads `neutral-mhr-correctives-v1.bin.gz`, a standard gzip
+wrapper of the unchanged CSR binary. Its wire size is 6,244,575 bytes, SHA-256
+`51b3557f469f9a22daec511302bb11a53ae778d1d8533d8d3b7ea3390df4d82b`.
+Decompression restores all 9,587,356 original bytes and the original SHA-256
+above; bone data, weights, geometry, GLB extras and the sidecar remain unchanged.
+The deterministic wrapper uses compression level 9, an empty filename,
+timestamp zero and OS byte 255. `MHR-PROVENANCE.json` records the wrapper in the
+outer `correctivesWire` entry, separately from native model metadata.
+
+The file is served as explicit gzip bytes without a `Content-Encoding: gzip`
+header. The loader uses `DecompressionStream('gzip')` and validates bounded wire
+and decoded lengths before parsing the existing payload. Keeping the compressed
+wire file below the upload transport limit avoids the earlier oversized upload.
+
+The public assets root contains `.assetsignore` with the single exact rule
+`/models/neutral-mhr-correctives-v1.bin`. Wrangler follows
+[gitignore rules](https://developers.cloudflare.com/workers/static-assets/binding/#ignoring-assets),
+so the original binary remains available locally and in CI but is omitted from
+Cloudflare upload; the `.bin.gz` wrapper is included. Vite copies this ignore
+file to the built assets root. No model API call is required for compression,
+decompression or local learned corrective evaluation.
+
 The native GLB conversion was checked against the official eight-slot skin plus
 correctives at neutral, 90°, 150° and 170° poses, with maximum position error
 below 0.55 micrometer. This confirms conversion and source skin parity. It does
@@ -85,15 +109,19 @@ calibration blueprint:
 python infra/mhr_prepare.py --assets /path/to/extracted/assets \
   --adapter-contract apps/web/public/models/neutral-mhr-v1.json \
   --momentum-license apps/web/public/models/MOMENTUM-MIT.txt \
-  --output /path/to/prepared-models
+  --output /path/to/prepared-public/models \
+  --assets-ignore-output /path/to/prepared-public/.assetsignore
 ```
 
 The script verifies all five source checksums, preserves native vertex/bone order
 and four exact weights, exports native binds and metadata, and rebuilds the CSR
 corrective payload without thresholding. It performs no download or model API
 call. Derived sizes and checksums are recorded in `MHR-PROVENANCE.json`; its
-metadata matches the GLB extras and sidecar. A local reproduction of all six
-bundle files was byte-identical. Calibrated pose acceptance remains independent.
+metadata matches the GLB extras and sidecar. It also produces the deterministic
+gzip wrapper and optionally writes `.assetsignore` at the specified assets-root
+path. A local reproduction of all seven model bundle files and the assets-root
+ignore file was byte-identical; full gzip decoding also matched the original
+binary byte-for-byte. Calibrated pose acceptance remains independent.
 
 ## Historical v14 CC0 neutral mesh
 

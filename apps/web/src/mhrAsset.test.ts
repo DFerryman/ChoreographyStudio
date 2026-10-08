@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { Matrix4, Vector3 } from 'three';
 
@@ -25,6 +26,10 @@ type Provenance = {
   sourceRelease: string; sourceAssets: ArtifactRecord[]; pymomentumLicense: string;
   output: ArtifactRecord & { vertices: number; triangles: number; joints: number; maxPositiveInfluences: number; discardedWeightMaximum: number; vertexOrder: string };
   descriptor: ArtifactRecord; correctives: ArtifactRecord; licenses: ArtifactRecord[]; metadata: NativeDescriptor;
+  correctivesWire: ArtifactRecord & {
+    encoding: string; decodedName: string; decodedBytes: number; decodedSha256: string;
+    gzip: { compressionLevel: number; mtime: number; filename: string; os: number };
+  };
 };
 
 const modelFile = (name: string) => new URL(`../public/models/${name}`, import.meta.url);
@@ -251,5 +256,41 @@ describe('shipped native MHR asset and provenance', () => {
     expect(manifest.metadata).toEqual(document.extras.choreoMHR);
     expect(JSON.parse(readFileSync(modelFile(manifest.descriptor.name), 'utf8'))).toEqual(document.extras.choreoMHR);
     expect(bytes.toString('utf8')).not.toMatch(/OPENAI_API_KEY|CLOUDFLARE_API_TOKEN|file:\/\/|sediment:\/\//i);
+  });
+
+  it('ships deterministic standard gzip that decodes to every original corrective byte', () => {
+    const wire = readFileSync(modelFile('neutral-mhr-correctives-v1.bin.gz'));
+    expect(wire.length).toBe(6244575);
+    expect(sha256(wire)).toBe('51b3557f469f9a22daec511302bb11a53ae778d1d8533d8d3b7ea3390df4d82b');
+    // gzip/deflate, no optional filename or timestamp, maximum compression,
+    // platform-independent OS marker; no custom browser codec is replicated.
+    expect([...wire.subarray(0, 10)]).toEqual([0x1f, 0x8b, 8, 0, 0, 0, 0, 0, 2, 255]);
+    const original = readFileSync(modelFile('neutral-mhr-correctives-v1.bin'));
+    const decoded = gunzipSync(wire, { maxOutputLength: 9587356 });
+    expect(decoded.length).toBe(9587356); expect(decoded.equals(original)).toBe(true);
+    expect(sha256(decoded)).toBe('b09418f280a379c4f4a3fb72f4c8b909a6339a5fd1c7ed5513f3b8a17b947bde');
+  });
+
+  it('links the gzip wire checksum and decoded source through the outer provenance record', () => {
+    const manifest = JSON.parse(readFileSync(modelFile('MHR-PROVENANCE.json'), 'utf8')) as Provenance;
+    expect(manifest.correctivesWire).toEqual({
+      name: 'neutral-mhr-correctives-v1.bin.gz', bytes: 6244575,
+      sha256: '51b3557f469f9a22daec511302bb11a53ae778d1d8533d8d3b7ea3390df4d82b', encoding: 'gzip',
+      decodedName: 'neutral-mhr-correctives-v1.bin', decodedBytes: 9587356,
+      decodedSha256: 'b09418f280a379c4f4a3fb72f4c8b909a6339a5fd1c7ed5513f3b8a17b947bde',
+      gzip: { compressionLevel: 9, mtime: 0, filename: '', os: 255 },
+    });
+    const record = manifest.correctivesWire, wire = readFileSync(modelFile(record.name));
+    expect(wire.length).toBe(record.bytes); expect(sha256(wire)).toBe(record.sha256);
+    expect(record.decodedName).toBe(manifest.correctives.name);
+    expect(record.decodedBytes).toBe(manifest.correctives.bytes);
+    expect(record.decodedSha256).toBe(manifest.correctives.sha256);
+  });
+
+  it('excludes only the offline raw binary with one exact root-anchored asset rule', () => {
+    const ignore = readFileSync(new URL('../public/.assetsignore', import.meta.url), 'utf8');
+    // Lock the actual gitignore artifact rather than duplicating its matcher.
+    // This single literal path cannot exclude its .gz sibling, GLB or JSON.
+    expect(ignore).toBe('/models/neutral-mhr-correctives-v1.bin\n');
   });
 });

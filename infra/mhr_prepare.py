@@ -6,7 +6,7 @@ MHR v1.0.1 release assets separately; this script performs no downloads.
 The uncalibrated asset is a source reference, not a canonical25 stage avatar.
 """
 from __future__ import annotations
-import argparse, hashlib, json, struct
+import argparse, gzip, hashlib, json, struct
 from pathlib import Path
 import numpy as np
 
@@ -18,6 +18,7 @@ EXPECTED_SOURCE = {
     'corrective_blendshapes_lod3.npz': '7aae0b02b6b53aa39fa7bfeef954e634d0b928b66189e2b472227573a0447bee',
     'LICENSE.txt': 'cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30',
 }
+ASSETS_IGNORE = '/models/neutral-mhr-correctives-v1.bin\n'
 
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -100,6 +101,22 @@ def write_correctives(assets: Path, output: Path) -> dict:
         raise ValueError('Corrective asset does not reproduce the validated CSR bytes')
     return {'name':path.name,'bytes':path.stat().st_size,'sha256':digest(path),'format':'MHRCORR1 native-centimeter CSR; every nonzero retained','sections':sections}
 
+def write_correctives_wire(output: Path, correctives: dict) -> dict:
+    """Wrap the exact CSR in portable gzip; no native data/metadata changes."""
+    raw_path=output/correctives['name'];raw=raw_path.read_bytes()
+    path=output/(correctives['name']+'.gz')
+    # GzipFile (rather than gzip.compress) writes OS=255 on every platform.
+    # Empty filename and mtime=0 remove path/time-dependent header bytes.
+    with path.open('wb') as target:
+        with gzip.GzipFile(filename='',mode='wb',compresslevel=9,fileobj=target,mtime=0) as encoded:
+            encoded.write(raw)
+    if gzip.decompress(path.read_bytes())!=raw:
+        raise ValueError('Gzip transport changed the validated corrective bytes')
+    return {'name':path.name,'bytes':path.stat().st_size,'sha256':digest(path),'encoding':'gzip',
+            'decodedName':correctives['name'],'decodedBytes':correctives['bytes'],
+            'decodedSha256':correctives['sha256'],
+            'gzip':{'compressionLevel':9,'mtime':0,'filename':'','os':255}}
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--assets',required=True,type=Path,help='MHR v1.0.1 extracted release assets directory')
@@ -107,6 +124,7 @@ def main():
     parser.add_argument('--adapter-contract',type=Path,help='Canonical25 adapter/shape calibration JSON; public neutral-mhr-v1.json can reproduce this blueprint')
     parser.add_argument('--momentum-license',type=Path,help='Exact MIT license from the installed offline converter')
     parser.add_argument('--reference',type=Path,help='Optional exact official skeleton fixture prefix (.npz/.json), skipping FBX loading')
+    parser.add_argument('--assets-ignore-output',type=Path,help='Optional .assetsignore path at the public assets root (not inside models)')
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=True)
     sources=[]
     for name,sha in EXPECTED_SOURCE.items():
@@ -145,12 +163,18 @@ def main():
     write_glb(output,points=points,triangles=faces,names=list(names),parents=parents,bind_world=bind_m,indices=native_indices[:,:4],weights=native_weights[:,:4],metadata=metadata)
     (args.output/'neutral-mhr-v1.json').write_text(json.dumps(metadata,separators=(',',':'))+'\n')
     correctives=write_correctives(args.assets,args.output)
+    correctives_wire=write_correctives_wire(args.output,correctives)
+    if args.assets_ignore_output:
+        args.assets_ignore_output.parent.mkdir(parents=True,exist_ok=True)
+        args.assets_ignore_output.write_text(ASSETS_IGNORE)
     license_path=args.output/'MHR-LICENSE.txt';license_path.write_bytes((args.assets/'LICENSE.txt').read_bytes())
     if args.momentum_license:
         (args.output/'MOMENTUM-MIT.txt').write_bytes(args.momentum_license.read_bytes())
     licenses=[{'name':p.name,'bytes':p.stat().st_size,'sha256':digest(p)} for p in [args.output/'MHR-LICENSE.txt',args.output/'MOMENTUM-MIT.txt'] if p.exists()]
     descriptor=args.output/'neutral-mhr-v1.json'
     receipt={'status':'canonical25 display asset prepared; application/release verification separate' if args.adapter_contract else 'native source asset; canonical25 calibration pending','sourceRelease':SOURCE_URL,'sourceAssets':sources,'pymomentumLicense':'MIT','output':{'name':output.name,'bytes':output.stat().st_size,'sha256':digest(output),'vertices':len(points),'triangles':len(faces),'joints':len(names),'maxPositiveInfluences':int((native_weights>0).sum(1).max()),'discardedWeightMaximum':float(native_weights[:,4:].max()),'vertexOrder':'unaltered','meshHeightMeters':float(np.ptp(points[:,1]))},'correctives':correctives,'descriptor':{'name':descriptor.name,'bytes':descriptor.stat().st_size,'sha256':digest(descriptor)},'licenses':licenses,'metadata':metadata,'aiGenerationOrWorkersAIInferenceCalls':0}
+    # Transport provenance stays outside the frozen GLB extras/descriptor.
+    receipt['correctivesWire']=correctives_wire
     (args.output/'MHR-PROVENANCE.json').write_text(json.dumps(receipt,indent=2)+'\n')
     print(json.dumps(receipt['output']))
 if __name__=='__main__':main()

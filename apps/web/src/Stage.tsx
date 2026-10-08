@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { EDITABLE_JOINT_NAMES, JOINT_NAMES, RIG_DEFINITIONS, ROOT_TRANSLATION_LIMITS, sampleTake, type BakedTake, type JointName, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
 import { fitPerspectiveBounds } from './cameraFraming';
-import { constrainJointRotation, isJointRotationWithinLimits } from '../../../packages/core/src';
+import { constrainJointRotation } from '../../../packages/core/src';
 import { disposeHumanoid, loadHumanoid, updateHumanoid } from './Humanoid';
+import { getPoseGuidance } from './poseGuidance';
 import './Stage.css';
 
 export type StageView = 'front' | 'back' | 'left' | 'right' | 'top' | 'free';
@@ -196,8 +197,12 @@ export function Stage(props: StageProps) {
   const selection = selectedJoint === undefined ? internalSelection : selectedJoint;
   const selectionRef = useRef(selection);
   selectionRef.current = selection;
-  const feedbackPose = !playing && poseOverride ? poseOverride : take ? sampleTake(take, time) : null;
-  const outsideSuggestedRange = !!selection && EDITABLE_JOINT_SET.has(selection) && !!feedbackPose && !isJointRotationWithinLimits(selection, feedbackPose.joints[selection]);
+  const feedbackPose = useMemo(() => !playing && poseOverride ? poseOverride : take ? sampleTake(take, time) : null, [playing, poseOverride, take, time]);
+  const poseGuidance = useMemo(() => getPoseGuidance(feedbackPose), [feedbackPose]);
+  const guidanceWarning = <>
+    {poseGuidance.outsideSuggestedRange.length > 0 && <span className="stage3d-author-warning" role="status" aria-label="全身关节建议范围" title={poseGuidance.outsideSuggestedRange.map(joint => STAGE_JOINT_LABELS[joint]).join('、')}>超出标准人体建议 · {poseGuidance.outsideSuggestedRange.length} 处 · 保留老师姿态</span>}
+    {poseGuidance.shoulderCoupling.length > 0 && <span className="stage3d-author-warning" role="status" aria-label="肩部配合提示" title="大幅举臂请配合肩部，关键帧按老师原姿态保留。">举臂需检查肩部配合</span>}
+  </>;
 
   function selectJoint(joint: JointName | null) {
     setInternalSelection(joint);
@@ -1021,8 +1026,9 @@ export function Stage(props: StageProps) {
         {editMode && <div className={`stage3d-edit-indicator${transformTool === 'ik' ? ' is-ik' : ''}`} aria-label={transformTool === 'translate' ? 'Root 世界位移' : transformTool === 'ik' ? 'IK 手脚目标' : transformTool === 'rotate' ? '关节局部旋转' : '关节选择'}>
           {(selection || transformTool === 'translate') && <output className="stage3d-selected-part" aria-label="选中姿态状态" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined}>{transformTool === 'translate' ? '角色' : STAGE_JOINT_LABELS[selection!]} · {!playing && poseOverride ? '草稿' : '正式'}</output>}
           {playing ? '播放期间不可编辑' : mirror ? '关闭镜像后编辑' : transformTool === 'select' ? '点身体部位选择' : transformTool === 'translate' ? <>整体移动<span>{transformAxis ? `${transformAxis}轴` : '拖箭头调整位置'}</span></> : transformTool === 'ik' ? !getIKEffector(selection) ? '点手或脚，再拖箭头摆姿' : <>手脚协调<span>{transformAxis ? `${transformAxis}轴` : '拖箭头摆姿'}</span>{ikResidual !== null && ikResidual > 0.015 && <span className="stage3d-ik-residual" role="status">目标差 {(ikResidual * 100).toFixed(1)} cm</span>}</> : !selection ? '点身体部位，再拖彩色环摆姿' : !EDITABLE_JOINT_SET.has(selection) ? '末端关节仅查看' : <>旋转<span>{transformAxis ? `${transformAxis}轴` : '拖彩色环摆姿'}</span></>}
-          {!playing && outsideSuggestedRange && <span className="stage3d-author-warning" role="status">超出标准人体建议，保留老师姿态</span>}
+          {guidanceWarning}
         </div>}
+        {!editMode && (poseGuidance.outsideSuggestedRange.length > 0 || poseGuidance.shoulderCoupling.length > 0) && <div className="stage3d-edit-indicator" aria-label="姿态建议提示">{guidanceWarning}</div>}
         <span className="stage3d-selection-announcement" aria-live="polite">{selection ? `已选中${STAGE_JOINT_LABELS[selection]}` : '未选中关节'}</span>
       </>}
     </div>
