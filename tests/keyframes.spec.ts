@@ -504,7 +504,7 @@ test('dirty pose guards preserve cancel and failed-save drafts, distinguish disc
   });
   if (editableDuringSave) {
     await expect(page.locator('.save-state')).toHaveText('有未保存更改');
-    await expectNumber(page, 'Root X 位移（米）', 1.9, 0.002);
+    await expectNumber(page, 'Root X 位移（米）', 1.9, 5e-6);
     await page.getByRole('button', { name: '撤回草稿', exact: true }).click();
     await expect(draftNote(page)).toHaveCount(0);
     await expect(page.locator('.save-state')).toHaveText('有未保存更改');
