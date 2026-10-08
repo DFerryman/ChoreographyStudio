@@ -54,14 +54,14 @@ for (const width of [320, 390, 768, 1440]) {
     await expect(page.getByRole('button', { name: '播放', exact: true })).toBeEnabled();
     await expect(page.getByRole('button', { name: '手动 K帧', exact: true })).toHaveAttribute('aria-pressed', 'true');
     const editor = page.getByRole('region', { name: '手动关键帧编辑器', exact: true });
-    const stage = page.getByRole('region', { name: '3D 动画舞台', exact: true });
+    const stage = page.getByRole('region', { name: '3D动作预览', exact: true });
     const timeline = page.getByRole('region', { name: '手动关键帧时间线', exact: true });
     await expect(stage).toBeVisible(); await expect(editor).toBeVisible(); await expect(timeline).toBeVisible();
     await expect(page.getByRole('group', { name: '舞台编辑工具', exact: true }).getByRole('button')).toHaveCount(3);
     await expect(hiddenButton(page, '旋转关节')).toHaveCount(0);
     await expect(hiddenButton(page, '移动角色')).toHaveCount(0);
 
-    const names = ['相机选项', '舞台信息', '关节信息', '播放选项', '姿态复用', '更多编辑操作', '键盘快捷键', '移动与复制关键帧', '场景备份'];
+    const names = ['相机选项', '舞台信息', '关节信息', '播放选项', '姿态复用', '关键帧明细', '更多编辑操作', '键盘快捷键', '移动与复制关键帧', '场景备份'];
     for (const name of names) {
       const details = disclosure(page, name);
       await expect(details).toHaveCount(1); await expect(details).not.toHaveAttribute('open');
@@ -80,7 +80,7 @@ for (const width of [320, 390, 768, 1440]) {
     } else if (width < 768) {
       expect((await stage.boundingBox())!.y).toBeLessThan((await editor.boundingBox())!.y);
     }
-    await editor.locator('.kf-heading').scrollIntoViewIfNeeded();
+    await editor.scrollIntoViewIfNeeded();
     await page.getByRole('heading', { name: '我的第一段八拍', exact: true }).scrollIntoViewIfNeeded();
     const screenshot = await page.screenshot({ fullPage: true });
     await testInfo.attach(`manual-layout-${width}.png`, { body: screenshot, contentType: 'image/png' });

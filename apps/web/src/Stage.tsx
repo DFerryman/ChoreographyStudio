@@ -2,15 +2,27 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
-import { EDITABLE_JOINT_NAMES, JOINT_NAMES, ROOT_TRANSLATION_LIMITS, sampleTake, type BakedTake, type JointName, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
+import { EDITABLE_JOINT_NAMES, JOINT_NAMES, RIG_DEFINITIONS, ROOT_TRANSLATION_LIMITS, sampleTake, type BakedTake, type JointName, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
 import { fitPerspectiveBounds } from './cameraFraming';
 import { constrainJointRotation } from '../../../packages/core/src';
+import { loadHumanoid } from './Humanoid';
 import './Stage.css';
 
 export type StageView = 'front' | 'back' | 'left' | 'right' | 'top' | 'free';
 export type StageCamera = { position: Vec3; target: Vec3; zoom?: number };
 export type StageCameraFocus = { key: number; kind: 'actor' | 'joint'; joint?: JointName };
-export type StageTransformTool = 'select' | 'rotate' | 'translate';
+export type StageTransformTool = 'select' | 'rotate' | 'translate' | 'ik';
+export type StageIKEffector = 'LeftHand' | 'RightHand' | 'LeftFoot' | 'RightFoot';
+
+/** Terminal selections manipulate their limb end, never their read-only rotation. */
+export function getIKEffector(joint: JointName | null | undefined): StageIKEffector | null {
+  if (!joint) return null;
+  for (const side of ['Left', 'Right'] as const) {
+    if (joint === `${side}ForeArm` || joint === `${side}Hand` || joint === `${side}HandTip`) return `${side}Hand`;
+    if (joint === `${side}LowerLeg` || joint === `${side}Foot` || joint === `${side}Toe` || joint === `${side}Heel`) return `${side}Foot`;
+  }
+  return null;
+}
 export const STAGE_JOINT_LABELS: Record<JointName, string> = {
   Hips: '骨盆', Spine: '腰椎', Chest: '胸椎', Neck: '颈部', Head: '头部',
   LeftShoulder: '左锁骨', LeftUpperArm: '左肩', LeftForeArm: '左肘', LeftHand: '左腕', LeftHandTip: '左指尖',
@@ -36,147 +48,56 @@ type StageProps = {
   editMode?: boolean;
   playing?: boolean;
   transformTool?: StageTransformTool;
+  ikTarget?: Vec3 | null;
   onSelectJoint?: (joint: JointName | null) => void;
   onCameraChange?: (camera: StageCamera) => void;
   onCameraInteraction?: () => void;
   onJointPositionChange?: (position: Vec3 | null) => void;
   onJointRotationChange?: (joint: JointName, rotation: Quat, phase: 'start' | 'change' | 'end') => void;
   onRootPositionChange?: (position: Vec3, phase: 'start' | 'change' | 'end') => void;
+  onIKTargetChange?: (effector: StageIKEffector, target: Vec3, phase: 'start' | 'change' | 'end') => void;
 };
 
 type PreviewRig = {
   root: THREE.Group;
-  joints: Map<JointName, THREE.Group>;
+  joints: Map<JointName, THREE.Bone>;
   markers: Map<JointName, THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>>;
   targets: THREE.Mesh[];
   framingMeshes: THREE.Mesh[];
+  humanSkeleton: THREE.Skeleton | null;
 };
 
 type GizmoAxis = { name: 'X' | 'Y' | 'Z'; color: string; x: number; y: number; depth: number };
 
-/** Original adult mannequin; visual surfaces follow the unchanged 25-joint preview rig. */
+/** Shared canonical bones drive one continuous, rebased neutral skin. */
 function createPreviewRig(): PreviewRig {
   const root = new THREE.Group();
-  const joints = new Map<JointName, THREE.Group>();
+  const joints = new Map<JointName, THREE.Bone>();
   const markers = new Map<JointName, THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>>();
   const targets: THREE.Mesh[] = [];
   const framingMeshes: THREE.Mesh[] = [];
-  const sphereGeometry = new THREE.SphereGeometry(1, 32, 24);
-  const surfaceMaterial = new THREE.MeshStandardMaterial({ color: '#d7dce1', roughness: 0.78, metalness: 0.03 });
-  const seamMaterial = new THREE.MeshStandardMaterial({ color: '#b7c0c9', roughness: 0.86 });
-  const faceMaterial = new THREE.MeshStandardMaterial({ color: '#8f9ba6', roughness: 0.9 });
+  const sphereGeometry = new THREE.SphereGeometry(1, 20, 14);
   const targetMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
-
-  function joint(name: JointName, parent: JointName | null, x = 0, y = 0, z = 0) {
-    const group = new THREE.Group();
-    group.name = name;
-    group.position.set(x, y, z);
-    (parent ? joints.get(parent)! : root).add(group);
-    joints.set(name, group);
-    // Small overlay nodes keep the original joint centers visible through the
-    // body. Body surfaces never enter the raycast target list.
+  for (const { name, parent, offset } of RIG_DEFINITIONS) {
+    const bone = new THREE.Bone();
+    bone.name = name;
+    bone.position.set(...offset);
+    (parent ? joints.get(parent)! : root).add(bone);
+    joints.set(name, bone);
     const marker = new THREE.Mesh(sphereGeometry, new THREE.MeshStandardMaterial({
-      color: '#a4b7c8', roughness: 0.75, emissive: '#6285a4',
-      emissiveIntensity: 0.16, depthTest: false, depthWrite: false,
+      color: '#a4b7c8', roughness: .8, emissive: '#6285a4',
+      emissiveIntensity: .12, depthTest: false, depthWrite: false,
     }));
-    marker.scale.setScalar(name === 'Hips' ? 0.016 : name.includes('Tip') || name.endsWith('Toe') || name.endsWith('Heel') ? 0.008 : 0.011);
+    marker.scale.setScalar(name === 'Hips' ? .013 : name.includes('Tip') || name.endsWith('Toe') || name.endsWith('Heel') ? .006 : .008);
     marker.renderOrder = 20;
-    group.add(marker);
-    markers.set(name, marker);
-    framingMeshes.push(marker);
+    bone.add(marker); markers.set(name, marker); framingMeshes.push(marker);
     const target = new THREE.Mesh(sphereGeometry, targetMaterial);
-    target.scale.setScalar(name === 'Hips' ? 0.088 : 0.07);
+    target.scale.setScalar(name === 'Hips' ? .088 : .07);
     target.userData.jointName = name;
-    group.add(target);
-    targets.push(target);
-    return group;
-  }
-
-  function surface(parent: JointName, geometry: THREE.BufferGeometry, position: Vec3, scale: Vec3, material = surfaceMaterial) {
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(...position);
-    mesh.scale.set(...scale);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    joints.get(parent)!.add(mesh);
-    framingMeshes.push(mesh);
-    return mesh;
-  }
-  function ellipsoid(parent: JointName, position: Vec3, scale: Vec3, material = surfaceMaterial) {
-    return surface(parent, sphereGeometry, position, scale, material);
-  }
-  // Each elliptical surface is a smooth original profile around its local Y
-  // axis. Separate torso pieces overlap naturally at the bending joints.
-  function contour(parent: JointName, profile: [number, number][], depth: number, position: Vec3 = [0, 0, 0]) {
-    const points = new THREE.SplineCurve(profile.map(([radius, y]) => new THREE.Vector2(radius, y))).getPoints(32);
-    return surface(parent, new THREE.LatheGeometry(points, 32), position, [1, 1, depth]);
-  }
-  function limb(parent: JointName, child: JointName, profile: [number, number][], depth: number) {
-    const offset = joints.get(child)!.position.clone();
-    const length = offset.length();
-    const mesh = contour(parent, profile.map(([radius, fraction]) => [radius, fraction * length]), depth);
-    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), offset.normalize());
-    return mesh;
-  }
-
-  joint('Hips', null);
-  joint('Spine', 'Hips', 0, 0.14, 0);
-  joint('Chest', 'Spine', 0, 0.2, 0);
-  joint('Neck', 'Chest', 0, 0.19, 0);
-  joint('Head', 'Neck', 0, 0.08, 0);
-  for (const side of ['Left', 'Right'] as const) {
-    const sign = side === 'Left' ? 1 : -1;
-    joint(`${side}Shoulder`, 'Chest', sign * 0.205, 0.095, 0);
-    joint(`${side}UpperArm`, `${side}Shoulder`, sign * 0.082, -0.03, 0);
-    joint(`${side}ForeArm`, `${side}UpperArm`, 0, -0.285, 0);
-    joint(`${side}Hand`, `${side}ForeArm`, 0, -0.255, 0);
-    joint(`${side}HandTip`, `${side}Hand`, 0, -0.115, 0);
-    joint(`${side}UpperLeg`, 'Hips', sign * 0.112, -0.05, 0);
-    joint(`${side}LowerLeg`, `${side}UpperLeg`, 0, -0.46, 0);
-    joint(`${side}Foot`, `${side}LowerLeg`, 0, -0.45, 0);
-    joint(`${side}Toe`, `${side}Foot`, 0, -0.035, 0.15);
-    joint(`${side}Heel`, `${side}Foot`, 0, -0.035, -0.065);
-  }
-
-  contour('Hips', [[0, -0.13], [0.07, -0.115], [0.147, -0.075], [0.167, -0.005], [0.15, 0.075], [0.126, 0.135], [0, 0.15]], 0.65);
-  contour('Spine', [[0, -0.075], [0.122, -0.05], [0.129, 0.02], [0.137, 0.10], [0.147, 0.17], [0.142, 0.195], [0, 0.21]], 0.67);
-  contour('Chest', [[0, -0.125], [0.123, -0.10], [0.155, -0.055], [0.180, 0.015], [0.193, 0.075], [0.172, 0.125], [0.10, 0.165], [0.052, 0.185], [0, 0.19]], 0.58);
-  ellipsoid('Neck', [0, 0.02, 0], [0.048, 0.075, 0.045]);
-  ellipsoid('Head', [0, 0.081, -0.005], [0.091, 0.117, 0.083]);
-  ellipsoid('Head', [0, 0.007, 0.008], [0.067, 0.050, 0.053]);
-  ellipsoid('Head', [0, 0.056, 0.081], [0.011, 0.022, 0.019]);
-  for (const sign of [-1, 1]) {
-    ellipsoid('Head', [sign * 0.091, 0.068, 0], [0.015, 0.030, 0.016]);
-    ellipsoid('Head', [sign * 0.032, 0.079, 0.074], [0.013, 0.005, 0.007], faceMaterial);
-  }
-
-  for (const side of ['Left', 'Right'] as const) {
-    const sign = side === 'Left' ? 1 : -1;
-    const shoulder: JointName = `${side}Shoulder`, upperArm: JointName = `${side}UpperArm`;
-    const foreArm: JointName = `${side}ForeArm`, hand: JointName = `${side}Hand`;
-    const thigh: JointName = `${side}UpperLeg`, shin: JointName = `${side}LowerLeg`, foot: JointName = `${side}Foot`;
-    // Clavicle and deltoid bridge the torso to the unchanged shoulder chain.
-    ellipsoid(shoulder, [-sign * 0.040, -0.010, 0], [0.105, 0.038, 0.056]);
-    ellipsoid(upperArm, [0, -0.027, 0], [0.061, 0.077, 0.066]);
-    limb(upperArm, foreArm, [[0.038, 0], [0.056, 0.12], [0.058, 0.35], [0.050, 0.65], [0.035, 0.93], [0.030, 1]], 1.10);
-    ellipsoid(foreArm, [0, 0, 0], [0.034, 0.035, 0.034], seamMaterial);
-    limb(foreArm, hand, [[0.030, 0], [0.040, 0.17], [0.041, 0.33], [0.034, 0.62], [0.025, 0.91], [0.024, 1]], 1.05);
-    ellipsoid(hand, [0, -0.033, 0.002], [0.032, 0.046, 0.019]);
-    for (const [index, x] of [-0.021, -0.007, 0.007, 0.021].entries()) {
-      ellipsoid(hand, [x, -0.087 + (index === 0 || index === 3 ? 0.004 : 0), 0.002], [0.007, 0.032, 0.008]);
-    }
-    const thumb = ellipsoid(hand, [-sign * 0.033, -0.040, 0.006], [0.011, 0.029, 0.012]);
-    thumb.rotation.z = -sign * 0.45;
-
-    ellipsoid(thigh, [0, -0.01, 0], [0.084, 0.100, 0.089]);
-    limb(thigh, shin, [[0.075, 0], [0.084, 0.12], [0.079, 0.35], [0.064, 0.66], [0.047, 0.94], [0.043, 1]], 1.10);
-    ellipsoid(shin, [0, 0, 0.002], [0.045, 0.047, 0.044], seamMaterial);
-    limb(shin, foot, [[0.042, 0], [0.056, 0.18], [0.061, 0.34], [0.045, 0.62], [0.033, 0.88], [0.030, 1]], 1.10);
-    ellipsoid(foot, [0, -0.004, 0], [0.033, 0.044, 0.036]);
-    ellipsoid(foot, [0, -0.043, 0.045], [0.048, 0.039, 0.12]);
+    bone.add(target); targets.push(target);
   }
   root.position.set(0, 1.05, 0);
-  return { root, joints, markers, targets, framingMeshes };
+  return { root, joints, markers, targets, framingMeshes, humanSkeleton: null };
 }
 
 function applyPose(rig: PreviewRig, pose: Pose | null, draggingJoint: JointName | null = null, draggingRoot = false) {
@@ -230,7 +151,7 @@ function StageFallback({ error }: { error: string }) {
 }
 
 export function Stage(props: StageProps) {
-  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraFocus, selectedJoint, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool = 'rotate' } = props;
+  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraFocus, selectedJoint, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool = 'rotate', ikTarget } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const current = useRef(props);
   const requestDraw = useRef<() => void>(() => {});
@@ -239,6 +160,8 @@ export function Stage(props: StageProps) {
   const [hover, setHover] = useState<{ joint: JointName; x: number; y: number } | null>(null);
   const [gizmo, setGizmo] = useState<GizmoAxis[]>([]);
   const [transformAxis, setTransformAxis] = useState<string | null>(null);
+  const [ikResidual, setIKResidual] = useState<number | null>(null);
+  const [humanLoaded, setHumanLoaded] = useState(false);
   current.current = props;
   const selection = selectedJoint === undefined ? internalSelection : selectedJoint;
   const selectionRef = useRef(selection);
@@ -263,7 +186,7 @@ export function Stage(props: StageProps) {
     const canvas = renderer.domElement;
     canvas.className = 'stage3d-canvas';
     canvas.setAttribute('role', 'img');
-    canvas.setAttribute('aria-label', '原创人偶的编舞动作预览');
+    canvas.setAttribute('aria-label', '人体编舞动作预览');
     canvas.tabIndex = 0;
     container.appendChild(canvas);
 
@@ -336,6 +259,26 @@ export function Stage(props: StageProps) {
     const localAxes = new THREE.AxesHelper(0.14);
     localAxes.visible = false;
     scene.add(localAxes);
+    // The goal lives in unmirrored world space. Translating it asks the editor
+    // for an IK draft rather than moving a bone or the authoritative root.
+    const ikGoal = new THREE.Object3D();
+    ikGoal.name = 'IKGoal';
+    const ikMarker = new THREE.Mesh(
+      new THREE.SphereGeometry(0.019, 16, 12),
+      new THREE.MeshBasicMaterial({ color: '#77d5de', depthTest: false, depthWrite: false }),
+    );
+    ikMarker.renderOrder = 24;
+    ikGoal.add(ikMarker);
+    ikGoal.visible = false;
+    scene.add(ikGoal);
+    const ikLineGeometry = new THREE.BufferGeometry();
+    ikLineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+    const ikLine = new THREE.Line(ikLineGeometry, new THREE.LineBasicMaterial({
+      color: '#e9bc80', transparent: true, opacity: 0.8, depthTest: false, depthWrite: false,
+    }));
+    ikLine.renderOrder = 23;
+    ikLine.visible = false;
+    scene.add(ikLine);
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -355,6 +298,9 @@ export function Stage(props: StageProps) {
     let previousOverride: Pose | null | undefined;
     let draggingJoint: JointName | null = null;
     let draggingRoot = false;
+    let draggingIK: StageIKEffector | null = null;
+    let previousIKEffector: StageIKEffector | null = null;
+    let residualSignature = '';
     let poseNeedsApply = false;
     let hovered: JointName | null = null;
     let cameraSignature = '';
@@ -363,11 +309,24 @@ export function Stage(props: StageProps) {
     const activePointers = new Set<number>();
     const blockedTransformPointers = new Set<number>();
     let cameraGesture = false;
+    const humanLoad = new AbortController();
 
     function schedule() {
       if (!stopped && !frame) frame = window.requestAnimationFrame(draw);
     }
     requestDraw.current = schedule;
+    void loadHumanoid(rig.joints, humanLoad.signal).then(mesh => {
+      if (stopped) {
+        mesh.geometry.dispose();
+        for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) material.dispose();
+        mesh.skeleton.dispose();
+        return;
+      }
+      rig.root.add(mesh); rig.framingMeshes.push(mesh); rig.humanSkeleton = mesh.skeleton;
+      setHumanLoaded(true); schedule();
+    }).catch(error => {
+      if (!stopped && !humanLoad.signal.aborted) setError(error instanceof Error ? error.message : '人体模型暂时无法载入。');
+    });
 
     function fitDistance() {
       const halfHeight = Math.max(1.31, 1.31 / Math.max(camera.aspect, 0.2));
@@ -455,12 +414,22 @@ export function Stage(props: StageProps) {
       return canEdit() && activeTool() === 'translate';
     }
 
+    function canIK() {
+      return canEdit() && activeTool() === 'ik' && !!current.current.take &&
+        !!current.current.onIKTargetChange && getIKEffector(selectionRef.current) !== null;
+    }
+
     function syncOrbit() {
       controls.enabled = blockedTransformPointers.size === 0 && (!transform.enabled || (!transform.dragging && transform.axis === null));
     }
 
     function transformFeedback(phase: 'start' | 'change' | 'end') {
-      if (draggingRoot && canTranslate()) {
+      if (draggingIK && canIK()) {
+        const position = ikGoal.position;
+        if (!position.toArray().every(Number.isFinite)) return;
+        position.clampScalar(-20, 20);
+        current.current.onIKTargetChange?.(draggingIK, position.toArray() as Vec3, phase);
+      } else if (draggingRoot && canTranslate()) {
         const position = rig.root.position;
         if (![position.x, position.y, position.z].every(Number.isFinite)) {
           const state = current.current;
@@ -491,6 +460,7 @@ export function Stage(props: StageProps) {
       cameraGesture = false;
       draggingJoint = null;
       draggingRoot = false;
+      draggingIK = null;
       poseNeedsApply = true;
       transform.dragging = false;
       transform.detach();
@@ -507,6 +477,7 @@ export function Stage(props: StageProps) {
     }
 
     function desiredTransformObject() {
+      if (canIK()) return ikGoal;
       if (canTranslate()) return rig.root;
       if (canRotate()) return rig.joints.get(selectionRef.current!)!;
       return undefined;
@@ -520,7 +491,7 @@ export function Stage(props: StageProps) {
       cancelTransform();
       controls.disconnect();
       controls.connect(canvas);
-      controls.listenToKeyEvents(canvas);
+      if (cameraKeyboardEnabled) controls.listenToKeyEvents(canvas);
       for (const id of heldPointers) {
         blockedTransformPointers.add(id);
         if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
@@ -540,6 +511,11 @@ export function Stage(props: StageProps) {
         // Explicit actor meshes exclude the ground, world axes, invisible pick
         // targets, TransformControls and local axes attached under the rig.
         for (const mesh of rig.framingMeshes) {
+          if (mesh instanceof THREE.SkinnedMesh) {
+            mesh.computeBoundingBox();
+            if (mesh.boundingBox) bounds.union(mesh.boundingBox.clone().applyMatrix4(mesh.matrixWorld));
+            continue;
+          }
           if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
           if (mesh.geometry.boundingBox) bounds.union(mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrixWorld));
         }
@@ -596,20 +572,32 @@ export function Stage(props: StageProps) {
       previousView = state.view;
       previousReset = state.cameraResetKey;
       previousRestore = state.cameraRestoreKey;
+      const effector = getIKEffector(selectionRef.current);
       const attachedObject = desiredTransformObject();
       const editable = !!attachedObject;
       const cancelDrag = transform.dragging && (
         transform.object !== attachedObject || restoreChanged || cameraViewChanged ||
         state.take !== previousTake || state.time !== previousTime ||
+        (draggingIK !== null && effector !== previousIKEffector) ||
         (state.poseOverride == null && previousOverride != null)
       );
       if (focusRequest) cancelForCameraFocus();
       else if (cancelDrag) cancelTransform();
       const tool = activeTool();
-      const mode = tool === 'translate' ? 'translate' : 'rotate';
-      const space = tool === 'translate' ? 'world' : 'local';
+      const worldTranslation = tool === 'translate' || tool === 'ik';
+      const mode = worldTranslation ? 'translate' : 'rotate';
+      const space = worldTranslation ? 'world' : 'local';
       if (transform.mode !== mode) transform.setMode(mode);
       if (transform.space !== space) transform.setSpace(space);
+      // Root bounds are authoring limits. An IK goal can legitimately be below
+      // ground or out of reach, where the solver must show its residual.
+      Object.assign(transform, tool === 'ik' ? {
+        minX: -20, maxX: 20, minY: -20, maxY: 20, minZ: -20, maxZ: 20,
+      } : {
+        minX: ROOT_TRANSLATION_LIMITS.x[0], maxX: ROOT_TRANSLATION_LIMITS.x[1],
+        minY: ROOT_TRANSLATION_LIMITS.y[0], maxY: ROOT_TRANSLATION_LIMITS.y[1],
+        minZ: ROOT_TRANSLATION_LIMITS.z[0], maxZ: ROOT_TRANSLATION_LIMITS.z[1],
+      });
       transform.enabled = editable;
       if (attachedObject) {
         if (transform.object !== attachedObject) transform.attach(attachedObject);
@@ -633,10 +621,37 @@ export function Stage(props: StageProps) {
         const over = name === hovered;
         marker.material.color.set(selected ? '#85b6db' : over ? '#eef6ff' : '#a4b7c8');
         marker.material.emissiveIntensity = selected ? 0.75 : over ? 0.45 : 0.16;
-        const radius = name === 'Hips' ? 0.016 : name.includes('Tip') || name.endsWith('Toe') || name.endsWith('Heel') ? 0.008 : 0.011;
+        const radius = name === 'Hips' ? .013 : name.includes('Tip') || name.endsWith('Toe') || name.endsWith('Heel') ? .006 : .008;
         marker.scale.setScalar(radius * (selected ? 1.38 : over ? 1.18 : 1));
       }
       scene.updateMatrixWorld(true);
+      ikGoal.visible = canIK();
+      ikLine.visible = false;
+      let residual: number | null = null;
+      if (ikGoal.visible && effector) {
+        const actual = rig.joints.get(effector)!.getWorldPosition(new THREE.Vector3());
+        const requestedTarget = state.ikTarget;
+        if (!transform.dragging || !draggingIK) {
+          if (requestedTarget && requestedTarget.every(Number.isFinite) && requestedTarget.every(value => Math.abs(value) <= 20)) {
+            ikGoal.position.set(...requestedTarget);
+          } else ikGoal.position.copy(actual);
+        }
+        residual = actual.distanceTo(ikGoal.position);
+        ikMarker.material.color.set(residual > 0.015 ? '#e9bc80' : '#77d5de');
+        const positions = ikLineGeometry.getAttribute('position') as THREE.BufferAttribute;
+        positions.setXYZ(0, actual.x, actual.y, actual.z);
+        positions.setXYZ(1, ikGoal.position.x, ikGoal.position.y, ikGoal.position.z);
+        positions.needsUpdate = true;
+        ikLineGeometry.computeBoundingSphere();
+        ikLine.visible = residual > 0.004;
+        ikGoal.updateMatrixWorld(true);
+      }
+      previousIKEffector = effector;
+      const nextResidualSignature = residual === null ? '' : residual.toFixed(3);
+      if (nextResidualSignature !== residualSignature) {
+        residualSignature = nextResidualSignature;
+        setIKResidual(residual);
+      }
       if (focusRequest) focusCamera(focusRequest);
       renderer.render(scene, camera);
       cameraFeedback();
@@ -827,8 +842,9 @@ export function Stage(props: StageProps) {
 
     function onTransformStart() {
       if (!transform.object || transform.object !== desiredTransformObject()) return;
+      draggingIK = canIK() && transform.object === ikGoal ? getIKEffector(selectionRef.current) : null;
       draggingRoot = canTranslate() && transform.object === rig.root;
-      draggingJoint = draggingRoot ? null : transform.object.name as JointName;
+      draggingJoint = draggingRoot || draggingIK ? null : transform.object.name as JointName;
       transformFeedback('start');
       clearHover();
     }
@@ -843,6 +859,7 @@ export function Stage(props: StageProps) {
       transformFeedback('end');
       draggingJoint = null;
       draggingRoot = false;
+      draggingIK = null;
       schedule();
     }
 
@@ -857,6 +874,7 @@ export function Stage(props: StageProps) {
     function onContextLost(event: Event) {
       event.preventDefault();
       stopped = true;
+      humanLoad.abort();
       window.cancelAnimationFrame(frame);
       setError('浏览器暂停了 3D 显示，请刷新页面恢复预览。');
     }
@@ -914,6 +932,7 @@ export function Stage(props: StageProps) {
       });
       for (const geometry of geometries) geometry.dispose();
       for (const material of materials) material.dispose();
+      rig.humanSkeleton?.dispose();
       keyLight.shadow.map?.dispose();
       renderer.dispose();
       canvas.remove();
@@ -922,11 +941,12 @@ export function Stage(props: StageProps) {
 
   useEffect(() => {
     requestDraw.current();
-  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraFocus, selection, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool]);
+  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraFocus, selection, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool, ikTarget]);
 
   return (
     <div className="stage3d" ref={containerRef} tabIndex={editMode ? 0 : undefined} role="region" aria-label="3D 动画舞台" aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space K Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y' : undefined} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }}>
       {error ? <StageFallback error={error} /> : <>
+        {!humanLoaded && <span className="stage3d-model-loading" role="status">人物模型载入中…</span>}
         {axesVisible !== false && <div className="stage3d-gizmo" aria-label="世界坐标方向">
           <svg viewBox="0 0 68 68" aria-hidden="true">
             {gizmo.map(axis => <g key={axis.name} opacity={axis.depth < -0.1 ? 0.58 : 1}>
@@ -938,8 +958,8 @@ export function Stage(props: StageProps) {
           </svg>
         </div>}
         {hover && <div className="stage3d-joint-tooltip" style={{ left: hover.x, top: hover.y }} aria-hidden="true">{STAGE_JOINT_LABELS[hover.joint]}<span>点击选择</span></div>}
-        {editMode && <div className="stage3d-edit-indicator" aria-label={transformTool === 'translate' ? 'Root 世界位移' : transformTool === 'rotate' ? '关节局部旋转' : '关节选择'}>
-          {playing ? '播放期间不可编辑' : mirror ? '关闭镜像后编辑' : transformTool === 'select' ? '选择关节 · 用旋转或移动摆姿' : transformTool === 'translate' ? <>整体位移草稿<span>{transformAxis ? `${transformAxis}轴` : '拖动世界坐标箭头'}</span></> : !selection ? '选择关节后旋转' : !EDITABLE_JOINT_SET.has(selection) ? '末端关节仅查看' : <>局部旋转草稿<span>{transformAxis ? `${transformAxis}轴` : '拖动彩色环'}</span></>}
+        {editMode && <div className={`stage3d-edit-indicator${transformTool === 'ik' ? ' is-ik' : ''}`} aria-label={transformTool === 'translate' ? 'Root 世界位移' : transformTool === 'ik' ? 'IK 手脚目标' : transformTool === 'rotate' ? '关节局部旋转' : '关节选择'}>
+          {playing ? '播放期间不可编辑' : mirror ? '关闭镜像后编辑' : transformTool === 'select' ? '选择关节 · 用旋转或移动摆姿' : transformTool === 'translate' ? <>整体位移草稿<span>{transformAxis ? `${transformAxis}轴` : '拖动世界坐标箭头'}</span></> : transformTool === 'ik' ? !getIKEffector(selection) ? '选择手或脚后调整目标' : <>IK 目标草稿<span>{transformAxis ? `${transformAxis}轴` : '拖动箭头协调关节'}</span>{ikResidual !== null && ikResidual > 0.015 && <span className="stage3d-ik-residual" role="status">目标差 {(ikResidual * 100).toFixed(1)} cm</span>}</> : !selection ? '选择关节后旋转' : !EDITABLE_JOINT_SET.has(selection) ? '末端关节仅查看' : <>局部旋转草稿<span>{transformAxis ? `${transformAxis}轴` : '拖动彩色环'}</span></>}
         </div>}
         <span className="stage3d-selection-announcement" aria-live="polite">{selection ? `已选中${STAGE_JOINT_LABELS[selection]}` : '未选中关节'}</span>
       </>}

@@ -3,6 +3,8 @@ import { bakeKeyframeSequence, JOINT_NAMES, makeCountMap, makeKeyframeSequence, 
 import { createScene, type SceneDocument } from './scene';
 import { decodeSceneBackup, encodeSceneBackup, SCENE_BACKUP_LIMITS } from './sceneBackup';
 import type { SceneProject } from './sceneProject';
+import { addFootLock } from '../../../packages/core/src/keyframes';
+import { captureFootLock } from '../../../packages/core/src/footLocks';
 
 // Original nonuniform fixture: a short final 30 Hz interval and animated
 // readonly terminals make accidental rebaking, normalization and aliasing visible.
@@ -45,7 +47,75 @@ async function changeHeader(blob: Blob, mutate: (header: Record<string, any>) =>
   return new Blob([prefix, header, parts.audio]);
 }
 
+function lockedFixture() {
+  const scene = fixture();
+  const previous = scene.project.history[1];
+  const beforeLock = upsertRootKeyframe(previous.manual!, 90, [0.2, 1.05, 0]);
+  const lock = captureFootLock(beforeLock.baseTake.poses[0], 'LeftFoot', 0, 150, 3);
+  const manual = addFootLock(beforeLock, lock);
+  scene.project.history.push({ ...previous, title: '左脚接触', manual, take: bakeKeyframeSequence(manual) });
+  scene.project.historyIndex = 2;
+  scene.project.revision = 3;
+  scene.viewer.transformTool = 'ik';
+  scene.viewer.selectedJoint = 'LeftFoot';
+  return scene;
+}
+
 describe('complete local scene backup', () => {
+  it('roundtrips versioned foot contacts and their exact authority in full bundles and JSON without rewriting earlier history', async () => {
+    const source = lockedFixture(), project = structuredClone(source.project);
+    for (const file of [legacy(source), await encodeSceneBackup(source)]) {
+      const imported = await decodeSceneBackup(file);
+      expect(imported.scene.project).toEqual({ ...project, teacherCheckedRevision: null });
+      expect(imported.scene.viewer).toEqual(source.viewer);
+      expect(imported.scene.project.history[0].take).toEqual(project.history[0].take);
+      expect(imported.scene.project.history[1].manual).not.toHaveProperty('footLocks');
+      const restoredLock = imported.scene.project.history[2].manual!.footLocks![0];
+      restoredLock.target[0] = 7;
+      restoredLock.rotation[0] = 0.5;
+      expect(source.project).toEqual(project);
+    }
+  });
+
+  it('preserves an explicit empty contact collection and leaves old sequences without the optional field', async () => {
+    const source = fixture();
+    source.project.history[1].manual!.footLocks = [];
+    const imported = await decodeSceneBackup(await encodeSceneBackup(source));
+    expect(imported.scene.project.history[1].manual).toHaveProperty('footLocks', []);
+    expect(imported.scene.project.history[0]).not.toHaveProperty('manual');
+    const old = fixture();
+    const legacyImport = await decodeSceneBackup(await encodeSceneBackup(old));
+    expect(legacyImport.scene.project.history[1].manual).not.toHaveProperty('footLocks');
+    expect(legacyImport.scene.project.history).toEqual(old.project.history);
+  });
+
+  it.each([
+    ['unknown contact version', (lock: any) => { lock.schema = 'foot-lock-2'; }],
+    ['non-foot endpoint', (lock: any) => { lock.foot = 'LeftHand'; }],
+    ['missing anchor', (lock: any) => { delete lock.target; }],
+    ['out-of-bounds anchor', (lock: any) => { lock.target[0] = 10.01; }],
+    ['nonunit anchor orientation', (lock: any) => { lock.rotation = [0, 0, 0, 2]; }],
+    ['fractional start', (lock: any) => { lock.startFrame = 0.5; }],
+    ['reversed interval', (lock: any) => { lock.startFrame = lock.endFrame + 1; }],
+    ['end outside confirmed duration', (lock: any) => { lock.endFrame = 10_000; }],
+    ['excessive blend', (lock: any) => { lock.blendFrames = 16; }],
+    ['unknown nested field', (lock: any) => { lock.generatedTarget = [1, 2, 3]; }],
+  ])('rejects %s rather than repairing a foot contact during import', async (_label, mutate) => {
+    const source = lockedFixture();
+    await expect(decodeSceneBackup(legacy(source, data => mutate(data.scene.project.history[2].manual.footLocks[0])))).rejects.toThrow('场景备份无效');
+  });
+
+  it('rejects duplicate anchors, overlapping intervals, excessive contacts and an authority that ignores the contact', async () => {
+    const source = lockedFixture();
+    for (const mutate of [
+      (data: any) => { const manual = data.scene.project.history[2].manual; manual.footLocks.push({ ...manual.footLocks[0] }); },
+      (data: any) => { const manual = data.scene.project.history[2].manual; manual.footLocks.push({ ...manual.footLocks[0], id: 'overlap', startFrame: 150, endFrame: 180 }); },
+      (data: any) => { const manual = data.scene.project.history[2].manual; manual.footLocks = Array.from({ length: 33 }, (_, index) => ({ ...manual.footLocks[0], id: `contact-${index}` })); },
+      (data: any) => { data.scene.project.history[2].take.poses[1].root[1] += 0.02; },
+      (data: any) => { data.scene.project.history[2].manual.footLocks[0].target[0] += 0.12; },
+    ]) await expect(decodeSceneBackup(legacy(source, mutate))).rejects.toThrow('场景备份无效');
+  });
+
   it('roundtrips original audio, exact nonuniform authority, immutable bases, history and saved camera without asserting external review', async () => {
     const original = fixture();
     const copied = structuredClone(original.project);

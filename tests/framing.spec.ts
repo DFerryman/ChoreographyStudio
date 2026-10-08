@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed, reveal } from './helpers';
+import { clickRevealed, reveal, seekSeconds } from './helpers';
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
 
 // Original local data with non-uniform samples and a translated, articulated
@@ -128,12 +128,7 @@ async function audioHash(page: Page) {
   });
 }
 async function seek(page: Page, time: number) {
-  const slider = page.getByRole('slider', { name: '播放进度', exact: true });
-  await slider.evaluate((element: HTMLInputElement, value) => {
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(element, String(value));
-    element.dispatchEvent(new Event('input', { bubbles: true })); element.dispatchEvent(new Event('change', { bubbles: true }));
-  }, time);
-  await expect(slider).toHaveValue(String(time));
+  await seekSeconds(page, time);
 }
 async function numeric(page: Page, label: string, value: number) {
   const input = page.getByRole('spinbutton', { name: label, exact: true });
@@ -194,7 +189,7 @@ function worldRig(pose: Pose, mirror = false) {
   return { points, joint: (name: Joint) => viewPoint(transforms.get(name)!.position) };
 }
 async function projected(page: Page, state: Camera, points: Vector3[]) {
-  const canvas = page.getByRole('img', { name: '原创人偶的编舞动作预览' });
+  const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   const box = (await canvas.boundingBox())!;
   const camera = new PerspectiveCamera(40, box.width / box.height, 0.05, 80);
   camera.position.fromArray(state.position); camera.zoom = state.zoom ?? 1;
@@ -300,7 +295,7 @@ test('@framing framing uses an unwritten pose without resolving it, and saved ca
   const committed = await backup(page);
   expect(committed.scene.project.revision).toBe(original.scene.project.revision + 1);
   expect(current(committed).manual!.root).toEqual([{ frame: 75, position: pose.root }]);
-  const canvas = page.getByRole('img', { name: '原创人偶的编舞动作预览' });
+  const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   await canvas.scrollIntoViewIfNeeded(); let box = (await canvas.boundingBox())!;
   const beforeHeldFocus = await cameraText(page);
   await page.mouse.move(box.x + box.width * 0.78, box.y + box.height * 0.55);

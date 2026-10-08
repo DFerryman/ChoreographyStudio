@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed, reveal } from './helpers';
+import { clickRevealed, reveal, seekSeconds } from './helpers';
 import { PerspectiveCamera, Vector3 } from 'three';
 
 // This fixture keeps the published v4 schema, without importing the new editor
@@ -157,13 +157,7 @@ async function openLegacyScene(page: Page, includeSecond = false) {
 }
 
 async function seek(page: Page, time: number) {
-  const slider = page.getByRole('slider', { name: '播放进度', exact: true });
-  await slider.evaluate((element: HTMLInputElement, value) => {
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(element, String(value));
-    element.dispatchEvent(new Event('input', { bubbles: true }));
-    element.dispatchEvent(new Event('change', { bubbles: true }));
-  }, time);
-  await expect(slider).toHaveValue(String(time));
+  await seekSeconds(page, time);
 }
 
 const draftNote = (page: Page) => page.getByRole('status').filter({ hasText: '姿态草稿 · 尚未写入关键帧' });
@@ -203,7 +197,7 @@ async function expectWorld(page: Page, expected: Vec3) {
   }).toBe(true);
 }
 async function write(page: Page, kind: '当前关节' | '位移' | '完整姿态') {
-  await page.getByRole('button', { name: `K ${kind}`, exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: `K ${kind}`, exact: true, includeHidden: true }));
   await expect(draftNote(page)).toHaveCount(0);
 }
 async function sameSnapshot(page: Page, snapshot: Snapshot) {
@@ -240,11 +234,11 @@ test('pose drafts remain previews until explicit keys, interpolate real joint an
   const limb = foreArm.map((value, i) => value - upperArm[i]);
   await selectJoint(page, 'LeftUpperArm');
 
-  const unchangedFrame = await page.getByRole('img', { name: '原创人偶的编舞动作预览' }).screenshot();
+  const unchangedFrame = await page.getByRole('img', { name: '人体编舞动作预览' }).screenshot();
   await angle(page, 30); await rootX(page, 0.5);
   await expect(draftNote(page)).toBeVisible();
   await expectNumber(page, '关节 Z 旋转（度）', 30);
-  expect((await page.getByRole('img', { name: '原创人偶的编舞动作预览' }).screenshot()).equals(unchangedFrame)).toBe(false);
+  expect((await page.getByRole('img', { name: '人体编舞动作预览' }).screenshot()).equals(unchangedFrame)).toBe(false);
   await sameSnapshot(page, neutral);
   await angle(page, 0); await rootX(page, 0);
   await write(page, '完整姿态');
@@ -260,6 +254,7 @@ test('pose drafts remain previews until explicit keys, interpolate real joint an
   expect(two.manual!.baseTake).toEqual(neutral.take);
   expect(two.manual!.rotations.LeftUpperArm![1].rotation[2]).toBeCloseTo(Math.SQRT1_2, 8);
   expect(two.manual!.rotations.LeftUpperArm![1].rotation[3]).toBeCloseTo(Math.SQRT1_2, 8);
+  await reveal(page, page.getByRole('list', { name: '关键帧列表', exact: true, includeHidden: true }));
   await expect(page.getByRole('list', { name: '关键帧列表', exact: true }).getByRole('listitem')).toHaveCount(2);
 
   // A single-axis 0 -> 90 degree arc has an independently known 45 degree
@@ -358,7 +353,7 @@ test('old v4 scenes retain their original audio and motion, while explicit joint
   await sameSnapshot(page, beforeMirror);
   await clickRevealed(page, page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true }));
   await selectJoint(page, 'LeftHandTip');
-  await expect(page.getByRole('button', { name: 'K 当前关节', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'K 当前关节', exact: true, includeHidden: true })).toBeDisabled();
   await expect(page.getByRole('spinbutton', { name: '关节 Z 旋转（度）', exact: true })).toBeDisabled();
   await expect(page.getByRole('region', { name: '手动关键帧编辑器', exact: true })).toContainText('末端节点只读');
   await sameSnapshot(page, beforeMirror);
@@ -534,7 +529,7 @@ test('dragging a visible local rotation ring edits a pose draft while orbiting c
   const before = await backup(page), original = current(before);
   const cameraBefore = before.scene.viewer.camera;
   expect(cameraBefore).toBeTruthy();
-  const canvas = page.getByRole('img', { name: '原创人偶的编舞动作预览' });
+  const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!;
   const projection = new PerspectiveCamera(40, box.width / box.height, 0.05, 80);
@@ -599,7 +594,7 @@ async function closeCameraOptions(page: Page) {
 // All handle targets are projected from the exported camera and public pose;
 // the tests never reach into React or the Three.js renderer's private objects.
 async function publicProjection(page: Page, camera: Camera) {
-  const canvas = page.getByRole('img', { name: '原创人偶的编舞动作预览' });
+  const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!;
   const projection = new PerspectiveCamera(40, box.width / box.height, 0.05, 80);

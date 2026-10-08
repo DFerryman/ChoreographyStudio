@@ -192,7 +192,7 @@ test('@poses copied drafts reuse editable rotations without moving the target or
   await number(page, '关节 Z 旋转（度）', 45); await number(page, 'Root X 位移（米）', 0.05);
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
 
-  await page.getByRole('button', { name: 'K 当前关节', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: 'K 当前关节', exact: true, includeHidden: true }));
   await expect(draft(page)).toBeVisible();
   const partial = await backup(page);
   expect(partial.scene.project.revision).toBe(original.scene.project.revision + 1);
@@ -252,7 +252,7 @@ test('@poses replacing a target draft supports cancel, discard and write-before-
   expect(current(writtenFirst).manual!.root).toEqual([{ frame: 120, position: [1.4, 1.05, 0] }]);
   expectTerminals(current(writtenFirst), 4, source.take.poses[3]);
   await expect(clipboard(page)).toContainText('第 75 帧 · 姿态草稿');
-  await page.getByRole('button', { name: 'K 位移', exact: true }).click(); await expect(draft(page)).toHaveCount(0);
+  await clickRevealed(page, page.getByRole('button', { name: 'K 位移', exact: true, includeHidden: true })); await expect(draft(page)).toHaveCount(0);
   const final = await backup(page);
   expect(final.scene.project.revision).toBe(original.scene.project.revision + 2);
   expect(current(final).manual!.root).toEqual([{ frame: 120, position: [2, 1.05, 0] }]);

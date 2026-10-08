@@ -115,11 +115,11 @@ async function frame(page: Page, value: number) {
 async function joint(page: Page, value: Joint | '') { await page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption(value); }
 async function rotationKey(page: Page, keyFrame: number, name: Joint, degrees: number) {
   await frame(page, keyFrame); await joint(page, name); await numeric(page, '关节 Z 旋转（度）', degrees);
-  await page.getByRole('button', { name: 'K 当前关节', exact: true }).click(); await expect(draft(page)).toHaveCount(0);
+  await clickRevealed(page, page.getByRole('button', { name: 'K 当前关节', exact: true, includeHidden: true })); await expect(draft(page)).toHaveCount(0);
 }
 async function rootKey(page: Page, keyFrame: number, x: number) {
   await frame(page, keyFrame); await numeric(page, 'Root X 位移（米）', x);
-  await page.getByRole('button', { name: 'K 位移', exact: true }).click(); await expect(draft(page)).toHaveCount(0);
+  await clickRevealed(page, page.getByRole('button', { name: 'K 位移', exact: true, includeHidden: true })); await expect(draft(page)).toHaveCount(0);
 }
 const draft = (page: Page) => page.getByRole('status').filter({ hasText: '姿态草稿 · 尚未写入关键帧' });
 const guard = (page: Page) => page.getByRole('dialog', { name: '写入这份姿态草稿？', exact: true });

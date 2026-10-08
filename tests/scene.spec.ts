@@ -63,7 +63,7 @@ async function waitCamera(page: Page, camera: Camera) {
 }
 
 async function drag(page: Page, button: 'left' | 'right', start = [0.7, 0.42], end = [0.86, 0.49]) {
-  const canvas = page.getByRole('img', { name: '原创人偶的编舞动作预览' });
+  const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!;
   await page.mouse.move(box.x + box.width * start[0], box.y + box.height * start[1]);
@@ -142,7 +142,7 @@ test('camera gestures and presets change the view, preserve the take, and keep j
 
   // Forward-project a known landmark through the publicly exported camera.
   // This never reads renderer internals or duplicates its raycast selection algorithm.
-  const canvas = page.getByRole('img', { name: '原创人偶的编舞动作预览' });
+  const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!;
   const camera = new PerspectiveCamera(40, box.width / box.height, 0.05, 80);

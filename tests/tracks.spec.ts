@@ -114,16 +114,17 @@ async function frame(page: Page, value: number) {
 async function joint(page: Page, value: Joint | '') { await page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption(value); }
 async function rotationKey(page: Page, keyFrame: number, name: Joint, degrees: number) {
   await frame(page, keyFrame); await joint(page, name); await numeric(page, '关节 Z 旋转（度）', degrees);
-  await page.getByRole('button', { name: 'K 当前关节', exact: true }).click(); await expect(draft(page)).toHaveCount(0);
+  await clickRevealed(page, page.getByRole('button', { name: 'K 当前关节', exact: true, includeHidden: true })); await expect(draft(page)).toHaveCount(0);
 }
 async function rootKey(page: Page, keyFrame: number, x: number) {
   await frame(page, keyFrame); await numeric(page, 'Root X 位移（米）', x);
-  await page.getByRole('button', { name: 'K 位移', exact: true }).click(); await expect(draft(page)).toHaveCount(0);
+  await clickRevealed(page, page.getByRole('button', { name: 'K 位移', exact: true, includeHidden: true })); await expect(draft(page)).toHaveCount(0);
 }
 const draft = (page: Page) => page.getByRole('status').filter({ hasText: '姿态草稿 · 尚未写入关键帧' });
 const guard = (page: Page) => page.getByRole('dialog', { name: '写入这份姿态草稿？', exact: true });
 const timeline = (page: Page) => page.getByRole('region', { name: '手动关键帧时间线', exact: true });
 async function visibleFrames(page: Page, expected: number[]) {
+  if (expected.length) await reveal(page, timeline(page).getByRole('list', { name: '关键帧列表', exact: true, includeHidden: true }));
   await expect(timeline(page).getByRole('listitem')).toHaveCount(expected.length);
   expect(await timeline(page).getByRole('listitem').evaluateAll(items => items.map(item => item.getAttribute('aria-label')))).toEqual(expected.map(value => `第 ${value} 帧关键帧`));
   await expect(timeline(page).getByRole('button', { name: /^跳到第 \d+ 帧关键帧$/ })).toHaveCount(expected.length);
@@ -221,7 +222,7 @@ test('@tracks Root deletion resolves drafts explicitly and missing, unselected o
   await page.getByRole('button', { name: '撤销', exact: true }).click(); await unchanged(page, removedAfterWrite);
 });
 
-test('@tracks timeline filters scope navigation, global editor navigation sees all keys, and previous/next cannot silently discard a draft', async ({ page }) => {
+test('@tracks timeline filters scope navigation, the all-track filter sees every key, and previous/next cannot silently discard a draft', async ({ page }) => {
   test.setTimeout(180_000);
   await openScene(page);
   await rotationKey(page, 30, 'LeftUpperArm', 20); await rotationKey(page, 90, 'LeftUpperArm', 60);
@@ -235,8 +236,9 @@ test('@tracks timeline filters scope navigation, global editor navigation sees a
   await expect(previous).toBeDisabled(); await next.click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('30');
   await next.click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('90'); await expect(next).toBeDisabled();
   await previous.click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('30');
-  await page.getByRole('button', { name: '下一关键帧', exact: true }).click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('60');
-  await page.getByRole('button', { name: '上一关键帧', exact: true }).click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('30');
+  await filter.selectOption('all');
+  await next.click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('60');
+  await previous.click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('30');
   await filter.selectOption('root'); await visibleFrames(page, [120]);
   await next.click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('120');
   await frame(page, 150); await previous.click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('120');
@@ -271,7 +273,7 @@ test('@tracks mobile track actions are reachable and deletion, undo, save and re
   await page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true }).selectOption('joint'); await visibleFrames(page, [45]);
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 844 });
-    for (const name of ['删除当前关节 K', '删除 Root K', '上一关键帧', '下一关键帧']) {
+    for (const name of ['删除当前关节 K', '删除 Root K', '时间线上一关键帧', '时间线下一关键帧']) {
       const action = page.getByRole('button', { name, exact: true, includeHidden: true });
       await reveal(page, action); await action.scrollIntoViewIfNeeded(); await expect(action).toBeInViewport();
       const box = (await action.boundingBox())!; expect(box.width).toBeGreaterThanOrEqual(40); expect(box.height).toBeGreaterThanOrEqual(44);

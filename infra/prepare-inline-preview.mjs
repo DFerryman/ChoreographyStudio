@@ -28,6 +28,7 @@ const mimeTypes = {
   '.woff': 'font/woff', '.woff2': 'font/woff2', '.glb': 'model/gltf-binary',
   '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream',
   '.mp3': 'audio/mpeg', '.wav': 'audio/wav',
+  '.txt': 'text/plain; charset=utf-8',
 };
 const assets = {};
 const assetSummary = [];

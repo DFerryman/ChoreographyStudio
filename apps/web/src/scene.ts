@@ -21,7 +21,7 @@ export type SceneViewer = {
   /** Optional so existing choreo-scene-1 saves reopen without rebaking motion. */
   editorMode?: 'arrange' | 'keyframes';
   /** Optional editor view setting; selecting a tool never changes animation data. */
-  transformTool?: 'select' | 'rotate' | 'translate';
+  transformTool?: 'select' | 'rotate' | 'translate' | 'ik';
 };
 
 export type SceneCoordinateSystem = {

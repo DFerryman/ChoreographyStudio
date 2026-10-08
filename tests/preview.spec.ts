@@ -80,7 +80,7 @@ test.afterEach(async ({ page }) => {
 
 test('renders a nonblank 3D pose and advances audio time during playback', async ({ page }) => {
   await ready(page);
-  const canvas = page.getByRole('img', { name: '原创人偶的编舞动作预览' });
+  const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   await expect(canvas).toBeVisible();
   const initialFrame = await canvas.screenshot();
   expect(pngColors(initialFrame).size, 'Rendered canvas should contain varied scene pixels').toBeGreaterThan(100);
@@ -88,13 +88,13 @@ test('renders a nonblank 3D pose and advances audio time during playback', async
   await page.getByRole('button', { name: '播放', exact: true }).click();
   await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeVisible();
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.currentTime)).toBeGreaterThan(1);
-  await expect.poll(() => page.getByRole('slider', { name: '播放进度' }).inputValue().then(Number)).toBeGreaterThan(1);
+  await expect.poll(() => page.getByRole('slider', { name: '关键帧时间线进度', exact: true }).inputValue().then(Number)).toBeGreaterThan(30);
   await page.getByRole('button', { name: '暂停', exact: true }).click();
   const movingFrame = await canvas.screenshot();
   expect(movingFrame.equals(initialFrame), 'Displayed pose should respond to playback time').toBe(false);
-  const paused = Number(await page.getByRole('slider', { name: '播放进度' }).inputValue());
+  const paused = Number(await page.getByRole('slider', { name: '关键帧时间线进度', exact: true }).inputValue());
   await page.waitForTimeout(250);
-  expect(Number(await page.getByRole('slider', { name: '播放进度' }).inputValue())).toBeCloseTo(paused, 2);
+  expect(Number(await page.getByRole('slider', { name: '关键帧时间线进度', exact: true }).inputValue())).toBe(paused);
 });
 
 test('previews a replacement, adopts only the selected octet, and supports undo/redo', async ({ page }) => {
@@ -220,7 +220,7 @@ for (const width of [390, 320]) {
     const overflow = () => page.evaluate(() => ({ width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
     const body = await overflow();
     expect(body.scroll).toBeLessThanOrEqual(body.width);
-    await expect(page.getByRole('img', { name: '原创人偶的编舞动作预览' })).toBeVisible();
+    await expect(page.getByRole('img', { name: '人体编舞动作预览' })).toBeVisible();
     await page.getByRole('button', { name: '导入音乐', exact: true }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
     const modal = await overflow();

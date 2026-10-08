@@ -2,6 +2,7 @@ import { JOINT_NAMES, type BakedTake, type JointName, type Pose, type Quat, type
 // The index only re-exports this module; sampleTake is a function declaration and
 // is called after module initialization, not while constructing these constants.
 import { sampleTake } from './index';
+import { applyFootLocks, cloneFootLock, validateFootLocks, type FootLock } from './footLocks';
 
 export const EDITABLE_JOINT_NAMES: readonly JointName[] = JOINT_NAMES.filter(name => !name.endsWith('HandTip') && !name.endsWith('Toe') && !name.endsWith('Heel'));
 export const EDITABLE_JOINTS = EDITABLE_JOINT_NAMES;
@@ -19,6 +20,8 @@ export interface KeyframeSequence {
   baseTake: BakedTake;
   rotations: Partial<Record<JointName, RotationKeyframe[]>>;
   root: RootKeyframe[];
+  /** Optional persistent world-space support constraints; legacy absence is untouched. */
+  footLocks?: FootLock[];
 }
 
 export type KeyframeTransferScope = { kind: 'all' } | { kind: 'joint'; joint: JointName } | { kind: 'root' };
@@ -42,7 +45,7 @@ export type KeyframeTransferResult = {
 
 const FPS = 30;
 let fallbackId = 0;
-const newId = (prefix: string) => `${prefix}_${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}_${++fallbackId}`}`;
+const newId = (prefix: string) => `${prefix}_${(typeof crypto !== 'undefined' ? crypto.randomUUID?.() : undefined) ?? `${Date.now()}_${++fallbackId}`}`;
 const editable = new Set<JointName>(EDITABLE_JOINT_NAMES);
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 const finite = (value: number, label: string) => {
@@ -156,6 +159,7 @@ function assertEditable(joint: JointName): void {
 function validateSequence(sequence: KeyframeSequence): void {
   if (!sequence || sequence.schema !== 'manual-keyframes-1' || sequence.fps !== FPS || !sequence.id || !sequence.rotations || typeof sequence.rotations !== 'object' || Array.isArray(sequence.rotations) || !Array.isArray(sequence.root)) throw new Error('关键帧序列格式或帧率无效。');
   validateTake(sequence.baseTake);
+  if (sequence.footLocks !== undefined) validateFootLocks(sequence.footLocks, sequence.baseTake.durationSeconds);
   let count = sequence.root.length;
   const tracks = Object.entries(sequence.rotations) as [JointName, RotationKeyframe[]][];
   for (const [joint, keys] of tracks) {
@@ -184,6 +188,7 @@ function copySequence(sequence: KeyframeSequence): KeyframeSequence {
     ...sequence, id: newId('keys'),
     rotations: Object.fromEntries(Object.entries(sequence.rotations).map(([joint, keys]) => [joint, keys!.map(key => ({ frame: key.frame, rotation: [...key.rotation] as Quat }))])),
     root: sequence.root.map(key => ({ frame: key.frame, position: [...key.position] as Vec3 })),
+    ...(sequence.footLocks !== undefined ? { footLocks: sequence.footLocks.map(cloneFootLock) } : {}),
   };
 }
 
@@ -194,6 +199,24 @@ export function makeKeyframeSequence(baseTake: BakedTake): KeyframeSequence {
     baseTake: { ...baseTake, times: [...baseTake.times], poses: baseTake.poses.map(copyPose) },
     rotations: {}, root: [],
   };
+}
+
+/** Support edits are explicit, immutable and independent of sparse track keys. */
+export function addFootLock(sequence: KeyframeSequence, lock: FootLock): KeyframeSequence {
+  validateSequence(sequence);
+  const next = copySequence(sequence);
+  next.footLocks = [...(next.footLocks ?? []), cloneFootLock(lock)].sort((a, b) => a.startFrame - b.startFrame || a.foot.localeCompare(b.foot));
+  validateSequence(next);
+  return next;
+}
+
+export function removeFootLock(sequence: KeyframeSequence, lockId: string): KeyframeSequence {
+  validateSequence(sequence);
+  if (!sequence.footLocks?.some(lock => lock.id === lockId)) return sequence;
+  const next = copySequence(sequence);
+  next.footLocks = next.footLocks!.filter(lock => lock.id !== lockId);
+  validateSequence(next);
+  return next;
 }
 
 function upsert<T extends { frame: number }>(keys: T[], key: T): T[] {
@@ -353,9 +376,13 @@ export function bakeKeyframeSequence(sequence: KeyframeSequence): BakedTake {
   validateSequence(sequence);
   const base = sequence.baseTake;
   const frames = getKeyframeFrames(sequence);
-  if (!frames.length) return { ...base, id: newId('take'), times: [...base.times], poses: base.poses.map(copyPose) };
+  const locks = sequence.footLocks ?? [];
+  if (!frames.length && !locks.length) return { ...base, id: newId('take'), times: [...base.times], poses: base.poses.map(copyPose) };
   const duration = base.durationSeconds, finalFrame = lastFrame(duration);
-  const times = [...new Set([...base.times, ...frames.map(frame => frameTime(frame, duration))])].sort((a, b) => a - b);
+  // Solved samples, not thousands of sparse K records. Preserve exact source
+  // knots and the short final interval alongside the 30 Hz contact sampling.
+  const contactTimes = locks.length ? Array.from({ length: finalFrame + 1 }, (_, frame) => frameTime(frame, duration)) : [];
+  const times = [...new Set([...base.times, ...frames.map(frame => frameTime(frame, duration)), ...contactTimes])].sort((a, b) => a - b);
   if (times.length > MAX_TAKE_SAMPLES) throw new Error('手 K 后的动作样本超出预览范围，请减少新增帧时刻。');
   const initial = base.poses[0], final = base.poses.at(-1)!;
   const rotations = Object.entries(sequence.rotations).filter(([, keys]) => keys!.length).map(([joint, keys]) => {
@@ -377,7 +404,8 @@ export function bakeKeyframeSequence(sequence: KeyframeSequence): BakedTake {
       if (amount === 1) return [...b.position] as Vec3;
       return a.position.map((value, axis) => value + amount * (b.position[axis] - value)) as Vec3;
     }) as Vec3;
-    return pose;
+    const frame = time === duration ? finalFrame : time * FPS;
+    return locks.length ? applyFootLocks(pose, locks, frame, duration).pose : pose;
   });
   return { ...base, id: newId('take'), times, poses };
 }

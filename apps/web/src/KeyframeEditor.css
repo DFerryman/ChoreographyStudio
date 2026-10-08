@@ -144,3 +144,59 @@
   .kf-transfer-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .kf-transfer-actions > button { padding-inline: 6px; }
 }
+
+/* One editing timeline directly beneath the stage. */
+.viewer-panel > .kf-timeline { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 16px; margin: 0; padding: 15px 19px 4px; border: 0; border-top: 1px solid #e1e5ea; border-radius: 0; background: #fff; }
+.kf-timeline-transport { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.kf-timeline-transport .player-main { flex: 1; }
+.kf-timeline-transport .time-display { flex: 1; }
+.kf-timeline-transport .play-button { width: 36px; height: 36px; }
+.kf-timeline-transport .kf-record { min-height: 44px; flex: none; padding-inline: 15px; font-size: 12px; }
+.viewer-panel > .kf-timeline > .timeline-heading { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); }
+.viewer-panel > .kf-timeline .kf-frame-controls { margin-top: 0; align-items: center; max-width: 285px; }
+.viewer-panel > .kf-timeline .kf-frame-controls label { flex-direction: row; align-items: center; gap: 5px; }
+.viewer-panel > .kf-timeline .kf-frame-controls .kf-time-field { margin-left: 3px; }
+.viewer-panel > .kf-timeline .kf-frame-controls input { padding-inline: 5px; }
+.viewer-panel > .kf-timeline .kf-timeline-controls { justify-content: flex-end; margin: 0; padding: 0; border: 0; gap: 8px; }
+.viewer-panel > .kf-timeline .kf-filter-field > span, .viewer-panel > .kf-timeline .kf-filter-status { display: none; }
+.viewer-panel > .kf-timeline .kf-filter-field > select { min-width: 105px; }
+.viewer-panel > .kf-timeline .kf-key-navigation > button { min-width: 34px; padding: 6px; font-size: 10px; }
+.viewer-panel > .kf-timeline > .kf-track, .viewer-panel > .kf-timeline > .kf-track-labels, .viewer-panel > .kf-timeline > .kf-draft-note, .viewer-panel > .kf-timeline > .kf-empty { grid-column: 1 / -1; }
+.viewer-panel > .kf-timeline .kf-draft-note { margin: 9px 0 0; padding: 6px 10px; }
+.viewer-panel > .kf-timeline .kf-empty { padding: 9px 7px; font-size: 10px; }
+.viewer-panel > .kf-timeline > details { grid-column: 1 / -1; margin-top: 0; }
+.viewer-panel > .kf-timeline > details > summary { min-height: 36px; padding: 8px 0; font-size: 10px; }
+.viewer-panel > .kf-timeline .kf-advanced-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 12px; }
+.viewer-panel > .kf-timeline .kf-filter-status { display: flex; }
+.viewer-panel > .kf-timeline .kf-filter-status > strong { display: none; }
+.kf-editor .kf-group-heading > span { font-size: 10px; }
+@media (min-width: 951px) {
+  .manual-workspace .stage-wrap { min-height: clamp(340px, 43vh, 490px); }
+  .manual-workspace .keyframe-inspector { max-height: 850px; }
+  .viewer-panel > .kf-timeline { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .viewer-panel > .kf-timeline .kf-frame-controls { grid-column: 1 / 3; }
+  .viewer-panel > .kf-timeline .kf-timeline-controls { grid-column: 3 / -1; }
+  .viewer-panel > .kf-timeline > details:not([open]) { grid-column: auto; }
+  .viewer-panel > .kf-timeline > details > summary { justify-content: flex-start; gap: 8px; }
+}
+@media (max-width: 950px) {
+  .viewer-panel > .kf-timeline .kf-timeline-controls { display: flex; flex-wrap: wrap; }
+  .viewer-panel > .kf-timeline .kf-key-navigation { width: auto; margin-left: 0; }
+  .viewer-panel > .kf-timeline .kf-filter-field { flex-direction: row; }
+  .viewer-panel > .kf-timeline .kf-filter-status { display: none; }
+}
+@media (max-width: 680px) {
+  .viewer-panel > .kf-timeline { padding: 12px 12px 4px; gap: 8px; }
+  .kf-timeline-transport { flex-wrap: wrap; margin: 0; gap: 8px; }
+  .kf-timeline-transport .player-main { flex-wrap: nowrap; gap: 6px; min-width: 0; }
+  .kf-timeline-transport .time-display { font-size: 10px; min-width: 0; }
+  .kf-timeline-transport .time-display > span { display: none; }
+  .kf-timeline-transport .kf-record { padding-inline: 9px; font-size: 11px; }
+  .viewer-panel > .kf-timeline .kf-frame-controls, .viewer-panel > .kf-timeline .kf-timeline-controls { grid-column: 1 / -1; max-width: none; }
+  .viewer-panel > .kf-timeline .kf-frame-controls input { height: 44px; }
+  .viewer-panel > .kf-timeline .kf-timeline-controls { justify-content: space-between; }
+  .viewer-panel > .kf-timeline .kf-key-navigation > button { min-height: 44px; padding-inline: 9px; }
+  .viewer-panel > .kf-timeline > details:not([open]) { grid-column: auto; }
+  .viewer-panel > .kf-timeline > details > summary { min-height: 44px; }
+  .kf-markers > button { width: 30px; height: 44px; top: -7px; }
+}

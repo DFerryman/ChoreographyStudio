@@ -1,0 +1,23 @@
+.realism-panel { padding: 15px 22px; border-top: 1px solid #e9edf1; color: #65778b; font-size: 11px; }
+.realism-panel > summary { min-height: 30px; cursor: pointer; font-size: 12px; font-weight: 500; }
+.realism-content { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.realism-profile { display: flex; flex-direction: column; gap: 5px; }
+.realism-profile strong { color: #53667a; font-size: 12px; font-weight: 500; }
+.realism-profile span, .realism-profile small { color: #8b96a3; font-size: 10px; line-height: 1.7; }
+.realism-diagnostics { display: flex; flex-direction: column; gap: 7px; padding-block: 10px; border-block: 1px solid #edf0f3; }
+.realism-diagnostics > div { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 5px; font-size: 10px; font-variant-numeric: tabular-nums; }
+.realism-note, .realism-warning { margin: 0; font-size: 10px; line-height: 1.8; overflow-wrap: anywhere; }
+.realism-note { color: #8a96a3; }
+.realism-warning { color: #a66b36; }
+.realism-lock-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.realism-lock-fields > label { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.realism-lock-fields input, .realism-lock-fields select { min-width: 0; width: 100%; height: 40px; border: 1px solid #e0e5eb; border-radius: 5px; padding: 0 8px; color: #647589; background: #fafbfc; font-size: 11px; }
+.realism-lock-fields input:disabled, .realism-lock-fields select:disabled { opacity: .4; }
+.realism-content > button, .realism-physics > button { min-height: 44px; }
+.realism-locks { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.realism-locks > li { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 10px; font-variant-numeric: tabular-nums; }
+.realism-locks button { min-height: 36px; padding: 5px; color: #7d90a5; font-size: 10px; }
+.realism-locks button:disabled { opacity: .4; cursor: not-allowed; }
+.realism-physics { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid #edf0f3; }
+.realism-physics progress { width: 100%; height: 5px; accent-color: #7b9fc2; }
+@media (max-width: 680px) { .realism-panel { padding: 15px 19px; } .realism-lock-fields input, .realism-lock-fields select, .realism-locks button { min-height: 44px; } }

@@ -128,7 +128,7 @@ async function position(page: Page, joint: Joint): Promise<Vec3> {
   return Array.from((await label.locator('strong').innerText()).matchAll(/[XYZ]\s*(-?\d+(?:\.\d+)?)/g), match => Number(match[1])) as Vec3;
 }
 async function projection(page: Page, state: Camera) {
-  const canvas = page.getByRole('img', { name: '原创人偶的编舞动作预览' }); await canvas.scrollIntoViewIfNeeded();
+  const canvas = page.getByRole('img', { name: '人体编舞动作预览' }); await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!;
   const camera = new PerspectiveCamera(40, box.width / box.height, 0.05, 80);
   camera.position.fromArray(state.position); camera.zoom = state.zoom ?? 1; camera.lookAt(new Vector3(...state.target)); camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
@@ -157,7 +157,7 @@ test('@constraints elbow and knee numeric/slider limits apply coupled rotations,
     await numeric(page, '关节 X 旋转（度）', permitted);
     await numeric(page, '关节 Y 旋转（度）', 999); await numeric(page, '关节 Z 旋转（度）', -999);
     expectAnglesBounded(await angles(page), bounds); await expect(draft(page)).toBeVisible();
-    await page.getByRole('button', { name: 'K 当前关节', exact: true }).click();
+    await clickRevealed(page, page.getByRole('button', { name: 'K 当前关节', exact: true, includeHidden: true }));
     const authored = current(await backup(page));
     expect(isJointRotationWithinLimits(joint, authored.manual!.rotations[joint]![0].rotation)).toBe(true);
     expect(authored.manual!.baseTake).toEqual(source.take);
@@ -179,7 +179,7 @@ test('@constraints legacy poses keep their authority through Root-only writes; p
   await clickRevealed(page, hiddenButton(page, '复制当前姿态'));
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
   await numeric(page, 'Root X 位移（米）', 1.1); expect((await angles(page))[0]).toBeCloseTo(65, 1);
-  await page.getByRole('button', { name: 'K 位移', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: 'K 位移', exact: true, includeHidden: true }));
   const rootOnly = await backup(page), rootTake = current(rootOnly).take;
   expect(current(rootOnly).manual!.rotations).toEqual({}); expect(current(rootOnly).manual!.baseTake).toEqual(source.take);
   source.take.times.forEach((time, index) => expect(rootTake.poses[rootTake.times.indexOf(time)].joints).toEqual(source.take.poses[index].joints));
@@ -237,7 +237,7 @@ test('@constraints a real elbow rotation ring clamps the rendered limb and expli
   const expectedWrist = new Vector3(0, -0.255, 0).applyQuaternion(new Quaternion(...fromDegrees(displayed))).add(new Vector3(...elbow));
   const wrist = await position(page, 'LeftHand'); wrist.forEach((value, axis) => expect(value).toBeCloseTo(expectedWrist.getComponent(axis), 2));
   expect(current(await backup(page))).toEqual(current(original));
-  await select(page, 'LeftForeArm'); await page.getByRole('button', { name: 'K 当前关节', exact: true }).click();
+  await select(page, 'LeftForeArm'); await clickRevealed(page, page.getByRole('button', { name: 'K 当前关节', exact: true, includeHidden: true }));
   const authored = await backup(page), snapshot = current(authored);
   expect(snapshot.manual!.baseTake).toEqual(source.take); expect(Object.keys(snapshot.manual!.rotations)).toEqual(['LeftForeArm']);
   expect(isJointRotationWithinLimits('LeftForeArm', snapshot.manual!.rotations.LeftForeArm![0].rotation)).toBe(true);
@@ -276,7 +276,7 @@ test('@constraints solid human surfaces remain visible with a clear manual works
     expect(framed.scene.project).toEqual(original.scene.project);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     await expect(page.getByRole('group', { name: '舞台编辑工具', exact: true }).getByRole('button')).toHaveCount(3);
-    for (const name of ['姿态复用', '更多编辑操作', '键盘快捷键', '移动与复制关键帧']) await expect(page.locator('details').filter({ has: page.locator('summary').filter({ hasText: new RegExp(`^${name}$`) }) })).not.toHaveAttribute('open');
+    for (const name of ['姿态复用', '关键帧明细', '更多编辑操作', '键盘快捷键', '移动与复制关键帧']) await expect(page.locator('details').filter({ has: page.locator('summary').filter({ hasText: new RegExp(`^${name}$`) }) })).not.toHaveAttribute('open');
     await page.getByRole('heading', { name: '人体与关节限制场景', exact: true }).scrollIntoViewIfNeeded();
     await capture(page, testInfo, `human-manual-layout-${width}.png`);
   }

@@ -207,6 +207,40 @@ describe('immutable independent manual motion tracks', () => {
     neutral.poses[0].joints.Head[0] = 0.2;
     expect(neutral.poses[1].joints.Head[0]).toBe(0);
   });
+
+  it('lets a teacher author only three pose times and computes the unwritten transitions without adding K records', () => {
+    const map = makeCountMap({ bpm: 120, musicBeatsPerDanceCount: 1, firstCountSourceSeconds: 0, octetCount: 8, audioDurationSeconds: 40 });
+    const base = createNeutralTake(bakePlan(makePlan(map), map));
+    const snapshots = [[90, [0, 1.05, 0], -30, -10], [300, [0.5, 1.05, 0.2], -90, -110], [750, [0.1, 1.05, 0.8], -10, -40]] as const;
+    let sequence = makeKeyframeSequence(base);
+    for (const [frame, position, shoulder, elbow] of snapshots) {
+      const authored = sampleTake(base, frameTime(frame, map.durationSeconds));
+      authored.root = [...position];
+      authored.joints.LeftUpperArm = rotationFromDegrees([shoulder, 0, 0]);
+      authored.joints.LeftForeArm = rotationFromDegrees([elbow, 0, 0]);
+      sequence = setPoseKeyframe(sequence, frame, authored);
+    }
+    const baked = bakeKeyframeSequence(sequence);
+    // There are three authored pose times, despite the many playback samples.
+    expect(getKeyframeFrames(sequence)).toEqual([90, 300, 750]);
+    expect(getKeyframeCount(sequence)).toBe(60);
+    for (const [time, position, shoulder, elbow] of [[6.5, [0.25, 1.05, 0.1], -60, -60], [17.5, [0.3, 1.05, 0.5], -50, -75]] as const) {
+      const between = sampleTake(baked, time);
+      between.root.forEach((value, axis) => expect(value).toBeCloseTo(position[axis], 12));
+      sameOrientation(between.joints.LeftUpperArm, rotationFromDegrees([shoulder, 0, 0]));
+      sameOrientation(between.joints.LeftForeArm, rotationFromDegrees([elbow, 0, 0]));
+      expect(sequence.root.some(key => key.frame === time * 30)).toBe(false);
+      expect(between.joints.RightUpperArm).toEqual([0, 0, 0, 1]);
+    }
+    const restored = bakeKeyframeSequence(JSON.parse(JSON.stringify(sequence)));
+    expect(restored.times).toEqual(baked.times); expect(restored.poses).toEqual(baked.poses);
+    expect(baked.countMapId).toBe(map.id); expect(baked.durationSeconds).toBe(32);
+    expect(baked.times.at(-1)).toBe(map.durationSeconds);
+    const deleted = removePoseKeyframe(sequence, 300);
+    expect(getKeyframeFrames(deleted)).toEqual([90, 750]);
+    expect(getKeyframeCount(deleted)).toBe(40);
+    expect(getKeyframeFrames(sequence)).toEqual([90, 300, 750]);
+  });
 });
 
 describe('manual keyframe safety envelope', () => {

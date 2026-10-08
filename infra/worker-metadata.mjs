@@ -6,8 +6,8 @@ export async function readWorkerConfig() {
   return JSON.parse(noComments.replace(/"(?:\\.|[^"\\])*"|,\s*(?=[}\]])/g, token => token.startsWith('"') ? token : ''));
 }
 
-// Both upload paths must preserve the API guard declared by Wrangler. Rate
-// limiting uses Cloudflare's binding; it needs no D1, KV or Durable Object.
+// Both upload paths preserve the API/AI guards and Workers AI binding declared
+// by Wrangler. None requires D1, KV or a Durable Object.
 export function workerMetadata(config, mainModule = 'index.js') {
   return {
     main_module: mainModule,
@@ -16,6 +16,7 @@ export function workerMetadata(config, mainModule = 'index.js') {
     bindings: [
       ...Object.entries(config.vars || {}).map(([name, value]) => ({ type: 'plain_text', name, text: typeof value === 'string' ? value : JSON.stringify(value) })),
       ...(config.ratelimits || []).map(({ name, namespace_id, simple }) => ({ type: 'ratelimit', name, namespace_id, simple })),
+      ...(config.ai ? [{ type: 'ai', name: config.ai.binding }] : []),
     ],
     ...(config.observability ? { observability: config.observability } : {}),
   };

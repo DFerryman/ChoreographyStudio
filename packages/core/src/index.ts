@@ -9,6 +9,12 @@ export { JOINT_NAMES } from './motion-types';
 export type { BakedTake, JointName, Pose, Quat, Vec3 } from './motion-types';
 export * from './keyframes';
 export * from './jointConstraints';
+export * from './humanoid';
+export * from './ik';
+export * from './footLocks';
+export * from './humanProfile';
+export * from './physics';
+export * from './aiChoreography';
 
 export interface CountMap {
   id: string;
@@ -72,7 +78,7 @@ export interface ArrangementPlan {
 const EPSILON = 1e-9;
 const FPS = 30;
 let fallbackId = 0;
-const id = (prefix: string) => `${prefix}_${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}_${++fallbackId}`}`;
+const id = (prefix: string) => `${prefix}_${(typeof crypto !== 'undefined' ? crypto.randomUUID?.() : undefined) ?? `${Date.now()}_${++fallbackId}`}`;
 const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
 const finite = (value: number, label: string) => {
   if (!Number.isFinite(value)) throw new Error(`${label}必须是有限数字。`);

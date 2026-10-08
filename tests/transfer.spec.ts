@@ -117,16 +117,17 @@ async function frame(page: Page, value: number) {
 async function joint(page: Page, value: Joint | '') { await page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption(value); }
 async function rotationKey(page: Page, keyFrame: number, name: Joint, degrees: number) {
   await frame(page, keyFrame); await joint(page, name); await numeric(page, '关节 Z 旋转（度）', degrees);
-  await page.getByRole('button', { name: 'K 当前关节', exact: true }).click(); await expect(draft(page)).toHaveCount(0);
+  await clickRevealed(page, page.getByRole('button', { name: 'K 当前关节', exact: true, includeHidden: true })); await expect(draft(page)).toHaveCount(0);
 }
 async function rootKey(page: Page, keyFrame: number, x: number) {
   await frame(page, keyFrame); await numeric(page, 'Root X 位移（米）', x);
-  await page.getByRole('button', { name: 'K 位移', exact: true }).click(); await expect(draft(page)).toHaveCount(0);
+  await clickRevealed(page, page.getByRole('button', { name: 'K 位移', exact: true, includeHidden: true })); await expect(draft(page)).toHaveCount(0);
 }
 const draft = (page: Page) => page.getByRole('status').filter({ hasText: '姿态草稿 · 尚未写入关键帧' });
 const guard = (page: Page) => page.getByRole('dialog', { name: '写入这份姿态草稿？', exact: true });
 const timeline = (page: Page) => page.getByRole('region', { name: '手动关键帧时间线', exact: true });
 async function visibleFrames(page: Page, expected: number[]) {
+  if (expected.length) await reveal(page, timeline(page).getByRole('list', { name: '关键帧列表', exact: true, includeHidden: true }));
   await expect(timeline(page).getByRole('listitem')).toHaveCount(expected.length);
   expect(await timeline(page).getByRole('listitem').evaluateAll(items => items.map(item => item.getAttribute('aria-label')))).toEqual(expected.map(value => `第 ${value} 帧关键帧`));
   await expect(timeline(page).getByRole('button', { name: /^跳到第 \d+ 帧关键帧$/ })).toHaveCount(expected.length);
@@ -163,7 +164,7 @@ async function seeded(page: Page) {
   return source;
 }
 async function holdRootArrow(page: Page, root: Vec3, cameraState: Camera) {
-  const canvas = page.getByRole('img', { name: '原创人偶的编舞动作预览' });
+  const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   await canvas.scrollIntoViewIfNeeded(); const box = (await canvas.boundingBox())!;
   const camera = new PerspectiveCamera(40, box.width / box.height, 0.05, 80);
   camera.position.fromArray(cameraState.position); camera.zoom = cameraState.zoom ?? 1;

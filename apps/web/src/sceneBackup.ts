@@ -1,6 +1,7 @@
 import { ACTIONS, bakeKeyframeSequence, EDITABLE_JOINT_NAMES, getKeyframeCount, JOINT_NAMES, makeCountMap, MAX_KEYFRAME_COUNT, MAX_TAKE_SAMPLES, ROOT_TRANSLATION_LIMITS, type ArrangementPlan, type BakedTake, type CountMap, type JointName, type KeyframeSequence, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
 import type { SceneDocument, SceneViewer } from './scene';
 import type { SceneProject, SceneSnapshot } from './sceneProject';
+import { MAX_FOOT_LOCKS, type FootLock } from '../../../packages/core/src/footLocks';
 
 export const SCENE_BACKUP_LIMITS = {
   headerBytes: 32 * 1024 * 1024,
@@ -115,7 +116,7 @@ function validateTake(value: unknown, map: CountMap, context: ValidationContext)
   return { id: text(object.id, '动作 ID'), schemaVersion: 'preview-1', planId: text(object.planId, '动作编排 ID'), countMapId: map.id, durationSeconds: duration, times, poses, provenance: 'synthetic-demo' };
 }
 function validateManual(value: unknown, map: CountMap, take: BakedTake, context: ValidationContext): KeyframeSequence {
-  const object = record(value, ['schema', 'id', 'fps', 'baseTake', 'rotations', 'root'], [], '手 K 序列', context);
+  const object = record(value, ['schema', 'id', 'fps', 'baseTake', 'rotations', 'root'], ['footLocks'], '手 K 序列', context);
   if (object.schema !== 'manual-keyframes-1' || object.fps !== 30) fail('手 K 版本或帧率无效。');
   const baseTake = validateTake(object.baseTake, map, context);
   if (baseTake.planId !== take.planId) fail('手 K 基底与动作编排绑定不同。');
@@ -132,10 +133,20 @@ function validateManual(value: unknown, map: CountMap, take: BakedTake, context:
     if (position.some((component, axis) => component < limits[axis][0] || component > limits[axis][1])) fail('Root 关键帧超出编辑边界。');
     return { frame: finite(key.frame, '关键帧索引'), position };
   });
-  const sequence: KeyframeSequence = { schema: 'manual-keyframes-1', id: text(object.id, '手 K 序列 ID'), fps: 30, baseTake, rotations, root };
+  const finalFrame = Math.ceil(map.durationSeconds * 30);
+  const footLocks: FootLock[] | undefined = object.footLocks === undefined ? undefined : array(object.footLocks, 0, MAX_FOOT_LOCKS, '脚锁').map(value => {
+    const lock = record(value, ['schema', 'id', 'foot', 'startFrame', 'endFrame', 'target', 'rotation', 'blendFrames'], [], '脚锁', context);
+    if (lock.schema !== 'foot-lock-1') fail('脚锁版本不受支持。');
+    return {
+      schema: 'foot-lock-1', id: text(lock.id, '脚锁 ID', 160), foot: enumValue(lock.foot, ['LeftFoot', 'RightFoot'] as const, '脚锁脚部'),
+      startFrame: integer(lock.startFrame, 0, finalFrame, '脚锁开始帧'), endFrame: integer(lock.endFrame, 0, finalFrame, '脚锁结束帧'),
+      target: vector(lock.target, 3, '脚锁世界锚点'), rotation: vector(lock.rotation, 4, '脚锁世界旋转'), blendFrames: integer(lock.blendFrames, 0, 15, '脚锁过渡帧'),
+    };
+  });
+  const sequence: KeyframeSequence = { schema: 'manual-keyframes-1', id: text(object.id, '手 K 序列 ID'), fps: 30, baseTake, rotations, root, ...(footLocks !== undefined ? { footLocks } : {}) };
   let expected: BakedTake;
   try { getKeyframeCount(sequence); expected = bakeKeyframeSequence(sequence); }
-  catch { fail('手 K 轨道、帧索引或采样资源无效。'); }
+  catch { fail('手 K 轨道、脚锁、帧索引或采样资源无效。'); }
   if (take.times.length !== expected!.times.length || take.times.some((time, index) => time !== expected!.times[index])) fail('手 K 动作没有保留基底与关键帧的完整采样时间。');
   take.poses.forEach((pose, index) => {
     const reference = expected!.poses[index];
@@ -205,7 +216,7 @@ function validateViewer(value: unknown, project: SceneProject, context: Validati
     ...(object.axesVisible !== undefined ? { axesVisible: boolean(object.axesVisible, '坐标轴') } : {}),
     ...(object.rigMode !== undefined ? { rigMode: enumValue(object.rigMode, ['skeleton', 'body'] as const, '角色显示') } : {}),
     ...(object.editorMode !== undefined ? { editorMode: enumValue(object.editorMode, ['arrange', 'keyframes'] as const, '编辑模式') } : {}),
-    ...(object.transformTool !== undefined ? { transformTool: enumValue(object.transformTool, ['select', 'rotate', 'translate'] as const, '操作工具') } : {}),
+    ...(object.transformTool !== undefined ? { transformTool: enumValue(object.transformTool, ['select', 'rotate', 'translate', 'ik'] as const, '操作工具') } : {}),
   };
 }
 function validateScene(value: unknown, context: ValidationContext): SceneDocument<SceneProject> {
