@@ -1,6 +1,6 @@
 # 预览验证记录
 
-## Version 16 · 平地自动迈步（最终本地验收通过，待发布）
+## Version 16 · 平地自动迈步（已上线，准确源码CI通过）
 
 范围是作者Root路径的平地左右／前后交替步，保留稀疏K、baseTake、脚锁、上半身、区间外和CountMap；作者K优先、三帧淡出、Root XZ准确与派生Y≤4厘米。修正后受限IK／适用性预检覆盖整数帧和所有原作者Take精确时刻，包括fade，不round或按frame去重丢原knot；仍不宣称交叉步、转脚、跳跃、主动平衡或完整连续力学。
 
@@ -16,7 +16,15 @@
 
 最终UI将采用／关闭和预览合并同一模块；必要相关**3／3**于14:50:34.360Z开始，50.677040秒、unexpected／skipped／flaky及报告errors0，3份实际error／warning／API诊断0。最终收据窗口14:50:33.549181Z至14:51:25.067609Z，42个选定runtime／spec／manifest／GLB／gzip哈希全部相等；该42不含rigJSON，其与其它3数字资产由根代理独立4资产清单核对不变。报告SHA256 `5fafcdc5d7f17e51d4b41a79f5ada3b785c9beab26cfbf1cb611cfba37f9dbe3`，最终收据SHA256 `29dd9c66f0d257afde30f883b335f4e582762b834800842b19ff2913866e4cf7`，早先较松窗口不作最终依据。根代理又亲审本轮左支撑预览／右支撑采用／390px／异常中间K四张，MHR头脚全体和连续皮肤无明显破碎，采用／关闭在同模块；异常膝原值保留只作作者契约压力证据。左右支撑正常图可用于本轮Notion原生图库，尚未上传。相关流程覆盖明确采用与关闭、原K重算、取消／Undo／重开和完整备份、过快／锁冲突无可用候选；这些结果不替代完整准确源码CI。离散联合预检仍不是连续动力学证明。
 
-准确源码CI、main、Cloudflare、有界HTTP／线上浏览器和5份Notion终态待回填；v15的380＋89和14压力姿态不替代新步态。真实Workers AI／付费请求0；MHR本地修正实际计算，GLB／descriptor／原PSD／gzip字节不变。根代理须亲审最终步伐／作者K及播放图后冻结，不把测试交回用户。
+### v16实际发布、首CI失败与测试限定修正
+
+运行源码[fb7188ac](https://github.com/DFerryman/ChoreographyStudio/commit/fb7188ac99b272a9d583e4fefae54b4933904db2)／tree `e9465b73815ac8310c080a1e2de1f07d7dc8e28b`已main；普通官方CLI唯一运行上传于15:00:45.097471–15:00:56.866549Z成功，4新／13复用资产，rawPSD排除、gzip复用未重传。Cloudflare v16 `3be3c456-b824-4b67-9b21-bff8dd0271d0`／100%，首次deployment `5dd829ab-cf9d-4d61-85dc-a1cf820bfb1d`／15:00:54.629801Z。HTTP19／19（17静态＋health／cap2）于15:02:09.940367–15:02:12.570590Z完成；唯一公网7／7 FIRSTPASS于15:02:28.967Z开始，96.356428秒／15:04:05.356775Z结束，6实际JSON的errors／warnings／API0、第7迟到绑定严格断言0，不虚造第7份diagnostic。线上receipt SHA256 `97f07705e66a96ade50e4e15eed5cada2ab30fd9ac383e9980d068e729123bf6`。根代理亲审公网左支撑／390px／实际旋转环150°写K三图，后者保留肩部配合提醒，是作者／皮肤压力证据，不证明正常舞步全身可行。
+
+准确fb7188初轮[CI37797090763](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37797090763)／job113379269228／attempt1失败：410／411，新增完整备份历史用例默认5000毫秒超时、实际5090毫秒，未运行Worker／browser阶段。完整日志34877字节／SHA256 `3fbdb1c85d62cee56f3fb852325e22e24bd9e0eaf34464fabf7ad3dcbff8b797`保留；只为该有界历史用例设置15秒timeout和注释，断言／fixture逐字未改，相关单项1／1实际2141.559毫秒通过。测试限定[e26813f3](https://github.com/DFerryman/ChoreographyStudio/commit/e26813f35fd9dd4e26ce15ffc3a32f5623726c4c)／tree `e680afd1463c86e18f49feb0de7e7295dcb36cf9`于15:09:19.048214Z native读回，除该test的全部git blobs／dist20相同，等价收据SHA256 `b2f6fa2cdfc1f01b7a93e92168d9ace9c2e8311f37890d81c8ac90464b6719f1`。复用已验fb运行版／HTTP19／公网7，无新上传／公开浏览器复跑。
+
+准确[e268 CI37798386400](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37798386400)／job113383745739／attempt1／main push已实际completed／success：**411／411基础（21文件）＋92／92浏览器（21文件）**，92逐例通过，失败／未通过标记0。Job15:09:23–15:30:08Z共1245秒，首次读回15:30:26.531740Z；browser15:15:37.087–15:30:05.997Z、终行14.5m，原备份历史用例此次2466毫秒。完整日志67998字节／SHA256 `751104b1125e4ed9f3254b8c6cc9a57f717c976c4c360b79368266813b22b594`，准确CI收据SHA256 `42fe065e08d8f49052dcbcee8b0a091c33203736b88a5e4b17b532d7b4f418b6`；不是首CI全绿，未手动workflow rerun。
+
+最终仅10MD main通过同一v16／100%部署注释关联，不重传运行版或重复公网；实际最终SHA／annotation metadata由发布收据及5份Notion正文读回核对，避免为写自身SHA再提交文档。v15的380＋89及14压力图不替代本轮证据。可选两张新步伐截图上传被自动审批拒绝，原因涉及图片外发授权／目标信任及凭据文件；进程尚未执行，实际POST0、凭据文件0、第二prepare0，无重试／绕换工具。新图只本地亲审，原4张Notion原生图保留，不声称6图；授权的正文同步继续完成。真实Workers AI／付费请求0，MHR本地修正实际计算，数字资产不变。
 
 日期：2026-10-06 至 2026-10-08。对象为当前仓库的原创合成预览，不是原工程包 2.1.0、真实动作或教学发布验收。
 

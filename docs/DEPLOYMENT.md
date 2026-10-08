@@ -1,10 +1,14 @@
 # Cloudflare 预览部署
 
-## v16 · 平地自动迈步（尚未发布）
+## v16 · 平地自动迈步（已上线，准确源码CI通过）
 
-运行改动是平地步伐派生层、同模块折叠预览／采用／关闭入口和可选备份字段；预检纳入原非均匀时刻，不仅整数帧。MHR GLB／descriptor／原PSD／gzip／assetsignore字节与绑定不改；模型README仅纠正Fetch可能已解码的实际说明及未证实upload尺寸因果。Worker AI／限频／只读API范围不扩大，真实Workers AI／付费测试0。最终本地411基础、前端／Worker类型／构建及相关3浏览器通过、42运行相关hash前后稳定，根代理亲审本轮四张；远端仍待核验。新主JS`index-jecJey3z.js`1127945字节／SHA256 `a3d82d25cf786cb65f19bb40feae17fd6e57287fd5f1fce97259a4f6421d99c6`，CSS63251字节／SHA `ba41e19f29da5255caa74edd5523fd67e98f12ef2038e7b1d5506da08463b375`，不把构建hash当设备性能证明。
+运行改动是平地步伐派生层、同模块折叠预览／采用／关闭和可选备份字段，预检原精确时刻／整数点／fade。MHR数字资产／绑定不改，模型README仅纠正实际传输和未证实upload尺寸因果，Worker／限频／只读API范围不扩大，真实Workers AI／付费请求0。最终本地411、类型／构建、相关3及准确CI411＋92已通过，42相关hash稳定，根代理亲审4最终本地图／3公网图。主JS`index-jecJey3z.js`1127945字节／SHA256 `a3d82d25cf786cb65f19bb40feae17fd6e57287fd5f1fce97259a4f6421d99c6`，CSS63251字节／`ba41e19f29da5255caa74edd5523fd67e98f12ef2038e7b1d5506da08463b375`，不当设备性能证明。
 
-已发布基线仍是最终main `c1abd97889c7921b8b697c3cd83e3a995e2b7dca`、运行／CI源码`a9b753cd11ad0ac303e81ae53e77b9e136e2ed27`及Cloudflare v15 `ca7396ed-a8b1-4db6-a29d-149cbfdbcd59`／100%，以下保留完整回执。本轮须根代理亲审截图后冻结，推main核对准确CI，发布匹配版并做有界HTTP／相关公网与绑定读回；最终仅文档main用同版部署注释关联，避免再次上传或重复公网。实际v16 head／tree／CI／Cloudflare版本及Notion结果产生前不预填成功。
+运行[source fb7188ac](https://github.com/DFerryman/ChoreographyStudio/commit/fb7188ac99b272a9d583e4fefae54b4933904db2)／tree `e9465b73815ac8310c080a1e2de1f07d7dc8e28b`已main；普通官方CLI于15:00:45.097471–15:00:56.866549Z唯一运行上传成功，4新／13复用，gzip未重传／rawPSD排除。当前Cloudflare v16 `3be3c456-b824-4b67-9b21-bff8dd0271d0`／100%，首次deployment `5dd829ab-cf9d-4d61-85dc-a1cf820bfb1d`于15:00:54.629801Z，HTTP19／19及单轮公网7／7通过；6份实际零诊断JSON＋一个迟到绑定严格断言，不虚增文件。具体时间／hash见[验证](VERIFICATION.md)。
+
+首准确CI37797090763／job113379269228为410／411单项5000毫秒超时失败，未到Worker／browser；仅该有界测试15秒超时修正的[e26813f3](https://github.com/DFerryman/ChoreographyStudio/commit/e26813f35fd9dd4e26ce15ffc3a32f5623726c4c)／tree `e680afd1463c86e18f49feb0de7e7295dcb36cf9`于15:09:19.048214Z native读回，断言／fixture及其余git blobs／dist20逐字相同。其准确[CI37798386400](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37798386400)／job113383745739／attempt1／main push于15:30:08Z completed／success，实际411基础＋92浏览器（各21文件）、0失败／未通过；原始67998字节日志SHA256 `751104b1125e4ed9f3254b8c6cc9a57f717c976c4c360b79368266813b22b594`，无手动workflow rerun。
+
+最终仅10MD main通过已验证v16／100%同版deployment注释关联；实际最终main及annotation metadata在发布收据／5Notion核对，不为填自身SHA循环提交。运行版／17资产／HTTP19／公网7复用，无新运行上传或公网复跑；原v15最终c1abd978／运行a9b753及完整旧回执以下为历史。
 
 ## v15 · 全身蒙皮与人体提示已上线（准确源码CI通过）
 

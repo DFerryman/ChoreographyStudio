@@ -1,6 +1,6 @@
 # Third-party software notices
 
-## v16 flat-ground step assistance · locally verified, release pending
+## v16 flat-ground step assistance · deployed and exact-source CI verified
 
 The procedural step planner is original application code and uses the existing
 fixed rig, built-in human profile and constrained Three.js IK path. It adds no

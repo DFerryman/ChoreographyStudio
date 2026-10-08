@@ -1,10 +1,10 @@
 # 八拍 · Choreo Studio
 
-## v16 · 平地自动迈步（本地验收通过，待发布）
+## v16 · 平地自动迈步（已上线，准确源码CI通过）
 
 本轮优先解决“人物移到目的地后，还要逐脚手 K”的负担：沿已有手动Root路径，自动安排左右侧步及前后交替迈步。入口在“真实约束”展开区，一键“预览步伐”，确认后“采用步伐”；保存派生参数，不替换原稀疏K、基础动作或脚锁，采用和移除可撤销。老师后来补一帧或改K，辅助会重新求值；作者帧仍最高优先，异常姿态、转向、腾空、过快或手动脚锁冲突的区间保留原动作并报告。
 
-肩带协同、自然受限过渡／拖K曲线、复杂接触／主动平衡、真实动作与教师／设备验证、教学MP4和账号云同步仍待完成，详见[当前路线](docs/ROADMAP.md)。修正非均匀时刻漏检后，本地411基础、前端／Worker类型／构建及最终相关3浏览器已通过，开发方亲审实际迈步／K／手机图；main、Cloudflare和准确CI尚待实证，见[验证](docs/VERIFICATION.md)、[部署](docs/DEPLOYMENT.md)。以下v15及以前保留历史，不代替v16证据；真实Workers AI／付费编舞调用保持0。
+肩带协同、自然受限过渡／拖K曲线、复杂接触／主动平衡、真实动作与教师／设备验证、教学MP4和账号云同步仍待完成，详见[当前路线](docs/ROADMAP.md)。运行[source fb7188ac](https://github.com/DFerryman/ChoreographyStudio/commit/fb7188ac99b272a9d583e4fefae54b4933904db2)已上线Cloudflare v16／100%；测试限定超时修正的[e26813f3](https://github.com/DFerryman/ChoreographyStudio/commit/e26813f35fd9dd4e26ce15ffc3a32f5623726c4c)准确CI实际通过**411基础＋完整92浏览器**，相关本地3、HTTP19与单轮公网7亦通过，首CI超时和实际缺陷／修正保留。最终文档main由同版部署注释关联，无重复运行上传／公网核验，见[验证](docs/VERIFICATION.md)、[部署](docs/DEPLOYMENT.md)。以下v15以前为历史，真实Workers AI／付费请求0。
 
 ## v15 · 全身蒙皮与人体提示（已上线验证，准确源码CI通过）
 
