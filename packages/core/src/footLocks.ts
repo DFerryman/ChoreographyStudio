@@ -2,7 +2,7 @@ import { Quaternion, Vector3 } from 'three';
 import { clonePose, evaluatePose } from './humanoid';
 import { solveLimbIK } from './ik';
 import { constrainJointRotation } from './jointConstraints';
-import type { Pose, Quat, Vec3 } from './motion-types';
+import { JOINT_NAMES, type JointName, type Pose, type Quat, type Vec3 } from './motion-types';
 
 export type LockedFoot = 'LeftFoot' | 'RightFoot';
 /** World-space ankle anchor and sole orientation, never a joint-center floor proxy. */
@@ -58,13 +58,28 @@ export type FootLockResult = {
   residuals: { id: string; foot: LockedFoot; residual: number; orientationResidual: number; weight: number; reached: boolean }[];
 };
 
+/** Per-channel author authority: 0 permits assistance, 1 preserves the input. */
+export type FootLockProtection = { root?: number; joints?: Partial<Record<JointName, number>> };
+
+function validateProtection(protection: FootLockProtection): void {
+  const validWeight = (weight: number | undefined) => weight === undefined || typeof weight === 'number' && Number.isFinite(weight) && weight >= 0 && weight <= 1;
+  if (!protection || typeof protection !== 'object' || Array.isArray(protection) || !validWeight(protection.root)) throw new Error('作者关键帧保护强度必须在 0 至 1 之间。');
+  if (protection.joints !== undefined) {
+    if (!protection.joints || typeof protection.joints !== 'object' || Array.isArray(protection.joints)) throw new Error('作者关节保护无效。');
+    for (const [joint, weight] of Object.entries(protection.joints)) if (!JOINT_NAMES.includes(joint as JointName) || !validWeight(weight)) throw new Error('作者关节或关键帧保护强度无效。');
+  }
+}
+
 /**
  * Explicit support constraints only: lower Root Y if a anchored foot would be
  * beyond the fixed leg reach. Independent IK never moves Root. Impossible
  * horizontal reach or ankle orientation is reported rather than stretching.
+ * Author channels take precedence over automatic support corrections. Partial
+ * protection fades corrections without projecting an authored rotation again.
  */
-export function applyFootLocks(pose: Pose, locks: readonly FootLock[], frame: number, durationSeconds: number): FootLockResult {
+export function applyFootLocks(pose: Pose, locks: readonly FootLock[], frame: number, durationSeconds: number, protection: FootLockProtection = {}): FootLockResult {
   validateFootLocks(locks, durationSeconds);
+  validateProtection(protection);
   if (!Number.isFinite(frame) || frame < 0 || frame > Math.ceil(durationSeconds * 30)) throw new Error('脚锁求值帧超出范围。');
   const finalFrame = Math.ceil(durationSeconds * 30);
   const active = locks.map(lock => ({ lock, weight: footLockWeight(lock, frame, finalFrame) })).filter(item => item.weight > 0);
@@ -77,18 +92,28 @@ export function applyFootLocks(pose: Pose, locks: readonly FootLock[], frame: nu
     const reach = 0.46 + 0.45;
     if (horizontal < reach && origin[1] > lock.target[1]) {
       const maxY = lock.target[1] + Math.sqrt(reach * reach - horizontal * horizontal) - (origin[1] - result.root[1]);
-      rootY = Math.min(rootY, result.root[1] + weight * (Math.max(0, maxY) - result.root[1]));
+      rootY = Math.min(rootY, result.root[1] + weight * (1 - (protection.root ?? 0)) * (Math.max(0, maxY) - result.root[1]));
     }
   }
   result.root[1] = rootY;
-  const residuals: FootLockResult['residuals'] = [];
   for (const { lock, weight } of active) {
     const solved = solveLimbIK(result, lock.foot, lock.target, { preserveEndRotation: lock.rotation });
-    for (const joint of solved.changedJoints) result.joints[joint] = constrainJointRotation(joint, new Quaternion(...result.joints[joint]).slerp(new Quaternion(...solved.pose.joints[joint]), weight).normalize().toArray() as Quat);
-    const endpoint = evaluatePose(result)[lock.foot];
+    for (const joint of solved.changedJoints) {
+      const authorWeight = protection.joints?.[joint] ?? 0;
+      if (authorWeight === 1) continue;
+      const blended = new Quaternion(...result.joints[joint]).slerp(new Quaternion(...solved.pose.joints[joint]), weight * (1 - authorWeight)).normalize().toArray() as Quat;
+      // The automatic target is constrained by solveLimbIK. Re-projecting this
+      // blend would abruptly erase a protected out-of-envelope author value.
+      result.joints[joint] = authorWeight > 0 ? blended : constrainJointRotation(joint, blended);
+    }
+  }
+  // Report the actual final pose after all feet and protected channels settle.
+  const finalWorld = evaluatePose(result);
+  const residuals: FootLockResult['residuals'] = active.map(({ lock, weight }) => {
+    const endpoint = finalWorld[lock.foot];
     const residual = new Vector3(...endpoint.position).distanceTo(new Vector3(...lock.target));
     const orientationResidual = new Quaternion(...endpoint.rotation).angleTo(new Quaternion(...lock.rotation));
-    residuals.push({ id: lock.id, foot: lock.foot, residual, orientationResidual, weight, reached: residual <= 0.005 && orientationResidual <= Math.PI / 180 * 2 });
-  }
+    return { id: lock.id, foot: lock.foot, residual, orientationResidual, weight, reached: residual <= 0.005 && orientationResidual <= Math.PI / 180 * 2 };
+  });
   return { pose: result, adjustedRoot: Math.abs(rootY - pose.root[1]) > 1e-10, residuals };
 }

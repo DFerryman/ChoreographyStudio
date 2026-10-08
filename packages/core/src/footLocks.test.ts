@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { JOINT_NAMES, type BakedTake, type Pose } from './motion-types';
 import { evaluatePose } from './humanoid';
 import { applyFootLocks, captureFootLock, footLockWeight, MAX_FOOT_LOCKS, validateFootLocks } from './footLocks';
-import { addFootLock, bakeKeyframeSequence, frameTime, getKeyframeCount, lastFrame, makeKeyframeSequence, removeFootLock, removePoseKeyframe, rotationFromDegrees, setPoseKeyframe, transferKeyframes, upsertRootKeyframe, upsertRotationKeyframe } from './keyframes';
+import { addFootLock, bakeKeyframeSequence, frameTime, getKeyframeCount, getKeyframeProtection, lastFrame, makeKeyframeSequence, removeFootLock, removePoseKeyframe, rotationFromDegrees, setPoseKeyframe, transferKeyframes, upsertRootKeyframe, upsertRotationKeyframe } from './keyframes';
 import { isJointRotationWithinLimits } from './jointConstraints';
 
 const neutral = (): Pose => ({ root: [0, 1.05, 0], joints: Object.fromEntries(JOINT_NAMES.map(name => [name, [0, 0, 0, 1]])) as Pose['joints'] });
@@ -105,7 +105,14 @@ describe('bounded authoritative contact baking and save equivalence', () => {
     expect(baked.times.at(-1)).toBe(1.02); expect(baked.planId).toBe(base.planId); expect(baked.countMapId).toBe(base.countMapId);
     for (const time of base.times) expect(baked.times).toContain(time);
     for (let frame = 0; frame <= end; frame++) expect(baked.times).toContain(frameTime(frame, 1.02));
-    for (const pose of baked.poses) for (const lock of sequence.footLocks!) expect(distance(evaluatePose(pose)[lock.foot].position, lock.target)).toBeLessThan(0.005);
+    for (const [index, pose] of baked.poses.entries()) {
+      const frame = baked.times[index] === base.durationSeconds ? end : baked.times[index] * 30;
+      // Contact assistance remains effective away from author Root anchors.
+      if (!getKeyframeProtection(sequence, frame).root) for (const lock of sequence.footLocks!) expect(distance(evaluatePose(pose)[lock.foot].position, lock.target)).toBeLessThan(0.005);
+    }
+    // At the final author K, support cannot silently lower its specified Root.
+    expect(baked.poses.at(-1)!.root).toEqual([0.15, 1.05, 0]);
+    for (const lock of sequence.footLocks!) expect(distance(evaluatePose(baked.poses.at(-1)!)[lock.foot].position, lock.target)).toBeGreaterThan(0.005);
     const restored = JSON.parse(JSON.stringify(sequence));
     const second = bakeKeyframeSequence(restored);
     expect(second.times).toEqual(baked.times); expect(second.poses).toEqual(baked.poses); expect(second.id).not.toBe(baked.id);

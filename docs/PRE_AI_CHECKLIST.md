@@ -1,6 +1,14 @@
 # 本机工作台清单：AI 接入前基线与 v12 扩展
 
-2026-10-08 最新授权已从 v11 的“AI 暂缓”更新为：接入 Workers AI、手脚 IK、脚锁与重力辅助，并内置标准中性人体的分段质量、质心、惯量、摩擦和有限驱动；使用者不手填物理参数。开发与上线验证不得执行真实推理产生 AI 用量。v12 代码已实现，新增范围正在验证与发布；下述 v10/v11 是历史基线。原工程 ZIP 与生产契约仍独立保留，不阻塞本机功能。规则见 [手动编辑器](MANUAL_EDITOR.md)，实际结果见 [验证](VERIFICATION.md)/[部署](DEPLOYMENT.md)，不能以历史检查替代本轮证据。
+## v13 · 作者关键帧最高权威（本轮追加，验证中）
+
+用户明确自动插帧/迈步必须服从编舞师新增或更新的中间K，即使普通人体无法完成。明确作者轨道值与手动草稿意图优先于自动脚锁，完整姿态K保护Root与19个可编辑旋转，单轨K保护该通道；未写通道仍可辅助。作者K附近三帧平滑减弱自动修正，冲突展示最终实际残差，不靠改K消除提示。新增/更新/删除/移动K后重新计算相关过渡。
+
+复用现有数值输入允许有限各轴±180°创作姿态，标准滑条/旋转环/IK保持人体建议；K与姿态粘贴不再次裁剪作者旋转，不新增按钮。独立AI/重力整段候选仍需主动请求、明确采用与替换说明，原稿可撤销；不是后台补间。自动迈步仍未实现，后续必须遵守作者优先。本项源码/检查/main/Cloudflare回执待实证完成；下方306+76仅是此前v12已验证基线。
+
+本轮运行源码 [82b593d4](https://github.com/DFerryman/ChoreographyStudio/commit/82b593d483e875cb67d14975527bf5265eab3090) 与仅测试修正 [bd59b4bc](https://github.com/DFerryman/ChoreographyStudio/commit/bd59b4bc5cf189423fed29cf96349e81c7b79e6f) 已 push main；Cloudflare v12 `959cccfa-4deb-4e09-a064-ff840c881828` 实际100%。修正源码 [CI run37740462981](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37740462981)、job113189737231、attempt1，于 `2026-10-08T07:13:24Z` completed/success，实际306基础 + 完整76浏览器通过，无 workflow rerun。单轮线上9/9及有界12 HTTP通过，真实AI推理0；首轮CI75/76、异步文本trace、定向修正与运行版本对应证据保留在验证/部署记录。
+
+2026-10-08 最新授权已从 v11 的“AI 暂缓”更新为：接入 Workers AI、手脚 IK、脚锁与重力辅助，并内置标准中性人体的分段质量、质心、惯量、摩擦和有限驱动；使用者不手填物理参数。开发与上线验证不得执行真实推理产生 AI 用量。v12代码及新增范围已验证发布；下述 v10/v11 是历史基线。原工程 ZIP 与生产契约仍独立保留，不阻塞本机功能。规则见 [手动编辑器](MANUAL_EDITOR.md)，实际结果见 [验证](VERIFICATION.md)/[部署](DEPLOYMENT.md)，不能以历史检查替代本轮证据。
 
 此清单跟踪可独立完成的本机编辑闭环。v10 已交付下述限定 AI 接入前工作，其历史证据继续保留：107 项基础检查、最终构建/Worker 类型与 dry run、8 个不同本地范围经首轮/手机定向复核及缺音乐恢复单项、单轮线上 8 项与 5 HTTP 全部通过。10 份本地相关诊断与 8 份公网诊断的 errors/warnings/业务 API 请求均为零。[运行源码](https://github.com/DFerryman/ChoreographyStudio/commit/9fbc115f12d2580ff76b7cf5354fa581081579d8)已 push 并部署 Cloudflare v10；[仅测试修正提交](https://github.com/DFerryman/ChoreographyStudio/commit/1719439d993cd893f19c771f90c2cf902ef46886)的[实际 CI 37636175196](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37636175196)于 2026-10-07T14:29:27Z completed/success，107 基础检查及完整 38 浏览器流程通过。原 CI 37633679536 的 107 + 37/38 失败、旧画布坐标 trace/本地复现与定向修正通过保留；运行模块未变，复用有效公网和部署证据。首次隐藏状态脚本断言、零匹配 grep、测试前沙箱启动失败与恢复也保留。实际结果和最终文档提交/同版同步由 [VERIFICATION.md](VERIFICATION.md) / [DEPLOYMENT.md](DEPLOYMENT.md) 追踪，原生产门槛继续列在后文。
 
@@ -38,7 +46,7 @@
 
 ## 当前 v12 真实约束与 AI 接入
 
-[REALISM_PLAN.md](REALISM_PLAN.md) 的混合方案已进入实现；v12 待本轮新增检查、main 发布和匹配 Cloudflare 收据完成后才能记为已交付。
+[REALISM_PLAN.md](REALISM_PLAN.md) 的混合方案已完成本轮预览编辑范围的检查、main发布和匹配Cloudflare部署；下方限制保留。
 
 | 新增范围 | 已实现行为 | 验证口径与实际限制 |
 | --- | --- | --- |

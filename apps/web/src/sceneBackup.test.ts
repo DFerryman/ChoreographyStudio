@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { bakeKeyframeSequence, JOINT_NAMES, makeCountMap, makeKeyframeSequence, makePlan, rotationFromDegrees, upsertRootKeyframe, upsertRotationKeyframe, type BakedTake, type Pose } from '../../../packages/core/src';
+import { bakeKeyframeSequence, bakeLegacyKeyframeSequence, JOINT_NAMES, makeCountMap, makeKeyframeSequence, makePlan, rotationFromDegrees, upsertRootKeyframe, upsertRotationKeyframe, type BakedTake, type Pose } from '../../../packages/core/src';
 import { createScene, type SceneDocument } from './scene';
 import { decodeSceneBackup, encodeSceneBackup, SCENE_BACKUP_LIMITS } from './sceneBackup';
 import type { SceneProject } from './sceneProject';
@@ -62,6 +62,40 @@ function lockedFixture() {
 }
 
 describe('complete local scene backup', () => {
+  it('preserves old contact authority and earlier histories through strict full-bundle and JSON validation', async () => {
+    const source = lockedFixture(), active = source.project.history[2];
+    delete active.manual!.authorKeyPriority;
+    active.take = bakeLegacyKeyframeSequence(active.manual!);
+    const original = structuredClone(source.project);
+    expect(active.take.poses).not.toEqual(bakeKeyframeSequence(active.manual!).poses);
+    for (const file of [legacy(source), await encodeSceneBackup(source)]) {
+      const imported = await decodeSceneBackup(file);
+      expect(imported.scene.project).toEqual({ ...original, teacherCheckedRevision: null });
+      expect(imported.scene.project.history[2].manual).not.toHaveProperty('authorKeyPriority');
+    }
+  });
+
+  it('rejects an old contact output claimed as author-priority and rejects unknown evaluation versions', async () => {
+    const source = lockedFixture(), active = source.project.history[2];
+    delete active.manual!.authorKeyPriority;
+    active.take = bakeLegacyKeyframeSequence(active.manual!);
+    active.manual!.authorKeyPriority = 'author-key-priority-1';
+    await expect(decodeSceneBackup(legacy(source))).rejects.toThrow(/手 K/);
+    const valid = lockedFixture();
+    await expect(decodeSceneBackup(legacy(valid, data => { data.scene.project.history[2].manual.authorKeyPriority = 'unknown-version'; }))).rejects.toThrow(/作者关键帧/);
+  });
+
+  it('rejects a hybrid take rather than matching new and legacy evaluators pose by pose', async () => {
+    const source = lockedFixture(), active = source.project.history[2];
+    delete active.manual!.authorKeyPriority;
+    const authored = bakeKeyframeSequence(active.manual!), old = bakeLegacyKeyframeSequence(active.manual!);
+    const conflicts = old.poses.map((pose, index) => JSON.stringify(pose) !== JSON.stringify(authored.poses[index]) ? index : -1).filter(index => index >= 0);
+    expect(conflicts.length).toBeGreaterThan(1);
+    active.take = old;
+    active.take.poses[conflicts[0]] = structuredClone(authored.poses[conflicts[0]]);
+    await expect(decodeSceneBackup(legacy(source))).rejects.toThrow(/手 K/);
+  });
+
   it('roundtrips versioned foot contacts and their exact authority in full bundles and JSON without rewriting earlier history', async () => {
     const source = lockedFixture(), project = structuredClone(source.project);
     for (const file of [legacy(source), await encodeSceneBackup(source)]) {

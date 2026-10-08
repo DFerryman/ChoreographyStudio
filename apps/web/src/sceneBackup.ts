@@ -1,4 +1,4 @@
-import { ACTIONS, bakeKeyframeSequence, EDITABLE_JOINT_NAMES, getKeyframeCount, JOINT_NAMES, makeCountMap, MAX_KEYFRAME_COUNT, MAX_TAKE_SAMPLES, ROOT_TRANSLATION_LIMITS, type ArrangementPlan, type BakedTake, type CountMap, type JointName, type KeyframeSequence, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
+import { ACTIONS, bakeKeyframeSequence, bakeLegacyKeyframeSequence, EDITABLE_JOINT_NAMES, getKeyframeCount, JOINT_NAMES, makeCountMap, MAX_KEYFRAME_COUNT, MAX_TAKE_SAMPLES, ROOT_TRANSLATION_LIMITS, type ArrangementPlan, type BakedTake, type CountMap, type JointName, type KeyframeSequence, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
 import type { SceneDocument, SceneViewer } from './scene';
 import type { SceneProject, SceneSnapshot } from './sceneProject';
 import { MAX_FOOT_LOCKS, type FootLock } from '../../../packages/core/src/footLocks';
@@ -116,7 +116,7 @@ function validateTake(value: unknown, map: CountMap, context: ValidationContext)
   return { id: text(object.id, '动作 ID'), schemaVersion: 'preview-1', planId: text(object.planId, '动作编排 ID'), countMapId: map.id, durationSeconds: duration, times, poses, provenance: 'synthetic-demo' };
 }
 function validateManual(value: unknown, map: CountMap, take: BakedTake, context: ValidationContext): KeyframeSequence {
-  const object = record(value, ['schema', 'id', 'fps', 'baseTake', 'rotations', 'root'], ['footLocks'], '手 K 序列', context);
+  const object = record(value, ['schema', 'id', 'fps', 'baseTake', 'rotations', 'root'], ['footLocks', 'authorKeyPriority'], '手 K 序列', context);
   if (object.schema !== 'manual-keyframes-1' || object.fps !== 30) fail('手 K 版本或帧率无效。');
   const baseTake = validateTake(object.baseTake, map, context);
   if (baseTake.planId !== take.planId) fail('手 K 基底与动作编排绑定不同。');
@@ -143,10 +143,27 @@ function validateManual(value: unknown, map: CountMap, take: BakedTake, context:
       target: vector(lock.target, 3, '脚锁世界锚点'), rotation: vector(lock.rotation, 4, '脚锁世界旋转'), blendFrames: integer(lock.blendFrames, 0, 15, '脚锁过渡帧'),
     };
   });
-  const sequence: KeyframeSequence = { schema: 'manual-keyframes-1', id: text(object.id, '手 K 序列 ID'), fps: 30, baseTake, rotations, root, ...(footLocks !== undefined ? { footLocks } : {}) };
+  const authorKeyPriority = object.authorKeyPriority === undefined ? undefined : enumValue(object.authorKeyPriority, ['author-key-priority-1'] as const, '作者关键帧优先版本');
+  const sequence: KeyframeSequence = { schema: 'manual-keyframes-1', id: text(object.id, '手 K 序列 ID'), fps: 30, baseTake, rotations, root, ...(footLocks !== undefined ? { footLocks } : {}), ...(authorKeyPriority !== undefined ? { authorKeyPriority } : {}) };
   let expected: BakedTake;
   try { getKeyframeCount(sequence); expected = bakeKeyframeSequence(sequence); }
   catch { fail('手 K 轨道、脚锁、帧索引或采样资源无效。'); }
+  // v12 contacts could adjust even explicit K. Accept that historical output
+  // only for an unversioned old sequence, checking the entire authority against
+  // one deterministic evaluator. Never mix algorithms per pose or change a take
+  // during import. Versioned author-priority sequences have no legacy fallback.
+  const matchesAuthority = (reference: BakedTake) => take.times.length === reference.times.length && take.times.every((time, index) => time === reference.times[index]) && take.poses.every((pose, index) => {
+    const wanted = reference.poses[index];
+    return pose.root.every((component, axis) => Math.abs(component - wanted.root[axis]) <= 1e-9) && JOINT_NAMES.every(joint => {
+      const actual = pose.joints[joint], target = wanted.joints[joint];
+      const sign = actual.reduce((sum, component, axis) => sum + component * target[axis], 0) < 0 ? -1 : 1;
+      return actual.every((component, axis) => Math.abs(component - target[axis] * sign) <= 1e-8);
+    });
+  });
+  if (!matchesAuthority(expected!) && sequence.authorKeyPriority === undefined && sequence.footLocks?.length) {
+    const legacyExpected = bakeLegacyKeyframeSequence(sequence);
+    if (matchesAuthority(legacyExpected)) expected = legacyExpected;
+  }
   if (take.times.length !== expected!.times.length || take.times.some((time, index) => time !== expected!.times[index])) fail('手 K 动作没有保留基底与关键帧的完整采样时间。');
   take.poses.forEach((pose, index) => {
     const reference = expected!.poses[index];

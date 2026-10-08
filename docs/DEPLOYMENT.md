@@ -1,20 +1,52 @@
 # Cloudflare 预览部署
 
-2026-10-08：当前 version 11 已上线简洁经典手动编辑器、舞台快捷键、音频异步取消/恢复，以及原创实体人体和新编辑姿态的关节限制。161 项本地基础检查、类型/生产构建与 dry-run、20 项人体相关既有流程的首轮及连接恢复覆盖、新增限位 4 项、单轮线上 8 项和有界 5 HTTP 通过。完整远端源码 CI 结果见 [VERIFICATION.md](VERIFICATION.md)。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+2026-10-08：**当前 version 12 已上线**：舞台下方统一时间轴、CC0 连续中性人体、四肢 IK、可保存脚锁、内置人体参数、Rapier 重力候选及 Workers AI 编排接线。306项基础检查、本轮26个本地时间轴/关联浏览器流程、单轮线上9项与有界12 HTTP均通过。首次完整源码 CI 为306基础通过、75/76浏览器；一处旧测试提前读取数值文本，原trace确证正式姿态已恢复、文本稍后同步，仅补严格重试断言，定向1/1通过。修正提交 bd59b4bc 已推main，修正源码完整CI实际306基础+完整76浏览器通过（run37740462981，于2026-10-08T07:13:24Z），详见 [VERIFICATION.md](VERIFICATION.md)。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
 
-API 与发布基础设施未改变，原生限频及无 D1 边界继续沿用。编辑、约束、音频、保存与备份均在浏览器完成；AI 未接入，IK、接触、质心/重力仍在分阶段评估，见 [REALISM_PLAN.md](REALISM_PLAN.md)。历史 v10 及 S0/v5–v9 记录保留。
-
-## Version 12 发布准备
-
-本轮已完成 Workers AI 接线（只 mock 验证，真实推理0）、四肢 IK、可保存脚锁、内置中性人体参数、Rapier 重力候选、CC0 连续中性人体与舞台下方统一时间轴。306项本地基础检查、前端/Worker类型、构建与dry-run通过，时间轴26个不同浏览器流程有通过记录。最终main提交、实际Cloudflare绑定/版本、完整源码CI与有界线上核对待发布后写入下节，不能以dry-run冒充部署。
+真实 AI 推理测试为0；所有生成响应由 mock提供。Workers AI 按用户主动生成请求排列现有六种原创模板，不是任意真实舞蹈合成。IK与脚锁改善几何和接触，Rapier为可选全身动态代理候选，不代表完整肢段受力/主动平衡。真实动作、自动迈步、教师及设备验证仍是后续。保存与编辑留在本机，没有 D1写入。
 
 ## 固定交付要求
 
 用户要求每轮修改最终都提交并 push 到 `DFerryman/ChoreographyStudio`，同步部署到本 Cloudflare 预览。交付前核对远端提交、实际运行版本和预览结果，验证记录也提交；不能只留本地改动或把构建成功当作发布完成。此要求已写入根目录 `AGENTS.md`。
 
-仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署与已有健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。当前表保留 v11 功能版本首次发布记录；后续纯文档的同版同步在部署 message 中记录最终源码提交，实际 ID/时间由 Cloudflare 部署记录核对。旧记录保留在历史章节。
+仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署与已有健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。当前表保留 v12 功能版本首次发布记录，v11留在历史章节；后续纯文档的同版同步在部署 message 中记录最终源码提交，实际 ID/时间由 Cloudflare 部署记录核对。旧记录保留在历史章节。
 
-## 当前线上版本 · version 11
+## 当前线上版本 · version 12
+
+| 项目 | 实际结果 |
+| --- | --- |
+| Worker / Account | `choreo-studio-preview` / `84e421f26c708c0cf437e287eed11fa1` |
+| 功能源码 main / tree | [82b593d4](https://github.com/DFerryman/ChoreographyStudio/commit/82b593d483e875cb67d14975527bf5265eab3090) / `107fd10aa70606db90258b91ad55701c19d286f1`，本地/远端树一致 |
+| Version ID / number / 流量 | `959cccfa-4deb-4e09-a064-ff840c881828` / 12 / 100% |
+| 首次 Deployment ID / UTC | `08947d1b-4f7d-4743-961c-d580db9e25af` / `2026-10-08T06:30:49.309957Z` |
+| Version 创建 / source / tag | `2026-10-08T06:30:48.740977Z` / wrangler / `v12-timeline-realism` |
+| 发布方式 | 原生 `wrangler deploy`，恰一次上传10静态文件；Worker 23.45 KiB / gzip7.32 KiB，启动1ms（CLI测量） |
+| 实际绑定 | `AI`(type ai)、`API_RATE_LIMITER`20/60 namespace2026100601、`AI_RATE_LIMITER`2/60 namespace2026100801、真实原生`ASSETS`、`RELEASE_STAGE`；无D1/KV/R2/DO |
+| 源码 annotation | 完整82b593d4 SHA及v12范围；版本/settings/100% deployment均实际读回 |
+| 原生资产策略 | `/api/*` worker first、SPA fallback、统一nosniff/referrer/permissions headers，实际设置读回一致 |
+| 本地基础 / 源码 CI | 306 passed；首次 [run37737956864](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37737956864)准确head/attempt1，306基础+75/76浏览器。仅测试等待文本同步的 [bd59b4bc](https://github.com/DFerryman/ChoreographyStudio/commit/bd59b4bc5cf189423fed29cf96349e81c7b79e6f)已推main，定向1/1通过，[run37740462981](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37740462981)准确bd59b4bc head/attempt1，于2026-10-08T07:13:24Z completed/success，306基础+完整76浏览器；runtime不变 |
+
+### v12 有界线上核对
+
+标准浏览器UA有界HTTP于 `2026-10-08T06:31:46.171061+00:00`–`2026-10-08T06:31:48.400927+00:00` **12/12通过**：10静态文件逐字节匹配最终dist、SHA256和安全headers正确，health200/statusok，capabilities200/AI和IK配置开启且no-store。没有POST生成、推理调用、限频burst或D1写入。
+
+唯一相关线上浏览器从 `2026-10-08T06:31:52.824Z` 开始，**9/9通过**，80.879秒：两个AI mock流程、连续人体desktop/mobile与80°肩部、实际IK、脚锁/保存/完整包、Rapier候选/取消/采用撤销、390只读参数，以及桌面/390时间轴三稀疏K完整流程。8份实际JSON诊断errors/warnings为空；AI两例记录3个浏览器POST，但全被route.fulfill截获，真实网络推理为0，其他6份API请求为空。unexpected/flaky/skipped和reporterrors均0。实际审阅同一轮桌面、390时间轴和肩部截图，不另发公网截图会话。
+
+| v12 资产 | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `index.html` | 645 | `f84843fa6772a14a4888c639e29244829df7e4301acb6b1478b3ee134bfd2465` |
+| `assets/index-DLZs441A.js` | 1097508 | `ac3affe8a76504eedb3782b4738bada559557d9e51c5e155961dff3efaaeef2f` |
+| `assets/index-CEndkUVE.css` | 67039 | `d9084eda0bd1f1e9c39ce4ef8c400c689961cfe52cb116e1e8e2e6b5bde74603` |
+| `favicon.svg` | 322 | `883028cbbedddb4251346f961e58174dfe92b20d8fdd7351d7373005f4c2b6ac` |
+| `models/neutral-human.glb` | 776136 | `4b5fa085d0a6e403abee4ce022cac8041e5bca8bce130d03f28f245a29fddc9a` |
+| `models/README.md` | 4339 | `543ca6bcce03be3a62543cb0a41932b6c6fa3cda8caad25d78b0e7850e5c3057` |
+| `models/CC0.txt` | 7048 | `a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499` |
+| `third-party-licenses/three-mit.txt` | 1081 | `8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc` |
+| `third-party-licenses/rapier-apache-2.0.txt` | 11343 | `4c05555705e3efde601fb1252ae48f1d63992af8a8fb8947745b7fa834e8f519` |
+| `assets/rapier-BcnL-M2-.js` | 4335104 | `eba580e6ed6e22819a222beef8c8f10df2673fc258078aac38b328212612d6f5` |
+
+最后仅Markdown回执与持续前端准则提交时，复用已验证v12运行资产及上述单轮线上结果，以同版本100% deployment message同步最终main；版本和源码对应关系由最新实际deployment annotation核对。不重新上传运行模块/资产或再执行公网回归。
+
+## 历史线上版本 · version 11
 
 | 项目 | 实际结果 |
 | --- | --- |
@@ -30,7 +62,7 @@ API 与发布基础设施未改变，原生限频及无 D1 边界继续沿用。
 | 实际模块大小 / SHA-256 | 378822 bytes / `2d412af1988a21fc62359903228e4bad8ad877c53a60ca066f26f5d923a3487a` |
 | 实际下载 / 版本 annotation | 模块内容与生成物一致；version message 关联完整 e02b76ba SHA，tag `v11-manual-human` |
 
-## 当前 version 11 验证
+## 历史 version 11 验证
 
 最终本地 161 基础检查与构建、前端/Worker 类型和 dry-run 通过，新增约束 4/4 与既有相关 20 个流程均有通过证据。先前 58 项本地的 55+3 测试 fixture 修正、人体相关首轮 11+9 服务器断连恢复、新真实旋转环 fixture 的未跨界/错误拾取及精确 −145° 恢复全部保留在 [VERIFICATION.md](VERIFICATION.md)。首次简洁界面精确源码 a3b0b20c 的 CI run37724093326 已成功 107 + 58；最终精确人体源码 e02b76ba 的 run37727327279 于 `2026-10-08T04:37:58Z` completed/success，真实日志 161 + 完整 62 browser（12.8m），四项新增约束均成功；没有 rerun 或混用两份 CI。
 

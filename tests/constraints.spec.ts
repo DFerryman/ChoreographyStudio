@@ -139,14 +139,16 @@ async function capture(page: Page, testInfo: TestInfo, name: string) {
   if (process.env.CHOREO_SCREENSHOT_DIR) { await mkdir(process.env.CHOREO_SCREENSHOT_DIR, { recursive: true }); await page.screenshot({ path: join(process.env.CHOREO_SCREENSHOT_DIR, name), fullPage: true }); }
 }
 
-test('@constraints elbow and knee numeric/slider limits apply coupled rotations, and explicit keys survive local saving', async ({ page }) => {
+test('@constraints elbow and knee sliders keep coupled anatomical limits while numeric authoring remains explicit', async ({ page }) => {
   const source = await openFixture(page), original = await backup(page);
   for (const [joint, keyFrame, forbidden, permitted, bounds] of [
     ['LeftForeArm', 60, 70, -60, [[-145, 0], [-8, 8], [-5, 5]]],
     ['RightLowerLeg', 120, -70, 90, [[0, 145], [-4, 4], [-3, 3]]],
   ] as const) {
     await frame(page, keyFrame); await select(page, joint);
-    await numeric(page, '关节 X 旋转（度）', forbidden); expect((await angles(page))[0]).toBeCloseTo(0, 1);
+    await numeric(page, '关节 X 旋转（度）', forbidden);
+    await expect.poll(async () => (await angles(page))[0]).toBe(forbidden);
+    await expect(page.getByRole('status').filter({ hasText: '超出标准人体建议' })).toBeVisible();
     for (const [axis, limits] of ['X', 'Y', 'Z'].map((axis, index) => [axis, bounds[index]] as const)) {
       const slider = page.getByRole('slider', { name: `关节 ${axis} 滑条`, exact: true });
       await expect(slider).toHaveAttribute('min', String(limits[0])); await expect(slider).toHaveAttribute('max', String(limits[1]));
@@ -155,7 +157,12 @@ test('@constraints elbow and knee numeric/slider limits apply coupled rotations,
     await x.focus(); await x.press(joint === 'LeftForeArm' ? 'Home' : 'End');
     expectAnglesBounded(await angles(page), bounds);
     await numeric(page, '关节 X 旋转（度）', permitted);
-    await numeric(page, '关节 Y 旋转（度）', 999); await numeric(page, '关节 Z 旋转（度）', -999);
+    // Direct numbers are author intent; these physical slider gestures keep
+    // the suggested coupled anatomical projection instead.
+    await page.getByRole('slider', { name: '关节 Y 滑条', exact: true }).focus();
+    await page.getByRole('slider', { name: '关节 Y 滑条', exact: true }).press('End');
+    await page.getByRole('slider', { name: '关节 Z 滑条', exact: true }).focus();
+    await page.getByRole('slider', { name: '关节 Z 滑条', exact: true }).press('Home');
     expectAnglesBounded(await angles(page), bounds); await expect(draft(page)).toBeVisible();
     await clickRevealed(page, page.getByRole('button', { name: 'K 当前关节', exact: true, includeHidden: true }));
     const authored = current(await backup(page));
@@ -170,11 +177,11 @@ test('@constraints elbow and knee numeric/slider limits apply coupled rotations,
   for (const joint of ['LeftForeArm', 'RightLowerLeg'] as const) for (const key of current(restored).manual!.rotations[joint]!) expect(isJointRotationWithinLimits(joint, key.rotation)).toBe(true);
 });
 
-test('@constraints legacy poses keep their authority through Root-only writes; paste constrains a new draft and cancel restores the formal pose', async ({ page }) => {
+test('@constraints legacy poses keep their authority through Root-only writes and exact pose reuse; cancel restores the formal pose', async ({ page }) => {
   const source = await openFixture(page, true), original = await backup(page);
   expect(isJointRotationWithinLimits('LeftForeArm', source.take.poses[2].joints.LeftForeArm)).toBe(false);
   await frame(page, 75); await select(page, 'LeftForeArm');
-  await expect(page.getByRole('status').filter({ hasText: '此旧姿态超出当前编辑范围' })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: '超出标准人体建议' })).toBeVisible();
   expect((await angles(page))[0]).toBeCloseTo(65, 1);
   await clickRevealed(page, hiddenButton(page, '复制当前姿态'));
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
@@ -184,8 +191,8 @@ test('@constraints legacy poses keep their authority through Root-only writes; p
   expect(current(rootOnly).manual!.rotations).toEqual({}); expect(current(rootOnly).manual!.baseTake).toEqual(source.take);
   source.take.times.forEach((time, index) => expect(rootTake.poses[rootTake.times.indexOf(time)].joints).toEqual(source.take.poses[index].joints));
   await frame(page, 120); await clickRevealed(page, hiddenButton(page, '粘贴关节姿态'));
-  await expect(draft(page)).toBeVisible(); expectAnglesBounded(await angles(page), [[-145, 0], [-8, 8], [-5, 5]]);
-  await select(page, 'RightLowerLeg'); expectAnglesBounded(await angles(page), [[0, 145], [-4, 4], [-3, 3]]);
+  await expect(draft(page)).toBeVisible(); await expect.poll(() => angles(page)).toEqual([65, 18, 20]);
+  await select(page, 'RightLowerLeg'); await expect.poll(() => angles(page)).toEqual([-55, -12, -10]);
   expect((await backup(page)).scene.project).toEqual(rootOnly.scene.project);
   await frame(page, 150);
   const guard = page.getByRole('dialog', { name: '写入这份姿态草稿？', exact: true }); await expect(guard).toBeVisible();
@@ -199,7 +206,29 @@ test('@constraints legacy poses keep their authority through Root-only writes; p
   const pasted = await backup(page);
   expect(current(pasted).manual!.baseTake).toEqual(source.take);
   expect(pasted.scene.project.history.slice(0, rootOnly.scene.project.history.length)).toEqual(rootOnly.scene.project.history);
-  for (const joint of ['LeftForeArm', 'RightLowerLeg'] as const) expect(isJointRotationWithinLimits(joint, current(pasted).manual!.rotations[joint]![0].rotation)).toBe(true);
+  for (const joint of ['LeftForeArm', 'RightLowerLeg'] as const) {
+    const rotation = current(pasted).manual!.rotations[joint]![0].rotation;
+    expect(Math.abs(new Quaternion(...rotation).dot(new Quaternion(...source.take.poses[2].joints[joint])))).toBeCloseTo(1, 12);
+    expect(isJointRotationWithinLimits(joint, rotation)).toBe(false);
+  }
+});
+
+test('@constraints full-pose K preserves unedited source rotations outside the standard profile', async ({ page }) => {
+  const source = await openFixture(page, true);
+  await frame(page, 75); await select(page, 'LeftForeArm');
+  await expect.poll(() => angles(page)).toEqual([65, 18, 20]);
+  await expect(draft(page)).toHaveCount(0);
+  await page.getByRole('button', { name: 'K 完整姿态', exact: true }).click();
+  const authored = await backup(page), snapshot = current(authored);
+  expect(snapshot.manual!.baseTake).toEqual(source.take);
+  for (const joint of ['LeftForeArm', 'RightLowerLeg'] as const) {
+    const rotation = snapshot.manual!.rotations[joint]!.find(key => key.frame === 75)!.rotation;
+    expect(Math.abs(new Quaternion(...rotation).dot(new Quaternion(...source.take.poses[2].joints[joint])))).toBeCloseTo(1, 12);
+    expect(snapshot.take.poses[snapshot.take.times.indexOf(2.5)].joints[joint]).toEqual(rotation);
+    expect(isJointRotationWithinLimits(joint, rotation)).toBe(false);
+  }
+  await save(page); await page.reload(); await ready(page);
+  expect((await backup(page)).scene.project).toEqual(authored.scene.project);
 });
 
 test('@constraints a real elbow rotation ring clamps the rendered limb and explicit key without changing other joints or camera', async ({ page }, testInfo) => {

@@ -10,8 +10,7 @@ import { encodeSceneBackup, decodeSceneBackup } from './sceneBackup';
 import type { SceneSnapshot as Snapshot, SceneProject as Session } from './sceneProject';
 import { useModalFocus } from './useModalFocus';
 import { useEditorShortcuts } from './useEditorShortcuts';
-import { constrainJointRotation } from '../../../packages/core/src';
-import { addFootLock, analyzePose, applyFootLocks, buildAICandidate, captureFootLock, removeFootLock, simulatePhysicsTake, solveLimbIK, STANDARD_HUMAN_PROFILE, type IKEffector, type LockedFoot } from '../../../packages/core/src';
+import { addFootLock, analyzePose, applyFootLocks, buildAICandidate, captureFootLock, getKeyframeProtection, removeFootLock, simulatePhysicsTake, solveLimbIK, STANDARD_HUMAN_PROFILE, type FootLockProtection, type IKEffector, type LockedFoot } from '../../../packages/core/src';
 import { getIKEffector } from './Stage';
 import AIPanel from './AIPanel';
 import { requestAIArrangement } from './aiClient';
@@ -35,8 +34,17 @@ function initialSession(): Session {
   return { history: [{ title: '我的第一段八拍', countMap, plan, take: bakePlan(plan, countMap) }], historyIndex: 0, revision: 1, audioDuration: 40, teacherCheckedRevision: null };
 }
 const clonePose = (pose: Pose): Pose => ({ root: [...pose.root], joints: Object.fromEntries(JOINT_NAMES.map(joint => [joint, [...pose.joints[joint]]])) as Pose['joints'] });
-const rotationsDiffer = (a: Quat, b: Quat) => Math.abs(a.reduce((sum, value, axis) => sum + value * b[axis], 0)) / Math.sqrt(a.reduce((sum, value) => sum + value * value, 0) * b.reduce((sum, value) => sum + value * value, 0)) < 1 - 1e-10;
-const posesDiffer = (a: Pose, b: Pose) => a.root.some((value, index) => Math.abs(value - b.root[index]) > 1e-6) || JOINT_NAMES.some(joint => Math.abs(a.joints[joint].reduce((dot, value, index) => dot + value * b.joints[joint][index], 0)) < 1 - 1e-7);
+function authorProtection(sequence: KeyframeSequence, frame: number, joints: ReadonlySet<JointName>, root: boolean): FootLockProtection {
+  const protection = getKeyframeProtection(sequence, frame);
+  return { ...protection, ...(root ? { root: 1 } : {}), joints: { ...protection.joints, ...Object.fromEntries([...joints].map(joint => [joint, 1])) } };
+}
+const rotationsDiffer = (a: Quat, b: Quat) => {
+  const aLength = Math.hypot(...a), bLength = Math.hypot(...b);
+  const sign = a.reduce((sum, value, axis) => sum + value * b[axis], 0) < 0 ? -1 : 1;
+  return a.some((value, axis) => Math.abs(value / aLength - sign * b[axis] / bLength) > 1e-10);
+};
+const rootsDiffer = (a: Vec3, b: Vec3) => a.some((value, axis) => Math.abs(value - b[axis]) > 1e-9);
+const posesDiffer = (a: Pose, b: Pose) => rootsDiffer(a.root, b.root) || JOINT_NAMES.some(joint => rotationsDiffer(a.joints[joint], b.joints[joint]));
 const seconds = (value: number) => `${Math.floor(value / 60).toString().padStart(2, '0')}:${Math.floor(value % 60).toString().padStart(2, '0')}`;
 const cameraMatches = (a: StageCamera | null, b: StageCamera) => !!a && [...a.position, ...a.target, a.zoom ?? 1].every((value, index) => Math.abs(value - [...b.position, ...b.target, b.zoom ?? 1][index]) < 1e-6);
 function motionIsDynamic(take: BakedTake | null, time: number): boolean {
@@ -670,17 +678,16 @@ export default function App() {
     const reference = sampleTake(active.take, frameTime(editorFrame, active.countMap.durationSeconds));
     const previous = poseDraftRef.current ?? reference;
     let copied = clonePose(next);
-    // Only newly changed rotations are limited. Editing Root must not rewrite
-    // an unrelated rotation from an older scene or its immutable base.
+    // Stage drag/IK propose constrained poses; direct numbers and explicit
+    // reuse express the author's intent. Automatic contacts must not replace it.
     for (const joint of EDITABLE_JOINT_NAMES) {
       if (rotationsDiffer(copied.joints[joint], previous.joints[joint])) {
-        copied.joints[joint] = constrainJointRotation(joint, copied.joints[joint]);
         if (rotationsDiffer(copied.joints[joint], reference.joints[joint])) draftRotationIntents.current.add(joint);
         else draftRotationIntents.current.delete(joint);
       }
     }
-    if (copied.root.some((value, axis) => Math.abs(value - previous.root[axis]) > 1e-6)) draftRootIntent.current = copied.root.some((value, axis) => Math.abs(value - reference.root[axis]) > 1e-6);
-    if (manualSequence?.footLocks?.length) copied = applyFootLocks(copied, manualSequence.footLocks, editorFrame, active.countMap.durationSeconds).pose;
+    if (rootsDiffer(copied.root, previous.root)) draftRootIntent.current = rootsDiffer(copied.root, reference.root);
+    if (manualSequence?.footLocks?.length) copied = applyFootLocks(copied, manualSequence.footLocks, editorFrame, active.countMap.durationSeconds, authorProtection(manualSequence, editorFrame, draftRotationIntents.current, draftRootIntent.current)).pose;
     if (!posesDiffer(copied, reference)) { clearPoseDraft(true); return false; }
     if (!poseDraftRef.current) poseDraftBaseline.current = { status: saveStatus === 'saving' ? 'dirty' : saveStatus, version: sceneChangeVersion.current };
     poseDraftRef.current = copied; setPoseDraft(copied); setSaveStatus('dirty'); return true;
@@ -800,19 +807,20 @@ export default function App() {
     if (kind === 'joint' && (!selectedJoint || !EDITABLE_JOINT_NAMES.includes(selectedJoint))) return false;
     try {
       const pose = clonePose(poseDraftRef.current ?? editorPose);
-      if (kind === 'joint') pose.joints[selectedJoint!] = constrainJointRotation(selectedJoint!, pose.joints[selectedJoint!]);
-      else if (kind === 'pose') for (const joint of EDITABLE_JOINT_NAMES) pose.joints[joint] = constrainJointRotation(joint, pose.joints[joint]);
+      // Explicit K is authoritative. Validate/normalize in the keyframe API,
+      // without projecting the recorded pose back to a suggested human range.
       const next = kind === 'pose' ? setPoseKeyframe(manualSequence, editorFrame, pose) : kind === 'root' ? upsertRootKeyframe(manualSequence, editorFrame, pose.root) : upsertRotationKeyframe(manualSequence, selectedJoint!, editorFrame, pose.joints[selectedJoint!]);
       const take = bakeKeyframeSequence(next);
       // Foot-lock corrections are derived constraints, not uncommitted edits.
       // Retain only explicit intents on tracks this single-track K did not write.
       if (kind === 'joint') draftRotationIntents.current.delete(selectedJoint!);
       if (kind === 'root') draftRootIntent.current = false;
-      const remaining = poseDraftRef.current && kind !== 'pose' ? sampleTake(take, frameTime(editorFrame, take.durationSeconds)) : null;
+      const hasRemainingIntent = draftRotationIntents.current.size > 0 || draftRootIntent.current;
+      const remaining = poseDraftRef.current && kind !== 'pose' && hasRemainingIntent ? sampleTake(take, frameTime(editorFrame, take.durationSeconds)) : null;
       if (remaining && poseDraftRef.current) {
         for (const joint of draftRotationIntents.current) remaining.joints[joint] = [...poseDraftRef.current.joints[joint]];
         if (draftRootIntent.current) remaining.root = [...poseDraftRef.current.root];
-        if (next.footLocks?.length) { const constrained = applyFootLocks(remaining, next.footLocks, editorFrame, take.durationSeconds).pose; remaining.root = constrained.root; remaining.joints = constrained.joints; }
+        if (next.footLocks?.length) { const constrained = applyFootLocks(remaining, next.footLocks, editorFrame, take.durationSeconds, authorProtection(next, editorFrame, draftRotationIntents.current, draftRootIntent.current)).pose; remaining.root = constrained.root; remaining.joints = constrained.joints; }
       }
       commit({ ...active, manual: next, take });
       if (remaining && kind !== 'pose' && posesDiffer(remaining, sampleTake(take, frameTime(editorFrame, take.durationSeconds)))) {

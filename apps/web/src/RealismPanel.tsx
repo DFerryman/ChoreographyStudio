@@ -73,7 +73,7 @@ export function RealismPanel(props: RealismPanelProps) {
       </div>
       <button className="button compact full" disabled={unavailable || !intervalValid || !canLockSupport} onClick={() => props.onLock(foot, endFrame)}>锁定支撑脚</button>
       {!canLockSupport && <p className="realism-note">先将这只脚落在地面，再锁定支撑。</p>}
-      <p className="realism-note">从当前帧锁定到结束帧。脚锁保持脚底锚点；不可达位置仍会显示残差。</p>
+      <p className="realism-note">从当前帧锁定到结束帧。手动姿态与关键帧优先，脚锁冲突时显示残差。</p>
       {lockResiduals.map(residual => <p key={residual.id} aria-label={`脚锁残差 ${footName(residual.foot)}`} className={!residual.reached && residual.weight > .999 ? 'realism-warning' : 'realism-note'}>{footName(residual.foot)}脚锁 · 位置 {(residual.residual * 100).toFixed(1)} cm · 朝向 {residual.orientationDegrees.toFixed(1)}° · {residual.weight < .999 ? `过渡 ${Math.round(residual.weight * 100)}%` : residual.reached ? '已到达' : '目标尚未到达'}</p>)}
       {props.sequence.footLocks?.length ? <ul className="realism-locks" aria-label="已保存脚锁">{props.sequence.footLocks.map(lock => <li key={lock.id}><span>{footName(lock.foot)} · {lock.startFrame}–{lock.endFrame} 帧</span><button aria-label={`解除脚锁 ${footName(lock.foot)} ${lock.startFrame}-${lock.endFrame}`} disabled={unavailable} onClick={() => props.onRemoveLock(lock.id)}>解除</button></li>)}</ul> : null}
       <div className="realism-physics">

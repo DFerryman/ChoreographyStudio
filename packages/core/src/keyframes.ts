@@ -2,7 +2,7 @@ import { JOINT_NAMES, type BakedTake, type JointName, type Pose, type Quat, type
 // The index only re-exports this module; sampleTake is a function declaration and
 // is called after module initialization, not while constructing these constants.
 import { sampleTake } from './index';
-import { applyFootLocks, cloneFootLock, validateFootLocks, type FootLock } from './footLocks';
+import { applyFootLocks, cloneFootLock, validateFootLocks, type FootLock, type FootLockProtection } from './footLocks';
 
 export const EDITABLE_JOINT_NAMES: readonly JointName[] = JOINT_NAMES.filter(name => !name.endsWith('HandTip') && !name.endsWith('Toe') && !name.endsWith('Heel'));
 export const EDITABLE_JOINTS = EDITABLE_JOINT_NAMES;
@@ -20,6 +20,8 @@ export interface KeyframeSequence {
   baseTake: BakedTake;
   rotations: Partial<Record<JointName, RotationKeyframe[]>>;
   root: RootKeyframe[];
+  /** New edits declare author precedence; absence is accepted for legacy data. */
+  authorKeyPriority?: 'author-key-priority-1';
   /** Optional persistent world-space support constraints; legacy absence is untouched. */
   footLocks?: FootLock[];
 }
@@ -158,6 +160,7 @@ function assertEditable(joint: JointName): void {
 
 function validateSequence(sequence: KeyframeSequence): void {
   if (!sequence || sequence.schema !== 'manual-keyframes-1' || sequence.fps !== FPS || !sequence.id || !sequence.rotations || typeof sequence.rotations !== 'object' || Array.isArray(sequence.rotations) || !Array.isArray(sequence.root)) throw new Error('关键帧序列格式或帧率无效。');
+  if (sequence.authorKeyPriority !== undefined && sequence.authorKeyPriority !== 'author-key-priority-1') throw new Error('作者关键帧优先版本无效。');
   validateTake(sequence.baseTake);
   if (sequence.footLocks !== undefined) validateFootLocks(sequence.footLocks, sequence.baseTake.durationSeconds);
   let count = sequence.root.length;
@@ -195,7 +198,7 @@ function copySequence(sequence: KeyframeSequence): KeyframeSequence {
 export function makeKeyframeSequence(baseTake: BakedTake): KeyframeSequence {
   validateTake(baseTake);
   return {
-    schema: 'manual-keyframes-1', id: newId('keys'), fps: FPS,
+    schema: 'manual-keyframes-1', id: newId('keys'), fps: FPS, authorKeyPriority: 'author-key-priority-1',
     baseTake: { ...baseTake, times: [...baseTake.times], poses: baseTake.poses.map(copyPose) },
     rotations: {}, root: [],
   };
@@ -206,8 +209,7 @@ export function addFootLock(sequence: KeyframeSequence, lock: FootLock): Keyfram
   validateSequence(sequence);
   const next = copySequence(sequence);
   next.footLocks = [...(next.footLocks ?? []), cloneFootLock(lock)].sort((a, b) => a.startFrame - b.startFrame || a.foot.localeCompare(b.foot));
-  validateSequence(next);
-  return next;
+  return finishMutation(next);
 }
 
 export function removeFootLock(sequence: KeyframeSequence, lockId: string): KeyframeSequence {
@@ -215,8 +217,7 @@ export function removeFootLock(sequence: KeyframeSequence, lockId: string): Keyf
   if (!sequence.footLocks?.some(lock => lock.id === lockId)) return sequence;
   const next = copySequence(sequence);
   next.footLocks = next.footLocks!.filter(lock => lock.id !== lockId);
-  validateSequence(next);
-  return next;
+  return finishMutation(next);
 }
 
 function upsert<T extends { frame: number }>(keys: T[], key: T): T[] {
@@ -225,6 +226,7 @@ function upsert<T extends { frame: number }>(keys: T[], key: T): T[] {
 
 function finishMutation(sequence: KeyframeSequence): KeyframeSequence {
   // Includes the aggregate cap before returning a possibly atomic whole-pose write.
+  sequence.authorKeyPriority = 'author-key-priority-1';
   validateSequence(sequence);
   return sequence;
 }
@@ -258,23 +260,26 @@ export function setPoseKeyframe(sequence: KeyframeSequence, frame: number, pose:
 
 export function removeRotationKeyframe(sequence: KeyframeSequence, joint: JointName, frame: number): KeyframeSequence {
   validateSequence(sequence); assertEditable(joint); frameTime(frame, sequence.baseTake.durationSeconds);
+  if (!sequence.rotations[joint]?.some(key => key.frame === frame)) return sequence;
   const next = copySequence(sequence);
   const keys = next.rotations[joint]?.filter(key => key.frame !== frame) ?? [];
   if (keys.length) next.rotations[joint] = keys;
   else delete next.rotations[joint];
-  return next;
+  return finishMutation(next);
 }
 
 export function removeRootKeyframe(sequence: KeyframeSequence, frame: number): KeyframeSequence {
   validateSequence(sequence); frameTime(frame, sequence.baseTake.durationSeconds);
+  if (!sequence.root.some(key => key.frame === frame)) return sequence;
   const next = copySequence(sequence);
   next.root = next.root.filter(key => key.frame !== frame);
-  return next;
+  return finishMutation(next);
 }
 
 /** Remove every explicit root/rotation key at this frame, not the baked sample. */
 export function removePoseKeyframe(sequence: KeyframeSequence, frame: number): KeyframeSequence {
   validateSequence(sequence); frameTime(frame, sequence.baseTake.durationSeconds);
+  if (!sequence.root.some(key => key.frame === frame) && !Object.values(sequence.rotations).some(keys => keys!.some(key => key.frame === frame))) return sequence;
   const next = copySequence(sequence);
   next.root = next.root.filter(key => key.frame !== frame);
   for (const joint of EDITABLE_JOINT_NAMES) {
@@ -282,7 +287,7 @@ export function removePoseKeyframe(sequence: KeyframeSequence, frame: number): K
     if (keys.length) next.rotations[joint] = keys;
     else delete next.rotations[joint];
   }
-  return next;
+  return finishMutation(next);
 }
 
 /** Transfer only explicit source keys; destination-only tracks remain untouched. */
@@ -340,6 +345,43 @@ export function getKeyframeCount(sequence: KeyframeSequence): number {
   return sequence.root.length + Object.values(sequence.rotations).reduce((count, keys) => count + keys!.length, 0);
 }
 
+/** A short fade leaves room for assistance between, rather than freezing tracks. */
+const AUTHOR_PROTECTION_RADIUS_FRAMES = 3;
+
+function nearestKeyProtection(keys: readonly { frame: number }[], frame: number): number {
+  if (!keys.length) return 0;
+  let low = 0, high = keys.length;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    if (keys[middle].frame < frame) low = middle + 1;
+    else high = middle;
+  }
+  const distance = Math.min(low < keys.length ? Math.abs(keys[low].frame - frame) : Infinity, low > 0 ? Math.abs(keys[low - 1].frame - frame) : Infinity);
+  if (distance < 1e-7) return 1;
+  if (distance >= AUTHOR_PROTECTION_RADIUS_FRAMES) return 0;
+  const remaining = 1 - distance / AUTHOR_PROTECTION_RADIUS_FRAMES;
+  return remaining * remaining * (3 - 2 * remaining);
+}
+
+function keyframeProtection(sequence: KeyframeSequence, frame: number): FootLockProtection {
+  const protection: FootLockProtection = {};
+  const root = nearestKeyProtection(sequence.root, frame);
+  if (root > 0) protection.root = root;
+  for (const [joint, keys] of Object.entries(sequence.rotations)) {
+    const weight = nearestKeyProtection(keys!, frame);
+    if (weight > 0) (protection.joints ??= {})[joint as JointName] = weight;
+  }
+  return protection;
+}
+
+/** Explicit author K overrides automatic contacts, including unusual poses. */
+export function getKeyframeProtection(sequence: KeyframeSequence, frame: number): FootLockProtection {
+  validateSequence(sequence);
+  finite(frame, '作者关键帧保护求值帧');
+  if (frame < 0 || frame > lastFrame(sequence.baseTake.durationSeconds)) throw new Error('作者关键帧保护求值帧超出范围。');
+  return keyframeProtection(sequence, frame);
+}
+
 function interpolateRotation(a: Quat, b: Quat, amount: number): Quat {
   const qa = normalizedRotation(a);
   let qb = normalizedRotation(b);
@@ -373,7 +415,20 @@ function evaluateTrack<T extends { frame: number }>(keys: T[], time: number, dur
 
 /** Materialize one authority for both renderer playback and JSON export. */
 export function bakeKeyframeSequence(sequence: KeyframeSequence): BakedTake {
+  return materializeKeyframeSequence(sequence, true);
+}
+
+/**
+ * Strict verification of saved pre-priority authority only. Opening old scenes
+ * keeps their saved take; new edits must always use bakeKeyframeSequence.
+ */
+export function bakeLegacyKeyframeSequence(sequence: KeyframeSequence): BakedTake {
+  return materializeKeyframeSequence(sequence, false);
+}
+
+function materializeKeyframeSequence(sequence: KeyframeSequence, respectAuthorKeys: boolean): BakedTake {
   validateSequence(sequence);
+  if (!respectAuthorKeys && sequence.authorKeyPriority !== undefined) throw new Error('已声明作者关键帧优先的作品不能使用旧脚锁求值。');
   const base = sequence.baseTake;
   const frames = getKeyframeFrames(sequence);
   const locks = sequence.footLocks ?? [];
@@ -405,7 +460,7 @@ export function bakeKeyframeSequence(sequence: KeyframeSequence): BakedTake {
       return a.position.map((value, axis) => value + amount * (b.position[axis] - value)) as Vec3;
     }) as Vec3;
     const frame = time === duration ? finalFrame : time * FPS;
-    return locks.length ? applyFootLocks(pose, locks, frame, duration).pose : pose;
+    return locks.length ? applyFootLocks(pose, locks, frame, duration, respectAuthorKeys ? keyframeProtection(sequence, frame) : undefined).pose : pose;
   });
   return { ...base, id: newId('take'), times, poses };
 }

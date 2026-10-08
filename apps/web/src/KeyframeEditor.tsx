@@ -39,21 +39,30 @@ function KeyNavigation({ frames, frame, playing, onFrame, timeline = false }: {
   </div>;
 }
 
+function formatAxisValue(value: number, prefix: '关节' | 'Root'): string {
+  const standard = value.toFixed(prefix === 'Root' ? 3 : 1);
+  const precise = value.toFixed(prefix === 'Root' ? 9 : 6);
+  // Keep familiar trailing decimals for ordinary values, while retaining
+  // meaningful author precision without exposing quaternion round-off noise.
+  return Number(precise) === Number(standard) ? standard : precise.replace(/\.?0+$/, '');
+}
+
 function AxisField({ prefix, axis, value, bounds, step, disabled, onChange }: {
-  prefix: '关节' | 'Root'; axis: 'X' | 'Y' | 'Z'; value: number; bounds: readonly [number, number]; step: number; disabled: boolean; onChange: (value: number) => void;
+  prefix: '关节' | 'Root'; axis: 'X' | 'Y' | 'Z'; value: number; bounds: readonly [number, number]; step: number; disabled: boolean; onChange: (value: number, source: 'slider' | 'number') => void;
 }) {
-  const [text, setText] = useState(value.toFixed(prefix === 'Root' ? 3 : 1));
+  const [text, setText] = useState(formatAxisValue(value, prefix));
   const focused = useRef(false);
-  useEffect(() => { if (!focused.current) setText(value.toFixed(prefix === 'Root' ? 3 : 1)); }, [value, prefix]);
+  useEffect(() => { if (!focused.current) setText(formatAxisValue(value, prefix)); }, [value, prefix]);
   const label = `${prefix} ${axis} ${prefix === 'Root' ? '位移（米）' : '旋转（度）'}`;
+  const numberBounds = prefix === '关节' ? [-180, 180] as const : bounds;
   return <div className={`kf-axis kf-axis-${axis.toLowerCase()}`}>
     <span>{axis}</span>
-    <input type="range" aria-label={`${prefix} ${axis} 滑条`} min={bounds[0]} max={bounds[1]} step={step} value={Math.max(bounds[0], Math.min(bounds[1], value))} disabled={disabled} onChange={event => onChange(Number(event.target.value))} />
-    <input type="number" aria-label={label} min={bounds[0]} max={bounds[1]} step={step} value={text} disabled={disabled} onFocus={() => { focused.current = true; }} onBlur={() => { focused.current = false; setText(value.toFixed(prefix === 'Root' ? 3 : 1)); }} onChange={event => {
+    <input type="range" aria-label={`${prefix} ${axis} 滑条`} min={bounds[0]} max={bounds[1]} step={step} value={Math.max(bounds[0], Math.min(bounds[1], value))} disabled={disabled} onChange={event => onChange(Number(event.target.value), 'slider')} />
+    <input type="number" aria-label={label} aria-describedby={prefix === '关节' && !disabled ? 'kf-authoring-note' : undefined} min={numberBounds[0]} max={numberBounds[1]} step={step} value={text} disabled={disabled} onFocus={() => { focused.current = true; }} onBlur={() => { focused.current = false; setText(formatAxisValue(value, prefix)); }} onChange={event => {
       const raw = event.target.value; setText(raw);
       if (!raw.trim()) return;
       const next = Number(raw);
-      if (Number.isFinite(next)) onChange(Math.max(bounds[0], Math.min(bounds[1], next)));
+      if (Number.isFinite(next)) onChange(Math.max(numberBounds[0], Math.min(numberBounds[1], next)), 'number');
     }} />
     <small>{prefix === 'Root' ? 'm' : '°'}</small>
   </div>;
@@ -69,10 +78,11 @@ export function KeyframeEditor(props: KeyframeEditorProps) {
   const jointKeys = selectedJoint ? sequence.rotations[selectedJoint] ?? [] : [];
   const jointKeyed = jointKeys.some(key => key.frame === frame);
   const rootKeyed = sequence.root.some(key => key.frame === frame);
-  function updateRotation(axis: number, value: number) {
+  function updateRotation(axis: number, value: number, source: 'slider' | 'number') {
     if (!selectedJoint || !editable || locked) return;
     const next: Vec3 = [...angles]; next[axis] = value;
-    props.onPose({ ...pose, root: [...pose.root], joints: { ...pose.joints, [selectedJoint]: constrainJointRotation(selectedJoint, rotationFromDegrees(next)) } });
+    const rotation = rotationFromDegrees(next);
+    props.onPose({ ...pose, root: [...pose.root], joints: { ...pose.joints, [selectedJoint]: source === 'slider' ? constrainJointRotation(selectedJoint, rotation) : rotation } });
   }
   function updateRoot(axis: number, value: number) {
     if (locked) return;
@@ -85,12 +95,13 @@ export function KeyframeEditor(props: KeyframeEditorProps) {
     {props.readOnly && <div className="kf-readonly-note">当前为观看状态。点舞台旋转或移动，回原稿编辑。</div>}
     {playing && <div className="kf-readonly-note">播放中暂停编辑。点舞台旋转或移动，暂停到当前帧。</div>}
     <div id="kf-rotation-controls" className={`kf-transform-group ${props.transformTool === 'rotate' ? 'kf-transform-active' : ''}`}>
-      <div className="kf-group-heading"><h3 title="相对父骨骼 · XYZ 角度">局部旋转</h3><span>{editable ? '活动限制已启用' : selectedJoint ? '只读末端' : '请选择关节'}</span></div>
+      <div className="kf-group-heading"><h3 title="相对父骨骼 · XYZ 角度">局部旋转</h3><span>{editable ? '滑条为人体建议' : selectedJoint ? '只读末端' : '请选择关节'}</span></div>
       {!selectedJoint && <p>点击人物的关节点，在舞台上拖动摆姿。</p>}
       {selectedJoint && !editable && <p>末端节点只读；请选择肩、肘、髋等骨骼。</p>}
-      {outsideLimits && <p className="kf-constraint-note" role="status">此旧姿态超出当前编辑范围，原数据保留。调整或写入该关节 K 时应用限制。</p>}
+      {editable && <p id="kf-authoring-note">数值可设 ±180°，写 K 保留老师姿态。</p>}
+      {outsideLimits && <p className="kf-constraint-note" role="status">超出标准人体建议，按老师设定保留；自动修正不会覆盖手 K。</p>}
       <div className={`kf-track-status ${jointKeyed ? 'keyed' : ''}`} aria-label="当前关节轨道状态">{!selectedJoint ? '未选关节' : !editable ? '末端节点只读 · 无可编辑旋转轨' : <><Diamond size={11} /><span>{jointKeyed ? '本帧已写旋转 K' : '本帧未写旋转 K'} · {jointKeys.length} 个键</span></>}</div>
-      {selectedJoint && (['X', 'Y', 'Z'] as const).map((axis, index) => <AxisField key={axis} prefix="关节" axis={axis} value={angles[index]} bounds={rotationBounds[index]} step={0.1} disabled={!editable || locked} onChange={value => updateRotation(index, value)} />)}
+      {selectedJoint && (['X', 'Y', 'Z'] as const).map((axis, index) => <AxisField key={axis} prefix="关节" axis={axis} value={angles[index]} bounds={rotationBounds[index]} step={0.1} disabled={!editable || locked} onChange={(value, source) => updateRotation(index, value, source)} />)}
     </div>
     <div id="kf-root-controls" className={`kf-transform-group ${props.transformTool === 'translate' ? 'kf-transform-active' : ''}`}>
       <div className="kf-group-heading"><h3 title="整体世界位置 · X/Z ±5 m · Y 0–3 m">Root 位移</h3><span>世界空间 · 米</span></div>
