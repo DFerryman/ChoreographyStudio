@@ -1,12 +1,12 @@
 # 阶段路线
 
-## v13 · 作者关键帧最高权威（本轮追加，验证中）
+## v13 · 作者关键帧最高权威（已上线验证）
 
 用户明确自动插帧/迈步必须服从编舞师新增或更新的中间K，即使普通人体无法完成。明确作者轨道值与手动草稿意图优先于自动脚锁，完整姿态K保护Root与19个可编辑旋转，单轨K保护该通道；未写通道仍可辅助。作者K附近三帧平滑减弱自动修正，冲突展示最终实际残差，不靠改K消除提示。新增/更新/删除/移动K后重新计算相关过渡。
 
-复用现有数值输入允许有限各轴±180°创作姿态，标准滑条/旋转环/IK保持人体建议；K与姿态粘贴不再次裁剪作者旋转，不新增按钮。独立AI/重力整段候选仍需主动请求、明确采用与替换说明，原稿可撤销；不是后台补间。自动迈步仍未实现，后续必须遵守作者优先。本项源码/检查/main/Cloudflare回执待实证完成；下方306+76仅是此前v12已验证基线。
+复用现有数值输入允许有限各轴±180°创作姿态，标准滑条/旋转环/IK保持人体建议；K与姿态粘贴不再次裁剪作者旋转，不新增按钮。独立AI/重力整段候选仍需主动请求、明确采用与替换说明，原稿可撤销；不是后台补间。自动迈步仍未实现，后续必须遵守作者优先。本轮作者优先源码 [e44a649b](https://github.com/DFerryman/ChoreographyStudio/commit/e44a649bb03583d847ea319dc27560643545a828) 已 push main，树 `ebc88873036023e6b00de28eb509a642a3ca97ae` 与本地一致；准确功能 head 的 [run37745471252](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37745471252)、job113205792740、attempt1 于 `2026-10-08T08:03:55Z` completed/success，实际 **319基础 + 完整81浏览器通过**，没有 workflow rerun。Cloudflare v13 `9dcbf7c0-24cb-41c7-a1a3-d36baa0893e4` 实际100%，首次 deployment `7e5a6ead-b240-4484-b83e-0a7f06f7716e` / `2026-10-08T07:46:28.924157Z`。单轮线上8/8与有界12 HTTP通过，实际诊断errors/warnings/API均0，真实AI推理0。最后仅Markdown回填复用该已验证runtime，并在同版100% deployment annotation关联最终main；实际ID与时间由Cloudflare记录核对。此前v12的306+76仅作为历史基线，详见验证/部署记录。
 
-本轮运行源码 [82b593d4](https://github.com/DFerryman/ChoreographyStudio/commit/82b593d483e875cb67d14975527bf5265eab3090) 与仅测试修正 [bd59b4bc](https://github.com/DFerryman/ChoreographyStudio/commit/bd59b4bc5cf189423fed29cf96349e81c7b79e6f) 已 push main；Cloudflare v12 `959cccfa-4deb-4e09-a064-ff840c881828` 实际100%。修正源码 [CI run37740462981](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37740462981)、job113189737231、attempt1，于 `2026-10-08T07:13:24Z` completed/success，实际306基础 + 完整76浏览器通过，无 workflow rerun。单轮线上9/9及有界12 HTTP通过，真实AI推理0；首轮CI75/76、异步文本trace、定向修正与运行版本对应证据保留在验证/部署记录。
+此前v12运行源码 [82b593d4](https://github.com/DFerryman/ChoreographyStudio/commit/82b593d483e875cb67d14975527bf5265eab3090) 与仅测试修正 [bd59b4bc](https://github.com/DFerryman/ChoreographyStudio/commit/bd59b4bc5cf189423fed29cf96349e81c7b79e6f) 已 push main；Cloudflare v12 `959cccfa-4deb-4e09-a064-ff840c881828` 实际100%。修正源码 [CI run37740462981](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37740462981)、job113189737231、attempt1，于 `2026-10-08T07:13:24Z` completed/success，实际306基础 + 完整76浏览器通过，无 workflow rerun。单轮线上9/9及有界12 HTTP通过，真实AI推理0；首轮CI75/76、异步文本trace、定向修正与运行版本对应证据保留在验证/部署记录。
 
 2026-10-08 用户先要求完善经典手动编辑器，v11 已交付；之后进一步授权 AI、IK、脚锁与重力辅助，要求优先使用开源库、内置标准中性人体配置而不要求用户手填，并确认 Workers AI。本轮v12已完成集成/发布验证；**不得实际调用 AI 测试或走量**。用户最新补充的主要工作流是教师自由选择少量关键时刻，只摆这些姿态并写 K，中间自动插值。具体行为见 [手动关键帧规则](MANUAL_KEYFRAMES.md)，实际结果以 [验证记录](VERIFICATION.md) 与 [部署记录](DEPLOYMENT.md) 为准；v11 及以前通过和失败记录保持。原工程 ZIP 的获取不阻塞已授权的预览编辑范围。
 

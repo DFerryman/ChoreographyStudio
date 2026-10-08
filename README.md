@@ -1,16 +1,16 @@
 # 八拍 · Choreo Studio
 
-## v13 · 作者关键帧最高权威（本轮追加，验证中）
+## v13 · 作者关键帧最高权威（已上线验证）
 
 用户明确自动插帧/迈步必须服从编舞师新增或更新的中间K，即使普通人体无法完成。明确作者轨道值与手动草稿意图优先于自动脚锁，完整姿态K保护Root与19个可编辑旋转，单轨K保护该通道；未写通道仍可辅助。作者K附近三帧平滑减弱自动修正，冲突展示最终实际残差，不靠改K消除提示。新增/更新/删除/移动K后重新计算相关过渡。
 
-复用现有数值输入允许有限各轴±180°创作姿态，标准滑条/旋转环/IK保持人体建议；K与姿态粘贴不再次裁剪作者旋转，不新增按钮。独立AI/重力整段候选仍需主动请求、明确采用与替换说明，原稿可撤销；不是后台补间。自动迈步仍未实现，后续必须遵守作者优先。本项源码/检查/main/Cloudflare回执待实证完成；下方306+76仅是此前v12已验证基线。
+复用现有数值输入允许有限各轴±180°创作姿态，标准滑条/旋转环/IK保持人体建议；K与姿态粘贴不再次裁剪作者旋转，不新增按钮。独立AI/重力整段候选仍需主动请求、明确采用与替换说明，原稿可撤销；不是后台补间。自动迈步仍未实现，后续必须遵守作者优先。本轮作者优先源码 [e44a649b](https://github.com/DFerryman/ChoreographyStudio/commit/e44a649bb03583d847ea319dc27560643545a828) 已 push main，树 `ebc88873036023e6b00de28eb509a642a3ca97ae` 与本地一致；准确功能 head 的 [run37745471252](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37745471252)、job113205792740、attempt1 于 `2026-10-08T08:03:55Z` completed/success，实际 **319基础 + 完整81浏览器通过**，没有 workflow rerun。Cloudflare v13 `9dcbf7c0-24cb-41c7-a1a3-d36baa0893e4` 实际100%，首次 deployment `7e5a6ead-b240-4484-b83e-0a7f06f7716e` / `2026-10-08T07:46:28.924157Z`。单轮线上8/8与有界12 HTTP通过，实际诊断errors/warnings/API均0，真实AI推理0。最后仅Markdown回填复用该已验证runtime，并在同版100% deployment annotation关联最终main；实际ID与时间由Cloudflare记录核对。此前v12的306+76仅作为历史基线，详见验证/部署记录。
 
-本轮运行源码 [82b593d4](https://github.com/DFerryman/ChoreographyStudio/commit/82b593d483e875cb67d14975527bf5265eab3090) 与仅测试修正 [bd59b4bc](https://github.com/DFerryman/ChoreographyStudio/commit/bd59b4bc5cf189423fed29cf96349e81c7b79e6f) 已 push main；Cloudflare v12 `959cccfa-4deb-4e09-a064-ff840c881828` 实际100%。修正源码 [CI run37740462981](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37740462981)、job113189737231、attempt1，于 `2026-10-08T07:13:24Z` completed/success，实际306基础 + 完整76浏览器通过，无 workflow rerun。单轮线上9/9及有界12 HTTP通过，真实AI推理0；首轮CI75/76、异步文本trace、定向修正与运行版本对应证据保留在验证/部署记录。
+此前v12运行源码 [82b593d4](https://github.com/DFerryman/ChoreographyStudio/commit/82b593d483e875cb67d14975527bf5265eab3090) 与仅测试修正 [bd59b4bc](https://github.com/DFerryman/ChoreographyStudio/commit/bd59b4bc5cf189423fed29cf96349e81c7b79e6f) 已 push main；Cloudflare v12 `959cccfa-4deb-4e09-a064-ff840c881828` 实际100%。修正源码 [CI run37740462981](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37740462981)、job113189737231、attempt1，于 `2026-10-08T07:13:24Z` completed/success，实际306基础 + 完整76浏览器通过，无 workflow rerun。单轮线上9/9及有界12 HTTP通过，真实AI推理0；首轮CI75/76、异步文本trace、定向修正与运行版本对应证据保留在验证/部署记录。
 
 把音乐、八拍和动作放在一个简单的工作台里。以经典手动编辑为基础，使用 React、TypeScript、Three.js 与 Cloudflare Workers；v2.1 的真实教学闭环保留独立验收。
 
-**当前已交付：version 12，统一时间轴、连续中性人体与约束辅助。** 2026-10-08 用户进一步授权 AI、IK、脚锁和重力辅助，要求优先使用开源库并内置标准中性人体配置。四肢 IK 复用 Three.js CCDIKSolver，重力辅助复用 Rapier；质心、惯量、摩擦和有限驱动参数默认内置，无需用户填写。AI 使用 Cloudflare Workers AI，**本轮不得进行真实 AI 推理或走量测试**；仅以 mock/fixture 验证接线与失败保护，真实生成质量和费用尚未实测。本轮整体检查、源码和运行部署已验证，实际对应关系见 [验证记录](docs/VERIFICATION.md) / [部署记录](docs/DEPLOYMENT.md)。
+**当前已交付：version 13，作者关键帧最高优先级；统一时间轴、连续中性人体与约束辅助延续 v12。** 2026-10-08 用户进一步授权 AI、IK、脚锁和重力辅助，要求优先使用开源库并内置标准中性人体配置。四肢 IK 复用 Three.js CCDIKSolver，重力辅助复用 Rapier；质心、惯量、摩擦和有限驱动参数默认内置，无需用户填写。AI 使用 Cloudflare Workers AI，**本轮不得进行真实 AI 推理或走量测试**；仅以 mock/fixture 验证接线与失败保护，真实生成质量和费用尚未实测。本轮整体检查、源码和运行部署已验证，实际对应关系见 [验证记录](docs/VERIFICATION.md) / [部署记录](docs/DEPLOYMENT.md)。
 
 **此前已验证部署：version 11 经典手动编辑器。** 首次使用和新场景默认手动 K帧，已有场景恢复保存的模式；舞台快捷键、音乐异步取消/旧结果隔离和原选段起点恢复已可用。原创实体成人 mannequin 与新编辑关节活动包络保留旧作品权威动作。[功能源码](https://github.com/DFerryman/ChoreographyStudio/commit/e02b76bab054120b31314622cf416d752e847b6f)已 push 到 `main`，Cloudflare v11 `f245eba5-7cda-4950-bda7-f0cae576368b` 已部署。161 项本地基础检查、4 项新增约束交互和 20 项既有相关交互通过；完整实际证据见验证、部署记录。
 
@@ -43,7 +43,7 @@ version 7 的轨道编辑可用：查看当前关节/Root 的显式 K 状态，�
 
 音乐设置关闭或取消时停止待处理解码与试听，暂停或离开播放时取消尚未完成的启动；迟到的异步回调不能恢复旧播放或覆盖新设置。重开音乐设置恢复已确认的原八拍起点，确认前不改变作品。姿态复用、删除/重置、键时刻调整、相机和备份通过对应展开入口使用：属性栏的「姿态复用」，统一时间轴的「更多编辑操作」「键盘快捷键」「移动与复制关键帧」「关键帧明细」，以及「相机选项」「舞台信息」「播放选项」「关节信息」「场景备份」。
 
-新增旋转按关节限位，并检查组合后的四元数 swing/twist；肘沿局部 X 的 −145°～0° 屈曲，膝为 0°～145°，左右肩/髋的外展 Z 方向相反。具体范围见 [活动限制表](docs/MANUAL_EDITOR.md#原创人体与关节活动限制)。旧超限姿态仍可原样观看、保存和恢复；调整或写入该关节时才应用限制，「K 完整姿态」会对本帧 19 个可编辑旋转应用限制并明确写入。Root 编辑不修正其他旧旋转。
+标准滑条、舞台拖动与 IK 采用关节活动建议，并检查组合后的四元数 swing/twist；肘沿局部 X 的 −145°～0° 屈曲，膝为 0°～145°，左右肩/髋的外展 Z 方向相反。具体范围见 [活动限制表](docs/MANUAL_EDITOR.md#原创人体与关节活动限制)。v13 数值输入允许各轴有限 ±180° 的明确创作姿态；单轨 K、完整姿态 K 与姿态粘贴保留作者旋转，只校验数据合法性并归一化，不再次套用人体限位。旧超限姿态照常观看、保存和恢复；Root 编辑不修正其他旋转，冲突只提示。
 
 v11 的限位本身不保证整段插值或动作符合完整人体物理，也不构成舞蹈/教学审核。v12 的 IK、脚锁和物理辅助扩展见下节及 [真实编舞体验评估](docs/REALISM_PLAN.md)。
 

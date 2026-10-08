@@ -1,6 +1,42 @@
 # Cloudflare 预览部署
 
-2026-10-08：**当前 version 12 已上线**：舞台下方统一时间轴、CC0 连续中性人体、四肢 IK、可保存脚锁、内置人体参数、Rapier 重力候选及 Workers AI 编排接线。306项基础检查、本轮26个本地时间轴/关联浏览器流程、单轮线上9项与有界12 HTTP均通过。首次完整源码 CI 为306基础通过、75/76浏览器；一处旧测试提前读取数值文本，原trace确证正式姿态已恢复、文本稍后同步，仅补严格重试断言，定向1/1通过。修正提交 bd59b4bc 已推main，修正源码完整CI实际306基础+完整76浏览器通过（run37740462981，于2026-10-08T07:13:24Z），详见 [VERIFICATION.md](VERIFICATION.md)。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+2026-10-08：**当前 version 13 已上线**：作者K和手动摆姿意图最高优先级，自动脚锁/插帧不得覆盖明确作者通道；延续统一时间轴、中性人体、IK、内置人体参数、Rapier候选和Workers AI接线。自动迈步仍未实现。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+
+本轮作者优先源码 [e44a649b](https://github.com/DFerryman/ChoreographyStudio/commit/e44a649bb03583d847ea319dc27560643545a828) 已 push main，树 `ebc88873036023e6b00de28eb509a642a3ca97ae` 与本地一致；准确功能 head 的 [run37745471252](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37745471252)、job113205792740、attempt1 于 `2026-10-08T08:03:55Z` completed/success，实际 **319基础 + 完整81浏览器通过**，没有 workflow rerun。Cloudflare v13 `9dcbf7c0-24cb-41c7-a1a3-d36baa0893e4` 实际100%，首次 deployment `7e5a6ead-b240-4484-b83e-0a7f06f7716e` / `2026-10-08T07:46:28.924157Z`。单轮线上8/8与有界12 HTTP通过，实际诊断errors/warnings/API均0，真实AI推理0。最后仅Markdown回填复用该已验证runtime，并在同版100% deployment annotation关联最终main；实际ID与时间由Cloudflare记录核对。此前v12的306+76仅作为历史基线，详见验证/部署记录。
+
+## 当前线上版本 · version 13
+
+| 项目 | 实际结果 |
+| --- | --- |
+| Worker / Account | `choreo-studio-preview` / `84e421f26c708c0cf437e287eed11fa1` |
+| 功能源码 main / tree | [e44a649b](https://github.com/DFerryman/ChoreographyStudio/commit/e44a649bb03583d847ea319dc27560643545a828) / `ebc88873036023e6b00de28eb509a642a3ca97ae` |
+| Version ID / number / 流量 | `9dcbf7c0-24cb-41c7-a1a3-d36baa0893e4` / 13 / 100% |
+| 首次 Deployment ID / UTC | `7e5a6ead-b240-4484-b83e-0a7f06f7716e` / `2026-10-08T07:46:28.924157Z` |
+| Version创建 / source / tag | `2026-10-08T07:46:28.08916Z` / wrangler / `v13-author-key-priority` |
+| 发布方式 | 原生wrangler读取14目录文件，实际上传2新资产，8复用；Worker23.45KiB/gzip7.32KiB，启动2ms为CLI测量 |
+| 实际绑定与资产 | AI、API20/60 namespace2026100601、AI2/60 namespace2026100801、原生ASSETS、RELEASE_STAGE；无D1/KV/R2/DO；SPA及/api/* worker-first读回正确 |
+| 源码CI | [run37745471252](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37745471252) / job113205792740 / attempt1，准确head；319+81通过，2026-10-08T08:03:55Z |
+| 单轮线上 | 8/8，2026-10-08T07:48:09.324Z起/81.407秒；诊断errors/warnings/API0，AI0 |
+| 有界HTTP | 12/12，2026-10-08T07:47:07.974810+00:00至2026-10-08T07:47:09.226713+00:00；全部静态字节/hash/安全headers、health/capabilities通过 |
+
+| v13 资产 | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `index.html` | 645 | `c56b03dbfdb1dfcc98518f0f8787af89a1007bcfd138796d4fb7e02aa2d7d997` |
+| `assets/index-D3dqGsm5.js` | 1100241 | `2bab9d4f1817549b170d5209d30008983812f22863029a6cd346df1aa74c3a84` |
+| `assets/index-CEndkUVE.css` | 67039 | `d9084eda0bd1f1e9c39ce4ef8c400c689961cfe52cb116e1e8e2e6b5bde74603` |
+| `favicon.svg` | 322 | `883028cbbedddb4251346f961e58174dfe92b20d8fdd7351d7373005f4c2b6ac` |
+| `models/neutral-human.glb` | 776136 | `4b5fa085d0a6e403abee4ce022cac8041e5bca8bce130d03f28f245a29fddc9a` |
+| `models/README.md` | 4339 | `543ca6bcce03be3a62543cb0a41932b6c6fa3cda8caad25d78b0e7850e5c3057` |
+| `models/CC0.txt` | 7048 | `a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499` |
+| `third-party-licenses/three-mit.txt` | 1081 | `8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc` |
+| `third-party-licenses/rapier-apache-2.0.txt` | 11343 | `4c05555705e3efde601fb1252ae48f1d63992af8a8fb8947745b7fa834e8f519` |
+| `assets/rapier-BcnL-M2-.js` | 4335104 | `eba580e6ed6e22819a222beef8c8f10df2673fc258078aac38b328212612d6f5` |
+
+最终仅Markdown记录回填后复用此版本100%部署，实际部署message关联最终main和功能source；不重新上传运行资产或重复公网检查。
+
+## 历史 version 12 发布概述
+
+2026-10-08：**历史 version 12 已上线**：舞台下方统一时间轴、CC0 连续中性人体、四肢 IK、可保存脚锁、内置人体参数、Rapier 重力候选及 Workers AI 编排接线。306项基础检查、本轮26个本地时间轴/关联浏览器流程、单轮线上9项与有界12 HTTP均通过。首次完整源码 CI 为306基础通过、75/76浏览器；一处旧测试提前读取数值文本，原trace确证正式姿态已恢复、文本稍后同步，仅补严格重试断言，定向1/1通过。修正提交 bd59b4bc 已推main，修正源码完整CI实际306基础+完整76浏览器通过（run37740462981，于2026-10-08T07:13:24Z），详见 [VERIFICATION.md](VERIFICATION.md)。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
 
 真实 AI 推理测试为0；所有生成响应由 mock提供。Workers AI 按用户主动生成请求排列现有六种原创模板，不是任意真实舞蹈合成。IK与脚锁改善几何和接触，Rapier为可选全身动态代理候选，不代表完整肢段受力/主动平衡。真实动作、自动迈步、教师及设备验证仍是后续。保存与编辑留在本机，没有 D1写入。
 
@@ -8,9 +44,9 @@
 
 用户要求每轮修改最终都提交并 push 到 `DFerryman/ChoreographyStudio`，同步部署到本 Cloudflare 预览。交付前核对远端提交、实际运行版本和预览结果，验证记录也提交；不能只留本地改动或把构建成功当作发布完成。此要求已写入根目录 `AGENTS.md`。
 
-仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署与已有健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。当前表保留 v12 功能版本首次发布记录，v11留在历史章节；后续纯文档的同版同步在部署 message 中记录最终源码提交，实际 ID/时间由 Cloudflare 部署记录核对。旧记录保留在历史章节。
+仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署与已有健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。当前表为v13，v12/v11留在历史章节；后续纯文档的同版同步在部署 message 中记录最终源码提交，实际 ID/时间由 Cloudflare 部署记录核对。旧记录保留在历史章节。
 
-## 当前线上版本 · version 12
+## 历史线上版本 · version 12
 
 | 项目 | 实际结果 |
 | --- | --- |
@@ -44,7 +80,7 @@
 | `third-party-licenses/rapier-apache-2.0.txt` | 11343 | `4c05555705e3efde601fb1252ae48f1d63992af8a8fb8947745b7fa834e8f519` |
 | `assets/rapier-BcnL-M2-.js` | 4335104 | `eba580e6ed6e22819a222beef8c8f10df2673fc258078aac38b328212612d6f5` |
 
-最后仅Markdown回执与持续前端准则提交时，复用已验证v12运行资产及上述单轮线上结果，以同版本100% deployment message同步最终main；版本和源码对应关系由最新实际deployment annotation核对。不重新上传运行模块/资产或再执行公网回归。
+v12的最终验证记录和前端持续准则随v13功能提交e44a649b一同提交；新增作者优先规则改变运行逻辑，随后实际部署v13，没有另建v12同版文档deployment。上述v12检查是历史证据；v13使用自己的运行与完整源码CI回执。
 
 ## 历史线上版本 · version 11
 
@@ -270,7 +306,24 @@ version 4 的完整 10 项 Playwright 流程在 `2026-10-06T14:05:04.566Z` 开�
 
 基础后备生成器曾通过39项直接、25项workerd HTTP和34项旧/新等价与动态headers检查。既有7项API mock与6项metadata断言验证429/503和两发布路径保留限频；本轮未改API/infra。当前52项core/手K/API/存储、构建/Worker类型及完整浏览器和CI结果见 [VERIFICATION.md](VERIFICATION.md)。
 
-## 复现当前发布构建
+## 当前 v12/v13 原生发布构建
+
+当前版本使用 `wrangler.jsonc` 的原生 Workers Static Assets 和 `AI` 绑定，实际 Wrangler 上传已经成功。先在本地运行基础/类型/全套 mock 浏览器验证，提交并 push GitHub main，再通过已认证 Wrangler 发布并核对实际版本、有限线上流程和准确源码 CI。AI 测试必须 mock，不能用真实推理验证部署。
+
+```sh
+npm ci
+npm run check
+npm run typecheck:worker
+npm run test:e2e
+npx wrangler deploy --dry-run --outdir /tmp/choreo-native-worker-build
+npx wrangler deploy --tag v13-author-key-priority --message '<实际功能提交SHA与范围>'
+```
+
+仅 Markdown 回填时复用已验证原生版本，并以同版100% deployment message关联最终main，不再上传资产或重复公网流程。`_headers`/`_redirects`是配置元数据；AI请求始终限于用户主动生成，没有云项目保存。
+
+## 历史 S0–v11 后备发布构建复现
+
+以下只适用于对应历史提交及锁定构建输入，不用于当前v12/v13原生ASSETS发布。
 
 生成器只准备文件，不执行网络请求或部署：
 
@@ -281,14 +334,14 @@ npx wrangler deploy --dry-run --outdir /tmp/choreo-worker-build
 node infra/prepare-inline-preview.mjs dist /tmp/choreo-worker-build/index.js /tmp/choreo-inline-repro
 ```
 
-输出为 `/tmp/choreo-inline-repro.mjs`、`-metadata.json`、`-multipart.txt` 和 `-summary.json`。当前锁定依赖与同一构建输入可重复生成上述模块 SHA-256。通过已授权 Cloudflare API 上传 multipart，并启用目标 Worker 的 workers.dev 地址；发布后记录新 deployment/version IDs 并验证公网。
+输出为 `/tmp/choreo-inline-repro.mjs`、`-metadata.json`、`-multipart.txt` 和 `-summary.json`。对应历史锁定依赖与同一构建输入可重复生成当时的模块 SHA-256。当时通过已授权 Cloudflare API 上传 multipart，并启用目标 Worker 的 workers.dev 地址；发布后记录新 deployment/version IDs 并验证公网。
 
 生成模块、multipart、临时上传 JWT、凭据及上传音乐不进入 public 仓库。后备生成器对未支持的非空 `_redirects` 明确报错，不默默忽略配置。
 
-## 标准 Static Assets 路线
+## 标准 Static Assets 路线与历史上传问题
 
-`wrangler.jsonc` 保留 Workers Static Assets 标准配置。当前没有把后备方式描述成 ASSETS 绑定部署。用户完成 Cloudflare 重新授权后，正式 Worker 创建和发布已成功；无需手工创建 Worker。官方资产 manifest 接口返回 200，但使用上传 JWT 的小资产 multipart 请求返回 `Unauthorized`，原因仍未定位，因此本次采用上述可复现后备方式。
+`wrangler.jsonc` 使用 Workers Static Assets 标准配置，v12/v13已经通过原生Wrangler成功上传和部署，实际AI/ASSETS/限频绑定已读回。历史S0–v11后备方式内嵌资产，不能描述成ASSETS绑定部署。旧阶段完成Cloudflare重新授权后，正式Worker创建和发布已成功；当时官方资产manifest接口返回200，但上传JWT的小资产multipart请求返回`Unauthorized`，当轮采用上述可复现后备方式。这一历史失败不代表当前原生发布仍受阻。
 
-恢复官方资产上传后，在已认证的 Wrangler 环境可执行 `npm run deploy`。标准 API 准备工具 `infra/prepare-preview.mjs` 已将 `_headers`/`_redirects` 保留为配置元数据，不作为公开资产。GitHub 自动 CI 已启用，自动 Cloudflare 发布尚未配置。
+当前在已认证的Wrangler环境可执行 `npm run deploy`；标准API准备工具 `infra/prepare-preview.mjs` 也将 `_headers`/`_redirects` 保留为配置元数据，不作为公开资产。GitHub自动CI已启用，Cloudflare发布由每轮明确部署步骤完成，尚未配置GitHub自动部署。
 
 S0/P1上线代表原创演示和本机编辑闭环。真实动作、Avatar、许可、教师验证、生产服务和MP4尚未完成；原M0–M3仍未通过。

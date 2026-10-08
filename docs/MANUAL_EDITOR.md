@@ -1,12 +1,12 @@
 # 经典手动编辑器的当前范围
 
-## v13 · 作者关键帧最高权威（本轮追加，验证中）
+## v13 · 作者关键帧最高权威（已上线验证）
 
 用户明确自动插帧/迈步必须服从编舞师新增或更新的中间K，即使普通人体无法完成。明确作者轨道值与手动草稿意图优先于自动脚锁，完整姿态K保护Root与19个可编辑旋转，单轨K保护该通道；未写通道仍可辅助。作者K附近三帧平滑减弱自动修正，冲突展示最终实际残差，不靠改K消除提示。新增/更新/删除/移动K后重新计算相关过渡。
 
-复用现有数值输入允许有限各轴±180°创作姿态，标准滑条/旋转环/IK保持人体建议；K与姿态粘贴不再次裁剪作者旋转，不新增按钮。独立AI/重力整段候选仍需主动请求、明确采用与替换说明，原稿可撤销；不是后台补间。自动迈步仍未实现，后续必须遵守作者优先。本项源码/检查/main/Cloudflare回执待实证完成；下方306+76仅是此前v12已验证基线。
+复用现有数值输入允许有限各轴±180°创作姿态，标准滑条/旋转环/IK保持人体建议；K与姿态粘贴不再次裁剪作者旋转，不新增按钮。独立AI/重力整段候选仍需主动请求、明确采用与替换说明，原稿可撤销；不是后台补间。自动迈步仍未实现，后续必须遵守作者优先。本轮作者优先源码 [e44a649b](https://github.com/DFerryman/ChoreographyStudio/commit/e44a649bb03583d847ea319dc27560643545a828) 已 push main，树 `ebc88873036023e6b00de28eb509a642a3ca97ae` 与本地一致；准确功能 head 的 [run37745471252](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37745471252)、job113205792740、attempt1 于 `2026-10-08T08:03:55Z` completed/success，实际 **319基础 + 完整81浏览器通过**，没有 workflow rerun。Cloudflare v13 `9dcbf7c0-24cb-41c7-a1a3-d36baa0893e4` 实际100%，首次 deployment `7e5a6ead-b240-4484-b83e-0a7f06f7716e` / `2026-10-08T07:46:28.924157Z`。单轮线上8/8与有界12 HTTP通过，实际诊断errors/warnings/API均0，真实AI推理0。最后仅Markdown回填复用该已验证runtime，并在同版100% deployment annotation关联最终main；实际ID与时间由Cloudflare记录核对。此前v12的306+76仅作为历史基线，详见验证/部署记录。
 
-本轮运行源码 [82b593d4](https://github.com/DFerryman/ChoreographyStudio/commit/82b593d483e875cb67d14975527bf5265eab3090) 与仅测试修正 [bd59b4bc](https://github.com/DFerryman/ChoreographyStudio/commit/bd59b4bc5cf189423fed29cf96349e81c7b79e6f) 已 push main；Cloudflare v12 `959cccfa-4deb-4e09-a064-ff840c881828` 实际100%。修正源码 [CI run37740462981](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37740462981)、job113189737231、attempt1，于 `2026-10-08T07:13:24Z` completed/success，实际306基础 + 完整76浏览器通过，无 workflow rerun。单轮线上9/9及有界12 HTTP通过，真实AI推理0；首轮CI75/76、异步文本trace、定向修正与运行版本对应证据保留在验证/部署记录。
+此前v12运行源码 [82b593d4](https://github.com/DFerryman/ChoreographyStudio/commit/82b593d483e875cb67d14975527bf5265eab3090) 与仅测试修正 [bd59b4bc](https://github.com/DFerryman/ChoreographyStudio/commit/bd59b4bc5cf189423fed29cf96349e81c7b79e6f) 已 push main；Cloudflare v12 `959cccfa-4deb-4e09-a064-ff840c881828` 实际100%。修正源码 [CI run37740462981](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37740462981)、job113189737231、attempt1，于 `2026-10-08T07:13:24Z` completed/success，实际306基础 + 完整76浏览器通过，无 workflow rerun。单轮线上9/9及有界12 HTTP通过，真实AI推理0；首轮CI75/76、异步文本trace、定向修正与运行版本对应证据保留在验证/部署记录。
 
 2026-10-08 的最新授权是在 v11 手动编辑基线上继续接入 AI、IK、脚锁与重力辅助，优先使用可用开源库，并内置标准中性人体配置；使用者不需要填写体重、分段质量、惯量、摩擦或驱动参数。用户选择 Cloudflare Workers AI，并明确要求开发、测试和上线验证不得实际调用模型产生用量。此前“AI 暂不接入”是 v11 的历史范围，已被本次授权更新。原工程 ZIP 的获取和生产契约集成仍不阻塞这些功能。
 
@@ -81,7 +81,7 @@ v11 使用原创程序化实体成人 mannequin，沿原 25 关节层级运动�
 | RightFoot／右踝 | −20～40 | −12～12 | −25～15 | Y 轴 twist；swing ≤45 |
 | 左右指尖、脚尖、脚跟 | 只读 | 只读 | 只读 | 保留原末端旋转，不创建可编辑轨 |
 
-球形关节的四元数 Y 轴 twist 取表中的 Y 范围，swing 指离开纵向静止轴的总摆角；三个 Euler 数值各自合法，组合仍可能超限。肘和膝分解后的次级 swing 角分量分别满足 `(Y/8)² + (Z/5)² ≤1` 与 `(Y/4)² + (Z/3)² ≤1`，不是两个可以同时取满的独立范围。四元数 X twist 内部允许肘 −146～1、膝 −1～146，以容纳微小的次级轴组合；表中 Euler 主屈曲边界仍严格。组合超限时沿向中立姿态的最短 SLERP 弧缩回合法包络，保存的仍是规范化 XYZW 四元数。左右肘都向 −X 屈曲，左右膝都向 +X 屈曲；左肩/髋外展为 +Z，右侧为 −Z，不随观看镜像翻转数据。
+球形关节的四元数 Y 轴 twist 取表中的 Y 范围，swing 指离开纵向静止轴的总摆角；三个 Euler 数值各自合法，组合仍可能超限。肘和膝分解后的次级 swing 角分量分别满足 `(Y/8)² + (Z/5)² ≤1` 与 `(Y/4)² + (Z/3)² ≤1`，不是两个可以同时取满的独立范围。四元数 X twist 内部允许肘 −146～1、膝 −1～146，以容纳微小的次级轴组合；表中 Euler 主屈曲边界仍严格。标准滑条、旋转环和 IK 求解中，组合超限时沿向中立姿态的最短 SLERP 弧缩回建议包络，保存的仍是规范化 XYZW 四元数；明确数值创作与写 K 不套用这项投影。左右肘都向 −X 屈曲，左右膝都向 +X 屈曲；左肩/髋外展为 +Z，右侧为 −Z，不随观看镜像翻转数据。
 
 旧作品在加载、采样、播放、保存、导入、删除、键转移和撤销/重做中保持权威数据，不套新表自动修复，也不在重开时重烘焙。旧超限旋转显示原值及提示；Root编辑不重写其他旋转。「K完整姿态」记录当前19个可编辑旋转与Root，6个末端保留；单轨K只记录对应通道。K只做有限值/单位四元数校验与规范化，不再次裁剪老师的姿态。复制/粘贴保留源旋转，形成草稿后仍须显式K。骨长、CountMap、不可变基底与原场景格式保持。
 

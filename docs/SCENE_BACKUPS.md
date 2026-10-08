@@ -1,6 +1,6 @@
-# 本机场景备份与恢复 · v10 基线与 v12 扩展
+# 本机场景备份与恢复 · v10 基线与 v12/v13 扩展
 
-2026-10-08 的 v12 在原本机备份契约中新增可选持久脚锁和 `ik` 视口工具值；代码已实现，正执行新增验证与发布。旧文件缺少这些字段时原样恢复，既有音乐/CountMap/动画/事务与资源规则保留。下述 v10 通过记录是历史证据；v12 当前结果见 [VERIFICATION.md](VERIFICATION.md)，不可预填尚未完成的 CI/上线结果。
+2026-10-08 的 v12 已交付可选持久脚锁和 `ik` 视口工具值；v13补充可选作者优先求值标记与严格整份旧算法兼容。旧文件缺少这些字段时保留权威动作，既有音乐/CountMap/历史/事务与资源规则继续。54项备份检查及准确v13源码319基础/81浏览器已通过；下述v10为历史证据，实际版本见 [VERIFICATION.md](VERIFICATION.md) / [DEPLOYMENT.md](DEPLOYMENT.md)。
 
 本轮已交付「下载 → 重新导入 → 继续编舞」的本机闭环。实现位于 `apps/web/src/sceneBackup.ts`，仍使用 `choreo-scene-1`、`preview-1` 和原创程序化骨架，读取、校验、音频解码与保存均在浏览器完成。107 项基础检查、最终构建/Worker 类型与 dry run、相关本地范围及缺音乐定向复核、单轮线上 8 项、5 HTTP 和[实际源码 CI 完整 38 项](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37636175196)通过；[运行源码](https://github.com/DFerryman/ChoreographyStudio/commit/9fbc115f12d2580ff76b7cf5354fa581081579d8)已 push 并部署 Cloudflare v10。实际版本、失败/修正历史及最终文档同步收据见 [VERIFICATION.md](VERIFICATION.md) / [DEPLOYMENT.md](DEPLOYMENT.md)。
 
@@ -72,6 +72,8 @@ MIME 元数据允许安全的 `audio/*` 子类型（含 `audio/x-m4a` 等厂商�
 CountMap 校验速度、音乐拍关系、完整八拍起点/时长、数拍时间和音频覆盖；plan、take 和 manual 的 ID、时长、来源及数拍绑定须一致。单个 take 必须严格递增且包含精确 0 和结束时刻。有效的旧稀疏 take 可以原样恢复，不要求凭空插入八拍边界或重烘焙 plan。源 take 的有限 Root 坐标也原样保留，不因当前编辑范围而裁剪；显式 Root 轨键继续限制 X/Z ±5 米、Y 0–3 米。
 
 手 K 校验还会按当前核心规则计算预期产物，逐一比对基底与键时刻集合、插值后的 Root 和关节旋转；四元数 q 与 −q 视为相同旋转。校验用于确认保存的权威 take 和手 K 轨一致，成功后保留导入的原始 take 数据，不用临时计算结果替换它。
+
+v13 的可选 `manual.authorKeyPriority` 只接受 `author-key-priority-1`。有标记的序列必须整份匹配作者优先求值；只有无标记的旧脚锁序列可整份匹配确定性的旧求值。不能逐帧混用两种算法，也不以求值结果替换导入 Take。真实的键、锁或转移编辑升级标记；空操作保留旧对象，不增加迁移历史。
 
 v12 的 `manual.footLocks` 是可选数组；每项只接受 `schema,id,foot,startFrame,endFrame,target,rotation,blendFrames`。脚部仅允许 `LeftFoot/RightFoot`，ID 不重复，起止为合法 30 fps 整数帧且结束严格晚于开始；世界锚点每轴绝对值不超过 10 米，旋转是单位 XYZW，未知字段拒绝。同脚区间共享端点也算重叠。备份验证通过确定性脚锁/IK 烘焙核对权威 Take 的完整采样时间和全部姿态，不只检查元数据存在；锁足额外采样仍受 6001 单 Take 和 150000 场景累计样本上限约束。
 
