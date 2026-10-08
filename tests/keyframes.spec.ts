@@ -430,6 +430,9 @@ test('dirty pose guards preserve cancel and failed-save drafts, distinguish disc
   await rootX(page, 2);
   await openScene(page, '切换目标 B');
   await draftGuard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
+  const sceneGuard = page.getByRole('dialog', { name: '保留当前场景的修改？', exact: true });
+  await expect(sceneGuard).toBeVisible();
+  await sceneGuard.getByRole('button', { name: '不保存，继续', exact: true }).click();
   await expect(page.locator('.project-title h1')).toHaveText('切换目标 B');
   await openScene(page, fixture.scene.name);
   await expect(page.locator('.project-title h1')).toHaveText(fixture.scene.name);
@@ -438,6 +441,8 @@ test('dirty pose guards preserve cancel and failed-save drafts, distinguish disc
   await expectNumber(page, 'Root X 位移（米）', 0.6, 0.002);
 
   await rootX(page, 1.4);
+  const quotaDraftRoot = JSON.parse((await page.getByRole('region', { name: '3D 动画舞台', exact: true }).getAttribute('data-root-position'))!) as Vec3;
+  expect(quotaDraftRoot[0]).toBeCloseTo(1.4, 5);
   // Simulate a browser-local quota failure only for write transactions. The
   // scene must retain the now-explicit pose, then permit a successful retry.
   await page.evaluate(() => {
@@ -453,7 +458,7 @@ test('dirty pose guards preserve cancel and failed-save drafts, distinguish disc
   await expect(page.locator('.save-state')).toHaveText('保存失败');
   const failed = current(await backup(page));
   expect(failed.manual!.root).toHaveLength(1);
-  expect(failed.manual!.root[0].position[0]).toBe(1.4);
+  expect(failed.manual!.root[0].position).toEqual(quotaDraftRoot);
   await expectWorld(page, [1.4, 1.05, 0]);
   await page.evaluate(() => {
     const proto = IDBDatabase.prototype as typeof IDBDatabase.prototype & { originalTransaction?: typeof IDBDatabase.prototype.transaction };
@@ -461,6 +466,7 @@ test('dirty pose guards preserve cancel and failed-save drafts, distinguish disc
     delete proto.originalTransaction;
   });
   await save(page);
+  await clickRevealed(page, page.getByRole('button', { name: '全身取景', exact: true, includeHidden: true }));
 
   // Hold only the transaction-completion acknowledgement. The real local
   // transaction has committed; the UI still has an in-flight save promise.
