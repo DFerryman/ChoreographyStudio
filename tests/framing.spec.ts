@@ -32,6 +32,7 @@ const guard = (page: Page) => page.getByRole('dialog', { name: '写入这份姿�
 const diagnostics = new WeakMap<Page, { errors: string[]; warnings: string[]; apiRequests: string[] }>();
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/**', route => route.abort('blockedbyclient'));
   const messages = { errors: [] as string[], warnings: [] as string[], apiRequests: [] as string[] };
   diagnostics.set(page, messages);
   page.on('pageerror', error => messages.errors.push(error.message));

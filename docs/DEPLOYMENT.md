@@ -1,5 +1,19 @@
 # Cloudflare 预览部署
 
+## v15 · 全身蒙皮本地验收完成（待实际main／Cloudflare／CI）
+
+用户的新截图确认高举臂肩腋变形不能以“轻微褶皱”接受，并要求全面检查随机调整以外的全身部位。本轮已接入Meta官方MHR v1.0.1的人体来源网格、127内部显示骨骼、原生绑定／权重及公开学习式姿态修正；编辑草稿、写K后、插值和播放使用同一显示链。老师仍通过舞台及时间轴操作原25作者关节，已有局部旋转／Root／时序／历史、FK／IK／脚锁及操作柄保持，不增加内部127关节表单或骨长编辑。
+
+内部helper保留来源驱动系数关系，适配为中立基线相对轴向swing／twist，修复外展被当twist和±180°表示接缝；120°至180°的五次平滑与垂直半转投影淡出只处理内部显示引导，作者数据不改。原生皮肤保留4899顶点、9794三角形及四个非零权重，官方其余四slot为0；来源及Apache-2.0／Momentum MIT完整许可保留，旧CC0资产留存。此适配不宣称任意上游compact Euler全链等价、现成JavaScript肌肉引擎或完整生物力学。
+
+实际本地正式5／5（65.290秒）通过，另14／14姿态回顾和46张实际Stage／全身／390px／草稿K及播放图由根代理亲审，接受本轮连续蒙皮改善。最终150°肩部压缩1／72（1.39%）、170°0／72，均低于原冻结3%门槛；模型高1.849999974米，脚底误差小于2毫米。正式源标定逐点胸部运动误差150°／170°最大0.0241／0.0296微米、neutral点0.0273微米，均低于2微米。蹲姿fixture刻意保留作者Root，脚悬空是原意图，不宣称自动落地。
+
+首轮4／5、170°3／72（4.17%）的自然度拒绝、腕颈脚边界接缝，以及此前paint权重／DQS／53骨来源链／45–65–90度transfer与heat候选全部保留为失败或拒绝历史，不计作自然通过。旧胸部25毫米绝对线未做source验证，官方完整PSD在固定14胸部顶点本身达约25.535622毫米；已说明依据并改为固定标定source-native逐点运动一致性≤2微米和实际无大片翼状拉伸审阅，未伪称原线通过。未标定来源向量约8微米差也留档，不能混用标量p95和逐点向量残差。
+
+冻结功能源码已完成本地359／359基础（18文件）、前端类型和生产构建；正式显示回顾所用MHRRig与冻结版仅眼部null骨归属从Hand改为Head的拾取元数据一行不同，update及轴向函数哈希一致。Worker类型和离线dry-run已通过，真实Workers AI与付费动作生成请求0；MHR公开学习式稀疏ReLU在本地实际计算。相关回归、准确源码CI、GitHub main、Cloudflare及有界线上回执还须据实际结果补齐，不能提前称远端发布完成。
+
+最新本地构建使用`assets/index-C45yH3dl.js`，离线dry-run为23.59KiB／gzip7.40KiB并保留现有限频／AI／ASSETS绑定。未进行本轮Cloudflare上传或线上测试；下文version14仍是最后一个已核对的线上部署事实，不能作为v15远端结果。
+
 2026-10-08：**当前version14已上线并通过准确源码完整CI。** 已移除右侧精细参数模块，舞台直接摆姿＋统一时间轴，采用统一neutral-rig-2／neutral-adult-v2的自然人体与蒙皮；作者K优先，真实AI测试0。[打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
 
 本轮功能源码[d435888f](https://github.com/DFerryman/ChoreographyStudio/commit/d435888f92a6a469f8de9cee0ee404ff5e54eecf)及更严格实际手柄测试[012c1cd1](https://github.com/DFerryman/ChoreographyStudio/commit/012c1cd1f3cadcf51bc8359e799c911c99291a19)已push main，最终源码树`ad3901cd91f7bfd06d4c2d9e3dc9e4764e05a7f5`与本地一致。[准确源码CI run37755495034](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37755495034)／job113238885766／attempt1于`2026-10-08T09:38:34Z` completed/success，实际**321基础＋完整81浏览器**；初始321＋80/81的旧保存guard fixture及独立7f3f完整通过记录保留，不手动rerun。Cloudflare v14 `b4a04064-9df8-479b-b817-0c6f7a1947e7`／100%，首次deployment `469d00f7-fe23-4e42-a88f-391eb8775be0`／`2026-10-08T09:10:51.003376Z`；单轮线上10/10和有界13 HTTP通过，实际8份JSON诊断及2模型断言错误／警告／API0，真实AI0。生产仍是d435，后续只改测试或Markdown，运行资产不重上传；最终文档main通过同版部署message关联。详见验证／部署记录。

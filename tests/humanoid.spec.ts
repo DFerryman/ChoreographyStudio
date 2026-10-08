@@ -36,8 +36,8 @@ test('@model a delayed asset binds to the current edited pose without changing i
   let hold = false;
   let release!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; });
-  const bytes = await readFile('apps/web/public/models/neutral-human-v2.glb');
-  await page.route('**/models/neutral-human-v2.glb', async route => {
+  const bytes = await readFile('apps/web/public/models/neutral-mhr-v1.glb');
+  await page.route('**/models/neutral-mhr-v1.glb', async route => {
     if (hold) await gate;
     await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: bytes });
   });

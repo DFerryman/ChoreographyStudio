@@ -5,7 +5,7 @@ import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { EDITABLE_JOINT_NAMES, JOINT_NAMES, RIG_DEFINITIONS, ROOT_TRANSLATION_LIMITS, sampleTake, type BakedTake, type JointName, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
 import { fitPerspectiveBounds } from './cameraFraming';
 import { constrainJointRotation, isJointRotationWithinLimits } from '../../../packages/core/src';
-import { loadHumanoid } from './Humanoid';
+import { disposeHumanoid, loadHumanoid, updateHumanoid } from './Humanoid';
 import './Stage.css';
 
 export type StageView = 'front' | 'back' | 'left' | 'right' | 'top' | 'free';
@@ -70,7 +70,7 @@ type PreviewRig = {
 
 type GizmoAxis = { name: 'X' | 'Y' | 'Z'; color: string; x: number; y: number; depth: number };
 
-/** Shared canonical bones drive one continuous, rebased neutral skin. */
+/** Canonical authoring bones retain the exact FK/IK and manipulation contract. */
 function createPreviewRig(): PreviewRig {
   const root = new THREE.Group();
   const joints = new Map<JointName, THREE.Bone>();
@@ -117,7 +117,7 @@ function surfaceJoint(hit: THREE.Intersection): JointName | null {
   for (let corner = 0; corner < 3; corner++) {
     for (let influence = 0; influence < 4; influence++) {
       const bone = surface.skeleton.bones[indices.getComponent(vertices[corner], influence)];
-      let name = bone?.name as JointName | undefined;
+      let name = (bone?.userData.editorJoint ?? bone?.name) as JointName | undefined;
       if (!name || !JOINT_NAMES.includes(name)) continue;
       if (name.endsWith('HandTip')) name = name.replace('HandTip', 'Hand') as JointName;
       else if (name.endsWith('Toe') || name.endsWith('Heel')) name = name.replace(/(?:Toe|Heel)$/, 'Foot') as JointName;
@@ -356,6 +356,7 @@ export function Stage(props: StageProps) {
     requestDraw.current = schedule;
     void loadHumanoid(rig.joints, humanLoad.signal).then(mesh => {
       if (stopped) {
+        disposeHumanoid(mesh);
         mesh.geometry.dispose();
         for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) material.dispose();
         mesh.skeleton.dispose();
@@ -664,6 +665,7 @@ export function Stage(props: StageProps) {
         const radius = name === 'Hips' ? .013 : name.includes('Tip') || name.endsWith('Toe') || name.endsWith('Heel') ? .006 : .008;
         marker.scale.setScalar(radius * (selected ? 1.38 : over ? 1.18 : 1));
       }
+      updateHumanoid(rig.humanSurface);
       scene.updateMatrixWorld(true);
       ikGoal.visible = canIK();
       ikLine.visible = false;
@@ -713,6 +715,7 @@ export function Stage(props: StageProps) {
     function pick(event: PointerEvent, includeSurface = false): JointName | null {
       const bounds = canvas.getBoundingClientRect();
       pointer.set(((event.clientX - bounds.left) / bounds.width) * 2 - 1, -((event.clientY - bounds.top) / bounds.height) * 2 + 1);
+      updateHumanoid(rig.humanSurface);
       scene.updateMatrixWorld(true);
       camera.updateMatrixWorld(true);
       raycaster.setFromCamera(pointer, camera);
@@ -980,6 +983,7 @@ export function Stage(props: StageProps) {
       });
       for (const geometry of geometries) geometry.dispose();
       for (const material of materials) material.dispose();
+      disposeHumanoid(rig.humanSurface);
       rig.humanSkeleton?.dispose();
       keyLight.shadow.map?.dispose();
       renderer.dispose();

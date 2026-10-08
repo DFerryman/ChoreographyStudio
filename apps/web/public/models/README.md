@@ -1,6 +1,103 @@
-# Neutral human asset
+# Neutral human display assets
 
-`neutral-human-v2.glb` is the current editor's display mesh. The authoritative animation
+## v15 MHR native rig and corrective skin
+
+The v15 candidate uses Meta's **Momentum Human Rig (MHR)**, release **v1.0.1**,
+LOD3. Saved choreography keeps the unchanged canonical 25-joint `neutral-rig-2`
+author contract. The internal display rig retains all **127 native joints**,
+including anatomical and twist helpers, and pose-dependent corrective skin.
+The canonical adapter matches the author control transforms and existing foot
+anchors. Application/release acceptance is recorded separately in the repository
+verification and deployment documents; source conversion alone is not delivery.
+
+- [MHR upstream](https://github.com/facebookresearch/MHR)
+- [Pinned v1.0.1 release](https://github.com/facebookresearch/MHR/releases/tag/v1.0.1)
+- [Source assets archive](https://github.com/facebookresearch/MHR/releases/download/v1.0.1/assets.zip)
+- [Exact Apache-2.0 assets license](MHR-LICENSE.txt)
+- [Momentum upstream](https://github.com/facebookincubator/momentum)
+- [Exact MIT license for the offline converter](MOMENTUM-MIT.txt)
+- [Source and derivative checksum manifest](MHR-PROVENANCE.json)
+
+The archive contains `assets/LICENSE.txt` and no `NOTICE` file. Its retained
+Apache license is 11,358 bytes, SHA-256
+`cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`.
+The offline `pymomentum-cpu` 0.1.114.post0 distribution's MIT license is 1,088
+bytes, SHA-256 `da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93`.
+Neither the Python runtime nor Torch is bundled with the browser.
+
+Private twist helpers retain the source driver relationships and coefficients,
+adapted to neutral-relative axial swing/twist for the canonical control axes.
+Directly reusing native Euler X mixed high arm elevation into countertwist and
+compressed the back of the shoulder. The adapter preserves its neutral shape,
+smooths private guidance between 120 and 180 degrees and fades the ambiguous
+perpendicular half-turn projection. Author rotations remain exact, and evaluation
+depends only on the current pose. This adapter is not claimed to reproduce every
+upstream compact-model Euler control sequence.
+
+The self-contained source GLB is `/models/neutral-mhr-v1.glb`, with its matching
+metadata also in `/models/neutral-mhr-v1.json`. Native geometry and skin retain
+4,899 vertices and 9,794 triangles in their original order. The official skin
+stores eight slots, but only the first four contain positive weights; every
+remaining slot is exactly zero. The browser's four weights are preserved
+bit-for-bit, with no pruning or renormalization. Native bind axes, pre-rotations,
+hierarchy and all 127 joint names remain intact. Centimeters are converted to
+meters, and the native root's rest position is subtracted from geometry and world
+bind transforms together. Normals are recomputed on the original topology.
+There is no bone collapsing, topology reduction, external texture or animation.
+
+The GLB preserves source geometry and original source inverse bind matrices.
+Its raw source mesh height is approximately 1.7254 meters. Runtime applies the
+canonical adapter's fixed longitudinal segment scales and `skinBindAdjustments`
+for the foot envelope and head crown. These adjustments multiply the original
+skin inverse bind once, leaving control bone positions and rotations unchanged;
+base geometry and decoded corrective displacement receive the same affine.
+The descriptor records the neutral calibration calculation targeting a 1.85-meter
+body and unchanged foot-local bounds X ±0.048, Y [-0.082, 0.034], and
+Z [-0.075, 0.165] meters. Actual runtime profile checks measured approximately 1.850000 meters and the
+expected foot-local sole, width, heel and toe bounds. The raw source GLB positions
+are not claimed to be the calibrated stage's standing dimensions.
+
+`neutral-mhr-correctives-v1.bin` retains the upstream learned mapping in a
+lossless sparse CSR payload: 750 features, 3,000 ReLU activations, 4,899 vertices,
+53,136 activation coefficients and 1,532,952 corrective coefficients. Dimensions,
+row offsets, column bounds and finite values are checked before evaluation. The
+binary is 9,587,356 bytes, SHA-256
+`b09418f280a379c4f4a3fb72f4c8b909a6339a5fd1c7ed5513f3b8a17b947bde`.
+Output is in native centimeters and is added before skinning at 0.01 meters per
+centimeter. This is actual local learned deformation math, distinct from Workers
+AI or choreography generation; it consumes no paid model API request.
+
+The native GLB conversion was checked against the official eight-slot skin plus
+correctives at neutral, 90°, 150° and 170° poses, with maximum position error
+below 0.55 micrometer. This confirms conversion and source skin parity. It does
+not replace calibrated edit/K/playback views, whole-body checks, release testing
+or teacher approval. v14/older meshes and licenses below remain unchanged for
+historical evidence and already-open clients.
+
+### Reproduce the asset bundle
+
+Obtain the pinned release assets, then install NumPy and the offline MIT
+`pymomentum-cpu` converter. The converter's geometry module works without Torch.
+Run from the repository root, using the shipped descriptor as the fixed avatar
+calibration blueprint:
+
+```sh
+python infra/mhr_prepare.py --assets /path/to/extracted/assets \
+  --adapter-contract apps/web/public/models/neutral-mhr-v1.json \
+  --momentum-license apps/web/public/models/MOMENTUM-MIT.txt \
+  --output /path/to/prepared-models
+```
+
+The script verifies all five source checksums, preserves native vertex/bone order
+and four exact weights, exports native binds and metadata, and rebuilds the CSR
+corrective payload without thresholding. It performs no download or model API
+call. Derived sizes and checksums are recorded in `MHR-PROVENANCE.json`; its
+metadata matches the GLB extras and sidecar. A local reproduction of all six
+bundle files was byte-identical. Calibrated pose acceptance remains independent.
+
+## Historical v14 CC0 neutral mesh
+
+`neutral-human-v2.glb` is the retained v14 display mesh. The authoritative animation
 contract remains the 25-joint `preview-1` rig. Version 14 uses one fixed
 `neutral-rig-2` calibration for this mesh, the stage, FK, IK and physical
 diagnostics. The joint names, hierarchy, local rotation channels and recorded
@@ -76,7 +173,7 @@ same new calibration as the skin; source authoring constraints are not imported.
 
 ## Derivative verification
 
-The verified current derivative is served at `/models/neutral-human-v2.glb`:
+The verified v14 derivative is served at `/models/neutral-human-v2.glb`:
 
 | Property | Value |
 | --- | --- |
@@ -110,7 +207,7 @@ The v12/v13 derivative remains served unchanged at `/models/neutral-human.glb`:
 `4b5fa085d0a6e403abee4ce022cac8041e5bca8bce130d03f28f245a29fddc9a`.
 Keeping this older path prevents an already-open v13 application from fetching
 the new skin against its older rig when a delayed model request completes.
-The current application requests only the versioned v2 path and validates its
+The v14 application requests only the versioned v2 path and validates its
 rest calibration before binding. Both files are self-contained CC0 derivatives;
 preserve the old asset's historical verification separately from this new one.
 
