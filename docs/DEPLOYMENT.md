@@ -1,6 +1,6 @@
 # Cloudflare 预览部署
 
-## v15 · 本地全身蒙皮与人体提示完成（最新远端发布待验）
+## v15 · 全身蒙皮与人体提示已上线（准确源码CI通过）
 
 本轮已接入Meta官方MHR v1.0.1来源人体、127内部骨骼、原生绑定／权重及公开学习式姿态修正，草稿、写K、插值和播放共用显示链。老师仍操作原25作者关节，旋转／Root／时序／历史、FK／IK／脚锁和操作柄保持，不新增127关节表单或骨长编辑。私有helper保留来源驱动关系并使用中立相对轴向引导与半转平滑，修正外展误作twist和表示接缝；不声称任意上游compact Euler全链等价、现成JavaScript肌肉引擎或完整生物力学。
 
@@ -12,15 +12,52 @@
 
 姿态修正以可复现gzip文件传输（6244575字节）还原原9587356字节并验证原SHA，按前8字节区分gzip或浏览器已解码的MHRCORR1，保留上限、Abort、单fetch和无API fallback。`.assetsignore`只排除线上原未压缩bin，源数据／离线／CI参考保留。旧wire3／5前三项实为placeholder、第4／5加载失败和两次未进入test的harness退出都留档；真实原因是Vite Content-Encoding后重复解压，修正后才作本轮加载通过。
 
-最新本地380／380基础（20文件、8.60秒）、前端类型／构建通过，bundle为`assets/index-CzQnbqF8.js`。新增人体提示3个相关流程经首2／3、腕部复核失败后最终实际覆盖全部3场景，保留失败与作者归一化末位差的fixture修正，不谎称首轮3／3。较早功能main `16e1fb90`的准确CI实际359＋86已通过，它不替代这版wire／提示源码的远端CI。Cloudflare仍为v14：三次真实上传路径失败与已存资产分别记录，尚无v15运行版本。最新main／CI／Cloudflare／线上回执仍待实际事实；Workers AI与付费动作生成请求0，MHR学习式稀疏ReLU本地实际计算。
+最新本地380／380基础（20文件、8.60秒）、前端类型／构建通过，bundle为`assets/index-CzQnbqF8.js`。新增人体提示3个相关流程经首2／3、腕部复核失败后最终实际覆盖全部3场景，保留失败与作者归一化末位差的fixture修正，不谎称首轮3／3。较早功能main `16e1fb90`的准确CI实际359＋86已通过，仅作初版历史。最新a9b753cd运行源码已进入main及Cloudflare v15，单轮HTTP19与公网10通过；其最新准确源码CI380＋89已实际通过，最终文档main由同版部署annotation关联并复用已验运行版；Workers AI与付费动作生成请求0，MHR学习式稀疏ReLU本地实际计算。
 
-初版main16e1fb90准确CI359＋86已通过，当前wire／提示修正本地380＋正式5通过仍待新准确源码CI与部署。三次nativeCLI／single-file resume／HTTP gzip experiment真实失败和8资产部分成功保留；没有v15运行版本，旧v14仍100%，不将资产已上传当作服务上线。当前候选wire、decoder保护和新bundle见验证记录；后续只填实际main／version／deployment／流量／HTTP／线上回执。
+初版main16e1fb90准确CI359＋86已通过，当前wire／提示修正本地380＋正式5通过，部署、线上及准确源码CI380＋89均已按最终日志核对。三次nativeCLI／single-file resume／HTTP gzip experiment真实失败和8资产部分成功保留；失败时点没有v15运行版本、旧v14仍100%；当前已成功v15运行上传另据下段，不将部分资产上传当作当时服务上线。当前候选wire、decoder保护和新bundle见验证记录；后续只填实际main／version／deployment／流量／HTTP／线上回执。
+
+### 当前准确运行版本与有界线上核验
+
+实际运行源码[main a9b753cd](https://github.com/DFerryman/ChoreographyStudio/commit/a9b753cd11ad0ac303e81ae53e77b9e136e2ed27)／tree `fd54084a9f818ad910b7864307d0fa7d1fc1cf7c`已发布。Cloudflare version `ca7396ed-a8b1-4db6-a29d-149cbfdbcd59`／number15／100%，首次deployment `3157a661-7fb6-4339-b41f-ac89733774e8`于`2026-10-08T12:21:52.139463Z`；唯一成功运行上传12:21:37.907466–12:21:53.882121Z，5新资产／12复用，原三条失败路径作为独立历史保留。
+
+唯一有界HTTP19／19于12:23:34.973722–12:23:38.206759Z完成；唯一公网相关10／10 FIRSTPASS于12:23:36.593Z开始，用时109.745579秒，unexpected／skipped／flaky及报告errors为0。9份实际诊断JSON的API／errors／warnings为0，另迟到绑定场景使用严格完整断言，不虚称第10份诊断。同轮产生24张图，根代理已亲审其中150°K、插值播放、170°390px、插值腕部四张；保留轻微腋部折痕，不宣称电影肌肉仿真。
+
+压力图明确包含异常作者K、超限与固定Root场景，是蒙皮／数据契约验证，不等于默认受限摆姿或物理可行舞步。Workers AI与付费生成请求0；MHR公开学习式姿态修正本地实际执行。最新准确源码[CI run37775928775](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37775928775)／job113306622160／attempt1／main push已实际completed／success：**380／380基础（20文件）＋89／89浏览器（20文件）**，89逐例通过、失败／未通过0。Job于`2026-10-08T12:18:26Z`开始、`12:43:35Z`完成，共1509秒；browser终行`12:43:33.0391847Z`为89 passed（24.3m），run于12:43:36Z更新，首次读回12:43:43Z。完整原始日志70297字节／SHA256 `8f200441198d8d059b66e9e48e510cab17ef194a20e25cce9b8d149085cbe9c7`；没有手动workflow rerun。最终纯Markdown main通过同版Cloudflare部署annotation关联，复用以上已核对的运行版本、17资产和线上证据，不重复运行上传、公网测试或资产修改。
+
+
+模型README的早期传输说明以本轮实际源码与读回为准：Fetch body可能已经按Content-Encoding解码，也可能仍是显式gzip，decoder按前8字节识别后核对原长度／SHA／上限／Abort。历史401／500没有证实尺寸根因或上传hard limit；最终6244575字节（约6.24MB）的确定性gzip后标准native上传成功，只记录这个实际结果与顺序。已发布静态模型README／来源／ignore与17资产不再修改。
+
+### 当前v15已发布资产（17文件）
+
+以下按本轮实际HTTP清单读回，每项字节数、SHA256与冻结dist一致。原未压缩`neutral-mhr-correctives-v1.bin`由assetsignore排除，仍在源码／离线／CI参考保留，不计作线上发布资产。
+
+| v15资产 | Bytes | SHA256 |
+| --- | ---: | --- |
+| `index.html` | 645 | `9e71dd8c9d690495d327ec8c0fdb441af50d551f353e01c69e2f46cf39f342b8` |
+| `assets/index-CzQnbqF8.js` | 1114517 | `5729096ee852f663af8d8f3558e058edd458d0cddb05ccd58193bdc2d37c09b6` |
+| `assets/index-Dutow-49.css` | 62719 | `f06b18e3563f718322522c5c65e469f9dc5b57dfa9cac22b6d2efa0e8162b48d` |
+| `favicon.svg` | 322 | `883028cbbedddb4251346f961e58174dfe92b20d8fdd7351d7373005f4c2b6ac` |
+| `models/CC0.txt` | 7048 | `a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499` |
+| `models/MHR-LICENSE.txt` | 11358 | `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30` |
+| `models/MHR-PROVENANCE.json` | 245090 | `0d087bb46972b55f55a3ccf7cc4b595b4a8fd33404727556e93a31b417077b18` |
+| `models/MOMENTUM-MIT.txt` | 1088 | `da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93` |
+| `models/README.md` | 14125 | `e199470b53e1c53809ee1c302675703c1a501a2abc846305fee45ca43541ed0d` |
+| `models/neutral-human-v2.glb` | 853172 | `f7be9db402be188a2dd6f02d242eba83d6f84cd37ee2b3612447620580bb35cd` |
+| `models/neutral-human.glb` | 776136 | `4b5fa085d0a6e403abee4ce022cac8041e5bca8bce130d03f28f245a29fddc9a` |
+| `models/neutral-mhr-correctives-v1.bin.gz` | 6244575 | `51b3557f469f9a22daec511302bb11a53ae778d1d8533d8d3b7ea3390df4d82b` |
+| `models/neutral-mhr-v1.glb` | 536452 | `fe5a79bf9b39e2bb95aa632babc3d8068723ee3dfb5dd97fcb97a120748006ff` |
+| `models/neutral-mhr-v1.json` | 135476 | `4eebae7ca930f5ff01e5b419d61651c0c42825ad2e7fb2156fac35053aa83141` |
+| `third-party-licenses/rapier-apache-2.0.txt` | 11343 | `4c05555705e3efde601fb1252ae48f1d63992af8a8fb8947745b7fa834e8f519` |
+| `third-party-licenses/three-mit.txt` | 1081 | `8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc` |
+| `assets/rapier-BcnL-M2-.js` | 4335104 | `eba580e6ed6e22819a222beef8c8f10df2673fc258078aac38b328212612d6f5` |
+
+## 历史 version14 · 当时已验证的部署
 
 2026-10-08：**当前version14已上线并通过准确源码完整CI。** 已移除右侧精细参数模块，舞台直接摆姿＋统一时间轴，采用统一neutral-rig-2／neutral-adult-v2的自然人体与蒙皮；作者K优先，真实AI测试0。[打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
 
 本轮功能源码[d435888f](https://github.com/DFerryman/ChoreographyStudio/commit/d435888f92a6a469f8de9cee0ee404ff5e54eecf)及更严格实际手柄测试[012c1cd1](https://github.com/DFerryman/ChoreographyStudio/commit/012c1cd1f3cadcf51bc8359e799c911c99291a19)已push main，最终源码树`ad3901cd91f7bfd06d4c2d9e3dc9e4764e05a7f5`与本地一致。[准确源码CI run37755495034](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37755495034)／job113238885766／attempt1于`2026-10-08T09:38:34Z` completed/success，实际**321基础＋完整81浏览器**；初始321＋80/81的旧保存guard fixture及独立7f3f完整通过记录保留，不手动rerun。Cloudflare v14 `b4a04064-9df8-479b-b817-0c6f7a1947e7`／100%，首次deployment `469d00f7-fe23-4e42-a88f-391eb8775be0`／`2026-10-08T09:10:51.003376Z`；单轮线上10/10和有界13 HTTP通过，实际8份JSON诊断及2模型断言错误／警告／API0，真实AI0。生产仍是d435，后续只改测试或Markdown，运行资产不重上传；最终文档main通过同版部署message关联。详见验证／部署记录。
 
-## 当前线上版本 · version14
+### 历史 version14 运行回执
 
 | 项目 | 实际结果 |
 | --- | --- |

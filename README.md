@@ -1,6 +1,6 @@
 # 八拍 · Choreo Studio
 
-## v15 · 全身蒙皮与人体提示（本地验证，最新源码待远端发布）
+## v15 · 全身蒙皮与人体提示（已上线验证，准确源码CI通过）
 
 本轮已接入Meta官方MHR v1.0.1来源人体、127内部骨骼、原生绑定／权重及公开学习式姿态修正，草稿、写K、插值和播放共用显示链。老师仍操作原25作者关节，旋转／Root／时序／历史、FK／IK／脚锁和操作柄保持，不新增127关节表单或骨长编辑。私有helper保留来源驱动关系并使用中立相对轴向引导与半转平滑，修正外展误作twist和表示接缝；不声称任意上游compact Euler全链等价、现成JavaScript肌肉引擎或完整生物力学。
 
@@ -12,7 +12,15 @@
 
 姿态修正以可复现gzip文件传输（6244575字节）还原原9587356字节并验证原SHA，按前8字节区分gzip或浏览器已解码的MHRCORR1，保留上限、Abort、单fetch和无API fallback。`.assetsignore`只排除线上原未压缩bin，源数据／离线／CI参考保留。旧wire3／5前三项实为placeholder、第4／5加载失败和两次未进入test的harness退出都留档；真实原因是Vite Content-Encoding后重复解压，修正后才作本轮加载通过。
 
-最新本地380／380基础（20文件、8.60秒）、前端类型／构建通过，bundle为`assets/index-CzQnbqF8.js`。新增人体提示3个相关流程经首2／3、腕部复核失败后最终实际覆盖全部3场景，保留失败与作者归一化末位差的fixture修正，不谎称首轮3／3。较早功能main `16e1fb90`的准确CI实际359＋86已通过，它不替代这版wire／提示源码的远端CI。Cloudflare仍为v14：三次真实上传路径失败与已存资产分别记录，尚无v15运行版本。最新main／CI／Cloudflare／线上回执仍待实际事实；Workers AI与付费动作生成请求0，MHR学习式稀疏ReLU本地实际计算。
+最新本地380／380基础（20文件、8.60秒）、前端类型／构建通过，bundle为`assets/index-CzQnbqF8.js`。新增人体提示3个相关流程经首2／3、腕部复核失败后最终实际覆盖全部3场景，保留失败与作者归一化末位差的fixture修正，不谎称首轮3／3。较早功能main `16e1fb90`的准确CI实际359＋86已通过，仅作初版历史。最新a9b753cd运行源码已进入main及Cloudflare v15，单轮HTTP19与公网10通过；其最新准确源码CI380＋89已实际通过，最终文档main由同版部署annotation关联并复用已验运行版；Workers AI与付费动作生成请求0，MHR学习式稀疏ReLU本地实际计算。
+
+### 当前准确运行版本与有界线上核验
+
+实际运行源码[main a9b753cd](https://github.com/DFerryman/ChoreographyStudio/commit/a9b753cd11ad0ac303e81ae53e77b9e136e2ed27)／tree `fd54084a9f818ad910b7864307d0fa7d1fc1cf7c`已发布。Cloudflare version `ca7396ed-a8b1-4db6-a29d-149cbfdbcd59`／number15／100%，首次deployment `3157a661-7fb6-4339-b41f-ac89733774e8`于`2026-10-08T12:21:52.139463Z`；唯一成功运行上传12:21:37.907466–12:21:53.882121Z，5新资产／12复用，原三条失败路径作为独立历史保留。
+
+唯一有界HTTP19／19于12:23:34.973722–12:23:38.206759Z完成；唯一公网相关10／10 FIRSTPASS于12:23:36.593Z开始，用时109.745579秒，unexpected／skipped／flaky及报告errors为0。9份实际诊断JSON的API／errors／warnings为0，另迟到绑定场景使用严格完整断言，不虚称第10份诊断。同轮产生24张图，根代理已亲审其中150°K、插值播放、170°390px、插值腕部四张；保留轻微腋部折痕，不宣称电影肌肉仿真。
+
+压力图明确包含异常作者K、超限与固定Root场景，是蒙皮／数据契约验证，不等于默认受限摆姿或物理可行舞步。Workers AI与付费生成请求0；MHR公开学习式姿态修正本地实际执行。最新准确源码[CI run37775928775](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37775928775)／job113306622160／attempt1／main push已实际completed／success：**380／380基础（20文件）＋89／89浏览器（20文件）**，89逐例通过、失败／未通过0。Job于`2026-10-08T12:18:26Z`开始、`12:43:35Z`完成，共1509秒；browser终行`12:43:33.0391847Z`为89 passed（24.3m），run于12:43:36Z更新，首次读回12:43:43Z。完整原始日志70297字节／SHA256 `8f200441198d8d059b66e9e48e510cab17ef194a20e25cce9b8d149085cbe9c7`；没有手动workflow rerun。最终纯Markdown main通过同版Cloudflare部署annotation关联，复用以上已核对的运行版本、17资产和线上证据，不重复运行上传、公网测试或资产修改。
 
 ## v14 · 舞台直接摆姿与自然蒙皮（已上线验证）
 

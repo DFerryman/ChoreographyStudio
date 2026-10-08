@@ -73,7 +73,9 @@ The v15 display pipeline preserves native display bones and published learned
 sparse-ReLU pose correctives for local skin computation. The primary editor
 continues to use its canonical 25-joint author/FK/IK contract; the 127 internal
 display bones do not add author controls. Calibration, actual-loaded skin and full-body guidance have passed their
-documented local scope; latest-source remote CI and release are pending.
+documented local scope, and the corresponding runtime has passed bounded online checks;
+exact latest-source CI passed380 foundation and89 browser cases; final document
+main is recorded through a same-version deployment annotation.
 Stress-pose verification is not a claim of ordinary human feasibility. These licenses
 do not establish biological accuracy, safety, motion-content permission or
 teacher acceptance. Local published-model pose correction is actual
@@ -83,3 +85,7 @@ choreography-generation requests, both of which remain unused in tests.
 The optional AI route references the model hosted by Cloudflare Workers AI; its
 weights are not downloaded or redistributed by this project. Model availability,
 usage terms and licensing remain those of the provider and the selected model.
+
+## Final v15 transport observation
+
+The published model README contains an earlier transport description. The final decoder accepts either browser-decoded MHRCORR1 or an explicit gzip body and validates exact raw size/SHA/caps/Abort after inspecting eight bytes. The earlier401/500 responses did not establish a size cause or hard upload limit. Standard native upload succeeded with the deterministic6,244,575-byte gzip representation; this sequence is evidence of success, not proof of the earlier failure cause. Published model assets and their hashes remain unchanged.
