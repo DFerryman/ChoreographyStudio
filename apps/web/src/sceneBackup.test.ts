@@ -79,6 +79,8 @@ function stepsFixture() {
 }
 
 describe('complete local scene backup', () => {
+  // Full-history encode/import rechecks derived IK several times. Allow slower
+  // CI CPUs to finish all authority comparisons without relaxing assertions.
   it('roundtrips derived stepping, exact authored sparse K, original base, foot locks and earlier history in JSON and full bundles', async () => {
     const source = stepsFixture(), project = structuredClone(source.project);
     const manual = source.project.history[2].manual!;
@@ -94,7 +96,7 @@ describe('complete local scene backup', () => {
       restored.baseTake.poses[0].root[0] = 4;
       expect(source.project).toEqual(project);
     }
-  });
+  }, 15_000);
 
   it.each([
     ['unknown version', (manual: any) => { manual.steps.schema = 'ground-steps-2'; }],
