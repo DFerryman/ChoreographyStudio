@@ -1,16 +1,49 @@
 # Cloudflare 预览部署
 
-2026-10-07：当前 version 10 已上线完整场景备份/原音乐恢复、K 时刻移动复制和键盘模态。107 项本地检查、构建/类型与离线 dry-run、相关本地范围以及单轮线上 8 项和 5 HTTP 通过；首次 CI 的旧触控坐标失败与修正保留；新精确源码 CI 已完整通过 107 检查及 38 浏览器流程。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+2026-10-08：当前 version 11 已上线简洁经典手动编辑器、舞台快捷键、音频异步取消/恢复，以及原创实体人体和新编辑姿态的关节限制。161 项本地基础检查、类型/生产构建与 dry-run、20 项人体相关既有流程的首轮及连接恢复覆盖、新增限位 4 项、单轮线上 8 项和有界 5 HTTP 通过。完整远端源码 CI 结果见 [VERIFICATION.md](VERIFICATION.md)。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
 
-API bundle 与 v9 逐字节相同，原生限频及无 D1 边界继续沿用。新增备份、恢复、K 操作与保存均在浏览器完成；历史 v9 及 S0/v5–v8 记录保留。
+API 与发布基础设施未改变，原生限频及无 D1 边界继续沿用。编辑、约束、音频、保存与备份均在浏览器完成；AI 未接入，IK、接触、质心/重力仍在分阶段评估，见 [REALISM_PLAN.md](REALISM_PLAN.md)。历史 v10 及 S0/v5–v9 记录保留。
 
 ## 固定交付要求
 
 用户要求每轮修改最终都提交并 push 到 `DFerryman/ChoreographyStudio`，同步部署到本 Cloudflare 预览。交付前核对远端提交、实际运行版本和预览结果，验证记录也提交；不能只留本地改动或把构建成功当作发布完成。此要求已写入根目录 `AGENTS.md`。
 
-仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署及必要健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。当前表保留 v10 功能版本首次发布记录；后续纯文档的同版同步在部署 message 中记录最终源码提交，实际 ID/时间由 Cloudflare 部署记录核对。v6/v7 记录保留在历史章节。
+仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署与已有健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。当前表保留 v11 功能版本首次发布记录；后续纯文档的同版同步在部署 message 中记录最终源码提交，实际 ID/时间由 Cloudflare 部署记录核对。旧记录保留在历史章节。
 
-## 当前线上版本 · version 10
+## 当前线上版本 · version 11
+
+| 项目 | 实际结果 |
+| --- | --- |
+| Worker / Account | `choreo-studio-preview` / `84e421f26c708c0cf437e287eed11fa1` |
+| v11 功能首次发布 Deployment ID | `35663e67-deea-4c11-913d-5193c85a440b` |
+| Version ID / number / 流量 | `f245eba5-7cda-4950-bda7-f0cae576368b` / 11 / 100% |
+| 发布时间 | `2026-10-08T04:25:42.945845Z` |
+| 功能运行源码 | [e02b76ba](https://github.com/DFerryman/ChoreographyStudio/commit/e02b76bab054120b31314622cf416d752e847b6f)（包含此前简洁界面 a3b0b20c） |
+| 本地/远端功能树 | `f55ecb4ac9c4c0d1031da0048063500a08d9c75e` |
+| 源码 CI | [run37727327279](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37727327279)、attempt1，于 `2026-10-08T04:37:58Z` completed/success；161 foundation + 完整 62 browser（12.8m） |
+| 发布方式 | 恰一次 multipart 真实上传，Worker 内含 gzip 静态资产；`has_assets=false` |
+| 实际 bindings | 原生 `API_RATE_LIMITER`（20/60，namespace 2026100601）与 `RELEASE_STAGE`；无 D1/KV/R2/DO/真实 ASSETS |
+| 实际模块大小 / SHA-256 | 378822 bytes / `2d412af1988a21fc62359903228e4bad8ad877c53a60ca066f26f5d923a3487a` |
+| 实际下载 / 版本 annotation | 模块内容与生成物一致；version message 关联完整 e02b76ba SHA，tag `v11-manual-human` |
+
+## 当前 version 11 验证
+
+最终本地 161 基础检查与构建、前端/Worker 类型和 dry-run 通过，新增约束 4/4 与既有相关 20 个流程均有通过证据。先前 58 项本地的 55+3 测试 fixture 修正、人体相关首轮 11+9 服务器断连恢复、新真实旋转环 fixture 的未跨界/错误拾取及精确 −145° 恢复全部保留在 [VERIFICATION.md](VERIFICATION.md)。首次简洁界面精确源码 a3b0b20c 的 CI run37724093326 已成功 107 + 58；最终精确人体源码 e02b76ba 的 run37727327279 于 `2026-10-08T04:37:58Z` completed/success，真实日志 161 + 完整 62 browser（12.8m），四项新增约束均成功；没有 rerun 或混用两份 CI。
+
+标准浏览器 UA 的有界 5 HTTP 于 `2026-10-08T04:26:40.306412+00:00`–`04:26:40.916729+00:00` 全通过：四个资产逐字节/哈希/安全 headers 与最终 dist 一致，health 200/status ok/no-store。此前 Python 默认 UA 的首页请求及一次诊断返回 Cloudflare Browser Integrity 403/error1010，未进入业务验证；未调整安全设置，失败记录保留。没有额外 capabilities、POST、限频 burst 或 D1 写入。
+
+唯一相关线上 8 项于 `2026-10-08T04:26:41.502Z` 开始，58.052 秒全通过；8 份实际 diagnostics 的浏览器 errors/warnings/API 请求及 unexpected/flaky/skipped/报告 errors 均为 0。覆盖限位数值/滑条与保存、真实肘部旋转环跨界、320/1440 极简手动布局、迟到音乐隔离、手机 0.5 选段恢复、K/Delete/历史与真实音频 Space。桌面、手机和受限肘部截图来自同一轮，未另开公网截图会话或完整 62 项回归。
+
+| v11 资产 | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `assets/index-CqvB3HBE.js` | 975306 | `949cc792440346f3a5fb8506b9492fc86bcfffe9e44ec7128a7a080b0718848e` |
+| `assets/index-DqS_4Npc.css` | 59686 | `953cbdc84bf2df9ecbb79134a901bb3a2edfb1f70baeda7cea68f616527a9674` |
+| `favicon.svg` | 322 | `883028cbbedddb4251346f961e58174dfe92b20d8fdd7351d7373005f4c2b6ac` |
+| `index.html` | 645 | `92be0d3fb1675451717d65fa32df92ef32ae3a1c9dc7f100578418526e232ae0` |
+
+纯 Markdown 交付记录最终提交 push 后复用此运行版本，通过同版 deployment message 关联最终 main；不再次上传模块或重复公网检查。原生产/教学、教师试跳、具名设备、MP4 与 M0–M3 边界保留。
+
+## 历史线上版本 · version 10
 
 | 项目 | 实际结果 |
 | --- | --- |
@@ -24,7 +57,7 @@ API bundle 与 v9 逐字节相同，原生限频及无 D1 边界继续沿用。�
 | 实际 bindings | 原生 `API_RATE_LIMITER`（20/60，namespace 2026100601）与 `RELEASE_STAGE`；无 D1/KV/R2/DO/真实 ASSETS |
 | 实际模块大小 / SHA-256 | 370986 bytes / `be024bed5d7b45667436e28099f2a57eed604cf77f0997b67049f6cf8ae71d87` |
 
-## 当前 version 10 验证
+## 历史 version 10 验证
 
 107 项检查、最终构建、前端/Worker 类型与离线 dry-run 通过。8 个不同本地流程通过首轮 7 项和手机定向复核覆盖，新增缺音乐恢复只复核相关单项；10 份实际本地诊断零错误/警告/API。首次脚本/启动失败及对应恢复保留在 [VERIFICATION.md](VERIFICATION.md)。
 

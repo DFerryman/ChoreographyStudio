@@ -10,9 +10,19 @@ v9 全身取景与关节聚焦已实现、验证并上线；本轮相关本地�
 
 19 个具有可见方向或子骨骼的节点可编辑父相对局部旋转。6 个手指尖、脚尖、脚跟末端节点保留选中和坐标观察，不编辑其不可见旋转。Root 平移独立于 Hips 旋转；骨长、父子层级和静态局部偏移不变。空间继续采用右手系、Y 向上、人物 +Z 向前、XZ 地面和米单位。
 
-数值输入为 intrinsic XYZ 欧拉角（度，每轴 −180 至 180）；持久化为归一化 XYZW 四元数。Root 数值为世界位置，X/Z 在 −5 至 5 米、Y 在 0 至 3 米，仅是本轮场景操作范围，不是人体关节或接触质量约束。
+数值输入为 intrinsic XYZ 欧拉角（度，v11 按所选关节显示独立上下限）；持久化为归一化 XYZW 四元数。Root 数值为世界位置，X/Z 在 −5 至 5 米、Y 在 0 至 3 米，仅是场景操作范围，不是接触或平衡约束。
 
-选中关节仅做选择，不自动进入编辑或改变动画。默认八拍编排中，选中后也须在附近提供「旋转关节」「移动角色」入口；舞台工具栏持续提供选择、旋转、整体移动，以及到数值与写 K 的明确入口。手机点击编辑工具后保留舞台位置，用户主动选择「数值与写 K」才滚动到对应数值组。
+### version 11 实体人体与新编辑限位
+
+人物改为原创成人 mannequin 的实体躯干、头颈、四肢和手脚，保留原 25 关节、19 可编辑旋转、骨长与父子关系；小节点可选，外形不会抢走关节的命中目标。全身取景包含实体外形。
+
+数值、滑条、真实旋转环、粘贴草稿及显式新写 K 共用 core 四元数投影：分轴活动范围加 swing/twist、锥形或铰链组合包络。膝 X 为 0–145°、肘 X 为 −145–0°，两侧依据当前骨架轴采用相同屈曲方向，其他轴限制微小偏移；肩、髋、脊柱、颈、腕、踝各有独立规则。Hips 是整个身体的朝向，保持整体转向自由。操作环跨界时立即反馈受限姿态，不先显示非法外形再仅钳制数值。
+
+限位不在加载、播放、保存、撤销、删除或键转移时自动改写旧作品。旧超限姿态保留并提示；Root-only 编辑或写 K 不修复其他关节。只写当前关节 K 时限制该关节；写完整姿态时限制全部可编辑关节。正式写 K 之前仍为可撤回草稿，六个只读末端保留。新姿态合法不证明相邻键之间全部 SLERP 都符合接触、解剖或动力学条件。
+
+本轮尚未实现 IK、脚锁、碰撞、分段质量/质心或重力。推荐路线与验收条件见 [REALISM_PLAN.md](REALISM_PLAN.md)，实际本地、CI 和 Cloudflare 证据见 [VERIFICATION.md](VERIFICATION.md) 与 [DEPLOYMENT.md](DEPLOYMENT.md)。
+
+选中关节仅做选择，不自动进入编辑或改变动画。v11 首次使用和新场景默认手动模式；旧场景恢复保存的模式。八拍编排中选中后提供「旋转关节」「移动角色」入口；舞台工具栏持续提供选择、旋转、整体移动，以及到数值与写 K 的明确入口。手机点击编辑工具后保留舞台位置，用户主动选择「数值与写 K」才滚动到对应数值组。
 
 视口操作环在未镜像、暂停的编辑模式下围绕选中关节，以 local 空间旋转；整体移动将 TransformControls 绑定 Root，以 world 空间 XYZ 箭头移动整个角色，不平移单个关节或改变骨长。拖动操作柄暂停相机操作，空白处仍可导航相机。Root 拖动与数值使用同样范围：X/Z ±5 米、Y 0–3 米。
 
@@ -34,9 +44,9 @@ v9 全身取景与关节聚焦已实现、验证并上线；本轮相关本地�
 
 本轮 60 项本地检查、构建/Worker 类型与 dry run、4 项相关本地范围经首轮及数值显示断言修正后的复核、5 HTTP、单轮线上 4 项和[实际源码 CI 完整 30 项](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37627848531)通过；[功能源码](https://github.com/DFerryman/ChoreographyStudio/commit/b43817249a9ade4e68bc9900ef273b3e47fdec0f)已 push 并同步 Cloudflare，完成 [#10](https://github.com/DFerryman/ChoreographyStudio/issues/10) 的本机范围。v8 证据保留为历史。
 
-## AI 接入前补齐 · version 10 已上线并验收
+## 历史 AI 接入前补齐 · version 10 已上线并验收
 
-用户已扩大目标为基本完成 AI 接入前的实用本机工作。[#11](https://github.com/DFerryman/ChoreographyStudio/issues/11) 的限定本机闭环已交付，v10 为最新已验证版本：完整场景备份与恢复、缺失原音乐恢复、明确的关键帧时刻移动/复制和模态键盘操作。107 项基础检查、最终构建/Worker 类型与 dry run、8 个不同本地范围及缺音乐定向复核、单轮线上 8 项和 5 HTTP 通过；[实际源码 CI](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37636175196)在 2026-10-07T14:29:27Z 成功完成 107 项检查与完整 38 项浏览器流程。[运行源码](https://github.com/DFerryman/ChoreographyStudio/commit/9fbc115f12d2580ff76b7cf5354fa581081579d8)已 push 并部署 Cloudflare v10。原 CI 37633679536 的 107 + 37/38、旧画布坐标 trace/本地复现及[仅测试修正](https://github.com/DFerryman/ChoreographyStudio/commit/1719439d993cd893f19c771f90c2cf902ef46886)的定向通过保留；运行模块未变，不重复公网验证。首次手机脚本和测试前启动问题也保留。CountMap 时长、19 个旋转/Root、草稿/候选保护及既有资源边界不变，不接入模型或服务写入，原 M0–M3 仍未通过。
+用户已扩大目标为基本完成 AI 接入前的实用本机工作。[#11](https://github.com/DFerryman/ChoreographyStudio/issues/11) 的限定本机闭环已交付，当轮 v10 完成：完整场景备份与恢复、缺失原音乐恢复、明确的关键帧时刻移动/复制和模态键盘操作。107 项基础检查、最终构建/Worker 类型与 dry run、8 个不同本地范围及缺音乐定向复核、单轮线上 8 项和 5 HTTP 通过；[实际源码 CI](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37636175196)在 2026-10-07T14:29:27Z 成功完成 107 项检查与完整 38 项浏览器流程。[运行源码](https://github.com/DFerryman/ChoreographyStudio/commit/9fbc115f12d2580ff76b7cf5354fa581081579d8)已 push 并部署 Cloudflare v10。原 CI 37633679536 的 107 + 37/38、旧画布坐标 trace/本地复现及[仅测试修正](https://github.com/DFerryman/ChoreographyStudio/commit/1719439d993cd893f19c771f90c2cf902ef46886)的定向通过保留；运行模块未变，不重复公网验证。首次手机脚本和测试前启动问题也保留。CountMap 时长、19 个旋转/Root、草稿/候选保护及既有资源边界不变，不接入模型或服务写入，原 M0–M3 仍未通过。
 
 ### 关键帧时刻移动与复制
 

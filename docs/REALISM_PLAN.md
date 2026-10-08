@@ -20,6 +20,14 @@
 
 体重只是总质量。质心需要各肢段的质量分布和局部质心；转动和落地还涉及惯量、速度、接触、摩擦及驱动力上限。质心也不能用 Root 或关节点平均替代。[Unity centerOfMass](https://docs.unity3d.com/ScriptReference/Rigidbody-centerOfMass.html)与[inertiaTensor](https://docs.unity3d.com/ScriptReference/Rigidbody-inertiaTensor.html)明确区分质心与惯量。静态重心投影可辅助判断站姿；动态平衡还取决于动量、加速度及接触力，不能将“投影离开支撑面”作为所有舞步的硬拒绝规则。[MIT 接触与平衡建模](https://underactuated.mit.edu/humanoids.html)讨论了质心动力学、摩擦和压力中心。
 
+## 技术与人物选择
+
+沿用现有 Three.js 浏览器编辑器。当前帧两段 IK 和平地接触诊断不需要迁移到 UE，也不需要先加载通用物理引擎。UE/Unity 的人体编辑方式可以作为交互参考；引擎内置人体资产的使用和再分发许可需单独核实。本轮采用原创几何 mannequin，保持旧关节坐标和作品兼容，不称为 UE 官方人物。以后替换为有明确权利的 skinned glTF/GLB，先验证骨架映射、静止姿态、尺度、骨长、关节轴和接触代理，不能只换外观后沿用未经校准的限位。
+
+平地、固定骨长和有限 IK 可先用明确的小型几何求解器；复杂身体/场景碰撞及动态预览优先评估 Rapier 等成熟引擎，避免自建通用刚体系统。选择依据是接触查询、求解复现、加载体积与目标设备响应，而不是引擎品牌；目前尚无具名设备 benchmark，不给出虚构性能优势或数值评分。
+
+关节活动范围应绑定骨架与人物配置。本轮包络是原创 mannequin 的保守编辑规则，尚未经舞者样本或生物力学实验校准；不同人体比例、柔韧度和伤病状态不能共用一组“绝对真实”参数。后续保留安全缺省，结合可靠参考和教师复核逐步校准，诊断时说明模型与容差依据。
+
 ## 分阶段实现与退出条件
 
 1. **共用运动学与接触诊断。** 将现有 25 关节的父子链、静止偏移和正向求值统一供渲染、IK 与检测使用；校准脚底面、脚掌宽度及身体代理。脚尖/脚跟标记中心不是脚底，不能直接当作地面接触点。平地先用简单几何；复杂场景或动力预览再评估 Rapier。用站立、蹲起、单脚支撑、移步、转脚与跳跃正反例检查穿地、滑脚、身体穿插和接触切换，记录容差依据及关键帧之间的采样覆盖。
@@ -28,6 +36,12 @@
 4. **可选物理辅助与动力预览。** 先用过滤相邻骨段的碰撞代理进行只读检查；再验证固定步长、检查点恢复和动态跳跃/落地预览。模拟结果保留与原稿的差异，明确采用后固化为新 Take，不能在播放或拖时间线时偷偷改作者的姿态。[Rapier 确定性](https://rapier.rs/docs/user_guides/javascript/determinism/)依赖版本、初值、创建顺序与步数等前提，须实际验证复现和保存恢复。
 
 界面保持简洁：目标操作随选中的手/脚出现，诊断使用一个按需展开入口；不增加一排 IK、质量、摩擦和引擎参数常驻按钮。规则同样适用于未来 AI 输出，AI 只是动作来源，不绕过可行性检查。自然舞蹈还需要可靠动作参考、节奏/重心转移和教师试跳，几何或物理检查不单独构成可教学证明。
+
+## 同类软件的交互对照
+
+[Premiere 工作区](https://helpx.adobe.com/premiere/desktop/get-started/tour-the-workspace/what-are-workspaces.html)按任务组织面板，[Properties](https://helpx.adobe.com/premiere/desktop/add-text-images/stylize-text/about-properties-panel.html)随选择显示相关属性；[Blender Timeline](https://docs.blender.org/manual/en/latest/editors/timeline.html)常驻当前帧、关键帧与播放，Playback/Keying 设置在 popover 中，并支持选中对象的键过滤。这些组织方式支持本项目的舞台、上下文属性和时间线，以及低频设置按需展开；具体按钮数量与布局比例仍由用户需求决定，不照搬自动写键或自由时长。
+
+[Cascadeur AutoPhysics](https://cascadeur.com/help/tools/physics_tools/autophysics)先显示 ghost 建议，满意后使用 Snap to AutoPhysics 应用；无可行解仍需作者调整姿态或时序。[Fulcrum Points](https://cascadeur.com/help/tools/physics_tools/fulcrum_points)结合近地与区间位移识别支撑。可借鉴“手动编舞 → 接触检查 → 物理建议预览 → 明确采用”，而不是把重力开关当作自然动作保证。本项目的原 Take 保留、版本绑定、草稿取消和可撤销采用是依据现有数据契约提出的具体要求，未宣称 Cascadeur 对本项目提供了这些实现或验收。
 
 ## 当前实现与边界
 

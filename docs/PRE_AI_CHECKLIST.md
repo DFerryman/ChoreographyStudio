@@ -1,8 +1,8 @@
 # AI 接入前本机工作台清单
 
-2026-10-08 用户明确：AI 暂不接入，当前先完善成经典手动编辑器。本清单继续跟踪本机编辑效率、可靠音频与作品保护；原工程 ZIP 和生产契约集成单独保留，不阻塞这些手动功能。当前 v11 开发/待验收，契约见 [手动编辑器范围](MANUAL_EDITOR.md)；不得从既有 v10 证据推定本轮通过或已发布。
+2026-10-08 用户明确：AI 暂不接入，先完善经典手动编辑器，并保持简洁现代的界面与可信的人体外观/活动边界。v11 快捷键、音乐可靠性、极简层级、原创实体 mannequin 和新编辑关节包络已实现并上线；原工程 ZIP 与生产契约仍独立保留，不阻塞本机功能。具体规则见 [手动编辑器](MANUAL_EDITOR.md)，CI/公网与运行证据见 [验证](VERIFICATION.md)/[部署](DEPLOYMENT.md)，不以 v10 历史记录替代新增范围。
 
-此清单跟踪可独立完成的本机编辑闭环。v10 已交付下述限定 AI 接入前工作，为当前线上最新已验证功能：107 项基础检查、最终构建/Worker 类型与 dry run、8 个不同本地范围经首轮/手机定向复核及缺音乐恢复单项、单轮线上 8 项与 5 HTTP 全部通过。10 份本地相关诊断与 8 份公网诊断的 errors/warnings/业务 API 请求均为零。[运行源码](https://github.com/DFerryman/ChoreographyStudio/commit/9fbc115f12d2580ff76b7cf5354fa581081579d8)已 push 并部署 Cloudflare v10；[仅测试修正提交](https://github.com/DFerryman/ChoreographyStudio/commit/1719439d993cd893f19c771f90c2cf902ef46886)的[实际 CI 37636175196](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37636175196)于 2026-10-07T14:29:27Z completed/success，107 基础检查及完整 38 浏览器流程通过。原 CI 37633679536 的 107 + 37/38 失败、旧画布坐标 trace/本地复现与定向修正通过保留；运行模块未变，复用有效公网和部署证据。首次隐藏状态脚本断言、零匹配 grep、测试前沙箱启动失败与恢复也保留。实际结果和最终文档提交/同版同步由 [VERIFICATION.md](VERIFICATION.md) / [DEPLOYMENT.md](DEPLOYMENT.md) 追踪，原生产门槛继续列在后文。
+此清单跟踪可独立完成的本机编辑闭环。v10 已交付下述限定 AI 接入前工作，其历史证据继续保留：107 项基础检查、最终构建/Worker 类型与 dry run、8 个不同本地范围经首轮/手机定向复核及缺音乐恢复单项、单轮线上 8 项与 5 HTTP 全部通过。10 份本地相关诊断与 8 份公网诊断的 errors/warnings/业务 API 请求均为零。[运行源码](https://github.com/DFerryman/ChoreographyStudio/commit/9fbc115f12d2580ff76b7cf5354fa581081579d8)已 push 并部署 Cloudflare v10；[仅测试修正提交](https://github.com/DFerryman/ChoreographyStudio/commit/1719439d993cd893f19c771f90c2cf902ef46886)的[实际 CI 37636175196](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37636175196)于 2026-10-07T14:29:27Z completed/success，107 基础检查及完整 38 浏览器流程通过。原 CI 37633679536 的 107 + 37/38 失败、旧画布坐标 trace/本地复现与定向修正通过保留；运行模块未变，复用有效公网和部署证据。首次隐藏状态脚本断言、零匹配 grep、测试前沙箱启动失败与恢复也保留。实际结果和最终文档提交/同版同步由 [VERIFICATION.md](VERIFICATION.md) / [DEPLOYMENT.md](DEPLOYMENT.md) 追踪，原生产门槛继续列在后文。
 
 ## 可实测的本机功能
 
@@ -20,19 +20,27 @@
 
 备份不得夹带姿态剪贴板、候选预览缓存、未提交草稿或凭据。导入不是重新生成：精确 Take、不可变基底、显式采样时刻、手 K 轨、CountMap、原音频和相机不能由 plan 重烘焙替换。文件、音频、历史和所有动作样本的累计资源必须有限，不能只限制单个轨或单个 Take。
 
-## 当前 v11 契约与待验证项
+## 当前 v11 已实现功能与交付证据
 
 | 项目 | 当前状态 | 完成口径 |
 | --- | --- | --- |
-| 舞台编辑快捷键 | 开发/待实际验证 | 左右逐帧、Space 播放/暂停、K/Delete 操作当前关节或整体移动下的 Root、Ctrl/Cmd Z 与重做；复用既有草稿/单轨/历史保护，输入和模态不误触发，长按不重复提交 |
-| 音乐读取与解码取消 | 开发/待实际验证 | 取消、关闭或选择新来源后，旧读取/解码/错误/结束回调失效，清理解码资源；不覆盖新设置或当前权威动画、音频、CountMap 与历史 |
-| 已确认选段设置恢复 | 开发/待实际验证 | 重开音乐设置从权威 CountMap 恢复第一数拍、数拍关系、BPM、八拍数量和原八拍起点；非零起点不自动重置，取消不改变作品 |
-| 极简界面与按需展开 | 开发/待实际验证 | 舞台、播放/时间定位、当前目标与写 K 常驻；姿态复制、删除/重置、键转移、相机高级、坐标与备份按需展开。层级清楚、按钮少，原操作和保护仍可达，错误/草稿/保存状态不被隐藏，手机与键盘流程保持 |
-| 本轮交付证据 | 待实际记录 | 相关本地检查/构建/类型与交互、实际 CI、必要单轮公网验收及远端源码/Cloudflare 同步逐项记录；保留失败与修正，不引用 v10 记录冒充 v11 通过 |
+| 舞台编辑快捷键 | 已实现并上线 | 左右逐帧、Space 播放/暂停、K/Delete 操作当前关节或整体移动下的 Root、Ctrl/Cmd Z 与重做；复用既有草稿/单轨/历史保护，输入和模态不误触发，长按不重复提交 |
+| 音乐读取与解码取消 | 已实现并上线 | 取消、关闭或选择新来源后，旧读取/解码/错误/结束回调失效，清理解码资源；不覆盖新设置或当前权威动画、音频、CountMap 与历史 |
+| 已确认选段设置恢复 | 已实现并上线 | 重开音乐设置从权威 CountMap 恢复第一数拍、数拍关系、BPM、八拍数量和原八拍起点；非零起点不自动重置，取消不改变作品 |
+| 极简界面与按需展开 | 已实现并上线 | 舞台、播放/时间定位、当前目标与写 K 常驻；姿态复制、删除/重置、键转移、相机高级、坐标与备份按需展开。层级清楚、按钮少，原操作和保护仍可达，错误/草稿/保存状态不被隐藏，手机与键盘流程保持 |
+| 原创实体人体 | 已实现并上线 | 灰白成人 mannequin 对应原 25 关节层级与骨长，小节点独立拾取；不是 UE 官方模型或已许可生产 Avatar |
+| 新编辑关节包络 | 已实现并上线 | 数值/滑条/操作环/新草稿与明确写 K 共用 Euler/swing/twist 约束，肘膝屈曲方向明确；旧权威 Take/键/基底/历史和导入不自动修复，Root 不改其他旧旋转，完整姿态 K 明确处理 19 个可编辑旋转 |
+| 本轮交付证据 | 运行源码已发布，实际结果另表追踪 | [功能源码](https://github.com/DFerryman/ChoreographyStudio/commit/e02b76bab054120b31314622cf416d752e847b6f)已 push main，Cloudflare v11 `f245eba5-7cda-4950-bda7-f0cae576368b` 已部署；161 项本地基础检查、4 项新增约束和 20 项既有相关交互通过，CI/公网及最终对应关系见 [验证](VERIFICATION.md)/[部署](DEPLOYMENT.md)，保留失败与修正 |
 
 极简现代界面是持续准则。后续每项新功能先确定常驻、上下文或折叠入口、默认状态与可达性，再实现和验收，避免重新堆积按钮。参考官方 [Ableton Arrangement View](https://www.ableton.com/en/live-manual/12/arrangement-view/)、[DaVinci Resolve Edit](https://www.blackmagicdesign.com/products/davinciresolve/edit/) 和 [Blender Timeline](https://docs.blender.org/manual/en/latest/editors/timeline.html) 的时间线/参数组织；具体分层是本项目的设计决定，不据此开放自由时长、自动写 K 或其他后置能力。
 
-后续本机完善继续优先编辑效率、可靠音频与作品保护。当前不新增模型调用、IK、骨长编辑、自由裁剪或自由改变音乐/场景时长，不开放云保存、D1 或其他业务云写；未经许可与独立审核的动作/Avatar 不标为可教学内容。具体操作仍遵循 [MANUAL_KEYFRAMES.md](MANUAL_KEYFRAMES.md) 和 [SCENE_BACKUPS.md](SCENE_BACKUPS.md)。
+后续本机完善继续优先编辑效率、可靠音频与作品保护。当前不调用模型，不提供尚未实现的 IK、骨长编辑、自由裁剪或自由改变音乐/场景时长，不开放云保存、D1 或其他业务云写；未经许可与独立审核的动作/Avatar 不标为可教学内容。具体操作仍遵循 [MANUAL_KEYFRAMES.md](MANUAL_KEYFRAMES.md) 和 [SCENE_BACKUPS.md](SCENE_BACKUPS.md)。
+
+## 后续真实编舞体验
+
+[REALISM_PLAN.md](REALISM_PLAN.md) 已评估有限 IK、脚接触、身体碰撞、质心支撑和简单物理辅助。当前已上线的是人体外观与新旋转活动包络；IK、脚锁、穿地/自身碰撞检测、分段质量、重力和动力预览均尚未实现，限位不保证整个 SLERP 区间或动作在动力学上可行。
+
+后续先共用运动学与接触诊断，再当前帧两段 IK、接触区间和支撑反馈；修正必须先成为可取消草稿或明确采用的版本，保持骨长、CountMap、精确末样本、资源上限和旧作品。可选动力预览使用独立模拟状态，明确采用后才固化新 Take，不在播放、seek 或拖时间线时自动改权威动作。每个阶段按该评估中的退出条件验证，设备和教师对照仍独立进行。
 
 ## 完成本轮后仍须独立开展的工作
 

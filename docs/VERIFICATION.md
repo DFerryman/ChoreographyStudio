@@ -1,6 +1,38 @@
 # 预览验证记录
 
-日期：2026-10-06 至 2026-10-07。对象为当前仓库的原创合成预览，不是原工程包 2.1.0、真实动作或教学发布验收。
+日期：2026-10-06 至 2026-10-08。对象为当前仓库的原创合成预览，不是原工程包 2.1.0、真实动作或教学发布验收。
+
+## 当前 version 11 · 简洁手动编辑、实体人体与关节限位
+
+用户本轮明确暂停 AI 接入，优先经典手动编辑器、少量必要操作与清楚层级；要求更像人的模型和真实限制，并全面评估 IK、接触、体重与重力。首次使用/新场景默认手动，旧场景按原数据恢复；新增快捷键、音乐异步所有权保护、按需展开的次要操作、原创实体成人 mannequin 和新编辑姿态的统一关节包络。实现契约见 [MANUAL_EDITOR.md](MANUAL_EDITOR.md)、[MANUAL_KEYFRAMES.md](MANUAL_KEYFRAMES.md)，后续真实编舞方案见 [REALISM_PLAN.md](REALISM_PLAN.md)。
+
+### 本地检查与保留的失败
+
+简洁手动界面源码 [a3b0b20c](https://github.com/DFerryman/ChoreographyStudio/commit/a3b0b20ce8b7b0259970b290a206e0133919eb8d) 的 107 项 foundation、前端/Worker 类型、生产构建与离线 dry-run 已通过。首轮完整 58 项本地浏览器于 `2026-10-08T03:32:57.493Z` 开始，用时 544.581 秒，55 项通过、3 项失败；没有记作一次全绿。两项旧手势 fixture 在展开信息和下载后的画布坐标过期、相机 popup 未关闭，实际触点没有命中 canvas；测试关闭 popup、重取矩形并断言命中后，相关 2 项用时 24.956 秒通过。另一个组合按键测试在镜像控件折叠时错误尝试聚焦，明确展开后单项 6.3 秒通过；原隔离断言保留。独立 [CI run37724093326](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37724093326)、attempt1、精确 head a3b0b20c 于 `2026-10-08T03:55:30Z` completed/success，真实日志为 107 foundation 和完整 58 浏览器通过（10.9m），无 workflow rerun。
+
+实体人体/统一限位功能源码为 [e02b76ba](https://github.com/DFerryman/ChoreographyStudio/commit/e02b76bab054120b31314622cf416d752e847b6f)，本地和远端树 `f55ecb4ac9c4c0d1031da0048063500a08d9c75e` 完全一致。`2026-10-08T03:55:24` 的最终 `npm run check` 为 8 文件、161/161 foundation（107 既有与 54 新约束检查），1.18 秒，并通过前端类型和生产构建；Worker 类型继承本轮已验证且未改变的 API，最终离线 dry-run 通过。构建保留 Three.js 大 chunk 提示，这不是具名设备性能验收。
+
+人体变更的 framing、手 K、姿态复用、轨道范围共 20 个既有浏览器流程，首轮 11 通过、9 因旧代理 Vite 进程退出而连接拒绝；重启根代理持有的服务器后只复核这 9 项，9/9 通过（约 1.9m），没有改旧功能断言或把网络失败当成功。新增约束 4 项最终全部通过，41.5 秒：肘/膝数值与滑条、组合包络、新 K 保存恢复；旧超限姿态权威性及 Root-only、粘贴和取消；真实 X 旋转环跨界到精确 −145°、腕部渲染位置、显式 K、其他关节和相机保护；320/1440 实体表面像素与无溢出。四份实际 diagnostics 的 errors/warnings/API 请求均为 0。
+
+真实拖拽 fixture 首次按屏幕弧长估算角度只到 −112.7°，未真正跨限；随后预设 −140° 时原拾取点被 Z 环遮挡，前两次恢复停在 X 轴选择断言。最终测试实际寻找可见 X 环，再短拖跨界，保留精确 −145° 和全部原数据/相机断言；单项 13.7 秒通过后才执行上述完整 4 项。没有放宽到“角度未越界即可通过”。早期并行视觉捕获遇到尚未合并 import 的 ReferenceError；补齐后类型/构建和最终截图均通过，该失败图不作为成功证据。
+
+音乐异步旧结果覆盖新选择在修正前有实际失败复现；相关 7 项及快捷键 9 项最终由本地修正复核和 a3b CI 完整范围覆盖。所有首轮/中止/失败证据保留在忽略的 work 目录，未上传音乐、凭据、构建、截图或临时 payload。原 MIT 和提交历史保留。
+
+### 实际 Cloudflare 验证
+
+version 11 `f245eba5-7cda-4950-bda7-f0cae576368b`，首次 deployment `35663e67-deea-4c11-913d-5193c85a440b`，`2026-10-08T04:25:42.945845Z`，100% 流量。仅一次真实 multipart 运行模块上传，模块 378822 bytes、SHA-256 `2d412af1988a21fc62359903228e4bad8ad877c53a60ca066f26f5d923a3487a`；实际下载模块内容与生成物一致。settings/version 仍仅原生 API_RATE_LIMITER 20/60 与 RELEASE_STAGE，无 D1/KV/R2/DO/真实 ASSETS。运行代码与四个 gzip 资产由同一构建生成，详见 [DEPLOYMENT.md](DEPLOYMENT.md)。
+
+首次 Python 默认 User-Agent 的首页请求返回 Cloudflare 403/error1010；一次诊断确认是 Browser Integrity 检查，未进入 Worker 资产验证。没有修改 Cloudflare 安全配置。标准浏览器 UA 的有界 5 HTTP 于 `2026-10-08T04:26:40.306412+00:00`–`04:26:40.916729+00:00` 全通过：四个最终 dist 资产逐字节/哈希/安全 headers 一致，health 为 200/status ok/no-store。没有请求 capabilities、POST、限频 burst 或 D1 写入；上述两次 403 首页尝试与成功的 5 项区分记录。
+
+唯一相关线上 8 项于 `2026-10-08T04:26:41.502Z` 开始，58.052 秒全部通过，unexpected/flaky/skipped 与报告 errors 为 0；八份实际 browser diagnostics 的 errors/warnings/API 请求均为 0。覆盖肘/膝输入保存恢复、真实旋转环跨界、320/1440 手动布局和披露保稿、迟到音乐解码隔离、手机 0.5 选段恢复、K/Delete 与撤销重做、真实音频 Space 播放。三张人体/手动布局截图来自同轮，根代理目视审阅桌面和手机图，未另开公网截图或完整 62 项回归。
+
+### 最终源码 CI 与边界
+
+精确 head `e02b76bab054120b31314622cf416d752e847b6f` 的 [CI run37727327279](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37727327279)、attempt1、job113148372205 于 `2026-10-08T04:37:58Z` 实际 completed/success。交叉读取 run/job/steps/真实日志：8 test files、161 passed (161)、构建和 Worker 类型成功；完整 62 项浏览器全部通过（12.8m，browser 步骤 `04:25:10Z`–`04:37:56Z`）。四个新 constraints 流程明确成功，数值/滑条 12.9s、旧姿态与 Root-only/粘贴 11.9s、真实肘部操作环 15.4s、320/1440 实体人体 9.7s。Chromium 安装和 cleanup 成功，失败时才上传的 artifact 按条件 skipped；未 rerun，未将本地结果替代远端成功。
+
+最终九份 Markdown 记录通过纯文档提交进入 main，Cloudflare 复用以上已验证的 version11，在同版 deployment message 中关联最终 main SHA；不再次上传运行模块、触发重复完整 CI 或公网验证。Notion 项目中心、规格、计划、验收和工程流程同步最终源码、CI 与部署凭证，并保留后续能力尚未实现的标记。
+
+人体限位是保守编辑包络，不是完整生物力学证明。加载/播放/保存/撤销/删键/键转移不自动修复旧数据；Root-only 不修复其他关节。当前未实现 IK、脚锁、碰撞、质量/质心、重力或动力预览，新 K 角度合法也不证明整段插值轨迹合法；没有具名设备或教师试跳证据。AI 保持未接入，原生产契约、许可、教学 MP4 与 M0–M3 仍未通过。用户本轮要求与分层方案已同期写入 Notion 五份项目文档，后续新增要求同样同步。
 
 ## 首次 S0 执行记录
 
