@@ -1,6 +1,40 @@
 # Cloudflare 预览部署
 
-2026-10-08：v14舞台直接摆姿与统一自然人体的源码/资产已冻结并完成本地基础构建，发布复核中；下文v13为此前实际线上版本，不能作为本轮已部署证明。最新版本、源码CI及有界线上结果完成后据实补齐。真实AI测试0。
+2026-10-08：**当前version14已上线并通过准确源码完整CI。** 已移除右侧精细参数模块，舞台直接摆姿＋统一时间轴，采用统一neutral-rig-2／neutral-adult-v2的自然人体与蒙皮；作者K优先，真实AI测试0。[打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+
+本轮功能源码[d435888f](https://github.com/DFerryman/ChoreographyStudio/commit/d435888f92a6a469f8de9cee0ee404ff5e54eecf)及更严格实际手柄测试[012c1cd1](https://github.com/DFerryman/ChoreographyStudio/commit/012c1cd1f3cadcf51bc8359e799c911c99291a19)已push main，最终源码树`ad3901cd91f7bfd06d4c2d9e3dc9e4764e05a7f5`与本地一致。[准确源码CI run37755495034](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37755495034)／job113238885766／attempt1于`2026-10-08T09:38:34Z` completed/success，实际**321基础＋完整81浏览器**；初始321＋80/81的旧保存guard fixture及独立7f3f完整通过记录保留，不手动rerun。Cloudflare v14 `b4a04064-9df8-479b-b817-0c6f7a1947e7`／100%，首次deployment `469d00f7-fe23-4e42-a88f-391eb8775be0`／`2026-10-08T09:10:51.003376Z`；单轮线上10/10和有界13 HTTP通过，实际8份JSON诊断及2模型断言错误／警告／API0，真实AI0。生产仍是d435，后续只改测试或Markdown，运行资产不重上传；最终文档main通过同版部署message关联。详见验证／部署记录。
+
+## 当前线上版本 · version14
+
+| 项目 | 实际结果 |
+| --- | --- |
+| Runtime源 / 校验源码 | d435888f92a6a469f8de9cee0ee404ff5e54eecf / 012c1cd1f3cadcf51bc8359e799c911c99291a19，后续只改测试/Markdown |
+| 准确CI / tree | [run37755495034](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37755495034)／job113238885766／attempt1；ad3901cd91f7bfd06d4c2d9e3dc9e4764e05a7f5，321+81成功 |
+| Version ID / number / 流量 | b4a04064-9df8-479b-b817-0c6f7a1947e7 / 14 / 100% |
+| 首次deployment / UTC | 469d00f7-fe23-4e42-a88f-391eb8775be0 / 2026-10-08T09:10:51.003376Z |
+| Version创建 / tag | 2026-10-08T09:10:50.444189Z / v14-direct-stage-human |
+| 原生上传 | 15目录文件，5新资产/6复用；Worker23.59KiB/gzip7.40KiB、启动3ms为CLI测量 |
+| 实际绑定/路由 | AI、API20/60 namespace2026100601、AI2/60 namespace2026100801、ASSETS、RELEASE_STAGE；SPA、/api/*worker-first及安全headers正确 |
+| 单轮线上 | 10/10，2026-10-08T09:15:04.375Z起、128.661221秒；8份JSON及模型2严格断言诊断0、AI0 |
+| 有界HTTP | 13/13，2026-10-08T09:15:54.458467+00:00至2026-10-08T09:15:55.479228+00:00；11静态资产字节/hash/headers与2GET正确，无POST |
+
+| v14资产 | Bytes | SHA256 |
+| --- | ---: | --- |
+| `index.html` | 645 | `6a8551ba63c0317acc55d49eac58b8d29ff90f3d6af6856357e613088b38885e` |
+| `assets/index-CDwxBzsl.js` | 1097033 | `434383f43ea99fbd130cc67c4322bda40c6f11b0feee89eeeb73668eeef4ed67` |
+| `assets/index-Dutow-49.css` | 62719 | `f06b18e3563f718322522c5c65e469f9dc5b57dfa9cac22b6d2efa0e8162b48d` |
+| `favicon.svg` | 322 | `883028cbbedddb4251346f961e58174dfe92b20d8fdd7351d7373005f4c2b6ac` |
+| `models/neutral-human-v2.glb` | 853172 | `f7be9db402be188a2dd6f02d242eba83d6f84cd37ee2b3612447620580bb35cd` |
+| `models/neutral-human.glb` | 776136 | `4b5fa085d0a6e403abee4ce022cac8041e5bca8bce130d03f28f245a29fddc9a` |
+| `models/README.md` | 6428 | `7342710d028460e0eff1178bf3a2302c9cb5db28560ad2f5fdec43bafd92188b` |
+| `models/CC0.txt` | 7048 | `a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499` |
+| `third-party-licenses/three-mit.txt` | 1081 | `8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc` |
+| `third-party-licenses/rapier-apache-2.0.txt` | 11343 | `4c05555705e3efde601fb1252ae48f1d63992af8a8fb8947745b7fa834e8f519` |
+| `assets/rapier-BcnL-M2-.js` | 4335104 | `eba580e6ed6e22819a222beef8c8f10df2673fc258078aac38b328212612d6f5` |
+
+最终纯Markdown记录回填复用该已验证runtime，在同版100%部署message关联最终main、runtime和准确CI，不重新上传或重复公网检查。v13及更早原始记录保留为历史。
+
+
 
 2026-10-08：**历史 version 13 已上线**：作者K和手动摆姿意图最高优先级，自动脚锁/插帧不得覆盖明确作者通道；延续统一时间轴、中性人体、IK、内置人体参数、Rapier候选和Workers AI接线。自动迈步仍未实现。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
 

@@ -2,7 +2,7 @@
 
 日期：2026-10-06 至 2026-10-08。对象为当前仓库的原创合成预览，不是原工程包 2.1.0、真实动作或教学发布验收。
 
-## Version 14 · 舞台直接摆姿与统一自然人体（交付复核中）
+## Version 14 · 舞台直接摆姿与统一自然人体（已上线，准确源码CI通过）
 
 按用户最新截图和要求，完全移除右侧关节下拉与Euler/Root数值滑条表单，舞台与时间轴占满手动工作区。点击实际蒙皮选择身体部位，现有选择/旋转/整体移动与IK操作形成草稿，在时间轴显式写K；姿态复用集中到已有“更多编辑操作”，只读坐标/真实约束折叠。默认不显示全部25个蓝色节点，现有选中提示与Alt+上下选择保留键盘入口，没有增加常驻参数模块。
 
@@ -16,7 +16,19 @@
 
 上述键盘修正后的最终前端类型/生产构建通过：主JS index-CDwxBzsl.js1097033字节/gzip305.31kB、SHA256434383f43ea99fbd130cc67c4322bda40c6f11b0feee89eeeb73668eeef4ed67。
 
-删除旧表单后，浏览器测试改用真实皮肤选取/旋转环/整体移动与现有紧凑只读姿态反馈；正式K与实际草稿值严格相等，复制/保存的作者原值仍严格比较。常规鼠标目标允许微米级射线量化误差，0.04°/1.8000004米通过有效旧作品及实际复用流程保持精确，不能描述成已删除数值控件仍可输入。所有API fail closed，只有AI专属用例可mock fulfill；本轮真实AI调用始终0。旧81项/18文件覆盖保留，逐项迁移及首失败/复核日志留存；不能用历史v13通过代替本轮。
+删除旧表单后，浏览器测试改用真实皮肤选取/旋转环/整体移动与现有紧凑只读姿态反馈；正式K与实际草稿值严格相等，复制/保存的作者原值仍严格比较。常规鼠标目标允许微米级射线量化误差，0.04°/1.8000004米通过有效旧作品及实际复用流程保持精确，不能描述成已删除数值控件仍可输入。所有API fail closed，只有AI专属用例可mock fulfill；本轮真实AI调用始终0。旧81项/18文件覆盖保留，本地58个不同相关流程均有实际通过记录，逐项迁移及首失败/复核日志留存；不能用历史v13通过代替本轮。
+
+### v14 · 实际发布与单轮线上收据
+
+最终准确012c源码CI创建`2026-10-08T09:16:21Z`，job`2026-10-08T09:16:24Z`–`2026-10-08T09:38:34Z`（1330.0秒），run updated`2026-10-08T09:38:35Z`；15基础文件/18浏览器文件，321/321＋81/81，所有构建/Worker步骤成功。原始job日志66727bytes，SHA256`67c641db641c0d6af4fc0966eac7ce21dee9b3a75c0c1ea58b3f5fe9a7d921a5`，实际通过81个case，没有rerun。中间7f3f run37755125168也实际321＋81成功，job完成`2026-10-08T09:34:11Z`，原始日志63919bytes／SHA256`a266fc7289d8e498ef9e62e528753b70d6669dd8bfd3fd660141b57bf1acc422`；与首次失败和最终严格012c均单独记录。以上技术时间戳均为UTC原始回执。
+
+功能源码[d435888f](https://github.com/DFerryman/ChoreographyStudio/commit/d435888f92a6a469f8de9cee0ee404ff5e54eecf)、树55cbc602a5984a0a651d43079d8a82403563d18d已push main，并与本地暂存/远端Git树核对。其后只修改tests/keyframes.spec.ts的实际手柄工作流fixture：切工具造成viewer未保存修改时，放弃草稿后仍明确处理第二场景保存保护；正式K以真实draft XYZ精确核对，正常请求目标允许5µm射线误差；390px大Root位移后正常全身取景再继续。第二head7f3f8a12与最终更严格目标012c1cd1均已push，最终源码树ad3901cd91f7bfd06d4c2d9e3dc9e4764e05a7f5，生产/模型/served README字节未再变化。首次相应本地旧fixture失败、0.051µm literal误差和离屏手柄trace保留；完整单case先22.9秒通过，再收紧最后1.9m目标后JSON复核23.722秒通过（总24.846），实际editableDuringSave=true、错误/警告0，未降低Take/历史/重开/音频哈希保护。首次功能head的[run37754117328](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37754117328)／job113234317872／attempt1已实际failure，基础321/321（15文件）、浏览器80/81（18文件），唯一失败为dirty-pose场景在放弃草稿后遗漏第二viewer未保存guard，题名仍在原场景；没有其他失败。job完成2026-10-08T09:25:42Z，原始日志69949bytes／SHA25627e0a329b6bbce221e6748731256a7f187263123ebe0dacf144011195ac98728。这是原fixture未走完新实际手柄流程，修正保留全部动画/历史/音频/保存断言，不移除产品保护。首次失败/trace和单case复核保持，不能记首次全绿。本轮功能源码[d435888f](https://github.com/DFerryman/ChoreographyStudio/commit/d435888f92a6a469f8de9cee0ee404ff5e54eecf)及更严格实际手柄测试[012c1cd1](https://github.com/DFerryman/ChoreographyStudio/commit/012c1cd1f3cadcf51bc8359e799c911c99291a19)已push main，最终源码树`ad3901cd91f7bfd06d4c2d9e3dc9e4764e05a7f5`与本地一致。[准确源码CI run37755495034](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37755495034)／job113238885766／attempt1于`2026-10-08T09:38:34Z` completed/success，实际**321基础＋完整81浏览器**；初始321＋80/81的旧保存guard fixture及独立7f3f完整通过记录保留，不手动rerun。Cloudflare v14 `b4a04064-9df8-479b-b817-0c6f7a1947e7`／100%，首次deployment `469d00f7-fe23-4e42-a88f-391eb8775be0`／`2026-10-08T09:10:51.003376Z`；单轮线上10/10和有界13 HTTP通过，实际8份JSON诊断及2模型断言错误／警告／API0，真实AI0。生产仍是d435，后续只改测试或Markdown，运行资产不重上传；最终文档main通过同版部署message关联。详见验证／部署记录。
+
+Cloudflare实际version14 b4a04064-9df8-479b-b817-0c6f7a1947e7，首次deployment469d00f7-fe23-4e42-a88f-391eb8775be0，2026-10-08T09:10:51.003376Z／100%。版本创建2026-10-08T09:10:50.444189Z，tag v14-direct-stage-human、runtime annotation关联d435888f。原生wrangler读取15目录文件，上传index/JS/CSS/新GLB/served资产说明共5个新文件、复用6个，Worker23.59KiB/gzip7.40KiB、启动3ms为CLI测量。AI、两级限频、ASSETS及RELEASE_STAGE与SPA／/api/* worker-first设置均实际读回正确。
+
+唯一相关线上10项首次全部通过，从2026-10-08T09:15:04.375Z起，128.661221秒：模型2（含版本v2延迟绑定）、作者优先2（中间K及细微精度）、320/1440布局2、IK／脚锁2、桌面／390稀疏三K时间轴2。expected10，unexpected/flaky/skipped/reporterrors0；实际8份JSON诊断errors/warnings/API/expectedHttpErrors全0，另外2模型流程断言完整report0；不假称10份JSON。11张同轮截图已检查肩部80°、手机模型和两尺寸时间轴，没有另开公网截图会话。部分捕获包含当时的备份下载toast，不视为常驻布局。公开套件开始head7f3f8a12与最终012c1cd1只在未选的dirty-save精度一行不同，选中全部spec/helpers前后sha完全相同。原始JSON2265081bytes／SHA2564f54df48d784bb4d765ef2208b907297107870abbeb4a1f33c75e5ff159e27bb，日志1830bytes／SHA256a004d05a8336343592f117379016a8a9a3d0c855a0646f6efd027519c5df28da。
+
+有界HTTP从2026-10-08T09:15:54.458467+00:00至2026-10-08T09:15:55.479228+00:00，13/13通过：11个静态资源包括新GLB与v13旧GLB、页面／脚本／CSS／Rapier／来源许可逐字节、sha和安全headers匹配最终dist，health及capabilities200／no-store。没有POST、生成端点或限频burst。AI接线不变，保留前轮mock证据，真实AI推理0；没有重跑完整81项公网回归。最终纯Markdown记录完成后复用此已验证运行版本，部署message关联最终main／runtime／准确CI，不再上传资产或重复公网检查。
 
 ## 历史 Version 13 · 作者K最高权威，已上线并通过完整源码CI
 
