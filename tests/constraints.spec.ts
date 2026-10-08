@@ -191,7 +191,7 @@ test('@constraints legacy poses keep their authority through Root-only writes; p
   const guard = page.getByRole('dialog', { name: '写入这份姿态草稿？', exact: true }); await expect(guard).toBeVisible();
   await guard.getByRole('button', { name: '取消', exact: true }).click(); await expect(draft(page)).toBeVisible();
   await page.getByRole('button', { name: '撤回草稿', exact: true }).click();
-  await expect(draft(page)).toHaveCount(0); expect(await angles(page)).toEqual([0, 0, 0]);
+  await expect(draft(page)).toHaveCount(0); await expect.poll(() => angles(page)).toEqual([0, 0, 0]);
   await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('120');
   expect((await backup(page)).scene.project).toEqual(rootOnly.scene.project);
   await clickRevealed(page, hiddenButton(page, '粘贴关节姿态'));
