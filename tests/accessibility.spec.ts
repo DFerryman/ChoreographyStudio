@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { editStageValue, expectStageValue } from './stageInteractions';
 
 const diagnostics = new WeakMap<Page, { errors: string[]; warnings: string[]; apiRequests: string[] }>();
 test.beforeEach(async ({ page }) => {
@@ -80,8 +81,7 @@ test('mobile stacked dialogs preserve autofocus, choose the higher guard layer a
   await page.keyboard.press('Escape'); await expect(library).toHaveCount(0); await expect(scenes).toBeFocused();
 
   await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
-  const root = page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true });
-  await root.fill('1.25'); await root.press('Tab');
+  await editStageValue(page, 'Root X 位移（米）', 1.25);
   const draft = page.getByRole('status').filter({ hasText: '姿态草稿 · 尚未写入关键帧' });
   await expect(draft).toBeVisible();
   await scenes.click();
@@ -98,6 +98,6 @@ test('mobile stacked dialogs preserve autofocus, choose the higher guard layer a
   await expect(library).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(library).toHaveCount(0); await expect(scenes).toBeFocused();
-  await expect(draft).toBeVisible(); await expect(root).toHaveValue('1.250');
+  await expect(draft).toBeVisible(); await expectStageValue(page, 'Root X 位移（米）', 1.25, .0005);
   await expect(page.getByRole('button', { name: '撤销', exact: true })).toBeDisabled();
 });

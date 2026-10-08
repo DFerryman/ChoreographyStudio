@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { Bone, Group } from 'three';
 import { JOINT_NAMES, type Pose } from './motion-types';
-import { evaluatePose, RIG_DEFINITIONS } from './humanoid';
+import { evaluatePose, RIG_CALIBRATION_VERSION, RIG_DEFINITIONS } from './humanoid';
+import { STANDARD_HUMAN_PROFILE } from './humanProfile';
 import { IK_EFFECTORS, solveLimbIK } from './ik';
 import { isJointRotationWithinLimits } from './jointConstraints';
 import { rotationFromDegrees } from './keyframes';
@@ -10,6 +11,51 @@ const neutral = (): Pose => ({ root: [0, 1.05, 0], joints: Object.fromEntries(JO
 const distance = (a: number[], b: number[]) => Math.hypot(...a.map((value, axis) => value - b[axis]));
 
 describe('shared humanoid FK', () => {
+  it('uses one versioned natural shoulder calibration while retaining the fixed limb and foot geometry', () => {
+    const pose = neutral(), world = evaluatePose(pose);
+    expect(RIG_CALIBRATION_VERSION).toBe('neutral-rig-2');
+    expect(STANDARD_HUMAN_PROFILE.id).toBe('neutral-adult-v2');
+    expect(STANDARD_HUMAN_PROFILE.version).toBe(2);
+    expect(STANDARD_HUMAN_PROFILE.heightMeters).toBe(1.85);
+    expect(STANDARD_HUMAN_PROFILE.massKg).toBe(70);
+    expect(world.LeftShoulder.position[0]).toBeCloseTo(.1, 12);
+    expect(world.RightShoulder.position[0]).toBeCloseTo(-.1, 12);
+    expect(world.LeftUpperArm.position[0] - world.RightUpperArm.position[0]).toBeCloseTo(.42, 12);
+    expect(distance(world.LeftUpperArm.position, world.LeftForeArm.position)).toBeCloseTo(.285, 12);
+    expect(distance(world.LeftForeArm.position, world.LeftHand.position)).toBeCloseTo(.255, 12);
+    expect(distance(world.LeftFoot.position, [.112, .09, 0])).toBeLessThan(1e-12);
+    expect(distance(world.RightFoot.position, [-.112, .09, 0])).toBeLessThan(1e-12);
+  });
+
+  it('keeps legacy torso and foot world transforms unchanged without rewriting authored rotations', () => {
+    const pose = neutral(); pose.root = [1.2, 1.4, -.8];
+    pose.joints.Hips = rotationFromDegrees([15, 35, -12]);
+    pose.joints.Chest = rotationFromDegrees([20, -10, 15]);
+    pose.joints.LeftShoulder = rotationFromDegrees([20, 15, 30]);
+    pose.joints.LeftUpperArm = rotationFromDegrees([-60, 20, 80]);
+    pose.joints.LeftForeArm = rotationFromDegrees([-100, 0, 0]);
+    pose.joints.LeftUpperLeg = rotationFromDegrees([-25, 0, 0]);
+    pose.joints.LeftLowerLeg = rotationFromDegrees([50, 0, 0]);
+    const before = JSON.stringify(pose), oldRoot = new Group(); oldRoot.position.set(...pose.root);
+    const oldBones = new Map<string, Bone>();
+    for (const definition of RIG_DEFINITIONS) {
+      const old = new Bone(), side = definition.name.startsWith('Left') ? 1 : -1;
+      const offset = definition.name.endsWith('Shoulder') ? [side * .205, .095, 0] : definition.name.endsWith('UpperArm') ? [side * .082, -.03, 0] : [...definition.offset];
+      old.position.set(offset[0], offset[1], offset[2]); old.quaternion.set(...pose.joints[definition.name]);
+      (definition.parent ? oldBones.get(definition.parent)! : oldRoot).add(old); oldBones.set(definition.name, old);
+    }
+    oldRoot.updateMatrixWorld(true);
+    const current = evaluatePose(pose);
+    for (const name of JOINT_NAMES.filter(name => !/Shoulder|UpperArm|ForeArm|Hand/.test(name))) {
+      const old = oldBones.get(name)!;
+      expect(distance(current[name].position, old.getWorldPosition(old.position.clone()).toArray())).toBeLessThan(1e-12);
+      const rotation = old.getWorldQuaternion(old.quaternion.clone()).toArray();
+      expect(Math.abs(current[name].rotation.reduce((sum, value, axis) => sum + value * rotation[axis], 0))).toBeCloseTo(1, 12);
+    }
+    expect(distance(current.LeftHand.position, oldBones.get('LeftHand')!.getWorldPosition(oldBones.get('LeftHand')!.position.clone()).toArray())).toBeGreaterThan(.05);
+    expect(JSON.stringify(pose)).toBe(before);
+  });
+
   it('matches the exact renderer hierarchy, parent quaternion multiplication and fixed offsets', () => {
     const pose = neutral(); pose.root = [1.2, 1.4, -0.8];
     pose.joints.Hips = rotationFromDegrees([15, 35, -12]);

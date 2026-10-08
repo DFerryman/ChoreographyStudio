@@ -72,8 +72,10 @@
   flex-wrap: wrap;
 }
 .stage3d-edit-indicator span { padding-left: 10px; border-left: 1px solid #98a8cd40; color: #9facce; }
+.stage3d-selected-part { font-weight: 600; color: #f0f5ff; }
 .stage3d-edit-indicator.is-ik { border-color: #77d5de40; color: #c0e8eb; }
 .stage3d-edit-indicator .stage3d-ik-residual { color: #e9bc80; }
+.stage3d-edit-indicator .stage3d-author-warning { color: #e9bc80; }
 .stage3d-selection-announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 
 .stage3d-fallback {

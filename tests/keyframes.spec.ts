@@ -1,8 +1,9 @@
+import { editStageValue, expectStageValue, stageValue, selectStageJoint, expectStageSelection, stageSelectedJoint, expectGestureRootKeys } from './stageInteractions';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import { clickRevealed, reveal, seekSeconds } from './helpers';
-import { PerspectiveCamera, Vector3 } from 'three';
+import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
 
 // This fixture keeps the published v4 schema, without importing the new editor
 // implementation. Its original WAV and non-uniform source samples are local.
@@ -163,18 +164,16 @@ async function seek(page: Page, time: number) {
 const draftNote = (page: Page) => page.getByRole('status').filter({ hasText: '姿态草稿 · 尚未写入关键帧' });
 const draftGuard = (page: Page) => page.getByRole('dialog', { name: '写入这份姿态草稿？', exact: true });
 async function editor(page: Page) {
-  const region = page.getByRole('region', { name: '手动关键帧编辑器', exact: true });
+  const region = page.getByRole('region', { name: '手动关键帧时间线', exact: true });
   if (!await region.isVisible()) await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
   await expect(region).toBeVisible();
 }
 async function selectJoint(page: Page, joint: Joint) {
-  await page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption(joint);
-  await expect(page.getByRole('combobox', { name: '选择关节', exact: true })).toHaveValue(joint);
+  await selectStageJoint(page, joint as Parameters<typeof selectStageJoint>[1]);
+  await expectStageSelection(page, joint as Parameters<typeof selectStageJoint>[1]);
 }
 async function numeric(page: Page, label: string, value: number) {
-  const input = page.getByRole('spinbutton', { name: label, exact: true });
-  await input.fill(String(value));
-  await input.press('Tab');
+  await editStageValue(page, label, value);
 }
 async function angle(page: Page, value: number) { await numeric(page, '关节 Z 旋转（度）', value); }
 async function rootX(page: Page, value: number) { await numeric(page, 'Root X 位移（米）', value); }
@@ -183,7 +182,7 @@ async function frame(page: Page, value: number) {
   await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue(String(value));
 }
 async function expectNumber(page: Page, label: string, value: number, tolerance = 0.051) {
-  await expect.poll(async () => Math.abs(Number(await page.getByRole('spinbutton', { name: label, exact: true }).inputValue()) - value)).toBeLessThan(tolerance);
+  await expect.poll(async () => Math.abs(await stageValue(page, label) - value)).toBeLessThan(tolerance);
 }
 async function worldPosition(page: Page): Promise<number[]> {
   await reveal(page, page.getByLabel('选中关节世界坐标', { exact: true }));
@@ -243,7 +242,7 @@ test('pose drafts remain previews until explicit keys, interpolate real joint an
   await angle(page, 0); await rootX(page, 0);
   await write(page, '完整姿态');
   const first = current(await backup(page));
-  expect(first.manual!.root).toEqual([{ frame: 0, position: [0, 1.05, 0] }]);
+  expectGestureRootKeys(first.manual!.root, [{ frame: 0, position: [0, 1.05, 0] }]);
   expect(Object.keys(first.manual!.rotations)).toHaveLength(19);
   await frame(page, 90);
   await angle(page, 90); await rootX(page, 2);
@@ -252,8 +251,7 @@ test('pose drafts remain previews until explicit keys, interpolate real joint an
   expect(two.manual!.root.map(key => key.frame)).toEqual([0, 90]);
   expect(two.manual!.rotations.LeftUpperArm!.map(key => key.frame)).toEqual([0, 90]);
   expect(two.manual!.baseTake).toEqual(neutral.take);
-  expect(two.manual!.rotations.LeftUpperArm![1].rotation[2]).toBeCloseTo(Math.SQRT1_2, 8);
-  expect(two.manual!.rotations.LeftUpperArm![1].rotation[3]).toBeCloseTo(Math.SQRT1_2, 8);
+  expect(Math.abs(new Quaternion(...two.manual!.rotations.LeftUpperArm![1].rotation).dot(new Quaternion(0, 0, Math.SQRT1_2, Math.SQRT1_2)))).toBeCloseTo(1, 10);
   await reveal(page, page.getByRole('list', { name: '关键帧列表', exact: true, includeHidden: true }));
   await expect(page.getByRole('list', { name: '关键帧列表', exact: true }).getByRole('listitem')).toHaveCount(2);
 
@@ -280,7 +278,7 @@ test('pose drafts remain previews until explicit keys, interpolate real joint an
   await frame(page, 90); await angle(page, 120); await write(page, '当前关节');
   const updated = current(await backup(page));
   expect(updated.manual!.rotations.LeftUpperArm).toHaveLength(2);
-  expect(updated.manual!.rotations.LeftUpperArm![1].rotation[2]).toBeCloseTo(Math.sqrt(3) / 2, 8);
+  expect(Math.abs(new Quaternion(...updated.manual!.rotations.LeftUpperArm![1].rotation).dot(new Quaternion(0, 0, Math.sqrt(3) / 2, .5)))).toBeCloseTo(1, 10);
   expect(updated.manual!.root).toEqual(two.manual!.root);
   await clickRevealed(page, page.getByRole('button', { name: '删除当前帧关键帧', exact: true, includeHidden: true }));
   const deleted = current(await backup(page));
@@ -354,8 +352,8 @@ test('old v4 scenes retain their original audio and motion, while explicit joint
   await clickRevealed(page, page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true }));
   await selectJoint(page, 'LeftHandTip');
   await expect(page.getByRole('button', { name: 'K 当前关节', exact: true, includeHidden: true })).toBeDisabled();
-  await expect(page.getByRole('spinbutton', { name: '关节 Z 旋转（度）', exact: true })).toBeDisabled();
-  await expect(page.getByRole('region', { name: '手动关键帧编辑器', exact: true })).toContainText('末端节点只读');
+  await expect(page.getByRole('button', { name: '旋转工具', exact: true })).toBeDisabled();
+  await expect(page.getByLabel('关节局部旋转', { exact: true })).toContainText('末端关节仅查看');
   await sameSnapshot(page, beforeMirror);
 
   await page.getByRole('button', { name: '八拍编排', exact: true }).click();
@@ -428,7 +426,7 @@ test('dirty pose guards preserve cancel and failed-save drafts, distinguish disc
   await draftGuard(page).getByRole('button', { name: '写入完整姿态后继续', exact: true }).click();
   await expect(page.locator('.save-state')).toHaveText('已保存到本机');
   const saved = current(await backup(page));
-  expect(saved.manual!.root[0].position[0]).toBe(0.6);
+  expect(saved.manual!.root[0].position[0]).toBeCloseTo(0.6, 5);
   await rootX(page, 2);
   await openScene(page, '切换目标 B');
   await draftGuard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
@@ -487,7 +485,7 @@ test('dirty pose guards preserve cancel and failed-save drafts, distinguish disc
   await page.getByRole('button', { name: '保存', exact: true }).click();
   await expect(page.locator('.save-state')).toHaveText('保存中');
   await expect.poll(() => page.evaluate(() => typeof (window as Window & { releaseChoreoSave?: () => void }).releaseChoreoSave === 'function')).toBe(true);
-  const editableDuringSave = !await page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true }).isDisabled();
+  const editableDuringSave = !await page.getByRole('button', { name: '移动角色工具', exact: true }).isDisabled();
   if (editableDuringSave) {
     await rootX(page, 1.9);
     await expect(draftNote(page)).toBeVisible();
@@ -509,7 +507,7 @@ test('dirty pose guards preserve cancel and failed-save drafts, distinguish disc
     await save(page);
   } else {
     await expect(page.locator('.save-state')).toHaveText('已保存到本机');
-    await expect(page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true })).toBeEnabled();
+    await expect(page.getByRole('button', { name: '移动角色工具', exact: true })).toBeEnabled();
   }
   await testInfo.attach('delayed-save-regression', { body: JSON.stringify({ editableDuringSave }), contentType: 'application/json' });
   await page.reload();
@@ -552,7 +550,7 @@ test('dragging a visible local rotation ring edits a pose draft while orbiting c
   await page.mouse.move(end.x, end.y, { steps: 12 });
   await page.mouse.up({ button: 'left' });
   await expect(draftNote(page)).toBeVisible();
-  await expect.poll(async () => Math.abs(Number(await page.getByRole('spinbutton', { name: '关节 Z 旋转（度）', exact: true }).inputValue()))).toBeGreaterThan(10);
+  await expect.poll(async () => Math.abs(await stageValue(page, '关节 Z 旋转（度）'))).toBeGreaterThan(10);
   const draft = await backup(page);
   expect(sha(current(draft))).toBe(sha(original));
   expect(draft.scene.viewer.camera).toEqual(cameraBefore);
@@ -581,7 +579,7 @@ test('dragging a visible local rotation ring edits a pose draft while orbiting c
   const orbited = await backup(page);
   expect(orbited.scene.viewer.camera.position).not.toEqual(cameraBefore.position);
   expect(current(orbited)).toEqual(current(committed));
-  await expect(page.getByRole('combobox', { name: '选择关节', exact: true })).toHaveValue('Hips');
+  await expectStageSelection(page, 'Hips');
 });
 
 async function closeCameraOptions(page: Page) {
@@ -612,7 +610,7 @@ async function realHipsSelection(page: Page, document: Backup) {
   const projection = await publicProjection(page, document.scene.viewer.camera);
   const point = projection.point(current(document).take.poses[0].root);
   await page.mouse.click(point.x, point.y);
-  await expect(page.getByRole('combobox', { name: '选择关节', exact: true })).toHaveValue('Hips');
+  await expectStageSelection(page, 'Hips');
 }
 async function axisDrag(page: Page, start: { x: number; y: number }, end: { x: number; y: number }, feedback: string, axis: string) {
   await page.mouse.move(start.x, start.y);
@@ -622,10 +620,10 @@ async function axisDrag(page: Page, start: { x: number; y: number }, end: { x: n
   await page.mouse.up({ button: 'left' });
 }
 async function settledLandmark(page: Page, joint: Joint) {
-  const previouslySelected = await page.getByRole('combobox', { name: '选择关节', exact: true }).inputValue();
+  const previouslySelected = await stageSelectedJoint(page);
   const previous = await worldPosition(page);
   await selectJoint(page, joint);
-  // The dropdown changes in React before the renderer reports the selected
+  // Selection changes in React before the renderer reports the selected
   // landmark on its next frame. These four fixture landmarks are distinct.
   if (previouslySelected !== joint) await expect.poll(() => worldPosition(page)).not.toEqual(previous);
   return worldPosition(page);
@@ -653,7 +651,7 @@ test('@controls-entry selecting a visible joint exposes direct rotation actions 
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'false');
   await expect(page.getByRole('button', { name: '旋转工具', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('spinbutton', { name: '关节 Z 旋转（度）', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '旋转工具', exact: true })).toBeEnabled();
   await sameSnapshot(page, current(original));
 
   // The real gizmo must accept an input; a coordinate-only inspector would
@@ -665,7 +663,7 @@ test('@controls-entry selecting a visible joint exposes direct rotation actions 
   const ring = (angle: number) => projection.point([hips[0] + radius * Math.cos(angle), hips[1] + radius * Math.sin(angle), hips[2]]);
   await axisDrag(page, ring(0.55), ring(1.2), '关节局部旋转', 'Z');
   await expect(draftNote(page)).toBeVisible();
-  await expect.poll(async () => Math.abs(Number(await page.getByRole('spinbutton', { name: '关节 Z 旋转（度）', exact: true }).inputValue()))).toBeGreaterThan(10);
+  await expect.poll(async () => Math.abs(await stageValue(page, '关节 Z 旋转（度）'))).toBeGreaterThan(10);
   const drafted = await backup(page);
   expect(current(drafted)).toEqual(current(original));
   expect(drafted.scene.viewer.camera).toEqual(paused.scene.viewer.camera);
@@ -693,11 +691,11 @@ test('@controls-entry selecting a visible joint exposes direct rotation actions 
   await selectJoint(page, 'LeftHandTip');
   await expect(rotate).toBeDisabled();
   await expect(move).toBeEnabled();
-  await expect(page.getByRole('region', { name: '手动关键帧编辑器', exact: true })).toContainText('末端节点只读');
+  await expect(page.getByLabel('关节局部旋转', { exact: true })).toContainText('末端关节仅查看');
   await sameSnapshot(page, committed);
   await move.click();
   await expect(page.getByRole('button', { name: '移动角色工具', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '移动角色工具', exact: true })).toBeEnabled();
   await sameSnapshot(page, committed);
 });
 
@@ -723,7 +721,7 @@ test('@controls-entry dragging a world Root arrow moves the entire pose without 
   const end = projection.point([root[0] + factor * 0.38 + 0.65, root[1], root[2]]);
   await axisDrag(page, start, end, 'Root 世界位移', 'X');
   await expect(draftNote(page)).toBeVisible();
-  const x = Number(await page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true }).inputValue());
+  const x = await stageValue(page, 'Root X 位移（米）');
   expect(x - root[0]).toBeGreaterThan(0.4);
   await expectNumber(page, 'Root Y 位移（米）', root[1], 0.002);
   await expectNumber(page, 'Root Z 位移（米）', root[2], 0.002);
@@ -821,7 +819,7 @@ test.describe('native gesture recovery', () => {
     async function rootArrow(delta: number) {
       const document = await backup(page);
       const projection = await publicProjection(page, document.scene.viewer.camera);
-      const root: Vec3 = await Promise.all(['X', 'Y', 'Z'].map(async axis => Number(await page.getByRole('spinbutton', { name: `Root ${axis} 位移（米）`, exact: true }).inputValue()))) as Vec3;
+      const root: Vec3 = await Promise.all(['X', 'Y', 'Z'].map(async axis => await stageValue(page, `Root ${axis} 位移（米）`))) as Vec3;
       const factor = projection.camera.position.distanceTo(new Vector3(...root)) * 1.9 * Math.tan(40 * Math.PI / 360) / projection.camera.zoom * 0.95 / 4;
       return {
         ...projection, root, before: document,
@@ -838,7 +836,7 @@ test.describe('native gesture recovery', () => {
     await touch('touchStart', [{ ...first.start, id: 11 }]);
     await touch('touchMove', [{ ...first.end, id: 11 }]);
     await expect(draftNote(page)).toBeVisible();
-    const touchDraftX = await page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true }).inputValue();
+    const touchDraftX = await stageValue(page, 'Root X 位移（米）');
     expect(Number(touchDraftX) - first.root[0]).toBeGreaterThan(0.15);
     const box = (await first.canvas.boundingBox())!;
     const second = { x: box.x + box.width * 0.78, y: box.y + box.height * 0.2, id: 22 };
@@ -847,7 +845,7 @@ test.describe('native gesture recovery', () => {
       { x: first.end.x + 40, y: first.end.y - 20, id: 11 },
       { ...second, x: second.x + 35, y: second.y + 25 },
     ]);
-    await expect(page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true })).toHaveValue(touchDraftX);
+    await expectStageValue(page, 'Root X 位移（米）', touchDraftX, 1e-9);
     const interruptedTouch = await backup(page);
     expect(interruptedTouch.scene.viewer.camera).toEqual(first.before.scene.viewer.camera);
     expect(current(interruptedTouch)).toEqual(current(original));
@@ -875,7 +873,7 @@ test.describe('native gesture recovery', () => {
     await touch('touchMove', [movedA, movedB]);
     await touch('touchEnd', []);
     await expect.poll(async () => (await backup(page)).scene.viewer.camera).not.toEqual(ordinaryTouchCamera);
-    await expect(page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true })).toHaveValue(touchDraftX);
+    await expectStageValue(page, 'Root X 位移（米）', touchDraftX, 1e-9);
     await clickRevealed(page, page.getByRole('button', { name: '复位相机', exact: true, includeHidden: true }));
     await rendered();
     await page.getByRole('button', { name: '移动角色工具', exact: true }).click();
@@ -885,7 +883,7 @@ test.describe('native gesture recovery', () => {
     await page.mouse.down({ button: 'left' });
     await page.mouse.move(held.end.x, held.end.y, { steps: 8 });
     await rendered();
-    const heldDraftX = await page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true }).inputValue();
+    const heldDraftX = await stageValue(page, 'Root X 位移（米）');
     expect(Number(heldDraftX)).toBeGreaterThan(Number(touchDraftX));
     // A keyboard tool change while the mouse is still held exercises the
     // cancellation lifecycle without synthesizing a mouseup on the canvas.
@@ -894,13 +892,13 @@ test.describe('native gesture recovery', () => {
     await expect(select).toHaveAttribute('aria-pressed', 'true');
     await rendered();
     await page.mouse.move(box.x - 12, box.y - 12); await page.mouse.up({ button: 'left' });
-    await expect(page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true })).toHaveValue(heldDraftX);
+    await expectStageValue(page, 'Root X 位移（米）', heldDraftX, 1e-9);
     await selectJoint(page, 'RightFoot');
     const afterCancel = await backup(page);
     const hipsProjection = await publicProjection(page, afterCancel.scene.viewer.camera);
     const hips = hipsProjection.point([Number(heldDraftX), 1.05, 0]);
     await page.mouse.click(hips.x, hips.y);
-    await expect(page.getByRole('combobox', { name: '选择关节', exact: true })).toHaveValue('Hips');
+    await expectStageSelection(page, 'Hips');
     await reveal(page, page.getByLabel('相机世界坐标', { exact: true }));
     const orbitBefore = await page.getByLabel('相机世界坐标', { exact: true }).innerText();
     await closeCameraOptions(page);
@@ -920,7 +918,7 @@ test.describe('native gesture recovery', () => {
     await page.getByRole('button', { name: '移动角色工具', exact: true }).click();
     const recovered = await rootArrow(0.25);
     await axisDrag(page, recovered.start, recovered.end, 'Root 世界位移', 'X');
-    expect(Number(await page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true }).inputValue())).toBeGreaterThan(Number(heldDraftX));
+    expect(await stageValue(page, 'Root X 位移（米）')).toBeGreaterThan(Number(heldDraftX));
     await sameSnapshot(page, current(original));
     const nativeEvents = await page.evaluate(() => (window as Window & { choreoGestureEvents?: { type: string; pointerType: string; pointerId: number }[] }).choreoGestureEvents!);
     expect(new Set(nativeEvents.filter(event => event.type === 'pointerdown' && event.pointerType === 'touch').map(event => event.pointerId)).size).toBeGreaterThanOrEqual(4);

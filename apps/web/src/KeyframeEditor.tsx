@@ -1,24 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight, ClipboardPaste, Copy, Diamond, RotateCcw, Trash2 } from 'lucide-react';
-import { EDITABLE_JOINT_NAMES, ROOT_TRANSLATION_LIMITS, frameTime, getKeyframeFrames, lastFrame, rotationFromDegrees, type JointName, type KeyframeSequence, type KeyframeTransferRequest, type KeyframeTransferScope, type Pose, type Vec3 } from '../../../packages/core/src';
-import { STAGE_JOINT_LABELS, type StageTransformTool } from './Stage';
+import { EDITABLE_JOINT_NAMES, frameTime, getKeyframeFrames, lastFrame, type JointName, type KeyframeSequence, type KeyframeTransferRequest, type KeyframeTransferScope } from '../../../packages/core/src';
+import { STAGE_JOINT_LABELS } from './Stage';
 import './KeyframeEditor.css';
-import { constrainJointRotation, getJointRotationLimits, isJointRotationWithinLimits, jointRotationToDegrees } from '../../../packages/core/src';
-
-export type KeyframeEditorProps = {
-  sequence: KeyframeSequence;
-  pose: Pose;
-  frame: number;
-  selectedJoint: JointName | null;
-  playing: boolean;
-  mirror: boolean;
-  readOnly?: boolean;
-  transformTool?: StageTransformTool;
-  clipboard: { frame: number; fromDraft: boolean } | null;
-  onPose: (pose: Pose) => void;
-  onCopyPose: () => void;
-  onPastePose: (includeRoot: boolean) => void;
-};
 
 function neighboringFrames(frames: number[], frame: number) {
   let previous: number | undefined;
@@ -37,91 +21,6 @@ function KeyNavigation({ frames, frame, playing, onFrame, timeline = false }: {
     <button aria-label={timeline ? '时间线上一关键帧' : '上一关键帧'} disabled={playing || previous === undefined} onClick={() => { if (previous !== undefined) onFrame(previous); }}><ChevronLeft size={14} />上一 K</button>
     <button aria-label={timeline ? '时间线下一关键帧' : '下一关键帧'} disabled={playing || next === undefined} onClick={() => { if (next !== undefined) onFrame(next); }}>下一 K<ChevronRight size={14} /></button>
   </div>;
-}
-
-function formatAxisValue(value: number, prefix: '关节' | 'Root'): string {
-  const standard = value.toFixed(prefix === 'Root' ? 3 : 1);
-  const precise = value.toFixed(prefix === 'Root' ? 9 : 6);
-  // Keep familiar trailing decimals for ordinary values, while retaining
-  // meaningful author precision without exposing quaternion round-off noise.
-  return Number(precise) === Number(standard) ? standard : precise.replace(/\.?0+$/, '');
-}
-
-function AxisField({ prefix, axis, value, bounds, step, disabled, onChange }: {
-  prefix: '关节' | 'Root'; axis: 'X' | 'Y' | 'Z'; value: number; bounds: readonly [number, number]; step: number; disabled: boolean; onChange: (value: number, source: 'slider' | 'number') => void;
-}) {
-  const [text, setText] = useState(formatAxisValue(value, prefix));
-  const focused = useRef(false);
-  useEffect(() => { if (!focused.current) setText(formatAxisValue(value, prefix)); }, [value, prefix]);
-  const label = `${prefix} ${axis} ${prefix === 'Root' ? '位移（米）' : '旋转（度）'}`;
-  const numberBounds = prefix === '关节' ? [-180, 180] as const : bounds;
-  return <div className={`kf-axis kf-axis-${axis.toLowerCase()}`}>
-    <span>{axis}</span>
-    <input type="range" aria-label={`${prefix} ${axis} 滑条`} min={bounds[0]} max={bounds[1]} step={step} value={Math.max(bounds[0], Math.min(bounds[1], value))} disabled={disabled} onChange={event => onChange(Number(event.target.value), 'slider')} />
-    <input type="number" aria-label={label} aria-describedby={prefix === '关节' && !disabled ? 'kf-authoring-note' : undefined} min={numberBounds[0]} max={numberBounds[1]} step={step} value={text} disabled={disabled} onFocus={() => { focused.current = true; }} onBlur={() => { focused.current = false; setText(formatAxisValue(value, prefix)); }} onChange={event => {
-      const raw = event.target.value; setText(raw);
-      if (!raw.trim()) return;
-      const next = Number(raw);
-      if (Number.isFinite(next)) onChange(Math.max(numberBounds[0], Math.min(numberBounds[1], next)), 'number');
-    }} />
-    <small>{prefix === 'Root' ? 'm' : '°'}</small>
-  </div>;
-}
-
-export function KeyframeEditor(props: KeyframeEditorProps) {
-  const { sequence, pose, frame, selectedJoint, playing, mirror } = props;
-  const editable = selectedJoint !== null && EDITABLE_JOINT_NAMES.includes(selectedJoint);
-  const locked = playing || mirror || props.readOnly === true;
-  const angles: Vec3 = selectedJoint ? jointRotationToDegrees(selectedJoint, pose.joints[selectedJoint]) : [0, 0, 0];
-  const rotationBounds = selectedJoint ? getJointRotationLimits(selectedJoint) : [[-180, 180], [-180, 180], [-180, 180]] as const;
-  const outsideLimits = editable && selectedJoint !== null && !isJointRotationWithinLimits(selectedJoint, pose.joints[selectedJoint]);
-  const jointKeys = selectedJoint ? sequence.rotations[selectedJoint] ?? [] : [];
-  const jointKeyed = jointKeys.some(key => key.frame === frame);
-  const rootKeyed = sequence.root.some(key => key.frame === frame);
-  function updateRotation(axis: number, value: number, source: 'slider' | 'number') {
-    if (!selectedJoint || !editable || locked) return;
-    const next: Vec3 = [...angles]; next[axis] = value;
-    const rotation = rotationFromDegrees(next);
-    props.onPose({ ...pose, root: [...pose.root], joints: { ...pose.joints, [selectedJoint]: source === 'slider' ? constrainJointRotation(selectedJoint, rotation) : rotation } });
-  }
-  function updateRoot(axis: number, value: number) {
-    if (locked) return;
-    const root: Vec3 = [...pose.root]; root[axis] = value;
-    props.onPose({ ...pose, root, joints: { ...pose.joints } });
-  }
-  return <section className="kf-editor" aria-label="手动关键帧编辑器">
-    <div className="kf-heading"><div className="module-title"><h2>姿态调整</h2></div><span className="kf-state">舞台拖动 · 数值微调</span></div>
-    {mirror && <div className="kf-readonly-note">镜像仅用于观看。点舞台「旋转」或「移动（整体）」关闭镜像并继续编辑；已有草稿会保留。</div>}
-    {props.readOnly && <div className="kf-readonly-note">当前为观看状态。点舞台旋转或移动，回原稿编辑。</div>}
-    {playing && <div className="kf-readonly-note">播放中暂停编辑。点舞台旋转或移动，暂停到当前帧。</div>}
-    <div id="kf-rotation-controls" className={`kf-transform-group ${props.transformTool === 'rotate' ? 'kf-transform-active' : ''}`}>
-      <div className="kf-group-heading"><h3 title="相对父骨骼 · XYZ 角度">局部旋转</h3><span>{editable ? '滑条为人体建议' : selectedJoint ? '只读末端' : '请选择关节'}</span></div>
-      {!selectedJoint && <p>点击人物的关节点，在舞台上拖动摆姿。</p>}
-      {selectedJoint && !editable && <p>末端节点只读；请选择肩、肘、髋等骨骼。</p>}
-      {editable && <p id="kf-authoring-note">数值可设 ±180°，写 K 保留老师姿态。</p>}
-      {outsideLimits && <p className="kf-constraint-note" role="status">超出标准人体建议，按老师设定保留；自动修正不会覆盖手 K。</p>}
-      <div className={`kf-track-status ${jointKeyed ? 'keyed' : ''}`} aria-label="当前关节轨道状态">{!selectedJoint ? '未选关节' : !editable ? '末端节点只读 · 无可编辑旋转轨' : <><Diamond size={11} /><span>{jointKeyed ? '本帧已写旋转 K' : '本帧未写旋转 K'} · {jointKeys.length} 个键</span></>}</div>
-      {selectedJoint && (['X', 'Y', 'Z'] as const).map((axis, index) => <AxisField key={axis} prefix="关节" axis={axis} value={angles[index]} bounds={rotationBounds[index]} step={0.1} disabled={!editable || locked} onChange={(value, source) => updateRotation(index, value, source)} />)}
-    </div>
-    <div id="kf-root-controls" className={`kf-transform-group ${props.transformTool === 'translate' ? 'kf-transform-active' : ''}`}>
-      <div className="kf-group-heading"><h3 title="整体世界位置 · X/Z ±5 m · Y 0–3 m">Root 位移</h3><span>世界空间 · 米</span></div>
-      <div className={`kf-track-status ${rootKeyed ? 'keyed' : ''}`} aria-label="Root 轨道状态"><Diamond size={11} /><span>{rootKeyed ? '本帧已写 Root K' : '本帧未写 Root K'} · {sequence.root.length} 个键</span></div>
-      {(['X', 'Y', 'Z'] as const).map((axis, index) => <AxisField key={axis} prefix="Root" axis={axis} value={pose.root[index]} bounds={[ROOT_TRANSLATION_LIMITS.x, ROOT_TRANSLATION_LIMITS.y, ROOT_TRANSLATION_LIMITS.z][index]} step={0.01} disabled={locked} onChange={value => updateRoot(index, value)} />)}
-    </div>
-    <details className="kf-disclosure kf-pose-reuse" aria-label="姿态复用">
-      <summary>姿态复用</summary>
-      <div className="kf-disclosure-content">
-        <div className={`kf-clipboard-status ${props.clipboard ? 'ready' : ''}`} aria-label="已复制姿态" role="status">{props.clipboard ? `第 ${props.clipboard.frame} 帧 · ${props.clipboard.fromDraft ? '姿态草稿' : '动画姿态'}` : '未复制姿态'}</div>
-      <button className="kf-pose-copy" disabled={locked} onClick={props.onCopyPose}><Copy size={13} aria-hidden="true" />复制当前姿态</button>
-      <div className="kf-pose-paste-actions">
-        <button disabled={!props.clipboard || locked} onClick={() => props.onPastePose(false)}><ClipboardPaste size={13} aria-hidden="true" />粘贴关节姿态</button>
-        <button disabled={!props.clipboard || locked} onClick={() => props.onPastePose(true)}><ClipboardPaste size={13} aria-hidden="true" />粘贴姿态与位置</button>
-      </div>
-      <p>粘贴先成为草稿，写 K 后生效。关节姿态保留当前位置，姿态与位置同时复用 Root。</p>
-      <span className="kf-clipboard-note">内存暂存 · 切换场景或刷新后清空</span>
-      </div>
-    </details>
-  </section>;
 }
 
 type KeyframeTimelineProps = {
@@ -145,6 +44,9 @@ type KeyframeTimelineProps = {
   onDeleteRoot: () => void;
   onNeutral: () => void;
   onTransferKeyframes: (request: Omit<KeyframeTransferRequest, 'collision'>) => void;
+  clipboard: { frame: number; fromDraft: boolean } | null;
+  onCopyPose: () => void;
+  onPastePose: (includeRoot: boolean) => void;
 };
 
 export function KeyframeTimeline(props: KeyframeTimelineProps) {
@@ -175,7 +77,7 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
   }
   const trackName = filter === 'root' ? 'Root 位移' : filter === 'joint' ? selectedJoint ? `${STAGE_JOINT_LABELS[selectedJoint]} · 局部旋转` : '未选关节' : '全部轨道';
   const trackStatus = filter === 'joint' && !editable ? selectedJoint ? '末端节点只读' : '请选择关节' : `${frames.includes(frame) ? '本帧已写 K' : '本帧未写 K'} · ${frames.length} 个关键时刻`;
-  const empty = filter === 'joint' ? !selectedJoint ? '请在舞台或列表选择关节，查看它的旋转关键帧。' : !editable ? '这个末端节点只读，没有可编辑旋转轨。请选择肩、肘、髋等骨骼。' : `${STAGE_JOINT_LABELS[selectedJoint]}尚无显式旋转 K，当前使用基底动画；写入「K 当前关节」后在此查看。` : filter === 'root' ? 'Root 尚无显式位移 K，当前使用基底动画；写入「K 位移」后在此查看。' : '还没有手动关键帧。调整姿态后点击 K，将这一帧写入序列。';
+  const empty = filter === 'joint' ? !selectedJoint ? '请在舞台点击人物部位，查看它的旋转关键帧。' : !editable ? '这个末端节点只读，没有可编辑旋转轨。请选择肩、肘、髋等骨骼。' : `${STAGE_JOINT_LABELS[selectedJoint]}尚无显式旋转 K，当前使用基底动画；写入「K 当前关节」后在此查看。` : filter === 'root' ? 'Root 尚无显式位移 K，当前使用基底动画；写入「K 位移」后在此查看。' : '还没有手动关键帧。调整姿态后点击 K，将这一帧写入序列。';
   return <section className="kf-timeline" aria-label="手动关键帧时间线">
     <div className="kf-timeline-transport">{props.transport}<button className="button primary kf-record" aria-label="K 完整姿态" title="在当前帧记录完整姿态，中间自动插帧；每次写入均可撤销" disabled={locked} onClick={props.onWritePose}><Diamond size={15} fill={keyed ? 'currentColor' : 'none'} />{keyed ? '更新关键帧' : '添加关键帧'}</button></div>
     <div className="timeline-heading"><div className="module-title"><h2>时间轴 <span>{frames.length} 个关键时刻</span></h2></div><span className="kf-timeline-duration">30 FPS · {duration.toFixed(3)} s</span></div>
@@ -201,6 +103,19 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
         <button className="kf-delete-button" disabled={!keyed || locked} onClick={props.onDelete}><Trash2 size={13} />删除当前帧关键帧</button>
         <button className="kf-neutral-button" disabled={locked} onClick={props.onNeutral}><RotateCcw size={13} />从站姿开始</button>
       </div>
+      <details className="kf-disclosure kf-pose-reuse" aria-label="姿态复用">
+        <summary>姿态复用</summary>
+        <div className="kf-disclosure-content">
+          <div className={`kf-clipboard-status ${props.clipboard ? 'ready' : ''}`} aria-label="已复制姿态" role="status">{props.clipboard ? `第 ${props.clipboard.frame} 帧 · ${props.clipboard.fromDraft ? '姿态草稿' : '动画姿态'}` : '未复制姿态'}</div>
+          <button className="kf-pose-copy" disabled={locked} onClick={props.onCopyPose}><Copy size={13} aria-hidden="true" />复制当前姿态</button>
+          <div className="kf-pose-paste-actions">
+            <button disabled={!props.clipboard || locked} onClick={() => props.onPastePose(false)}><ClipboardPaste size={13} aria-hidden="true" />粘贴关节姿态</button>
+            <button disabled={!props.clipboard || locked} onClick={() => props.onPastePose(true)}><ClipboardPaste size={13} aria-hidden="true" />粘贴姿态与位置</button>
+          </div>
+          <p>粘贴先成为草稿，写 K 后生效。关节姿态保留当前位置，姿态与位置同时复用。</p>
+          <span className="kf-clipboard-note">内存暂存 · 切换场景或刷新后清空</span>
+        </div>
+      </details>
     </details>
     <details className="kf-disclosure kf-transfer-panel" aria-label="关键帧移动与复制">
       <summary>移动与复制关键帧</summary>

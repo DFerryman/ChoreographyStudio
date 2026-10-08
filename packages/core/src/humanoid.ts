@@ -2,7 +2,8 @@ import { Quaternion, Vector3 } from 'three';
 import { JOINT_NAMES, type JointName, type Pose, type Quat, type Vec3 } from './motion-types';
 
 export type RigDefinition = { readonly name: JointName; readonly parent: JointName | null; readonly offset: readonly [number, number, number] };
-/** Original mannequin rig: meters, right handed, +Y up and +Z forward. */
+/** Fixed natural-shoulder calibration: meters, right handed, +Y up and +Z forward. */
+export const RIG_CALIBRATION_VERSION = 'neutral-rig-2' as const;
 const definitions: RigDefinition[] = [
   { name: 'Hips', parent: null, offset: [0, 0, 0] },
   { name: 'Spine', parent: 'Hips', offset: [0, 0.14, 0] },
@@ -12,8 +13,10 @@ const definitions: RigDefinition[] = [
   ...(['Left', 'Right'] as const).flatMap(side => {
     const sign = side === 'Left' ? 1 : -1;
     return [
-      { name: `${side}Shoulder`, parent: 'Chest', offset: [sign * 0.205, 0.095, 0] },
-      { name: `${side}UpperArm`, parent: `${side}Shoulder`, offset: [sign * 0.082, -0.03, 0] },
+      // Place the clavicle pivot inside the chest and the humerus at 21 cm.
+      // FK, IK, skin bind matrices and physical proxies share these offsets.
+      { name: `${side}Shoulder`, parent: 'Chest', offset: [sign * 0.100, 0.095, 0] },
+      { name: `${side}UpperArm`, parent: `${side}Shoulder`, offset: [sign * 0.110, -0.03, 0] },
       { name: `${side}ForeArm`, parent: `${side}UpperArm`, offset: [0, -0.285, 0] },
       { name: `${side}Hand`, parent: `${side}ForeArm`, offset: [0, -0.255, 0] },
       { name: `${side}HandTip`, parent: `${side}Hand`, offset: [0, -0.115, 0] },

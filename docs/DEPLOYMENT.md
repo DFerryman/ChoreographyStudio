@@ -1,10 +1,12 @@
 # Cloudflare 预览部署
 
-2026-10-08：**当前 version 13 已上线**：作者K和手动摆姿意图最高优先级，自动脚锁/插帧不得覆盖明确作者通道；延续统一时间轴、中性人体、IK、内置人体参数、Rapier候选和Workers AI接线。自动迈步仍未实现。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+2026-10-08：v14舞台直接摆姿与统一自然人体的源码/资产已冻结并完成本地基础构建，发布复核中；下文v13为此前实际线上版本，不能作为本轮已部署证明。最新版本、源码CI及有界线上结果完成后据实补齐。真实AI测试0。
+
+2026-10-08：**历史 version 13 已上线**：作者K和手动摆姿意图最高优先级，自动脚锁/插帧不得覆盖明确作者通道；延续统一时间轴、中性人体、IK、内置人体参数、Rapier候选和Workers AI接线。自动迈步仍未实现。打开 [八拍工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
 
 本轮作者优先源码 [e44a649b](https://github.com/DFerryman/ChoreographyStudio/commit/e44a649bb03583d847ea319dc27560643545a828) 已 push main，树 `ebc88873036023e6b00de28eb509a642a3ca97ae` 与本地一致；准确功能 head 的 [run37745471252](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37745471252)、job113205792740、attempt1 于 `2026-10-08T08:03:55Z` completed/success，实际 **319基础 + 完整81浏览器通过**，没有 workflow rerun。Cloudflare v13 `9dcbf7c0-24cb-41c7-a1a3-d36baa0893e4` 实际100%，首次 deployment `7e5a6ead-b240-4484-b83e-0a7f06f7716e` / `2026-10-08T07:46:28.924157Z`。单轮线上8/8与有界12 HTTP通过，实际诊断errors/warnings/API均0，真实AI推理0。最后仅Markdown回填复用该已验证runtime，并在同版100% deployment annotation关联最终main；实际ID与时间由Cloudflare记录核对。此前v12的306+76仅作为历史基线，详见验证/部署记录。
 
-## 当前线上版本 · version 13
+## 历史线上版本 · version 13
 
 | 项目 | 实际结果 |
 | --- | --- |
@@ -44,7 +46,7 @@
 
 用户要求每轮修改最终都提交并 push 到 `DFerryman/ChoreographyStudio`，同步部署到本 Cloudflare 预览。交付前核对远端提交、实际运行版本和预览结果，验证记录也提交；不能只留本地改动或把构建成功当作发布完成。此要求已写入根目录 `AGENTS.md`。
 
-仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署与已有健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。当前表为v13，v12/v11留在历史章节；后续纯文档的同版同步在部署 message 中记录最终源码提交，实际 ID/时间由 Cloudflare 部署记录核对。旧记录保留在历史章节。
+仅文档修改时复用已经验证的运行版本，同步部署在 `workers/message` 中记录本轮源码提交，核对实际部署与已有健康检查。运行代码和资产未变时复用既有检查，不重复完整公网回归，也不增加 D1 写入。旧表为v13，v12/v11留在历史章节；后续纯文档的同版同步在部署 message 中记录最终源码提交，实际 ID/时间由 Cloudflare 部署记录核对。旧记录保留在历史章节。
 
 ## 历史线上版本 · version 12
 

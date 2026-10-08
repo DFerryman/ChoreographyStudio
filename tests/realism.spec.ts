@@ -24,7 +24,7 @@ test('@realism real IK world-arrow drags form a constrained leg draft, explicit 
   await frame(page, 60); await select(page, 'LeftFoot');
   await page.getByRole('button', { name: '手脚 IK', exact: true }).click();
   const indicator = page.getByLabel('IK 手脚目标', { exact: true });
-  await expect(indicator).toContainText('IK 目标草稿');
+  await expect(indicator).toContainText('手脚协调');
   const first = evaluatePose(sampleTake(source.take, 2)).LeftFoot.position;
   let projected = await projection(page, original);
   const yStart = projected.point([first[0], first[1] + .16, first[2]]);
@@ -52,7 +52,7 @@ test('@realism real IK world-arrow drags form a constrained leg draft, explicit 
   const farEnd = projected.point([lifted[0] + .90, lifted[1], lifted[2]]);
   await page.mouse.move(farStart.x, farStart.y); await expect(indicator).toContainText('X轴');
   await page.mouse.down(); await page.mouse.move(farEnd.x, farEnd.y, { steps: 12 }); await page.mouse.up();
-  await expect(indicator.getByRole('status')).toContainText('目标差');
+  await expect(indicator.getByRole('status').filter({ hasText: '目标差' })).toBeVisible();
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
   await page.getByRole('button', { name: 'K 完整姿态', exact: true }).click();
   await expect(draft(page)).toHaveCount(0);

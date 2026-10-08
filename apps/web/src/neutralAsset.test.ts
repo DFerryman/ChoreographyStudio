@@ -19,7 +19,7 @@ type Document = {
 
 /** Read the shipped bytes, not an exporter-created metrics sidecar. */
 function readAsset(): { document: Document; bytes: Buffer; binary: DataView } {
-  const bytes = readFileSync(new URL('../public/models/neutral-human.glb', import.meta.url));
+  const bytes = readFileSync(new URL('../public/models/neutral-human-v2.glb', import.meta.url));
   expect(bytes.readUInt32LE(0)).toBe(0x46546c67);
   expect(bytes.readUInt32LE(4)).toBe(2);
   expect(bytes.readUInt32LE(8)).toBe(bytes.length);

@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import { clickRevealed, reveal } from './helpers';
 import { backup, current, diagnostics, draft, numeric, openFixture, projection, save, screenshot, select } from './realismHelpers';
+import { expectStageValue, readStagePose } from './stageInteractions';
 
 const modelLoading = (page: Page) => page.getByRole('status').filter({ hasText: '人物模型载入中' });
 
@@ -35,8 +36,8 @@ test('@model a delayed asset binds to the current edited pose without changing i
   let hold = false;
   let release!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; });
-  const bytes = await readFile('apps/web/public/models/neutral-human.glb');
-  await page.route('**/models/neutral-human.glb', async route => {
+  const bytes = await readFile('apps/web/public/models/neutral-human-v2.glb');
+  await page.route('**/models/neutral-human-v2.glb', async route => {
     if (hold) await gate;
     await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: bytes });
   });
@@ -49,6 +50,9 @@ test('@model a delayed asset binds to the current edited pose without changing i
   await select(page, 'LeftUpperArm');
   await numeric(page, '关节 Z 旋转（度）', 80);
   await numeric(page, 'Root X 位移（米）', .8);
+  await expectStageValue(page, '关节 Z 旋转（度）', 80);
+  await expectStageValue(page, 'Root X 位移（米）', .8, .000005);
+  const actualDraft = (await readStagePose(page)).pose;
   await expect(draft(page)).toBeVisible();
   const before = await backup(page);
   release();
@@ -62,8 +66,10 @@ test('@model a delayed asset binds to the current edited pose without changing i
   await page.getByRole('button', { name: 'K 完整姿态', exact: true }).click();
   await expect(draft(page)).toBeHidden();
   const authored = await backup(page);
-  expect(current(authored).take.poses[0].root[0]).toBeCloseTo(.8, 8);
-  expect(current(authored).take.poses[0].joints.LeftUpperArm[2]).toBeCloseTo(Math.sin(80 * Math.PI / 360), 8);
+  // Pointer rays carry normal floating point error. Persist the actual visible
+  // draft exactly rather than claiming the removed number form was used.
+  expect(current(authored).take.poses[0].root).toEqual(actualDraft.root);
+  actualDraft.joints.LeftUpperArm.forEach((component, i) => expect(current(authored).take.poses[0].joints.LeftUpperArm[i]).toBeCloseTo(component, 12));
   await save(page);
   await page.reload();
   await expect(modelLoading(page)).toBeHidden();

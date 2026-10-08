@@ -1,3 +1,4 @@
+import { editStageValue, selectStageJoint, expectGestureRootKeys } from './stageInteractions';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -95,7 +96,7 @@ async function openScene(page: Page) {
   await expect(page.locator('.project-title h1')).toHaveText(source.scene.name);
   expect(current(await backup(page)).take).toEqual(source.take);
   await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
-  await expect(page.getByRole('region', { name: '手动关键帧编辑器', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: '手动关键帧时间线', exact: true })).toBeVisible();
   return source;
 }
 async function backup(page: Page): Promise<Backup> {
@@ -105,14 +106,13 @@ async function backup(page: Page): Promise<Backup> {
   return JSON.parse(await readFile(path!, 'utf8')) as Backup;
 }
 async function numeric(page: Page, label: string, value: number) {
-  const input = page.getByRole('spinbutton', { name: label, exact: true });
-  await input.fill(String(value)); await input.press('Tab');
+  await editStageValue(page, label, value);
 }
 async function frame(page: Page, value: number) {
   await numeric(page, '当前帧', value);
   await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue(String(value));
 }
-async function joint(page: Page, value: Joint | '') { await page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption(value); }
+async function joint(page: Page, value: Joint | '') { await selectStageJoint(page, value as Parameters<typeof selectStageJoint>[1]); }
 async function rotationKey(page: Page, keyFrame: number, name: Joint, degrees: number) {
   await frame(page, keyFrame); await joint(page, name); await numeric(page, '关节 Z 旋转（度）', degrees);
   await clickRevealed(page, page.getByRole('button', { name: 'K 当前关节', exact: true, includeHidden: true })); await expect(draft(page)).toHaveCount(0);
@@ -333,9 +333,9 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
   expect(recovered.scene.project.revision).toBe(imported.scene.project.revision + 1); expect(recovered.scene.project.teacherCheckedRevision).toBeNull();
   expect(current(recovered).countMap).toEqual(current(imported).countMap); expect(current(recovered).plan).toEqual(current(imported).plan);
   expect(current(recovered).take.id).not.toBe(current(imported).take.id); expect(current(recovered).manual!.baseTake).toEqual(source.take);
-  expect(current(recovered).manual!.root).toEqual([{ frame: 75, position: [1.5, 1.05, 0] }]);
+  expectGestureRootKeys(current(recovered).manual!.root, [{ frame: 75, position: [1.5, 1.05, 0] }]);
   expect(Object.keys(current(recovered).manual!.rotations)).toHaveLength(19);
-  expect(current(recovered).take.poses[current(recovered).take.times.indexOf(2.5)].root).toEqual([1.5, 1.05, 0]);
+  expect(current(recovered).take.poses[current(recovered).take.times.indexOf(2.5)].root).toEqual(current(recovered).manual!.root[0].position);
   expect(recovered.scene.viewer).toEqual(imported.scene.viewer);
   expect(await audioHash(page)).toBe(createHash('sha256').update(source.wave).digest('hex'));
   expect((await localState(page)).ids).toEqual([...beforeRecovery.ids, recovered.scene.id].sort());

@@ -1,3 +1,4 @@
+import { editStageValue, expectStageValue, selectStageJoint } from './stageInteractions';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -54,7 +55,7 @@ async function ready(page: Page) {
   await page.goto('/');
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeEnabled();
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.readyState)).toBeGreaterThanOrEqual(2);
-  const editor = page.getByRole('region', { name: '手动关键帧编辑器', exact: true });
+  const editor = page.getByRole('region', { name: '手动关键帧时间线', exact: true });
   if (!await editor.isVisible()) await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
   await expect(editor).toBeVisible();
 }
@@ -70,8 +71,9 @@ async function backup(page: Page): Promise<Backup> {
 }
 
 async function stageFocus(page: Page) {
-  await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); });
-  await expect(page.locator('body')).toBeFocused();
+  const stage = page.getByRole('region', { name: '3D 动画舞台', exact: true });
+  await stage.focus();
+  await expect(stage).toBeFocused();
 }
 
 async function key(page: Page, shortcut: string) {
@@ -80,9 +82,7 @@ async function key(page: Page, shortcut: string) {
 }
 
 async function number(page: Page, name: string, value: number) {
-  const input = page.getByRole('spinbutton', { name, exact: true });
-  await input.fill(String(value));
-  await input.press('Tab');
+  await editStageValue(page, name, value);
 }
 
 async function frame(page: Page, value: number) {
@@ -91,7 +91,7 @@ async function frame(page: Page, value: number) {
 }
 
 async function selectJoint(page: Page, joint: string) {
-  await page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption(joint);
+  await selectStageJoint(page, joint as Parameters<typeof selectStageJoint>[1]);
 }
 
 async function rootKey(page: Page, value = 1.2) {
@@ -100,7 +100,8 @@ async function rootKey(page: Page, value = 1.2) {
   await expect(draft(page)).toBeVisible();
   await key(page, 'k');
   await expect(draft(page)).toHaveCount(0);
-  await expect(page.getByLabel('Root 轨道状态', { exact: true })).toContainText('本帧已写 Root K');
+  await page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true }).selectOption('root');
+  await expect(page.getByLabel('筛选轨道状态', { exact: true })).toContainText('本帧已写 K');
 }
 
 async function controlledPlayback(page: Page) {
@@ -170,8 +171,8 @@ test('@shortcuts frame arrows preserve the exact non-uniform final interval and 
   await page.keyboard.down('ArrowRight'); await expect(frameInput(page)).toHaveValue('3');
   await page.keyboard.up('ArrowRight');
 
-  const root = page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true });
-  await root.focus(); await root.press('ArrowLeft'); await root.press('k'); await root.press('Space');
+  const seconds = page.getByRole('spinbutton', { name: '当前时间（秒）', exact: true });
+  await seconds.focus(); await seconds.press('ArrowLeft'); await seconds.press('k'); await seconds.press('Space');
   await expect(frameInput(page)).toHaveValue('3');
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeVisible();
   await expect(draft(page)).toHaveCount(0);
@@ -195,12 +196,13 @@ test('@shortcuts K and Delete affect the active joint or Root track and keyboard
   await page.getByRole('button', { name: '旋转工具', exact: true }).click();
   await number(page, '关节 Z 旋转（度）', 45);
   await key(page, 'k'); await expect(draft(page)).toHaveCount(0);
-  await expect(page.getByLabel('当前关节轨道状态', { exact: true })).toContainText('本帧已写旋转 K');
+  await page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true }).selectOption('joint');
+  await expect(page.getByLabel('筛选轨道状态', { exact: true })).toContainText('本帧已写 K');
   await rootKey(page);
   const authored = current(await backup(page));
   expect(authored.manual!.rotations.LeftUpperArm).toHaveLength(1);
   expect(authored.manual!.root).toHaveLength(1);
-  expect(authored.manual!.root[0].position[0]).toBe(1.2);
+  expect(authored.manual!.root[0].position[0]).toBeCloseTo(1.2, 5);
 
   await key(page, 'Delete');
   const deletedRoot = current(await backup(page));
@@ -236,7 +238,7 @@ test('@shortcuts draft guards stop keyboard seeking and playback, keep dialogs i
   await expect(draft(page)).toBeVisible();
   await page.keyboard.press('Escape'); await expect(guard(page)).toHaveCount(0);
   await expect(draft(page)).toBeVisible();
-  await expect(page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true })).toHaveValue('2.000');
+  await expectStageValue(page, 'Root X 位移（米）', 2, .000005);
 
   await key(page, 'Space'); await expect(guard(page)).toBeVisible();
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeVisible();

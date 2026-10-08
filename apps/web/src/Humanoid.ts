@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { JOINT_NAMES, RIG_DEFINITIONS, type JointName } from '../../../packages/core/src';
 
-export const HUMANOID_ASSET_URL = '/models/neutral-human.glb';
+// Older open editors keep their original skin URL and rest calibration.
+export const HUMANOID_ASSET_URL = '/models/neutral-human-v2.glb';
 
 function disposeSource(scene: THREE.Object3D) {
   const geometries = new Set<THREE.BufferGeometry>();
@@ -40,6 +41,24 @@ export async function loadHumanoid(joints: ReadonlyMap<JointName, THREE.Bone>, s
     gltf.scene.traverse(object => { if (object instanceof THREE.SkinnedMesh) surfaces.push(object); });
     if (surfaces.length !== 1) throw new Error('中性人体模型必须包含一个连续蒙皮表面。');
     const source = surfaces[0];
+    const restPositions = new Map<JointName, THREE.Vector3>();
+    for (const { name, parent, offset } of RIG_DEFINITIONS) {
+      restPositions.set(name, new THREE.Vector3(...offset).add(parent ? restPositions.get(parent)! : new THREE.Vector3()));
+    }
+    const sourceBones = new Map(source.skeleton.bones.map(bone => [bone.name, bone]));
+    // Bone names alone cannot distinguish two different rest calibrations.
+    if (source.skeleton.bones.length !== JOINT_NAMES.length || sourceBones.size !== JOINT_NAMES.length) throw new Error('人体模型与当前骨架不匹配，请刷新页面重试。');
+    for (const { name, parent } of RIG_DEFINITIONS) {
+      const bone = sourceBones.get(name);
+      const expectedRest = new THREE.Matrix4().makeTranslation(...restPositions.get(name)!.toArray() as [number, number, number]);
+      const inverse = bone ? source.skeleton.boneInverses[source.skeleton.bones.indexOf(bone)] : undefined;
+      const expectedInverse = expectedRest.clone().invert();
+      if (!bone || (bone.parent instanceof THREE.Bone ? bone.parent.name : null) !== parent
+        || bone.matrixWorld.elements.some((value, index) => !Number.isFinite(value) || Math.abs(value - expectedRest.elements[index]) > 1e-6)
+        || !inverse || inverse.elements.some((value, index) => !Number.isFinite(value) || Math.abs(value - expectedInverse.elements[index]) > 1e-6)) {
+        throw new Error('人体模型与当前骨架不匹配，请刷新页面重试。');
+      }
+    }
     geometry = source.geometry.clone().applyMatrix4(source.matrixWorld);
     const sourceIndices = geometry.getAttribute('skinIndex');
     const sourceWeights = geometry.getAttribute('skinWeight');
@@ -63,10 +82,6 @@ export async function loadHumanoid(joints: ReadonlyMap<JointName, THREE.Bone>, s
     // without shadow-map acne across small facial and finger triangles.
     mesh.receiveShadow = false;
     mesh.frustumCulled = false;
-    const restPositions = new Map<JointName, THREE.Vector3>();
-    for (const { name, parent, offset } of RIG_DEFINITIONS) {
-      restPositions.set(name, new THREE.Vector3(...offset).add(parent ? restPositions.get(parent)! : new THREE.Vector3()));
-    }
     const inverses = JOINT_NAMES.map(name => new THREE.Matrix4().makeTranslation(...restPositions.get(name)!.clone().negate().toArray() as [number, number, number]));
     skeleton = new THREE.Skeleton(JOINT_NAMES.map(name => joints.get(name)!), inverses);
     // Explicit rest matrices make asynchronous loading independent of the

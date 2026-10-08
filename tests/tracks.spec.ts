@@ -1,3 +1,4 @@
+import { editStageValue, expectStageValue, selectStageJoint, expectGestureRootKeys } from './stageInteractions';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -94,7 +95,7 @@ async function openScene(page: Page) {
   await expect(page.locator('.project-title h1')).toHaveText(source.scene.name);
   expect(current(await backup(page)).take).toEqual(source.take);
   await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
-  await expect(page.getByRole('region', { name: '手动关键帧编辑器', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: '手动关键帧时间线', exact: true })).toBeVisible();
   return source;
 }
 async function backup(page: Page): Promise<Backup> {
@@ -104,21 +105,32 @@ async function backup(page: Page): Promise<Backup> {
   return JSON.parse(await readFile(path!, 'utf8')) as Backup;
 }
 async function numeric(page: Page, label: string, value: number) {
-  const input = page.getByRole('spinbutton', { name: label, exact: true });
-  await input.fill(String(value)); await input.press('Tab');
+  await editStageValue(page, label, value);
 }
 async function frame(page: Page, value: number) {
   await numeric(page, '当前帧', value);
   await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue(String(value));
 }
-async function joint(page: Page, value: Joint | '') { await page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption(value); }
+async function joint(page: Page, value: Joint | '') { await selectStageJoint(page, value as Parameters<typeof selectStageJoint>[1]); }
 async function rotationKey(page: Page, keyFrame: number, name: Joint, degrees: number) {
   await frame(page, keyFrame); await joint(page, name); await numeric(page, '关节 Z 旋转（度）', degrees);
+  await expectStageValue(page, '关节 Z 旋转（度）', degrees);
   await clickRevealed(page, page.getByRole('button', { name: 'K 当前关节', exact: true, includeHidden: true })); await expect(draft(page)).toHaveCount(0);
 }
 async function rootKey(page: Page, keyFrame: number, x: number) {
   await frame(page, keyFrame); await numeric(page, 'Root X 位移（米）', x);
+  await expectStageValue(page, 'Root X 位移（米）', x);
   await clickRevealed(page, page.getByRole('button', { name: 'K 位移', exact: true, includeHidden: true })); await expect(draft(page)).toHaveCount(0);
+}
+async function selectedRotation(page: Page): Promise<Quat> {
+  const raw = await page.getByRole('region', { name: '3D 动画舞台', exact: true }).getAttribute('data-local-rotation');
+  expect(raw, 'The readonly stage snapshot must contain the actual selected rotation').toBeTruthy();
+  return JSON.parse(raw!) as Quat;
+}
+function expectStoredRotation(actual: Quat, intended: Quat) {
+  // A real drag determines the quaternion. Writing K preserves its components,
+  // allowing only floating-point normalization rather than a new pose.
+  intended.forEach((component, axis) => expect(actual[axis]).toBeCloseTo(component, 14));
 }
 const draft = (page: Page) => page.getByRole('status').filter({ hasText: '姿态草稿 · 尚未写入关键帧' });
 const guard = (page: Page) => page.getByRole('dialog', { name: '写入这份姿态草稿？', exact: true });
@@ -197,6 +209,8 @@ test('@tracks Root deletion resolves drafts explicitly and missing, unselected o
   await rootKey(page, 90, 1.6);
   const beforeWriteAndDelete = await backup(page);
   await numeric(page, '关节 Z 旋转（度）', 80);
+  await expectStageValue(page, '关节 Z 旋转（度）', 80);
+  const authoredRotation = await selectedRotation(page);
   await clickRevealed(page, page.getByRole('button', { name: '删除 Root K', exact: true, includeHidden: true })); await expect(guard(page)).toBeVisible();
   await guard(page).getByRole('button', { name: '写入完整姿态后继续', exact: true }).click();
   await expect(draft(page)).toHaveCount(0);
@@ -205,12 +219,11 @@ test('@tracks Root deletion resolves drafts explicitly and missing, unselected o
   expect(writeAndDelete.scene.project.historyIndex).toBe(beforeWriteAndDelete.scene.project.historyIndex + 2);
   expect(removedAfterWrite.manual!.root).toEqual([]);
   expect(Object.keys(removedAfterWrite.manual!.rotations)).toHaveLength(19);
-  expect(removedAfterWrite.manual!.rotations.LeftUpperArm![0].rotation[2]).toBeCloseTo(Math.sin(80 * Math.PI / 360), 8);
-  expect(removedAfterWrite.manual!.rotations.LeftUpperArm![0].rotation[3]).toBeCloseTo(Math.cos(80 * Math.PI / 360), 8);
+  expectStoredRotation(removedAfterWrite.manual!.rotations.LeftUpperArm![0].rotation, authoredRotation);
   expect(removedAfterWrite.manual!.baseTake).toEqual(source.take);
   await page.getByRole('button', { name: '撤销', exact: true }).click();
   const fullPoseBeforeDelete = current(await backup(page));
-  expect(fullPoseBeforeDelete.manual!.root).toEqual([{ frame: 90, position: [1.6, 1.05, 0] }]);
+  expectGestureRootKeys(fullPoseBeforeDelete.manual!.root, [{ frame: 90, position: [1.6, 1.05, 0] }]);
   expect(fullPoseBeforeDelete.manual!.rotations).toEqual(removedAfterWrite.manual!.rotations);
   await page.getByRole('button', { name: '重做', exact: true }).click(); await unchanged(page, removedAfterWrite);
   await frame(page, 90);
@@ -254,12 +267,14 @@ test('@tracks timeline filters scope navigation, the all-track filter sees every
   await unchanged(page, current(authored));
   await previous.click(); await guard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
   await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('30'); await expect(draft(page)).toHaveCount(0);
-  await numeric(page, '关节 Z 旋转（度）', 45); await next.click(); await expect(guard(page)).toBeVisible();
+  await numeric(page, '关节 Z 旋转（度）', 45); await expectStageValue(page, '关节 Z 旋转（度）', 45);
+  const authoredRotation = await selectedRotation(page);
+  await next.click(); await expect(guard(page)).toBeVisible();
   await guard(page).getByRole('button', { name: '写入完整姿态后继续', exact: true }).click();
   await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('90'); await expect(draft(page)).toHaveCount(0);
   const committed = await backup(page), sequence = current(committed).manual!;
   expect(committed.scene.project.revision).toBe(authored.scene.project.revision + 1);
-  expect(sequence.rotations.LeftUpperArm!.find(key => key.frame === 30)!.rotation[2]).toBeCloseTo(Math.sin(Math.PI / 8), 8);
+  expectStoredRotation(sequence.rotations.LeftUpperArm!.find(key => key.frame === 30)!.rotation, authoredRotation);
   expect(Object.keys(sequence.rotations)).toHaveLength(19);
   expect(sequence.root.map(key => key.frame)).toEqual([30, 120]);
 });

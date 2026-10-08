@@ -6,6 +6,7 @@ import { JOINT_NAMES, type BakedTake, type JointName, type Pose, type Vec3 } fro
 import type { SceneDocument } from '../apps/web/src/scene';
 import type { SceneProject } from '../apps/web/src/sceneProject';
 import { clickRevealed, reveal } from './helpers';
+import { editStageValue, selectStageJoint } from './stageInteractions';
 
 export type Backup = { scene: SceneDocument<SceneProject> };
 export const current = (backup: Backup) => backup.scene.project.history[backup.scene.project.historyIndex];
@@ -46,8 +47,9 @@ export async function ready(page: Page) {
   await expect(page.getByLabel('相机世界坐标')).not.toContainText('—');
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.readyState)).toBeGreaterThanOrEqual(2);
 }
-export async function openFixture(page: Page, floating = false) {
+export async function openFixture(page: Page, floating = false, mutate?: (source: ReturnType<typeof fixture>) => void) {
   const source = fixture(floating);
+  mutate?.(source);
   await page.goto('/'); await ready(page);
   await page.evaluate(async ({ scene, bytes }) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -73,10 +75,10 @@ export async function backup(page: Page): Promise<Backup> {
   return JSON.parse(await readFile(path!, 'utf8')) as Backup;
 }
 export async function numeric(page: Page, label: string, value: number) {
-  const input = page.getByRole('spinbutton', { name: label, exact: true }); await input.fill(String(value)); await input.press('Tab');
+  await editStageValue(page, label, value);
 }
 export const frame = (page: Page, value: number) => numeric(page, '当前帧', value);
-export const select = (page: Page, joint: JointName) => page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption(joint);
+export const select = (page: Page, joint: JointName) => selectStageJoint(page, joint);
 export async function jointPosition(page: Page): Promise<Vec3> {
   const label = page.getByLabel('选中关节世界坐标', { exact: true });
   await reveal(page, label);

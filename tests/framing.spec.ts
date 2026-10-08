@@ -1,3 +1,4 @@
+import { editStageValue, expectStageValue, stageValue, selectStageJoint, expectStageSelection, stageSelectedJoint, readStagePose } from './stageInteractions';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -131,11 +132,10 @@ async function seek(page: Page, time: number) {
   await seekSeconds(page, time);
 }
 async function numeric(page: Page, label: string, value: number) {
-  const input = page.getByRole('spinbutton', { name: label, exact: true });
-  await input.fill(String(value)); await input.press('Tab');
+  await editStageValue(page, label, value);
 }
 async function joint(page: Page, value: Joint) {
-  await page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption(value);
+  await selectStageJoint(page, value as Parameters<typeof selectStageJoint>[1]);
   await expect(page.getByLabel('选中关节世界坐标').locator('strong')).toContainText('Y');
 }
 async function cameraText(page: Page) { await reveal(page, page.getByLabel('相机世界坐标')); return page.getByLabel('相机世界坐标').innerText(); }
@@ -163,7 +163,7 @@ const hierarchy: [Joint, Joint | null, Vec3][] = [
   ...(['Left', 'Right'] as const).flatMap(side => {
     const sign = side === 'Left' ? 1 : -1;
     return [
-      [`${side}Shoulder`, 'Chest', [sign * 0.205, 0.095, 0]], [`${side}UpperArm`, `${side}Shoulder`, [sign * 0.082, -0.03, 0]],
+      [`${side}Shoulder`, 'Chest', [sign * 0.100, 0.095, 0]], [`${side}UpperArm`, `${side}Shoulder`, [sign * 0.110, -0.03, 0]],
       [`${side}ForeArm`, `${side}UpperArm`, [0, -0.285, 0]], [`${side}Hand`, `${side}ForeArm`, [0, -0.255, 0]], [`${side}HandTip`, `${side}Hand`, [0, -0.115, 0]],
       [`${side}UpperLeg`, 'Hips', [sign * 0.112, -0.05, 0]], [`${side}LowerLeg`, `${side}UpperLeg`, [0, -0.46, 0]], [`${side}Foot`, `${side}LowerLeg`, [0, -0.45, 0]],
       [`${side}Toe`, `${side}Foot`, [0, -0.035, 0.15]], [`${side}Heel`, `${side}Foot`, [0, -0.035, -0.065]],
@@ -240,9 +240,10 @@ test('@framing whole-body framing brings a translated current pose into view wit
 test('@framing joint focus centers editable and read-only landmarks, honors mirror and remains available in teaching view', async ({ page }) => {
   test.setTimeout(120_000);
   const source = await openFixture(page);
-  await seek(page, 2.5); await joint(page, 'LeftForeArm');
+  await seek(page, 2.5);
   const before = await backup(page);
   const fitted = await cameraAction(page, 'whole');
+  await joint(page, 'LeftForeArm');
   const focused = await cameraAction(page, 'joint');
   nearPoint(focused.scene.viewer.camera.target, worldRig(source.take.poses[2]).joint('LeftForeArm'));
   sameDirection(focused.scene.viewer.camera, fitted.scene.viewer.camera);
@@ -277,8 +278,9 @@ test('@framing framing uses an unwritten pose without resolving it, and saved ca
   await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
   await numeric(page, '当前帧', 75); await joint(page, 'LeftUpperArm');
   await numeric(page, '关节 Z 旋转（度）', 60); await numeric(page, 'Root X 位移（米）', -5);
-  const pose = structuredClone(source.take.poses[2]);
-  pose.root[0] = -5; pose.joints.LeftUpperArm = [0, 0, Math.sin(Math.PI / 6), Math.cos(Math.PI / 6)];
+  const pose = (await readStagePose(page)).pose;
+  await expectStageValue(page, '关节 Z 旋转（度）', 60);
+  expect(pose.root[0]).toBe(-5);
   await expect(draft(page)).toBeVisible();
   await clickRevealed(page, page.getByRole('button', { name: '复制当前姿态', exact: true, includeHidden: true }));
   await expect(page.getByLabel('已复制姿态', { exact: true })).toContainText('第 75 帧 · 姿态草稿');
@@ -288,7 +290,7 @@ test('@framing framing uses an unwritten pose without resolving it, and saved ca
   expect(focused.scene.project).toEqual(original.scene.project);
   await expect(draft(page)).toBeVisible(); await expect(guard(page)).toHaveCount(0);
   await expect(page.getByLabel('已复制姿态', { exact: true })).toContainText('第 75 帧 · 姿态草稿');
-  expect(Number(await page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true }).inputValue())).toBe(-5);
+  expect(await stageValue(page, 'Root X 位移（米）')).toBe(-5);
   await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('75');
   await page.getByRole('button', { name: 'K 完整姿态', exact: true }).click();
   await expect(draft(page)).toHaveCount(0);

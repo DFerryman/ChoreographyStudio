@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 
 export type EditorShortcutOptions = {
   enabled: boolean;
+  readOnly?: boolean;
   onStep: (direction: -1 | 1) => void;
   onPlay: () => void;
   onWrite: () => void;
@@ -51,6 +52,9 @@ export function useEditorShortcuts(options: EditorShortcutOptions): void {
 
       if (!action) return;
       event.preventDefault();
+      // A disabled stage action must not fall through to the browser's undo
+      // stack and restore a previously edited time field while viewing.
+      if (callbacks.readOnly) return;
       if (!event.repeat || allowRepeat) action();
     }
 

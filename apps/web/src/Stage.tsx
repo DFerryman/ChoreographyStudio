@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { EDITABLE_JOINT_NAMES, JOINT_NAMES, RIG_DEFINITIONS, ROOT_TRANSLATION_LIMITS, sampleTake, type BakedTake, type JointName, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
 import { fitPerspectiveBounds } from './cameraFraming';
-import { constrainJointRotation } from '../../../packages/core/src';
+import { constrainJointRotation, isJointRotationWithinLimits } from '../../../packages/core/src';
 import { loadHumanoid } from './Humanoid';
 import './Stage.css';
 
@@ -65,6 +65,7 @@ type PreviewRig = {
   targets: THREE.Mesh[];
   framingMeshes: THREE.Mesh[];
   humanSkeleton: THREE.Skeleton | null;
+  humanSurface: THREE.SkinnedMesh | null;
 };
 
 type GizmoAxis = { name: 'X' | 'Y' | 'Z'; color: string; x: number; y: number; depth: number };
@@ -97,7 +98,36 @@ function createPreviewRig(): PreviewRig {
     bone.add(target); targets.push(target);
   }
   root.position.set(0, 1.05, 0);
-  return { root, joints, markers, targets, framingMeshes, humanSkeleton: null };
+  return { root, joints, markers, targets, framingMeshes, humanSkeleton: null, humanSurface: null };
+}
+
+/** Clicking the skin selects the part it actually follows, not an empty-space
+ * approximation. Fingertips and sole regions lead to their editable wrist or
+ * ankle; the small explicit nodes still allow read-only terminal inspection. */
+function surfaceJoint(hit: THREE.Intersection): JointName | null {
+  if (!hit.face || !hit.barycoord) return null;
+  const surface = hit.object;
+  if (!(surface instanceof THREE.SkinnedMesh)) return null;
+  const indices = surface.geometry.getAttribute('skinIndex');
+  const weights = surface.geometry.getAttribute('skinWeight');
+  if (!indices || !weights) return null;
+  const scores = new Map<JointName, number>();
+  const vertices = [hit.face.a, hit.face.b, hit.face.c];
+  const shares = hit.barycoord.toArray();
+  for (let corner = 0; corner < 3; corner++) {
+    for (let influence = 0; influence < 4; influence++) {
+      const bone = surface.skeleton.bones[indices.getComponent(vertices[corner], influence)];
+      let name = bone?.name as JointName | undefined;
+      if (!name || !JOINT_NAMES.includes(name)) continue;
+      if (name.endsWith('HandTip')) name = name.replace('HandTip', 'Hand') as JointName;
+      else if (name.endsWith('Toe') || name.endsWith('Heel')) name = name.replace(/(?:Toe|Heel)$/, 'Foot') as JointName;
+      scores.set(name, (scores.get(name) ?? 0) + shares[corner] * weights.getComponent(vertices[corner], influence));
+    }
+  }
+  let selected: JointName | null = null;
+  let greatest = 0;
+  for (const [name, score] of scores) if (score > greatest) { selected = name; greatest = score; }
+  return selected;
 }
 
 function applyPose(rig: PreviewRig, pose: Pose | null, draggingJoint: JointName | null = null, draggingRoot = false) {
@@ -166,6 +196,15 @@ export function Stage(props: StageProps) {
   const selection = selectedJoint === undefined ? internalSelection : selectedJoint;
   const selectionRef = useRef(selection);
   selectionRef.current = selection;
+  const feedbackPose = !playing && poseOverride ? poseOverride : take ? sampleTake(take, time) : null;
+  const outsideSuggestedRange = !!selection && EDITABLE_JOINT_SET.has(selection) && !!feedbackPose && !isJointRotationWithinLimits(selection, feedbackPose.joints[selection]);
+
+  function selectJoint(joint: JointName | null) {
+    setInternalSelection(joint);
+    selectionRef.current = joint;
+    current.current.onSelectJoint?.(joint);
+    requestDraw.current();
+  }
 
   useEffect(() => {
     const container = containerRef.current;
@@ -322,7 +361,7 @@ export function Stage(props: StageProps) {
         mesh.skeleton.dispose();
         return;
       }
-      rig.root.add(mesh); rig.framingMeshes.push(mesh); rig.humanSkeleton = mesh.skeleton;
+      rig.root.add(mesh); rig.framingMeshes.push(mesh); rig.humanSkeleton = mesh.skeleton; rig.humanSurface = mesh;
       setHumanLoaded(true); schedule();
     }).catch(error => {
       if (!stopped && !humanLoad.signal.aborted) setError(error instanceof Error ? error.message : '人体模型暂时无法载入。');
@@ -619,6 +658,7 @@ export function Stage(props: StageProps) {
       for (const [name, marker] of rig.markers) {
         const selected = name === selectionRef.current;
         const over = name === hovered;
+        marker.visible = !!state.editMode && !state.playing && (selected || over);
         marker.material.color.set(selected ? '#85b6db' : over ? '#eef6ff' : '#a4b7c8');
         marker.material.emissiveIntensity = selected ? 0.75 : over ? 0.45 : 0.16;
         const radius = name === 'Hips' ? .013 : name.includes('Tip') || name.endsWith('Toe') || name.endsWith('Heel') ? .006 : .008;
@@ -670,7 +710,7 @@ export function Stage(props: StageProps) {
       schedule();
     }
 
-    function pick(event: PointerEvent): JointName | null {
+    function pick(event: PointerEvent, includeSurface = false): JointName | null {
       const bounds = canvas.getBoundingClientRect();
       pointer.set(((event.clientX - bounds.left) / bounds.width) * 2 - 1, -((event.clientY - bounds.top) / bounds.height) * 2 + 1);
       scene.updateMatrixWorld(true);
@@ -686,7 +726,19 @@ export function Stage(props: StageProps) {
           best = { name: hit.object.userData.jointName as JointName, distance, depth: hit.distance };
         }
       }
-      return best?.name ?? null;
+      if (best) return best.name;
+      // Skin raycasting evaluates posed vertices. Keep it to deliberate
+      // clicks instead of repeating a full triangle pass on every hover.
+      if (includeSurface && rig.humanSurface) {
+        // A previous framing/raycast may have cached bounds from another
+        // pose. Refresh them here so a raised arm remains selectable.
+        rig.humanSurface.computeBoundingBox();
+        rig.humanSurface.boundingSphere ??= new THREE.Sphere();
+        rig.humanSurface.boundingBox?.getBoundingSphere(rig.humanSurface.boundingSphere);
+        const hit = raycaster.intersectObject(rig.humanSurface, false)[0];
+        if (hit) return surfaceJoint(hit);
+      }
+      return null;
     }
 
     function clearHover() {
@@ -803,11 +855,7 @@ export function Stage(props: StageProps) {
       pointerStart = null;
       canvas.classList.remove('is-dragging');
       if (!start.dragged && !start.gizmo && !transform.dragging && start.button === 0 && activePointers.size === 0) {
-        const joint = pick(event);
-        setInternalSelection(joint);
-        selectionRef.current = joint;
-        current.current.onSelectJoint?.(joint);
-        schedule();
+        selectJoint(pick(event, true));
       }
     }
 
@@ -944,7 +992,15 @@ export function Stage(props: StageProps) {
   }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraFocus, selection, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool, ikTarget]);
 
   return (
-    <div className="stage3d" ref={containerRef} tabIndex={editMode ? 0 : undefined} role="region" aria-label="3D 动画舞台" aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space K Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y' : undefined} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }}>
+    <div className="stage3d" ref={containerRef} tabIndex={editMode ? 0 : undefined} role="region" aria-label="3D 动画舞台" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined} aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space K Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y Alt+ArrowUp Alt+ArrowDown' : undefined} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }} onKeyDown={event => {
+      if (!editMode || event.nativeEvent.isComposing || !event.altKey || event.ctrlKey || event.metaKey || !['ArrowUp', 'ArrowDown'].includes(event.key)
+        || (event.target !== containerRef.current && !(event.target instanceof HTMLCanvasElement))) return;
+      event.preventDefault();
+      if (event.repeat) return;
+      const direction = event.key === 'ArrowDown' ? 1 : -1;
+      const index = selectionRef.current ? JOINT_NAMES.indexOf(selectionRef.current) : direction > 0 ? -1 : 0;
+      selectJoint(JOINT_NAMES[(index + direction + JOINT_NAMES.length) % JOINT_NAMES.length]);
+    }}>
       {error ? <StageFallback error={error} /> : <>
         {!humanLoaded && <span className="stage3d-model-loading" role="status">人物模型载入中…</span>}
         {axesVisible !== false && <div className="stage3d-gizmo" aria-label="世界坐标方向">
@@ -959,7 +1015,9 @@ export function Stage(props: StageProps) {
         </div>}
         {hover && <div className="stage3d-joint-tooltip" style={{ left: hover.x, top: hover.y }} aria-hidden="true">{STAGE_JOINT_LABELS[hover.joint]}<span>点击选择</span></div>}
         {editMode && <div className={`stage3d-edit-indicator${transformTool === 'ik' ? ' is-ik' : ''}`} aria-label={transformTool === 'translate' ? 'Root 世界位移' : transformTool === 'ik' ? 'IK 手脚目标' : transformTool === 'rotate' ? '关节局部旋转' : '关节选择'}>
-          {playing ? '播放期间不可编辑' : mirror ? '关闭镜像后编辑' : transformTool === 'select' ? '选择关节 · 用旋转或移动摆姿' : transformTool === 'translate' ? <>整体位移草稿<span>{transformAxis ? `${transformAxis}轴` : '拖动世界坐标箭头'}</span></> : transformTool === 'ik' ? !getIKEffector(selection) ? '选择手或脚后调整目标' : <>IK 目标草稿<span>{transformAxis ? `${transformAxis}轴` : '拖动箭头协调关节'}</span>{ikResidual !== null && ikResidual > 0.015 && <span className="stage3d-ik-residual" role="status">目标差 {(ikResidual * 100).toFixed(1)} cm</span>}</> : !selection ? '选择关节后旋转' : !EDITABLE_JOINT_SET.has(selection) ? '末端关节仅查看' : <>局部旋转草稿<span>{transformAxis ? `${transformAxis}轴` : '拖动彩色环'}</span></>}
+          {(selection || transformTool === 'translate') && <output className="stage3d-selected-part" aria-label="选中姿态状态" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined}>{transformTool === 'translate' ? '角色' : STAGE_JOINT_LABELS[selection!]} · {!playing && poseOverride ? '草稿' : '正式'}</output>}
+          {playing ? '播放期间不可编辑' : mirror ? '关闭镜像后编辑' : transformTool === 'select' ? '点身体部位选择' : transformTool === 'translate' ? <>整体移动<span>{transformAxis ? `${transformAxis}轴` : '拖箭头调整位置'}</span></> : transformTool === 'ik' ? !getIKEffector(selection) ? '点手或脚，再拖箭头摆姿' : <>手脚协调<span>{transformAxis ? `${transformAxis}轴` : '拖箭头摆姿'}</span>{ikResidual !== null && ikResidual > 0.015 && <span className="stage3d-ik-residual" role="status">目标差 {(ikResidual * 100).toFixed(1)} cm</span>}</> : !selection ? '点身体部位，再拖彩色环摆姿' : !EDITABLE_JOINT_SET.has(selection) ? '末端关节仅查看' : <>旋转<span>{transformAxis ? `${transformAxis}轴` : '拖彩色环摆姿'}</span></>}
+          {!playing && outsideSuggestedRange && <span className="stage3d-author-warning" role="status">超出标准人体建议，保留老师姿态</span>}
         </div>}
         <span className="stage3d-selection-announcement" aria-live="polite">{selection ? `已选中${STAGE_JOINT_LABELS[selection]}` : '未选中关节'}</span>
       </>}

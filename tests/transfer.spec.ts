@@ -1,3 +1,4 @@
+import { editStageValue, expectStageValue, stageValue, selectStageJoint, expectStageSelection, stageSelectedJoint, expectGestureRootKeys } from './stageInteractions';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -97,7 +98,7 @@ async function openScene(page: Page) {
   await expect(page.locator('.project-title h1')).toHaveText(source.scene.name);
   expect(current(await backup(page)).take).toEqual(source.take);
   await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
-  await expect(page.getByRole('region', { name: '手动关键帧编辑器', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: '手动关键帧时间线', exact: true })).toBeVisible();
   return source;
 }
 async function backup(page: Page): Promise<Backup> {
@@ -107,14 +108,13 @@ async function backup(page: Page): Promise<Backup> {
   return JSON.parse(await readFile(path!, 'utf8')) as Backup;
 }
 async function numeric(page: Page, label: string, value: number) {
-  const input = page.getByRole('spinbutton', { name: label, exact: true });
-  await input.fill(String(value)); await input.press('Tab');
+  await editStageValue(page, label, value);
 }
 async function frame(page: Page, value: number) {
   await numeric(page, '当前帧', value);
   await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue(String(value));
 }
-async function joint(page: Page, value: Joint | '') { await page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption(value); }
+async function joint(page: Page, value: Joint | '') { await selectStageJoint(page, value as Parameters<typeof selectStageJoint>[1]); }
 async function rotationKey(page: Page, keyFrame: number, name: Joint, degrees: number) {
   await frame(page, keyFrame); await joint(page, name); await numeric(page, '关节 Z 旋转（度）', degrees);
   await clickRevealed(page, page.getByRole('button', { name: 'K 当前关节', exact: true, includeHidden: true })); await expect(draft(page)).toHaveCount(0);
@@ -196,7 +196,7 @@ test('@transfer current-joint copy asks before collision replacement; all-track 
   await canvas.scrollIntoViewIfNeeded(); const box = (await canvas.boundingBox())!;
   await page.mouse.move(box.x + box.width * 0.82, box.y + box.height * 0.62, { steps: 8 });
   await page.mouse.up({ button: 'left' }); await expect(draft(page)).toHaveCount(0);
-  expect(Number(await page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true }).inputValue())).toBe(0.9);
+  expect(await stageValue(page, 'Root X 位移（米）')).toBe(originalSequence.root[0].position[0]);
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
   await clickRevealed(page, transfer(page, 'copy'));
   await collision(page).getByRole('button', { name: '替换并继续', exact: true }).click();
@@ -213,7 +213,7 @@ test('@transfer current-joint copy asks before collision replacement; all-track 
   expect(moved.scene.project.revision).toBe(copied.scene.project.revision + 1);
   expect(movedSequence.rotations.LeftUpperArm).toEqual([{ frame: 60, rotation: copiedSequence.rotations.LeftUpperArm![0].rotation }, copiedSequence.rotations.LeftUpperArm![1]]);
   expect(movedSequence.rotations.RightUpperArm).toEqual([{ frame: 60, rotation: copiedSequence.rotations.RightUpperArm![0].rotation }, copiedSequence.rotations.RightUpperArm![1]]);
-  expect(movedSequence.root).toEqual([{ frame: 60, position: [0.9, 1.05, 0] }]);
+  expect(movedSequence.root).toEqual([{ frame: 60, position: copiedSequence.root[0].position }]);
   expect(Object.keys(movedSequence.rotations).sort()).toEqual(['LeftUpperArm', 'RightUpperArm']);
   expect(movedSequence.baseTake).toEqual(source.take); expect(current(moved).countMap).toEqual(current(original).countMap); expect(current(moved).plan).toEqual(current(original).plan);
   checkUneditedHead(current(moved), source.take); await visibleFrames(page, [60, 90, 120]);
@@ -250,7 +250,7 @@ test('@transfer Root scope works independently of read-only selection; empty, fr
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   }
   await clickRevealed(page, transfer(page, 'move')); const moved = await backup(page), sequence = current(moved).manual!;
-  expect(sequence.root).toEqual([{ frame: 450, position: [0.8, 1.05, 0] }, { frame: 480, position: [1.2, 1.05, 0] }]);
+  expectGestureRootKeys(sequence.root, [{ frame: 450, position: [0.8, 1.05, 0] }, { frame: 480, position: [1.2, 1.05, 0] }]);
   expect(sequence.rotations).toEqual(current(original).manual!.rotations); expect(sequence.baseTake).toEqual(source.take);
   expect(moved.scene.project.revision).toBe(original.scene.project.revision + 1); checkUneditedHead(current(moved), source.take);
   await frame(page, 0); await expect(transfer(page, 'move')).toBeDisabled();
@@ -282,7 +282,9 @@ test('@transfer draft cancellation and discard preserve source keys; write-befor
     input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true }).evaluate((input: HTMLSelectElement) => { input.value = 'root'; input.dispatchEvent(new Event('change', { bubbles: true })); });
-  await page.getByRole('combobox', { name: '选择关节', exact: true }).evaluate((input: HTMLSelectElement) => { input.value = 'RightUpperArm'; input.dispatchEvent(new Event('change', { bubbles: true })); });
+  // The removed joint form cannot queue a selection behind a modal. The
+  // live filter and target above still exercise captured transfer view state;
+  // immutable source-track contents are checked below.
   await guard(page).getByRole('button', { name: '写入完整姿态后继续', exact: true }).click();
   await expect(collision(page)).toBeVisible(); await expect(collision(page)).toContainText('150');
   await collision(page).getByRole('button', { name: '替换并继续', exact: true }).click();
@@ -291,7 +293,7 @@ test('@transfer draft cancellation and discard preserve source keys; write-befor
   expect(sequence.rotations.LeftUpperArm!.map(key => key.frame)).toEqual([75, 150]);
   expect(sequence.rotations.LeftUpperArm![1].rotation).toEqual(sequence.rotations.LeftUpperArm![0].rotation);
   expect(sequence.rotations.RightUpperArm!.map(key => key.frame)).toEqual([75]);
-  expect(sequence.root).toEqual([{ frame: 75, position: [1.8, 1.05, 0] }]);
+  expectGestureRootKeys(sequence.root, [{ frame: 75, position: [1.8, 1.05, 0] }]);
   expect(Object.keys(sequence.rotations)).toHaveLength(19); expect(sequence.baseTake).toEqual(source.take);
   await expect(draft(page)).toHaveCount(0);
   expect(current(completed).take.times.at(-1)).toBe(16);

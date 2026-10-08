@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import { Quaternion, Vector3 } from 'three';
-import { EDITABLE_JOINT_NAMES, evaluatePose, frameTime, isJointRotationWithinLimits, rotationFromDegrees, type Pose, type Quat } from '../packages/core/src';
+import { EDITABLE_JOINT_NAMES, evaluatePose, frameTime, isJointRotationWithinLimits, rotationFromDegrees, sampleTake, type Pose, type Quat } from '../packages/core/src';
 import { clickRevealed, reveal } from './helpers';
-import { backup, current, diagnostics, draft, frame, hiddenButton, numeric, openFixture, openRealism, ready, save, screenshot, select } from './realismHelpers';
+import { backup, current, diagnostics, draft, frame, hiddenButton, numeric, openFixture, openRealism, ready, save, screenshot } from './realismHelpers';
+import { editStageValue, expectStageValue, selectStageJoint as select } from './stageInteractions';
 
 const reports = new WeakMap<Page, ReturnType<typeof diagnostics>>();
 test.beforeEach(async ({ page }) => {
@@ -17,7 +18,11 @@ test.afterEach(async ({ page }, info) => {
 });
 
 async function number(page: Page, label: string, expected: number) {
-  await expect.poll(async () => Number(await page.getByRole('spinbutton', { name: label, exact: true }).inputValue())).toBe(expected);
+  await expectStageValue(page, label, expected);
+}
+async function copyPose(page: Page) { await clickRevealed(page, hiddenButton(page, '复制当前姿态')); }
+async function pastePose(page: Page, includeRoot = true) {
+  await clickRevealed(page, hiddenButton(page, includeRoot ? '粘贴姿态与位置' : '粘贴关节姿态'));
 }
 async function fullKey(page: Page) {
   await page.getByRole('button', { name: 'K 完整姿态', exact: true }).click();
@@ -54,9 +59,15 @@ async function leftFootLock(page: Page, endFrame = 120) {
 }
 
 test('@author-priority an inserted middle pose wins over foot locks and remains exact after later rebaking and saving', async ({ page }, info) => {
-  const source = await openFixture(page);
+  const source = await openFixture(page, false, source => {
+    source.take.poses[2].root = [.45, 1.8, 0];
+    source.take.poses[2].joints.LeftLowerLeg = rotationFromDegrees([-100, 0, 0]);
+  });
+  await frame(page, 75); await select(page, 'LeftLowerLeg'); await copyPose(page);
+  await frame(page, 0);
   await fullKey(page);
-  await frame(page, 120); await numeric(page, 'Root X 位移（米）', .15); await fullKey(page);
+  await frame(page, 120); await editStageValue(page, 'Root X 位移（米）', .15);
+  await expectStageValue(page, 'Root X 位移（米）', .15, .000005); await fullKey(page);
   const endpoints = current(await backup(page));
   const endpointPoses = [fullPoseAtKey(endpoints, 0), fullPoseAtKey(endpoints, 120)];
   await frame(page, 0); const lock = await leftFootLock(page);
@@ -64,13 +75,10 @@ test('@author-priority an inserted middle pose wins over foot locks and remains 
   expect(locked.manual!.footLocks).toEqual([lock]);
   expect(locked.take!.times).toContain(2);
 
-  // This exact teacher pose deliberately conflicts with the standing foot.
-  // Numbers specify intent; the support solver may report a residual only.
+  // Reusing an exact existing teacher pose preserves author intent even when
+  // it conflicts with the standing foot. The solver reports a residual only.
   await frame(page, 60); await select(page, 'LeftLowerLeg');
-  await numeric(page, '关节 X 旋转（度）', -100);
-  await numeric(page, '关节 Y 旋转（度）', 0); await numeric(page, '关节 Z 旋转（度）', 0);
-  await numeric(page, 'Root X 位移（米）', .45);
-  await numeric(page, 'Root Y 位移（米）', 1.8);
+  await pastePose(page);
   await number(page, '关节 X 旋转（度）', -100);
   await number(page, 'Root Y 位移（米）', 1.8);
   await expect(page.getByRole('status').filter({ hasText: '超出标准人体建议' })).toBeVisible();
@@ -89,7 +97,7 @@ test('@author-priority an inserted middle pose wins over foot locks and remains 
 
   // A later single-track edit forces a fresh bake of every contact sample.
   await frame(page, 90); await select(page, 'LeftUpperArm');
-  await numeric(page, '关节 Z 旋转（度）', 40); await trackKey(page, 'joint');
+  await editStageValue(page, '关节 Z 旋转（度）', 40); await number(page, '关节 Z 旋转（度）', 40); await trackKey(page, 'joint');
   await expect(draft(page)).toHaveCount(0);
   const rebaked = await backup(page), final = current(rebaked);
   expect(fullPoseAtKey(final, 60)).toEqual(middle);
@@ -107,13 +115,15 @@ test('@author-priority an inserted middle pose wins over foot locks and remains 
 });
 
 test('@author-priority single-track K retains only the remaining teacher edits without losing their raw pose to contact corrections', async ({ page }) => {
-  const source = await openFixture(page); const lock = await leftFootLock(page);
+  const source = await openFixture(page, false, source => {
+    source.take.poses[2].root = [0, 1.8, 0];
+    source.take.poses[2].joints.LeftLowerLeg = rotationFromDegrees([-100, 0, 0]);
+    source.take.poses[2].joints.LeftUpperArm = rotationFromDegrees([0, 0, 60]);
+  });
+  await frame(page, 75); await select(page, 'LeftLowerLeg'); await copyPose(page);
+  await frame(page, 0); const lock = await leftFootLock(page);
   await frame(page, 60); await select(page, 'LeftLowerLeg');
-  await numeric(page, '关节 X 旋转（度）', -100);
-  await numeric(page, '关节 Y 旋转（度）', 0); await numeric(page, '关节 Z 旋转（度）', 0);
-  await numeric(page, 'Root Y 位移（米）', 1.8);
-  await select(page, 'LeftUpperArm'); await numeric(page, '关节 Z 旋转（度）', 60);
-  await select(page, 'LeftLowerLeg'); await trackKey(page, 'joint');
+  await pastePose(page); await trackKey(page, 'joint');
   await expect(draft(page)).toBeVisible();
   await number(page, '关节 X 旋转（度）', -100); await number(page, 'Root Y 位移（米）', 1.8);
   const legOnly = current(await backup(page));
@@ -126,9 +136,16 @@ test('@author-priority single-track K retains only the remaining teacher edits w
   const legAndRoot = current(await backup(page));
   expect(Object.keys(legAndRoot.manual!.rotations)).toEqual(['LeftLowerLeg']);
   expect(legAndRoot.manual!.root).toEqual([{ frame: 60, position: [0, 1.8, 0] }]);
-  await trackKey(page, 'joint'); await expect(draft(page)).toHaveCount(0);
-  const complete = await backup(page), snapshot = current(complete), pose = sampleAt(snapshot, 60);
-  expect(Object.keys(snapshot.manual!.rotations).sort()).toEqual(['LeftLowerLeg', 'LeftUpperArm']);
+  await trackKey(page, 'joint');
+  const selectedTracks = current(await backup(page));
+  expect(Object.keys(selectedTracks.manual!.rotations).sort()).toEqual(['LeftLowerLeg', 'LeftUpperArm']);
+  sameRotation(sampleAt(selectedTracks, 60).joints.LeftLowerLeg, rotationFromDegrees([-100, 0, 0]));
+  sameRotation(sampleAt(selectedTracks, 60).joints.LeftUpperArm, rotationFromDegrees([0, 0, 60]));
+  // Whole-pose reuse may also restore joints changed by contact correction.
+  // Commit those remaining explicit paste intents with a real full-pose K.
+  await fullKey(page);
+  const complete = await backup(page), snapshot = current(complete), pose = fullPoseAtKey(snapshot, 60);
+  for (const joint of EDITABLE_JOINT_NAMES) sameRotation(pose.joints[joint], source.take.poses[2].joints[joint]);
   expect(snapshot.manual!.baseTake).toEqual(source.take); expect(snapshot.manual!.footLocks).toEqual([lock]);
   expect(pose.root).toEqual([0, 1.8, 0]);
   sameRotation(pose.joints.LeftLowerLeg, rotationFromDegrees([-100, 0, 0]));
@@ -138,54 +155,52 @@ test('@author-priority single-track K retains only the remaining teacher edits w
   await expect(draft(page)).toHaveCount(0);
 });
 
-test('@author-priority direct angle authoring has canonical bounds, preserves an unusual K and stays clear on mobile', async ({ page }, info) => {
+test('@author-priority reused unusual poses remain exact while guided stage edits and mobile feedback stay clear', async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 1000 });
-  const source = await openFixture(page); await frame(page, 75); await select(page, 'LeftForeArm');
-  const input = page.getByRole('spinbutton', { name: '关节 X 旋转（度）', exact: true });
-  await expect(input).toHaveAttribute('min', '-180'); await expect(input).toHaveAttribute('max', '180');
-  await expect(page.getByRole('slider', { name: '关节 X 滑条', exact: true })).toHaveAttribute('min', '-145');
-  await expect(page.getByRole('slider', { name: '关节 X 滑条', exact: true })).toHaveAttribute('max', '0');
-  await expect(page.getByRole('spinbutton', { name: 'Root X 位移（米）', exact: true })).toHaveAttribute('max', '5');
-  await expect(page.getByRole('spinbutton', { name: 'Root Y 位移（米）', exact: true })).toHaveAttribute('min', '0');
-  await expect(page.getByRole('spinbutton', { name: 'Root Y 位移（米）', exact: true })).toHaveAttribute('max', '3');
-  await numeric(page, '关节 X 旋转（度）', 70); await number(page, '关节 X 旋转（度）', 70);
+  const source = await openFixture(page, false, source => {
+    source.take.poses[2].joints.LeftForeArm = rotationFromDegrees([70, 0, 0]);
+  });
+  await frame(page, 75); await select(page, 'LeftForeArm'); await copyPose(page);
+  await frame(page, 90); await pastePose(page, false); await number(page, '关节 X 旋转（度）', 70);
   await fullKey(page);
-  const authored = await backup(page), pose = fullPoseAtKey(current(authored), 75);
+  const authored = await backup(page), pose = fullPoseAtKey(current(authored), 90);
   sameRotation(pose.joints.LeftForeArm, rotationFromDegrees([70, 0, 0]));
   expect(isJointRotationWithinLimits('LeftForeArm', pose.joints.LeftForeArm)).toBe(false);
   expect(current(authored).manual!.baseTake).toEqual(source.take);
 
-  await numeric(page, '关节 X 旋转（度）', 999); await number(page, '关节 X 旋转（度）', 180);
+  await editStageValue(page, '关节 X 旋转（度）', -60);
+  await number(page, '关节 X 旋转（度）', -60); await expect(draft(page)).toBeVisible();
   expect((await backup(page)).scene.project).toEqual(authored.scene.project);
   await page.getByRole('button', { name: '撤回草稿', exact: true }).click();
   await number(page, '关节 X 旋转（度）', 70); await expect(draft(page)).toHaveCount(0);
-  await input.fill(''); await input.press('Tab');
-  await number(page, '关节 X 旋转（度）', 70); await expect(draft(page)).toHaveCount(0);
+  await expect(page.getByRole('combobox', { name: '选择关节', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('spinbutton', { name: '关节 X 旋转（度）', exact: true })).toHaveCount(0);
   await save(page); await page.reload(); await ready(page);
   expect((await backup(page)).scene.project).toEqual(authored.scene.project);
   await expect(page.getByRole('status').filter({ hasText: '超出标准人体建议' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-  await screenshot(page, info, 'author-priority-numeric-390.png');
+  await screenshot(page, info, 'author-priority-stage-390.png');
 });
 
-test('@author-priority small angle and Root edits retain stored precision through partial K and saving', async ({ page }) => {
-  const source = await openFixture(page, true), original = await backup(page);
+test('@author-priority copied small rotations and Root positions retain stored precision through partial K and saving', async ({ page }) => {
+  const source = await openFixture(page, true, source => {
+    source.take.poses[2].joints.LeftUpperArm = rotationFromDegrees([0, 0, .04]);
+    source.take.poses[2].root = [0, 1.8000004, 0];
+  }), original = await backup(page);
+  const originalMiddle = sampleTake(source.take, 2);
+  await frame(page, 75); await select(page, 'LeftUpperArm'); await copyPose(page);
   await frame(page, 60); await select(page, 'LeftUpperArm');
-  // Both changes are below display rounding and the former dot/distance
-  // thresholds. They must still become explicit author intent.
-  await numeric(page, '关节 Z 旋转（度）', .04);
-  await expect(page.getByRole('spinbutton', { name: '关节 Z 旋转（度）', exact: true })).toHaveValue('0.04');
+  // Pose reuse must preserve formal data below visible display rounding and
+  // former dot/distance thresholds without introducing a precision form.
+  await pastePose(page);
   await expect(draft(page)).toBeVisible();
-  await numeric(page, 'Root Y 位移（米）', 1.8000004);
-  await expect(page.getByRole('spinbutton', { name: 'Root Y 位移（米）', exact: true })).toHaveValue('1.8000004');
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
   await trackKey(page, 'root');
   await expect(draft(page)).toBeVisible();
-  await expect(page.getByRole('spinbutton', { name: '关节 Z 旋转（度）', exact: true })).toHaveValue('0.04');
   const rootOnly = current(await backup(page));
   expect(rootOnly.manual!.root).toEqual([{ frame: 60, position: [0, 1.8000004, 0] }]);
   expect(rootOnly.manual!.rotations).toEqual({});
-  expect(sampleAt(rootOnly, 60).joints.LeftUpperArm).toEqual([0, 0, 0, 1]);
+  expect(sampleAt(rootOnly, 60).joints.LeftUpperArm).toEqual(originalMiddle.joints.LeftUpperArm);
 
   await trackKey(page, 'joint'); await expect(draft(page)).toHaveCount(0);
   const authored = await backup(page), snapshot = current(authored), pose = sampleAt(snapshot, 60);
@@ -200,7 +215,6 @@ test('@author-priority small angle and Root edits retain stored precision throug
   expect(snapshot.manual!.root[0].position[1] - source.take.poses[0].root[1]).toBeCloseTo(.0000004, 14);
   await save(page); await page.reload(); await ready(page);
   expect((await backup(page)).scene.project).toEqual(authored.scene.project);
-  await expect(page.getByRole('spinbutton', { name: '关节 Z 旋转（度）', exact: true })).toHaveValue('0.04');
-  await expect(page.getByRole('spinbutton', { name: 'Root Y 位移（米）', exact: true })).toHaveValue('1.8000004');
+  await number(page, '关节 Z 旋转（度）', .04); await number(page, 'Root Y 位移（米）', 1.8000004);
   await expect(draft(page)).toHaveCount(0);
 });

@@ -1,3 +1,4 @@
+import { selectStageJoint, expectStageSelection } from './stageInteractions';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { PerspectiveCamera, Vector3 } from 'three';
@@ -152,12 +153,12 @@ test('camera gestures and presets change the view, preserve the take, and keep j
   camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
   const point = new Vector3(0, 1.05, 0).project(camera);
   await page.mouse.click(box.x + (point.x + 1) * box.width / 2, box.y + (1 - point.y) * box.height / 2);
-  await expect(page.getByRole('combobox', { name: '选择关节', exact: true })).toHaveValue('Hips');
+  await expectStageSelection(page, 'Hips');
   await expect(page.getByLabel('选中关节世界坐标')).toContainText('Y1.050');
   const beforeDrag = await coordinateText(page);
   await drag(page, 'left', [0.72, 0.42], [0.9, 0.49]);
   await expect.poll(() => coordinateText(page)).not.toBe(beforeDrag);
-  await expect(page.getByRole('combobox', { name: '选择关节', exact: true })).toHaveValue('Hips');
+  await expectStageSelection(page, 'Hips');
 
   const beforePan = await backup(page);
   const beforePanText = await coordinateText(page);
@@ -198,7 +199,7 @@ test('saved scenes independently restore audio, choreography and camera settings
   await page.getByRole('button', { name: '背面', exact: true }).click();
   await drag(page, 'left', [0.75, 0.43], [0.83, 0.46]);
   await expect(page.locator('.viewer-muted')).toHaveText('自由视角');
-  await page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption('LeftHand');
+  await selectStageJoint(page, 'LeftHand');
   await page.getByRole('combobox', { name: '播放速度', exact: true }).selectOption('0.5');
   await clickRevealed(page, page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true }));
   await page.getByRole('button', { name: '循环当前八拍', exact: true }).click();
@@ -210,7 +211,7 @@ test('saved scenes independently restore audio, choreography and camera settings
   await renameCurrent(page, '场景 B · 节奏示例');
   await page.getByRole('listitem', { name: /^第3个八拍/ }).click();
   await clickRevealed(page, page.getByRole('button', { name: '左侧', exact: true, includeHidden: true }));
-  await page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption('RightHand');
+  await selectStageJoint(page, 'RightHand');
   await page.getByRole('combobox', { name: '播放速度', exact: true }).selectOption('0.75');
   await save(page);
   const sceneB = await backup(page), sceneBAudio = await audioHash(page);
@@ -222,7 +223,7 @@ test('saved scenes independently restore audio, choreography and camera settings
   await expect(page.locator('.project-title h1')).toHaveText(sceneB.scene.name);
   await expect(page.locator('.save-state')).toHaveText('已保存到本机');
   await expect(page.getByRole('combobox', { name: '播放速度', exact: true })).toHaveValue('0.75');
-  await expect(page.getByRole('combobox', { name: '选择关节', exact: true })).toHaveValue('RightHand');
+  await expectStageSelection(page, 'RightHand');
   await expect(page.getByRole('listitem', { name: /^第3个八拍/ })).toHaveClass(/selected/);
   await waitCamera(page, sceneB.scene.viewer.camera);
   let restored = await backup(page);
@@ -233,7 +234,7 @@ test('saved scenes independently restore audio, choreography and camera settings
   await openScene(page, sceneA.scene.name);
   await expect(page.locator('.project-title h1')).toHaveText(sceneA.scene.name);
   await expect(page.getByRole('combobox', { name: '播放速度', exact: true })).toHaveValue('0.5');
-  await expect(page.getByRole('combobox', { name: '选择关节', exact: true })).toHaveValue('LeftHand');
+  await expectStageSelection(page, 'LeftHand');
   await expect(page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: '循环当前八拍', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: '节拍提示', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');

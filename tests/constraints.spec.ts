@@ -3,8 +3,9 @@ import { join } from 'node:path';
 import { inflateSync } from 'node:zlib';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { Euler, PerspectiveCamera, Quaternion, Vector3 } from 'three';
-import { isJointRotationWithinLimits } from '../packages/core/src';
+import { evaluatePose, isJointRotationWithinLimits } from '../packages/core/src';
 import { clickRevealed, reveal } from './helpers';
+import { editStageValue, expectStageValue, selectStageJoint as select, stageValue } from './stageInteractions';
 
 const joints = [
   'Hips', 'Spine', 'Chest', 'Neck', 'Head',
@@ -108,13 +109,15 @@ async function backup(page: Page): Promise<Backup> {
 async function numeric(page: Page, label: string, value: number) {
   const input = page.getByRole('spinbutton', { name: label, exact: true }); await input.fill(String(value)); await input.press('Tab');
 }
-const select = (page: Page, joint: Joint) => page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption(joint);
 const frame = (page: Page, value: number) => numeric(page, '当前帧', value);
 async function angles(page: Page): Promise<Vec3> {
-  return await Promise.all(['X', 'Y', 'Z'].map(async axis => Number(await page.getByRole('spinbutton', { name: `关节 ${axis} 旋转（度）`, exact: true }).inputValue()))) as Vec3;
+  return await Promise.all(['X', 'Y', 'Z'].map(axis => stageValue(page, `关节 ${axis} 旋转（度）`))) as Vec3;
 }
 function expectAnglesBounded(value: Vec3, bounds: readonly (readonly [number, number])[]) {
   value.forEach((angle, axis) => { expect(angle).toBeGreaterThanOrEqual(bounds[axis][0] - 0.051); expect(angle).toBeLessThanOrEqual(bounds[axis][1] + 0.051); });
+}
+async function expectAngles(page: Page, expected: Vec3) {
+  await expect.poll(async () => Math.max(...(await angles(page)).map((value, axis) => Math.abs(value - expected[axis])))).toBeLessThan(.051);
 }
 async function save(page: Page) {
   await page.getByRole('button', { name: '保存', exact: true }).click(); await expect(page.locator('.save-state')).toHaveText('已保存到本机');
@@ -139,35 +142,27 @@ async function capture(page: Page, testInfo: TestInfo, name: string) {
   if (process.env.CHOREO_SCREENSHOT_DIR) { await mkdir(process.env.CHOREO_SCREENSHOT_DIR, { recursive: true }); await page.screenshot({ path: join(process.env.CHOREO_SCREENSHOT_DIR, name), fullPage: true }); }
 }
 
-test('@constraints elbow and knee sliders keep coupled anatomical limits while numeric authoring remains explicit', async ({ page }) => {
+test('@constraints stage rotation rings keep coupled elbow and knee limits with canonical bone lengths', async ({ page }) => {
   const source = await openFixture(page), original = await backup(page);
-  for (const [joint, keyFrame, forbidden, permitted, bounds] of [
-    ['LeftForeArm', 60, 70, -60, [[-145, 0], [-8, 8], [-5, 5]]],
-    ['RightLowerLeg', 120, -70, 90, [[0, 145], [-4, 4], [-3, 3]]],
+  for (const [joint, child, keyFrame, permitted, bounds, length] of [
+    ['LeftForeArm', 'LeftHand', 60, -60, [[-145, 0], [-8, 8], [-5, 5]], .255],
+    ['RightLowerLeg', 'RightFoot', 120, 90, [[0, 145], [-4, 4], [-3, 3]], .45],
   ] as const) {
     await frame(page, keyFrame); await select(page, joint);
-    await numeric(page, '关节 X 旋转（度）', forbidden);
-    await expect.poll(async () => (await angles(page))[0]).toBe(forbidden);
-    await expect(page.getByRole('status').filter({ hasText: '超出标准人体建议' })).toBeVisible();
-    for (const [axis, limits] of ['X', 'Y', 'Z'].map((axis, index) => [axis, bounds[index]] as const)) {
-      const slider = page.getByRole('slider', { name: `关节 ${axis} 滑条`, exact: true });
-      await expect(slider).toHaveAttribute('min', String(limits[0])); await expect(slider).toHaveAttribute('max', String(limits[1]));
-    }
-    const x = page.getByRole('slider', { name: '关节 X 滑条', exact: true });
-    await x.focus(); await x.press(joint === 'LeftForeArm' ? 'Home' : 'End');
+    await editStageValue(page, '关节 X 旋转（度）', permitted);
+    await expect.poll(async () => Math.abs((await angles(page))[0] - permitted)).toBeLessThan(.051);
+    // Real ring drags deliberately exceed minor-axis guides. Every coupled
+    // projection remains within the anatomical profile, without pose forms.
+    await editStageValue(page, '关节 Y 旋转（度）', bounds[1][1] + 6);
     expectAnglesBounded(await angles(page), bounds);
-    await numeric(page, '关节 X 旋转（度）', permitted);
-    // Direct numbers are author intent; these physical slider gestures keep
-    // the suggested coupled anatomical projection instead.
-    await page.getByRole('slider', { name: '关节 Y 滑条', exact: true }).focus();
-    await page.getByRole('slider', { name: '关节 Y 滑条', exact: true }).press('End');
-    await page.getByRole('slider', { name: '关节 Z 滑条', exact: true }).focus();
-    await page.getByRole('slider', { name: '关节 Z 滑条', exact: true }).press('Home');
+    await editStageValue(page, '关节 Z 旋转（度）', bounds[2][0] - 6);
     expectAnglesBounded(await angles(page), bounds); await expect(draft(page)).toBeVisible();
     await clickRevealed(page, page.getByRole('button', { name: 'K 当前关节', exact: true, includeHidden: true }));
     const authored = current(await backup(page));
     expect(isJointRotationWithinLimits(joint, authored.manual!.rotations[joint]![0].rotation)).toBe(true);
     expect(authored.manual!.baseTake).toEqual(source.take);
+    const pose = authored.take.poses[authored.take.times.indexOf(keyFrame / 30)], fk = evaluatePose(pose);
+    expect(new Vector3(...fk[child].position).distanceTo(new Vector3(...fk[joint].position))).toBeCloseTo(length, 12);
   }
   const authored = await backup(page);
   expect(authored.scene.project.revision).toBe(original.scene.project.revision + 2);
@@ -185,20 +180,21 @@ test('@constraints legacy poses keep their authority through Root-only writes an
   expect((await angles(page))[0]).toBeCloseTo(65, 1);
   await clickRevealed(page, hiddenButton(page, '复制当前姿态'));
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
-  await numeric(page, 'Root X 位移（米）', 1.1); expect((await angles(page))[0]).toBeCloseTo(65, 1);
+  await editStageValue(page, 'Root X 位移（米）', 1.1); expect((await angles(page))[0]).toBeCloseTo(65, 1);
+  await expectStageValue(page, 'Root X 位移（米）', 1.1, .000005);
   await clickRevealed(page, page.getByRole('button', { name: 'K 位移', exact: true, includeHidden: true }));
   const rootOnly = await backup(page), rootTake = current(rootOnly).take;
   expect(current(rootOnly).manual!.rotations).toEqual({}); expect(current(rootOnly).manual!.baseTake).toEqual(source.take);
   source.take.times.forEach((time, index) => expect(rootTake.poses[rootTake.times.indexOf(time)].joints).toEqual(source.take.poses[index].joints));
   await frame(page, 120); await clickRevealed(page, hiddenButton(page, '粘贴关节姿态'));
-  await expect(draft(page)).toBeVisible(); await expect.poll(() => angles(page)).toEqual([65, 18, 20]);
-  await select(page, 'RightLowerLeg'); await expect.poll(() => angles(page)).toEqual([-55, -12, -10]);
+  await expect(draft(page)).toBeVisible(); await expectAngles(page, [65, 18, 20]);
+  await select(page, 'RightLowerLeg'); await expectAngles(page, [-55, -12, -10]);
   expect((await backup(page)).scene.project).toEqual(rootOnly.scene.project);
   await frame(page, 150);
   const guard = page.getByRole('dialog', { name: '写入这份姿态草稿？', exact: true }); await expect(guard).toBeVisible();
   await guard.getByRole('button', { name: '取消', exact: true }).click(); await expect(draft(page)).toBeVisible();
   await page.getByRole('button', { name: '撤回草稿', exact: true }).click();
-  await expect(draft(page)).toHaveCount(0); await expect.poll(() => angles(page)).toEqual([0, 0, 0]);
+  await expect(draft(page)).toHaveCount(0); await expectAngles(page, [0, 0, 0]);
   await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('120');
   expect((await backup(page)).scene.project).toEqual(rootOnly.scene.project);
   await clickRevealed(page, hiddenButton(page, '粘贴关节姿态'));
@@ -216,7 +212,7 @@ test('@constraints legacy poses keep their authority through Root-only writes an
 test('@constraints full-pose K preserves unedited source rotations outside the standard profile', async ({ page }) => {
   const source = await openFixture(page, true);
   await frame(page, 75); await select(page, 'LeftForeArm');
-  await expect.poll(() => angles(page)).toEqual([65, 18, 20]);
+  await expectAngles(page, [65, 18, 20]);
   await expect(draft(page)).toHaveCount(0);
   await page.getByRole('button', { name: 'K 完整姿态', exact: true }).click();
   const authored = await backup(page), snapshot = current(authored);
@@ -241,7 +237,7 @@ test('@constraints a real elbow rotation ring clamps the rendered limb and expli
   // Begin near the limit with an unwritten draft. TransformControls converts
   // screen displacement to rotation, so a short physical drag crosses the
   // boundary without wrapping the requested quaternion past 180 degrees.
-  await numeric(page, '关节 X 旋转（度）', -140);
+  await editStageValue(page, '关节 X 旋转（度）', -140);
   expect((await angles(page))[0]).toBeCloseTo(-140, 1);
   const view = await projection(page, original.scene.viewer.camera);
   const radius = view.camera.position.distanceTo(new Vector3(...elbow)) * 1.9 * Math.tan(40 * Math.PI / 360) / view.camera.zoom * 0.95 / 8;
@@ -305,7 +301,10 @@ test('@constraints solid human surfaces remain visible with a clear manual works
     expect(framed.scene.project).toEqual(original.scene.project);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     await expect(page.getByRole('group', { name: '舞台编辑工具', exact: true }).getByRole('button')).toHaveCount(3);
-    for (const name of ['姿态复用', '关键帧明细', '更多编辑操作', '键盘快捷键', '移动与复制关键帧']) await expect(page.locator('details').filter({ has: page.locator('summary').filter({ hasText: new RegExp(`^${name}$`) }) })).not.toHaveAttribute('open');
+    for (const name of ['姿态复用', '关键帧明细', '更多编辑操作', '键盘快捷键', '移动与复制关键帧']) {
+      const disclosure = page.locator('details > summary').filter({ hasText: new RegExp(`^${name}$`) }).locator('..');
+      await expect(disclosure).not.toHaveAttribute('open');
+    }
     await page.getByRole('heading', { name: '人体与关节限制场景', exact: true }).scrollIntoViewIfNeeded();
     await capture(page, testInfo, `human-manual-layout-${width}.png`);
   }

@@ -1,3 +1,4 @@
+import { editStageValue, expectStageValue, selectStageJoint, readStagePose, expectGestureRootKeys } from './stageInteractions';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -87,7 +88,7 @@ async function ready(page: Page) {
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.readyState)).toBeGreaterThanOrEqual(2);
 }
 async function editor(page: Page) {
-  const region = page.getByRole('region', { name: '手动关键帧编辑器', exact: true });
+  const region = page.getByRole('region', { name: '手动关键帧时间线', exact: true });
   if (!await region.isVisible()) await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
   await expect(region).toBeVisible();
 }
@@ -128,17 +129,16 @@ async function backup(page: Page): Promise<Backup> {
   return JSON.parse(await readFile(path!, 'utf8')) as Backup;
 }
 async function numeric(page: Page, label: string, value: number) {
-  const input = page.getByRole('spinbutton', { name: label, exact: true });
-  await input.fill(String(value)); await input.press('Tab');
+  await editStageValue(page, label, value);
 }
 async function frame(page: Page, value: number) {
   await numeric(page, '当前帧', value);
   await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue(String(value));
 }
 async function number(page: Page, label: string, value: number) {
-  await expect.poll(async () => Math.abs(Number(await page.getByRole('spinbutton', { name: label, exact: true }).inputValue()) - value)).toBeLessThan(0.051);
+  await expectStageValue(page, label, value);
 }
-async function joint(page: Page, value: Joint) { await page.getByRole('combobox', { name: '选择关节', exact: true }).selectOption(value); }
+async function joint(page: Page, value: Joint) { await selectStageJoint(page, value as Parameters<typeof selectStageJoint>[1]); }
 const draft = (page: Page) => page.getByRole('status').filter({ hasText: '姿态草稿 · 尚未写入关键帧' });
 const guard = (page: Page) => page.getByRole('dialog', { name: '写入这份姿态草稿？', exact: true });
 const clipboard = (page: Page) => page.getByLabel('已复制姿态', { exact: true });
@@ -147,12 +147,14 @@ const paste = (page: Page, root = false) => page.getByRole('button', { name: roo
 async function copiedDraft(page: Page, root = 2) {
   await frame(page, 75); await joint(page, 'LeftUpperArm');
   await numeric(page, '关节 Z 旋转（度）', 45); await numeric(page, 'Root X 位移（米）', root);
+  const copiedPose = (await readStagePose(page)).pose;
   await clickRevealed(page, copy(page)); await expect(clipboard(page)).toContainText('第 75 帧 · 姿态草稿');
   // The source remains a preview: seeking explicitly discards it.
   await numeric(page, '当前帧', 120); await expect(guard(page)).toBeVisible();
   await guard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
   await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('120');
   await expect(draft(page)).toHaveCount(0);
+  return copiedPose;
 }
 async function fullKey(page: Page) {
   await page.getByRole('button', { name: 'K 完整姿态', exact: true }).click();
@@ -186,7 +188,7 @@ test('@poses copied drafts reuse editable rotations without moving the target or
   test.setTimeout(180_000);
   const source = await openFixture(page), original = await backup(page);
   await expect(paste(page)).toBeDisabled(); await expect(paste(page, true)).toBeDisabled();
-  await copiedDraft(page);
+  const copiedPose = await copiedDraft(page);
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
   await clickRevealed(page, paste(page)); await expect(draft(page)).toBeVisible();
   await number(page, '关节 Z 旋转（度）', 45); await number(page, 'Root X 位移（米）', 0.05);
@@ -202,7 +204,7 @@ test('@poses copied drafts reuse editable rotations without moving the target or
   // Changing the pasted draft must not mutate the source held in memory.
   await numeric(page, '关节 Z 旋转（度）', 90); await fullKey(page);
   const changed = await backup(page), changedPose = current(changed);
-  expect(changedPose.manual!.root).toEqual([{ frame: 120, position: [0.05, 1.05, 0] }]);
+  expect(changedPose.manual!.root).toEqual([{ frame: 120, position: source.take.poses[3].root }]);
   expectQuaternion(changedPose.manual!.rotations.LeftUpperArm![0].rotation, [0, 0, Math.SQRT1_2, Math.SQRT1_2]);
   expectTerminals(changedPose, 4, source.take.poses[3]);
 
@@ -212,8 +214,7 @@ test('@poses copied drafts reuse editable rotations without moving the target or
   expect((await backup(page)).scene.project).toEqual(changed.scene.project);
   await capture(page, 'choreo-poses-desktop.png');
   await fullKey(page);
-  const final = await backup(page), expectedSource = structuredClone(source.take.poses[2]);
-  expectedSource.root[0] = 2; expectedSource.joints.LeftUpperArm = [0, 0, Math.sin(Math.PI / 8), Math.cos(Math.PI / 8)];
+  const final = await backup(page), expectedSource = copiedPose;
   expectSourceKeys(current(final), 240, expectedSource);
   expect(current(final).manual!.root.find(key => key.frame === 240)!.position).toEqual(expectedSource.root);
   expectTerminals(current(final), 8, source.take.poses[4]);
@@ -229,7 +230,7 @@ test('@poses copied drafts reuse editable rotations without moving the target or
 
 test('@poses replacing a target draft supports cancel, discard and write-before-paste while preserving the copied source and authoritative history', async ({ page }) => {
   test.setTimeout(180_000);
-  const source = await openFixture(page); await copiedDraft(page);
+  const source = await openFixture(page), copiedPose = await copiedDraft(page);
   const original = await backup(page);
   await numeric(page, '关节 Z 旋转（度）', 10); await numeric(page, 'Root X 位移（米）', 1.2);
   await clickRevealed(page, paste(page, true)); await expect(guard(page)).toBeVisible();
@@ -249,13 +250,13 @@ test('@poses replacing a target draft supports cancel, discard and write-before-
   const writtenFirst = await backup(page);
   expect(writtenFirst.scene.project.revision).toBe(original.scene.project.revision + 1);
   expect(writtenFirst.scene.project.history).toHaveLength(original.scene.project.history.length + 1);
-  expect(current(writtenFirst).manual!.root).toEqual([{ frame: 120, position: [1.4, 1.05, 0] }]);
+  expectGestureRootKeys(current(writtenFirst).manual!.root, [{ frame: 120, position: [1.4, 1.05, 0] }]);
   expectTerminals(current(writtenFirst), 4, source.take.poses[3]);
   await expect(clipboard(page)).toContainText('第 75 帧 · 姿态草稿');
   await clickRevealed(page, page.getByRole('button', { name: 'K 位移', exact: true, includeHidden: true })); await expect(draft(page)).toHaveCount(0);
   const final = await backup(page);
   expect(final.scene.project.revision).toBe(original.scene.project.revision + 2);
-  expect(current(final).manual!.root).toEqual([{ frame: 120, position: [2, 1.05, 0] }]);
+  expect(current(final).manual!.root).toEqual([{ frame: 120, position: copiedPose.root }]);
   expect(current(final).manual!.rotations).toEqual(current(writtenFirst).manual!.rotations);
   expect(current(final).take.id).not.toBe(current(writtenFirst).take.id);
 });

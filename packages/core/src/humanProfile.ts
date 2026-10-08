@@ -45,8 +45,8 @@ for (const side of ['Left', 'Right'] as const) {
 
 /** No user-entered mass, friction, inertia or motor configuration is needed. */
 export const STANDARD_HUMAN_PROFILE = Object.freeze({
-  id: 'neutral-adult-v1' as const,
-  version: 1 as const,
+  id: 'neutral-adult-v2' as const,
+  version: 2 as const,
   label: '标准中性成人',
   heightMeters: 1.85,
   massKg: 70,
