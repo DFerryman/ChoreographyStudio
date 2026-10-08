@@ -3,6 +3,7 @@ import { JOINT_NAMES, type BakedTake, type JointName, type Pose, type Quat, type
 // is called after module initialization, not while constructing these constants.
 import { sampleTake } from './index';
 import { applyFootLocks, cloneFootLock, validateFootLocks, type FootLock, type FootLockProtection } from './footLocks';
+import { accumulateStepResiduals, applyStepAssistance, buildStepPlan, validateStepAssistance, type StepAssistance, type StepAssistanceReport } from './stepAssistance';
 
 export const EDITABLE_JOINT_NAMES: readonly JointName[] = JOINT_NAMES.filter(name => !name.endsWith('HandTip') && !name.endsWith('Toe') && !name.endsWith('Heel'));
 export const EDITABLE_JOINTS = EDITABLE_JOINT_NAMES;
@@ -24,6 +25,8 @@ export interface KeyframeSequence {
   authorKeyPriority?: 'author-key-priority-1';
   /** Optional persistent world-space support constraints; legacy absence is untouched. */
   footLocks?: FootLock[];
+  /** Optional versioned flat-ground stepping, derived around author keys. */
+  steps?: StepAssistance;
 }
 
 export type KeyframeTransferScope = { kind: 'all' } | { kind: 'joint'; joint: JointName } | { kind: 'root' };
@@ -163,6 +166,10 @@ function validateSequence(sequence: KeyframeSequence): void {
   if (sequence.authorKeyPriority !== undefined && sequence.authorKeyPriority !== 'author-key-priority-1') throw new Error('作者关键帧优先版本无效。');
   validateTake(sequence.baseTake);
   if (sequence.footLocks !== undefined) validateFootLocks(sequence.footLocks, sequence.baseTake.durationSeconds);
+  if (sequence.steps !== undefined) {
+    validateStepAssistance(sequence.steps, sequence.baseTake.durationSeconds);
+    if (sequence.authorKeyPriority !== 'author-key-priority-1') throw new Error('自动迈步必须声明作者关键帧优先。');
+  }
   let count = sequence.root.length;
   const tracks = Object.entries(sequence.rotations) as [JointName, RotationKeyframe[]][];
   for (const [joint, keys] of tracks) {
@@ -192,6 +199,7 @@ function copySequence(sequence: KeyframeSequence): KeyframeSequence {
     rotations: Object.fromEntries(Object.entries(sequence.rotations).map(([joint, keys]) => [joint, keys!.map(key => ({ frame: key.frame, rotation: [...key.rotation] as Quat }))])),
     root: sequence.root.map(key => ({ frame: key.frame, position: [...key.position] as Vec3 })),
     ...(sequence.footLocks !== undefined ? { footLocks: sequence.footLocks.map(cloneFootLock) } : {}),
+    ...(sequence.steps !== undefined ? { steps: { ...sequence.steps } } : {}),
   };
 }
 
@@ -217,6 +225,23 @@ export function removeFootLock(sequence: KeyframeSequence, lockId: string): Keyf
   if (!sequence.footLocks?.some(lock => lock.id === lockId)) return sequence;
   const next = copySequence(sequence);
   next.footLocks = next.footLocks!.filter(lock => lock.id !== lockId);
+  return finishMutation(next);
+}
+
+/** Explicit adoption retains every source/author track and contact. */
+export function setStepAssistance(sequence: KeyframeSequence, startFrame = 0, endFrame = lastFrame(sequence.baseTake.durationSeconds)): KeyframeSequence {
+  validateSequence(sequence);
+  const steps: StepAssistance = { schema: 'ground-steps-1', startFrame, endFrame };
+  validateStepAssistance(steps, sequence.baseTake.durationSeconds);
+  if (sequence.steps?.schema === steps.schema && sequence.steps.startFrame === startFrame && sequence.steps.endFrame === endFrame) return sequence;
+  const next = copySequence(sequence); next.steps = steps;
+  return finishMutation(next);
+}
+
+export function removeStepAssistance(sequence: KeyframeSequence): KeyframeSequence {
+  validateSequence(sequence);
+  if (!sequence.steps) return sequence;
+  const next = copySequence(sequence); delete next.steps;
   return finishMutation(next);
 }
 
@@ -415,7 +440,12 @@ function evaluateTrack<T extends { frame: number }>(keys: T[], time: number, dur
 
 /** Materialize one authority for both renderer playback and JSON export. */
 export function bakeKeyframeSequence(sequence: KeyframeSequence): BakedTake {
-  return materializeKeyframeSequence(sequence, true);
+  return materializeKeyframeSequence(sequence, true).take;
+}
+
+/** Same planner and final FK measurements as the authoritative bake. */
+export function analyzeStepAssistance(sequence: KeyframeSequence): StepAssistanceReport {
+  return materializeKeyframeSequence(sequence, true).report;
 }
 
 /**
@@ -423,22 +453,22 @@ export function bakeKeyframeSequence(sequence: KeyframeSequence): BakedTake {
  * keeps their saved take; new edits must always use bakeKeyframeSequence.
  */
 export function bakeLegacyKeyframeSequence(sequence: KeyframeSequence): BakedTake {
-  return materializeKeyframeSequence(sequence, false);
+  return materializeKeyframeSequence(sequence, false).take;
 }
 
-function materializeKeyframeSequence(sequence: KeyframeSequence, respectAuthorKeys: boolean): BakedTake {
+function materializeKeyframeSequence(sequence: KeyframeSequence, respectAuthorKeys: boolean): { take: BakedTake; report: StepAssistanceReport } {
   validateSequence(sequence);
   if (!respectAuthorKeys && sequence.authorKeyPriority !== undefined) throw new Error('已声明作者关键帧优先的作品不能使用旧脚锁求值。');
+  if (!respectAuthorKeys && sequence.steps) throw new Error('自动迈步不能使用旧脚锁求值。');
   const base = sequence.baseTake;
   const frames = getKeyframeFrames(sequence);
   const locks = sequence.footLocks ?? [];
-  if (!frames.length && !locks.length) return { ...base, id: newId('take'), times: [...base.times], poses: base.poses.map(copyPose) };
+  if (!frames.length && !locks.length && !sequence.steps) return { take: { ...base, id: newId('take'), times: [...base.times], poses: base.poses.map(copyPose) }, report: buildStepPlan(sequence, () => base.poses[0]).report };
   const duration = base.durationSeconds, finalFrame = lastFrame(duration);
   // Solved samples, not thousands of sparse K records. Preserve exact source
   // knots and the short final interval alongside the 30 Hz contact sampling.
   const contactTimes = locks.length ? Array.from({ length: finalFrame + 1 }, (_, frame) => frameTime(frame, duration)) : [];
-  const times = [...new Set([...base.times, ...frames.map(frame => frameTime(frame, duration)), ...contactTimes])].sort((a, b) => a - b);
-  if (times.length > MAX_TAKE_SAMPLES) throw new Error('手 K 后的动作样本超出预览范围，请减少新增帧时刻。');
+  const authorTimes = [...new Set([...base.times, ...frames.map(frame => frameTime(frame, duration)), ...contactTimes])].sort((a, b) => a - b);
   const initial = base.poses[0], final = base.poses.at(-1)!;
   const rotations = Object.entries(sequence.rotations).filter(([, keys]) => keys!.length).map(([joint, keys]) => {
     const name = joint as JointName;
@@ -446,7 +476,7 @@ function materializeKeyframeSequence(sequence: KeyframeSequence, respectAuthorKe
   });
   const roots = sequence.root.length ? trackWithEndpoints(sequence.root, { frame: 0, position: initial.root }, { frame: finalFrame, position: final.root }) : [];
   const sourceSamples = new Map(base.times.map((time, index) => [time, base.poses[index]]));
-  const poses = times.map(time => {
+  const rawAuthoredAtTime = (time: number): Pose => {
     // Keep base sample bits exactly for every untouched channel and support knot.
     const pose = copyPose(sourceSamples.get(time) ?? sampleTake(base, time));
     for (const [joint, keys] of rotations) pose.joints[joint] = evaluateTrack(keys, time, duration, (a, b, amount) => {
@@ -459,10 +489,26 @@ function materializeKeyframeSequence(sequence: KeyframeSequence, respectAuthorKe
       if (amount === 1) return [...b.position] as Vec3;
       return a.position.map((value, axis) => value + amount * (b.position[axis] - value)) as Vec3;
     }) as Vec3;
-    const frame = time === duration ? finalFrame : time * FPS;
-    return locks.length ? applyFootLocks(pose, locks, frame, duration, respectAuthorKeys ? keyframeProtection(sequence, frame) : undefined).pose : pose;
+    return pose;
+  };
+  // Adding assistance knots must not reevaluate untouched source channels with
+  // a different SLERP/nlerp path. Sample the original author authority at new
+  // knots, retaining original pose bits at all existing source/K/contact knots.
+  const authorTake: BakedTake | null = sequence.steps ? { ...base, times: authorTimes, poses: authorTimes.map(rawAuthoredAtTime) } : null;
+  const authoredAtTime = authorTake ? (time: number) => sampleTake(authorTake, time) : rawAuthoredAtTime;
+  const plan = buildStepPlan(sequence, (frame, exactTime) => authoredAtTime(exactTime ?? (frame === finalFrame ? duration : frame / FPS)), authorTimes);
+  const stepTimes = plan.segments.filter(segment => segment.status === 'supported').flatMap(segment => Array.from({ length: segment.endFrame - segment.startFrame + 1 }, (_, index) => frameTime(segment.startFrame + index, duration)));
+  const times = [...new Set([...authorTimes, ...stepTimes])].sort((a, b) => a - b);
+  if (times.length > MAX_TAKE_SAMPLES) throw new Error('手 K 后的动作样本超出预览范围，请减少新增帧时刻。');
+  const poses = times.map(time => {
+    const authored = authoredAtTime(time), frame = time === duration ? finalFrame : time * FPS;
+    const protection = respectAuthorKeys ? keyframeProtection(sequence, frame) : undefined;
+    let pose = applyStepAssistance(authored, plan, frame, protection);
+    if (locks.length) pose = applyFootLocks(pose, locks, frame, duration, protection).pose;
+    accumulateStepResiduals(plan.report, plan, authored, pose, frame);
+    return pose;
   });
-  return { ...base, id: newId('take'), times, poses };
+  return { take: { ...base, id: newId('take'), times, poses }, report: plan.report };
 }
 
 /** Neutral FK starting point; timing, selected music and arrangement binding stay. */

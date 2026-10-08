@@ -1,5 +1,15 @@
 # Third-party software notices
 
+## v16 flat-ground step assistance · locally verified, release pending
+
+The procedural step planner is original application code and uses the existing
+fixed rig, built-in human profile and constrained Three.js IK path. It adds no
+third-party motion capture, measured gait or paid model calls. MHR geometry,
+bind/weight data, raw/gzip corrective bytes and retained licenses are unchanged.
+The model README's earlier transport wording is corrected to describe browser-
+decoded versus explicit gzip bodies without claiming a proven upload size
+limit. Existing source and license records below remain intact.
+
 Choreo Studio's original application code and original procedural mannequin
 fallback are covered by the repository [MIT license](LICENSE). The historical
 neutral human display asset has the separate CC0 permission described below;

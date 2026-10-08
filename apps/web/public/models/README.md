@@ -78,10 +78,18 @@ The deterministic wrapper uses compression level 9, an empty filename,
 timestamp zero and OS byte 255. `MHR-PROVENANCE.json` records the wrapper in the
 outer `correctivesWire` entry, separately from native model metadata.
 
-The file is served as explicit gzip bytes without a `Content-Encoding: gzip`
-header. The loader uses `DecompressionStream('gzip')` and validates bounded wire
-and decoded lengths before parsing the existing payload. Keeping the compressed
-wire file below the upload transport limit avoids the earlier oversized upload.
+The verified Cloudflare release serves explicit gzip bytes without a
+`Content-Encoding: gzip` header. A development server may instead add that
+header, in which case Fetch decodes the body before the application sees it.
+The loader inspects the first eight body bytes: it accepts the already-decoded
+`MHRCORR1` payload, or uses `DecompressionStream('gzip')` for a gzip archive.
+Both paths enforce bounded lengths, cancellation and the exact original SHA-256
+before parsing the same payload, with one fetch and no model API fallback.
+
+Earlier upload attempts returned 401 or 500; those responses did not establish
+a size-related cause or a provider hard limit. Standard native upload succeeded
+with this deterministic, smaller gzip representation. The result establishes
+successful delivery, without asserting the cause of the earlier failures.
 
 The public assets root contains `.assetsignore` with the single exact rule
 `/models/neutral-mhr-correctives-v1.bin`. Wrangler follows

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Quaternion, Vector3 } from 'three';
 import { analyzePose, type MotionState } from '../../../packages/core/src/physics';
 import { STANDARD_HUMAN_PROFILE } from '../../../packages/core/src/humanProfile';
@@ -9,6 +9,7 @@ import type { Pose } from '../../../packages/core/src/motion-types';
 import { getPoseGuidance } from './poseGuidance';
 import { STAGE_JOINT_LABELS } from './Stage';
 import './RealismPanel.css';
+import type { StepAssistanceReport } from '../../../packages/core/src';
 
 export interface RealismPanelProps {
   pose: Pose;
@@ -24,9 +25,29 @@ export interface RealismPanelProps {
   onCancel: () => void;
   simulating: boolean;
   progress: number;
+  stepReport: StepAssistanceReport | null;
+  onSteps: () => void;
+  onRemoveSteps: () => void;
+  calculatingSteps: boolean;
+  stepCandidate?: ReactNode;
 }
 
 const footName = (foot: 'LeftFoot' | 'RightFoot') => foot === 'LeftFoot' ? '左脚' : '右脚';
+
+/** Results are calculated on sequence changes, never on each playback frame. */
+export function StepAssistanceSummary({ report, label = '自动步伐状态' }: { report: StepAssistanceReport; label?: string }) {
+  // A stationary interval needs no steps; it is not an unsupported motion.
+  const stationary = new Set(report.issues.filter(issue => issue.code === 'stationary').map(issue => `${issue.startFrame}:${issue.endFrame}`));
+  const skipped = report.segments.filter(segment => segment.status === 'skipped' && !stationary.has(`${segment.startFrame}:${segment.endFrame}`));
+  const issues = report.issues.filter(issue => issue.code !== 'stationary');
+  return <div className="realism-step-report" aria-label={label}>
+    <p className="realism-note">{report.stepCount} 步 · 支撑残差 {(report.maxStanceResidualMeters * 100).toFixed(1)} cm · 朝向 {(report.maxOrientationResidualRadians * 180 / Math.PI).toFixed(1)}°</p>
+    {report.maxRootLoweringMeters > .001 && <p className="realism-note">步伐间轻微屈身，最多 {(report.maxRootLoweringMeters * 100).toFixed(1)} cm。</p>}
+    {skipped.length > 0 && <p className="realism-warning">跳过区间：{skipped.map(segment => `${segment.startFrame}–${segment.endFrame} 帧`).join('、')}。</p>}
+    {issues.length > 0 && <ul className="realism-step-issues" aria-label="步伐跳过原因">{issues.map((issue, index) => <li key={`${issue.code}-${issue.startFrame}-${issue.endFrame}-${index}`}>{issue.startFrame}–{issue.endFrame} 帧：{issue.message}</li>)}</ul>}
+    {report.stepCount === 0 && <p className="realism-note">当前没有可自动迈步的平地位移区间。</p>}
+  </div>;
+}
 
 /** Optional context tools; physical configuration is supplied by the built-in profile. */
 export function RealismPanel(props: RealismPanelProps) {
@@ -54,13 +75,21 @@ export function RealismPanel(props: RealismPanelProps) {
       return [{ id: lock.id, foot: lock.foot, residual, orientationDegrees, weight, reached: residual <= .005 && orientationDegrees <= 2 }];
     });
   }, [open, analysis.error, props.pose, props.sequence.footLocks, props.frame, end]);
-  const unavailable = props.disabled || props.simulating;
+  const unavailable = props.disabled || props.simulating || props.calculatingSteps;
   const intervalValid = Number.isInteger(endFrame) && endFrame > props.frame && endFrame <= end;
   const selectedFootContact = diagnostics?.feet[foot === 'LeftFoot' ? 'Left' : 'Right'];
   const canLockSupport = !!selectedFootContact?.grounded && selectedFootContact.minimumHeightMeters >= -STANDARD_HUMAN_PROFILE.ground.penetrationToleranceMeters;
   return <details className="realism-panel" onToggle={event => setOpen(event.currentTarget.open)}>
-    <summary aria-label="真实约束"><span>真实约束</span>{poseGuidance.outsideSuggestedRange.length > 0 && <span className="realism-warning" aria-label="关节超限数量"> · {poseGuidance.outsideSuggestedRange.length} 处超出建议</span>}{poseGuidance.shoulderCoupling.length > 0 && <span className="realism-warning"> · 肩部需配合</span>}</summary>
+    <summary aria-label="真实约束"><span>真实约束</span>{props.sequence.steps && <span> · 自动步伐</span>}{poseGuidance.outsideSuggestedRange.length > 0 && <span className="realism-warning" aria-label="关节超限数量"> · {poseGuidance.outsideSuggestedRange.length} 处超出建议</span>}{poseGuidance.shoulderCoupling.length > 0 && <span className="realism-warning"> · 肩部需配合</span>}</summary>
     {open && <div className="realism-content">
+      <div className="realism-steps">
+        <div className="realism-step-heading"><strong>自动步伐</strong>{props.sequence.steps && <button className="text-button" disabled={unavailable} onClick={props.onRemoveSteps}>关闭自动步伐</button>}</div>
+        <p className="realism-note">位移 K 之间自动迈步；老师 K 优先，脚锁高于自动步伐。</p>
+        <button className="button compact full" disabled={unavailable} onClick={props.onSteps}>{props.calculatingSteps ? '正在计算步伐' : '预览步伐'}</button>
+        {props.stepCandidate}
+        {props.stepReport && <StepAssistanceSummary report={props.stepReport} />}
+        <p className="realism-note">适用于平地小范围移动。过快、悬空、转身或脚锁冲突会提示跳过；不是全身动力学模拟。</p>
+      </div>
       <div className="realism-profile"><strong>标准中性人体 · {STANDARD_HUMAN_PROFILE.massKg} kg</strong><span>内置分段质量、质心、惯量与有限驱动</span><small>重力 {STANDARD_HUMAN_PROFILE.gravityMps2} m/s² · 摩擦 {STANDARD_HUMAN_PROFILE.ground.friction}</small></div>
       {poseGuidance.outsideSuggestedRange.length > 0 && <p className="realism-warning" aria-label="全身关节超限部位">超出建议：{poseGuidance.outsideSuggestedRange.map(joint => STAGE_JOINT_LABELS[joint]).join('、')}。按老师原姿态保留，请检查这些部位的动作幅度。</p>}
       {poseGuidance.shoulderCoupling.length > 0 && <p className="realism-warning" aria-label="肩部配合检查">大幅举臂请配合{poseGuidance.shoulderCoupling.map(side => side === 'Left' ? '左侧' : '右侧').join('、')}肩部，关键帧按老师原姿态保留。</p>}

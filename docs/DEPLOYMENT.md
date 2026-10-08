@@ -1,5 +1,11 @@
 # Cloudflare 预览部署
 
+## v16 · 平地自动迈步（尚未发布）
+
+运行改动是平地步伐派生层、同模块折叠预览／采用／关闭入口和可选备份字段；预检纳入原非均匀时刻，不仅整数帧。MHR GLB／descriptor／原PSD／gzip／assetsignore字节与绑定不改；模型README仅纠正Fetch可能已解码的实际说明及未证实upload尺寸因果。Worker AI／限频／只读API范围不扩大，真实Workers AI／付费测试0。最终本地411基础、前端／Worker类型／构建及相关3浏览器通过、42运行相关hash前后稳定，根代理亲审本轮四张；远端仍待核验。新主JS`index-jecJey3z.js`1127945字节／SHA256 `a3d82d25cf786cb65f19bb40feae17fd6e57287fd5f1fce97259a4f6421d99c6`，CSS63251字节／SHA `ba41e19f29da5255caa74edd5523fd67e98f12ef2038e7b1d5506da08463b375`，不把构建hash当设备性能证明。
+
+已发布基线仍是最终main `c1abd97889c7921b8b697c3cd83e3a995e2b7dca`、运行／CI源码`a9b753cd11ad0ac303e81ae53e77b9e136e2ed27`及Cloudflare v15 `ca7396ed-a8b1-4db6-a29d-149cbfdbcd59`／100%，以下保留完整回执。本轮须根代理亲审截图后冻结，推main核对准确CI，发布匹配版并做有界HTTP／相关公网与绑定读回；最终仅文档main用同版部署注释关联，避免再次上传或重复公网。实际v16 head／tree／CI／Cloudflare版本及Notion结果产生前不预填成功。
+
 ## v15 · 全身蒙皮与人体提示已上线（准确源码CI通过）
 
 本轮已接入Meta官方MHR v1.0.1来源人体、127内部骨骼、原生绑定／权重及公开学习式姿态修正，草稿、写K、插值和播放共用显示链。老师仍操作原25作者关节，旋转／Root／时序／历史、FK／IK／脚锁和操作柄保持，不新增127关节表单或骨长编辑。私有helper保留来源驱动关系并使用中立相对轴向引导与半转平滑，修正外展误作twist和表示接缝；不声称任意上游compact Euler全链等价、现成JavaScript肌肉引擎或完整生物力学。

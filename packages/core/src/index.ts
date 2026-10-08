@@ -15,6 +15,7 @@ export * from './footLocks';
 export * from './humanProfile';
 export * from './physics';
 export * from './aiChoreography';
+export * from './stepAssistance';
 
 export interface CountMap {
   id: string;

@@ -20,4 +20,11 @@
 .realism-locks button:disabled { opacity: .4; cursor: not-allowed; }
 .realism-physics { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid #edf0f3; }
 .realism-physics progress { width: 100%; height: 5px; accent-color: #7b9fc2; }
+.realism-steps { display: flex; flex-direction: column; gap: 8px; padding-bottom: 14px; border-bottom: 1px solid #edf0f3; }
+.realism-step-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.realism-step-heading strong { color: #53667a; font-size: 12px; font-weight: 500; }
+.realism-step-heading button { min-height: 36px; font-size: 10px; }
+.realism-steps > button { min-height: 44px; }
+.realism-step-report { display: flex; flex-direction: column; gap: 5px; }
+.realism-step-issues { margin: 0; padding-left: 16px; color: #a66b36; font-size: 10px; line-height: 1.8; }
 @media (max-width: 680px) { .realism-panel { padding: 15px 19px; } .realism-lock-fields input, .realism-lock-fields select, .realism-locks button { min-height: 44px; } }

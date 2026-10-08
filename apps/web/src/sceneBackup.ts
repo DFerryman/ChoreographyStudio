@@ -116,7 +116,7 @@ function validateTake(value: unknown, map: CountMap, context: ValidationContext)
   return { id: text(object.id, '动作 ID'), schemaVersion: 'preview-1', planId: text(object.planId, '动作编排 ID'), countMapId: map.id, durationSeconds: duration, times, poses, provenance: 'synthetic-demo' };
 }
 function validateManual(value: unknown, map: CountMap, take: BakedTake, context: ValidationContext): KeyframeSequence {
-  const object = record(value, ['schema', 'id', 'fps', 'baseTake', 'rotations', 'root'], ['footLocks', 'authorKeyPriority'], '手 K 序列', context);
+  const object = record(value, ['schema', 'id', 'fps', 'baseTake', 'rotations', 'root'], ['footLocks', 'authorKeyPriority', 'steps'], '手 K 序列', context);
   if (object.schema !== 'manual-keyframes-1' || object.fps !== 30) fail('手 K 版本或帧率无效。');
   const baseTake = validateTake(object.baseTake, map, context);
   if (baseTake.planId !== take.planId) fail('手 K 基底与动作编排绑定不同。');
@@ -144,7 +144,16 @@ function validateManual(value: unknown, map: CountMap, take: BakedTake, context:
     };
   });
   const authorKeyPriority = object.authorKeyPriority === undefined ? undefined : enumValue(object.authorKeyPriority, ['author-key-priority-1'] as const, '作者关键帧优先版本');
-  const sequence: KeyframeSequence = { schema: 'manual-keyframes-1', id: text(object.id, '手 K 序列 ID'), fps: 30, baseTake, rotations, root, ...(footLocks !== undefined ? { footLocks } : {}), ...(authorKeyPriority !== undefined ? { authorKeyPriority } : {}) };
+  let steps: KeyframeSequence['steps'];
+  if (object.steps !== undefined) {
+    const assistance = record(object.steps, ['schema', 'startFrame', 'endFrame'], [], '自动步伐', { strict: true });
+    if (assistance.schema !== 'ground-steps-1') fail('自动步伐版本不受支持。');
+    const startFrame = integer(assistance.startFrame, 0, finalFrame, '自动步伐开始帧'), endFrame = integer(assistance.endFrame, 0, finalFrame, '自动步伐结束帧');
+    if (endFrame <= startFrame) fail('自动步伐区间必须按时间递增。');
+    if (authorKeyPriority === undefined) fail('自动步伐必须使用作者关键帧优先版本。');
+    steps = { schema: 'ground-steps-1', startFrame, endFrame };
+  }
+  const sequence: KeyframeSequence = { schema: 'manual-keyframes-1', id: text(object.id, '手 K 序列 ID'), fps: 30, baseTake, rotations, root, ...(footLocks !== undefined ? { footLocks } : {}), ...(authorKeyPriority !== undefined ? { authorKeyPriority } : {}), ...(steps !== undefined ? { steps } : {}) };
   let expected: BakedTake;
   try { getKeyframeCount(sequence); expected = bakeKeyframeSequence(sequence); }
   catch { fail('手 K 轨道、脚锁、帧索引或采样资源无效。'); }
@@ -160,7 +169,7 @@ function validateManual(value: unknown, map: CountMap, take: BakedTake, context:
       return actual.every((component, axis) => Math.abs(component - target[axis] * sign) <= 1e-8);
     });
   });
-  if (!matchesAuthority(expected!) && sequence.authorKeyPriority === undefined && sequence.footLocks?.length) {
+  if (!matchesAuthority(expected!) && sequence.authorKeyPriority === undefined && !sequence.steps && sequence.footLocks?.length) {
     const legacyExpected = bakeLegacyKeyframeSequence(sequence);
     if (matchesAuthority(legacyExpected)) expected = legacyExpected;
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { bakeKeyframeSequence, bakeLegacyKeyframeSequence, JOINT_NAMES, makeCountMap, makeKeyframeSequence, makePlan, rotationFromDegrees, upsertRootKeyframe, upsertRotationKeyframe, type BakedTake, type Pose } from '../../../packages/core/src';
+import { analyzeStepAssistance, bakeKeyframeSequence, bakeLegacyKeyframeSequence, JOINT_NAMES, lastFrame, makeCountMap, makeKeyframeSequence, makePlan, rotationFromDegrees, setStepAssistance, upsertRootKeyframe, upsertRotationKeyframe, type BakedTake, type Pose } from '../../../packages/core/src';
 import { createScene, type SceneDocument } from './scene';
 import { decodeSceneBackup, encodeSceneBackup, SCENE_BACKUP_LIMITS } from './sceneBackup';
 import type { SceneProject } from './sceneProject';
@@ -61,7 +61,67 @@ function lockedFixture() {
   return scene;
 }
 
+function stepsFixture() {
+  const scene = fixture(), previous = scene.project.history[1];
+  const baseTake = { ...previous.manual!.baseTake, poses: previous.manual!.baseTake.poses.map(pose => ({ ...structuredClone(pose), root: [0, 1.05, 0] as Pose['root'] })) };
+  let manual = makeKeyframeSequence(baseTake);
+  manual = upsertRootKeyframe(manual, 0, [0, 1.05, 0]);
+  manual = upsertRootKeyframe(manual, 180, [.2, 1.05, 0]);
+  manual = upsertRootKeyframe(manual, 300, [.8, 1.05, 0]);
+  // An unusual author's arm pose is independent of the derived leg motion.
+  manual = upsertRotationKeyframe(manual, 'LeftUpperArm', 240, rotationFromDegrees([0, 0, 170]));
+  manual = addFootLock(manual, captureFootLock(baseTake.poses[0], 'LeftFoot', 0, 90, 3));
+  manual = setStepAssistance(manual, 180, lastFrame(baseTake.durationSeconds));
+  scene.project.history.push({ ...previous, manual, take: bakeKeyframeSequence(manual), title: '自动步伐' });
+  scene.project.historyIndex = 2;
+  scene.project.revision = 3;
+  return scene;
+}
+
 describe('complete local scene backup', () => {
+  it('roundtrips derived stepping, exact authored sparse K, original base, foot locks and earlier history in JSON and full bundles', async () => {
+    const source = stepsFixture(), project = structuredClone(source.project);
+    const manual = source.project.history[2].manual!;
+    expect(analyzeStepAssistance(manual).stepCount).toBeGreaterThan(0);
+    for (const file of [legacy(source), await encodeSceneBackup(source)]) {
+      const imported = await decodeSceneBackup(file);
+      expect(imported.scene.project).toEqual({ ...project, teacherCheckedRevision: null });
+      expect(imported.scene.project.history[1].manual).not.toHaveProperty('steps');
+      const restored = imported.scene.project.history[2].manual!;
+      expect(restored.steps).toEqual({ schema: 'ground-steps-1', startFrame: 180, endFrame: lastFrame(manual.baseTake.durationSeconds) });
+      restored.steps!.startFrame = 0;
+      restored.root[1].position[0] = 4;
+      restored.baseTake.poses[0].root[0] = 4;
+      expect(source.project).toEqual(project);
+    }
+  });
+
+  it.each([
+    ['unknown version', (manual: any) => { manual.steps.schema = 'ground-steps-2'; }],
+    ['missing end', (manual: any) => { delete manual.steps.endFrame; }],
+    ['fractional frame', (manual: any) => { manual.steps.startFrame = .5; }],
+    ['negative frame', (manual: any) => { manual.steps.startFrame = -1; }],
+    ['reversed interval', (manual: any) => { manual.steps.endFrame = manual.steps.startFrame - 1; }],
+    ['empty interval', (manual: any) => { manual.steps.endFrame = manual.steps.startFrame; }],
+    ['out of duration', (manual: any) => { manual.steps.endFrame = 10_000; }],
+    ['generated poses in configuration', (manual: any) => { manual.steps.poses = []; }],
+    ['unversioned author precedence', (manual: any) => { delete manual.authorKeyPriority; }],
+  ])('rejects stepping %s rather than silently repairing configuration', async (_label, mutate) => {
+    const source = stepsFixture();
+    await expect(decodeSceneBackup(legacy(source, data => mutate(data.scene.project.history[2].manual)))).rejects.toThrow('场景备份无效');
+  });
+
+  it('rejects a saved animation that ignores active stepping rather than rebaking the imported authority', async () => {
+    const source = stepsFixture(), snapshot = source.project.history[2];
+    const unassisted = { ...snapshot.manual! };
+    delete unassisted.steps;
+    const original = structuredClone(source.project);
+    const withoutSteps = bakeKeyframeSequence(unassisted);
+    expect(withoutSteps.poses).not.toEqual(snapshot.take!.poses);
+    await expect(decodeSceneBackup(legacy(source, data => { data.scene.project.history[2].take = withoutSteps; }))).rejects.toThrow('手 K');
+    expect(source.project).toEqual(original);
+  });
+
   it('preserves old contact authority and earlier histories through strict full-bundle and JSON validation', async () => {
     const source = lockedFixture(), active = source.project.history[2];
     delete active.manual!.authorKeyPriority;
