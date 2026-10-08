@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { EDITABLE_JOINT_NAMES, JOINT_NAMES, ROOT_TRANSLATION_LIMITS, sampleTake, type BakedTake, type JointName, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
 import { fitPerspectiveBounds } from './cameraFraming';
+import { constrainJointRotation } from '../../../packages/core/src';
 import './Stage.css';
 
 export type StageView = 'front' | 'back' | 'left' | 'right' | 'top' | 'free';
@@ -53,51 +54,36 @@ type PreviewRig = {
 
 type GizmoAxis = { name: 'X' | 'Y' | 'Z'; color: string; x: number; y: number; depth: number };
 
-/** Original preview skeleton: the 25 logical joints retain the preview-1 rest transforms. */
+/** Original adult mannequin; visual surfaces follow the unchanged 25-joint preview rig. */
 function createPreviewRig(): PreviewRig {
   const root = new THREE.Group();
   const joints = new Map<JointName, THREE.Group>();
   const markers = new Map<JointName, THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>>();
   const targets: THREE.Mesh[] = [];
   const framingMeshes: THREE.Mesh[] = [];
-  const sphereGeometry = new THREE.SphereGeometry(1, 16, 12);
-  const boneGeometry = new THREE.CylinderGeometry(1, 1, 1, 8);
-  const boneMaterial = new THREE.MeshStandardMaterial({ color: '#aeb8d1', roughness: 0.86 });
+  const sphereGeometry = new THREE.SphereGeometry(1, 32, 24);
+  const surfaceMaterial = new THREE.MeshStandardMaterial({ color: '#d7dce1', roughness: 0.78, metalness: 0.03 });
+  const seamMaterial = new THREE.MeshStandardMaterial({ color: '#b7c0c9', roughness: 0.86 });
+  const faceMaterial = new THREE.MeshStandardMaterial({ color: '#8f9ba6', roughness: 0.9 });
   const targetMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
 
   function joint(name: JointName, parent: JointName | null, x = 0, y = 0, z = 0) {
     const group = new THREE.Group();
     group.name = name;
     group.position.set(x, y, z);
-    const parentGroup = parent ? joints.get(parent)! : root;
-    parentGroup.add(group);
+    (parent ? joints.get(parent)! : root).add(group);
     joints.set(name, group);
-
-    if (parent) {
-      const offset = new THREE.Vector3(x, y, z);
-      const length = offset.length();
-      const bone = new THREE.Mesh(boneGeometry, boneMaterial);
-      bone.position.copy(offset).multiplyScalar(0.5);
-      bone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), offset.normalize());
-      bone.scale.set(0.014, length, 0.014);
-      bone.castShadow = true;
-      parentGroup.add(bone);
-      framingMeshes.push(bone);
-    }
-
-    const material = new THREE.MeshStandardMaterial({
-      color: name.startsWith('Left') ? '#aabbff' : '#e8edf7',
-      roughness: 0.7,
-      emissive: '#293a73',
-      emissiveIntensity: 0.13,
-    });
-    const marker = new THREE.Mesh(sphereGeometry, material);
-    marker.scale.setScalar(name === 'Hips' ? 0.05 : name.includes('Tip') || name.endsWith('Toe') || name.endsWith('Heel') ? 0.027 : 0.037);
-    marker.castShadow = true;
+    // Small overlay nodes keep the original joint centers visible through the
+    // body. Body surfaces never enter the raycast target list.
+    const marker = new THREE.Mesh(sphereGeometry, new THREE.MeshStandardMaterial({
+      color: '#a4b7c8', roughness: 0.75, emissive: '#6285a4',
+      emissiveIntensity: 0.16, depthTest: false, depthWrite: false,
+    }));
+    marker.scale.setScalar(name === 'Hips' ? 0.016 : name.includes('Tip') || name.endsWith('Toe') || name.endsWith('Heel') ? 0.008 : 0.011);
+    marker.renderOrder = 20;
     group.add(marker);
     markers.set(name, marker);
     framingMeshes.push(marker);
-    // Generous invisible targets improve selection without changing visible joint size.
     const target = new THREE.Mesh(sphereGeometry, targetMaterial);
     target.scale.setScalar(name === 'Hips' ? 0.088 : 0.07);
     target.userData.jointName = name;
@@ -106,28 +92,38 @@ function createPreviewRig(): PreviewRig {
     return group;
   }
 
+  function surface(parent: JointName, geometry: THREE.BufferGeometry, position: Vec3, scale: Vec3, material = surfaceMaterial) {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(...position);
+    mesh.scale.set(...scale);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    joints.get(parent)!.add(mesh);
+    framingMeshes.push(mesh);
+    return mesh;
+  }
+  function ellipsoid(parent: JointName, position: Vec3, scale: Vec3, material = surfaceMaterial) {
+    return surface(parent, sphereGeometry, position, scale, material);
+  }
+  // Each elliptical surface is a smooth original profile around its local Y
+  // axis. Separate torso pieces overlap naturally at the bending joints.
+  function contour(parent: JointName, profile: [number, number][], depth: number, position: Vec3 = [0, 0, 0]) {
+    const points = new THREE.SplineCurve(profile.map(([radius, y]) => new THREE.Vector2(radius, y))).getPoints(32);
+    return surface(parent, new THREE.LatheGeometry(points, 32), position, [1, 1, depth]);
+  }
+  function limb(parent: JointName, child: JointName, profile: [number, number][], depth: number) {
+    const offset = joints.get(child)!.position.clone();
+    const length = offset.length();
+    const mesh = contour(parent, profile.map(([radius, fraction]) => [radius, fraction * length]), depth);
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), offset.normalize());
+    return mesh;
+  }
+
   joint('Hips', null);
   joint('Spine', 'Hips', 0, 0.14, 0);
   joint('Chest', 'Spine', 0, 0.2, 0);
   joint('Neck', 'Chest', 0, 0.19, 0);
-  const head = joint('Head', 'Neck', 0, 0.08, 0);
-  const headOutline = new THREE.Mesh(
-    new THREE.SphereGeometry(0.105, 12, 8),
-    new THREE.MeshBasicMaterial({ color: '#a9b7d7', wireframe: true, transparent: true, opacity: 0.48 }),
-  );
-  headOutline.position.y = 0.08;
-  headOutline.scale.y = 1.22;
-  head.add(headOutline);
-  framingMeshes.push(headOutline);
-  const direction = new THREE.Mesh(
-    new THREE.ConeGeometry(0.022, 0.055, 8),
-    new THREE.MeshBasicMaterial({ color: '#7c93ff' }),
-  );
-  direction.position.set(0, 0.08, 0.142);
-  direction.rotation.x = Math.PI / 2;
-  head.add(direction);
-  framingMeshes.push(direction);
-
+  joint('Head', 'Neck', 0, 0.08, 0);
   for (const side of ['Left', 'Right'] as const) {
     const sign = side === 'Left' ? 1 : -1;
     joint(`${side}Shoulder`, 'Chest', sign * 0.205, 0.095, 0);
@@ -140,6 +136,44 @@ function createPreviewRig(): PreviewRig {
     joint(`${side}Foot`, `${side}LowerLeg`, 0, -0.45, 0);
     joint(`${side}Toe`, `${side}Foot`, 0, -0.035, 0.15);
     joint(`${side}Heel`, `${side}Foot`, 0, -0.035, -0.065);
+  }
+
+  contour('Hips', [[0, -0.13], [0.07, -0.115], [0.147, -0.075], [0.167, -0.005], [0.15, 0.075], [0.126, 0.135], [0, 0.15]], 0.65);
+  contour('Spine', [[0, -0.075], [0.122, -0.05], [0.129, 0.02], [0.137, 0.10], [0.147, 0.17], [0.142, 0.195], [0, 0.21]], 0.67);
+  contour('Chest', [[0, -0.125], [0.123, -0.10], [0.155, -0.055], [0.180, 0.015], [0.193, 0.075], [0.172, 0.125], [0.10, 0.165], [0.052, 0.185], [0, 0.19]], 0.58);
+  ellipsoid('Neck', [0, 0.02, 0], [0.048, 0.075, 0.045]);
+  ellipsoid('Head', [0, 0.081, -0.005], [0.091, 0.117, 0.083]);
+  ellipsoid('Head', [0, 0.007, 0.008], [0.067, 0.050, 0.053]);
+  ellipsoid('Head', [0, 0.056, 0.081], [0.011, 0.022, 0.019]);
+  for (const sign of [-1, 1]) {
+    ellipsoid('Head', [sign * 0.091, 0.068, 0], [0.015, 0.030, 0.016]);
+    ellipsoid('Head', [sign * 0.032, 0.079, 0.074], [0.013, 0.005, 0.007], faceMaterial);
+  }
+
+  for (const side of ['Left', 'Right'] as const) {
+    const sign = side === 'Left' ? 1 : -1;
+    const shoulder: JointName = `${side}Shoulder`, upperArm: JointName = `${side}UpperArm`;
+    const foreArm: JointName = `${side}ForeArm`, hand: JointName = `${side}Hand`;
+    const thigh: JointName = `${side}UpperLeg`, shin: JointName = `${side}LowerLeg`, foot: JointName = `${side}Foot`;
+    // Clavicle and deltoid bridge the torso to the unchanged shoulder chain.
+    ellipsoid(shoulder, [-sign * 0.040, -0.010, 0], [0.105, 0.038, 0.056]);
+    ellipsoid(upperArm, [0, -0.027, 0], [0.061, 0.077, 0.066]);
+    limb(upperArm, foreArm, [[0.038, 0], [0.056, 0.12], [0.058, 0.35], [0.050, 0.65], [0.035, 0.93], [0.030, 1]], 1.10);
+    ellipsoid(foreArm, [0, 0, 0], [0.034, 0.035, 0.034], seamMaterial);
+    limb(foreArm, hand, [[0.030, 0], [0.040, 0.17], [0.041, 0.33], [0.034, 0.62], [0.025, 0.91], [0.024, 1]], 1.05);
+    ellipsoid(hand, [0, -0.033, 0.002], [0.032, 0.046, 0.019]);
+    for (const [index, x] of [-0.021, -0.007, 0.007, 0.021].entries()) {
+      ellipsoid(hand, [x, -0.087 + (index === 0 || index === 3 ? 0.004 : 0), 0.002], [0.007, 0.032, 0.008]);
+    }
+    const thumb = ellipsoid(hand, [-sign * 0.033, -0.040, 0.006], [0.011, 0.029, 0.012]);
+    thumb.rotation.z = -sign * 0.45;
+
+    ellipsoid(thigh, [0, -0.01, 0], [0.084, 0.100, 0.089]);
+    limb(thigh, shin, [[0.075, 0], [0.084, 0.12], [0.079, 0.35], [0.064, 0.66], [0.047, 0.94], [0.043, 1]], 1.10);
+    ellipsoid(shin, [0, 0, 0.002], [0.045, 0.047, 0.044], seamMaterial);
+    limb(shin, foot, [[0.042, 0], [0.056, 0.18], [0.061, 0.34], [0.045, 0.62], [0.033, 0.88], [0.030, 1]], 1.10);
+    ellipsoid(foot, [0, -0.004, 0], [0.033, 0.044, 0.036]);
+    ellipsoid(foot, [0, -0.043, 0.045], [0.048, 0.039, 0.12]);
   }
   root.position.set(0, 1.05, 0);
   return { root, joints, markers, targets, framingMeshes };
@@ -264,8 +298,8 @@ export function Stage(props: StageProps) {
     });
     transform.enabled = false;
     const transformHelper = transform.getHelper();
-    scene.add(new THREE.HemisphereLight('#dce5ff', '#111722', 1.5));
-    const keyLight = new THREE.DirectionalLight('#f5f5ff', 3);
+    scene.add(new THREE.HemisphereLight('#edf2f7', '#1b2026', 1.5));
+    const keyLight = new THREE.DirectionalLight('#fff7ec', 3);
     keyLight.position.set(-3, 6, 4);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(1024, 1024);
@@ -276,10 +310,10 @@ export function Stage(props: StageProps) {
     keyLight.shadow.normalBias = 0.025;
     keyLight.shadow.bias = -0.0003;
     scene.add(keyLight);
-    const rim = new THREE.DirectionalLight('#a4b1ff', 2.2);
+    const rim = new THREE.DirectionalLight('#c9d9e6', 1.4);
     rim.position.set(3, 3, -4);
     scene.add(rim);
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({ color: '#181e2a', roughness: 1 }));
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({ color: '#1c232c', roughness: 1 }));
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -0.004;
     floor.receiveShadow = true;
@@ -442,7 +476,8 @@ export function Stage(props: StageProps) {
       } else if (draggingJoint && canRotate()) {
         const quaternion = rig.joints.get(draggingJoint)!.quaternion;
         if (!quaternion.toArray().every(Number.isFinite) || quaternion.lengthSq() <= Number.EPSILON) return;
-        const rotation = quaternion.clone().normalize().toArray() as Quat;
+        const rotation = constrainJointRotation(draggingJoint, quaternion.toArray() as Quat);
+        quaternion.set(...rotation);
         current.current.onJointRotationChange?.(draggingJoint, rotation, phase);
       }
     }
@@ -596,9 +631,9 @@ export function Stage(props: StageProps) {
       for (const [name, marker] of rig.markers) {
         const selected = name === selectionRef.current;
         const over = name === hovered;
-        marker.material.color.set(selected ? '#7292ff' : over ? '#f0f4ff' : name.startsWith('Left') ? '#aabbff' : '#e8edf7');
-        marker.material.emissiveIntensity = selected ? 0.85 : over ? 0.5 : 0.13;
-        const radius = name === 'Hips' ? 0.05 : name.includes('Tip') || name.endsWith('Toe') || name.endsWith('Heel') ? 0.027 : 0.037;
+        marker.material.color.set(selected ? '#85b6db' : over ? '#eef6ff' : '#a4b7c8');
+        marker.material.emissiveIntensity = selected ? 0.75 : over ? 0.45 : 0.16;
+        const radius = name === 'Hips' ? 0.016 : name.includes('Tip') || name.endsWith('Toe') || name.endsWith('Heel') ? 0.008 : 0.011;
         marker.scale.setScalar(radius * (selected ? 1.38 : over ? 1.18 : 1));
       }
       scene.updateMatrixWorld(true);

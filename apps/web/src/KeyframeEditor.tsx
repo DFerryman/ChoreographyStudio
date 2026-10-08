@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight, ClipboardPaste, Copy, Diamond, RotateCcw, Trash2 } from 'lucide-react';
-import { EDITABLE_JOINT_NAMES, ROOT_TRANSLATION_LIMITS, frameTime, getKeyframeFrames, lastFrame, rotationFromDegrees, rotationToDegrees, type JointName, type KeyframeSequence, type KeyframeTransferRequest, type KeyframeTransferScope, type Pose, type Vec3 } from '../../../packages/core/src';
+import { EDITABLE_JOINT_NAMES, ROOT_TRANSLATION_LIMITS, frameTime, getKeyframeFrames, lastFrame, rotationFromDegrees, type JointName, type KeyframeSequence, type KeyframeTransferRequest, type KeyframeTransferScope, type Pose, type Vec3 } from '../../../packages/core/src';
 import { STAGE_JOINT_LABELS, type StageTransformTool } from './Stage';
 import './KeyframeEditor.css';
+import { constrainJointRotation, getJointRotationLimits, isJointRotationWithinLimits, jointRotationToDegrees } from '../../../packages/core/src';
 
 export type KeyframeEditorProps = {
   sequence: KeyframeSequence;
@@ -75,7 +76,9 @@ export function KeyframeEditor(props: KeyframeEditorProps) {
   const end = lastFrame(duration), time = frameTime(frame, duration);
   const editable = selectedJoint !== null && EDITABLE_JOINT_NAMES.includes(selectedJoint);
   const locked = playing || mirror || props.readOnly === true;
-  const angles: Vec3 = selectedJoint ? rotationToDegrees(pose.joints[selectedJoint]) : [0, 0, 0];
+  const angles: Vec3 = selectedJoint ? jointRotationToDegrees(selectedJoint, pose.joints[selectedJoint]) : [0, 0, 0];
+  const rotationBounds = selectedJoint ? getJointRotationLimits(selectedJoint) : [[-180, 180], [-180, 180], [-180, 180]] as const;
+  const outsideLimits = editable && selectedJoint !== null && !isJointRotationWithinLimits(selectedJoint, pose.joints[selectedJoint]);
   const keyFrames = useMemo(() => getKeyframeFrames(sequence), [sequence]);
   const keyed = keyFrames.includes(frame);
   const jointKeys = selectedJoint ? sequence.rotations[selectedJoint] ?? [] : [];
@@ -84,7 +87,7 @@ export function KeyframeEditor(props: KeyframeEditorProps) {
   function updateRotation(axis: number, value: number) {
     if (!selectedJoint || !editable || locked) return;
     const next: Vec3 = [...angles]; next[axis] = value;
-    props.onPose({ ...pose, root: [...pose.root], joints: { ...pose.joints, [selectedJoint]: rotationFromDegrees(next) } });
+    props.onPose({ ...pose, root: [...pose.root], joints: { ...pose.joints, [selectedJoint]: constrainJointRotation(selectedJoint, rotationFromDegrees(next)) } });
   }
   function updateRoot(axis: number, value: number) {
     if (locked) return;
@@ -102,10 +105,11 @@ export function KeyframeEditor(props: KeyframeEditorProps) {
     {props.readOnly && <div className="kf-readonly-note">当前为观看状态。点舞台旋转或移动，回原稿编辑。</div>}
     {playing && <div className="kf-readonly-note">播放中暂停编辑。点舞台旋转或移动，暂停到当前帧。</div>}
     <div id="kf-rotation-controls" className={`kf-transform-group ${props.transformTool === 'rotate' ? 'kf-transform-active' : ''}`}>
-      <div className="kf-group-heading"><h3 title="相对父骨骼 · XYZ 角度">局部旋转</h3><span>{selectedJoint ? STAGE_JOINT_LABELS[selectedJoint] : '请选择关节'}</span></div>
+      <div className="kf-group-heading"><h3 title="相对父骨骼 · XYZ 角度">局部旋转</h3><span>{editable ? '活动限制已启用' : selectedJoint ? '只读末端' : '请选择关节'}</span></div>
       {selectedJoint && !editable && <p>末端节点只读；请选择肩、肘、髋等骨骼。</p>}
+      {outsideLimits && <p className="kf-constraint-note" role="status">此旧姿态超出当前编辑范围，原数据保留。调整或写入该关节 K 时应用限制。</p>}
       <div className={`kf-track-status ${jointKeyed ? 'keyed' : ''}`} aria-label="当前关节轨道状态">{!selectedJoint ? '未选关节' : !editable ? '末端节点只读 · 无可编辑旋转轨' : <><Diamond size={11} /><span>{jointKeyed ? '本帧已写旋转 K' : '本帧未写旋转 K'} · {jointKeys.length} 个键</span></>}</div>
-      {(['X', 'Y', 'Z'] as const).map((axis, index) => <AxisField key={axis} prefix="关节" axis={axis} value={angles[index]} bounds={[-180, 180]} step={0.1} disabled={!editable || locked} onChange={value => updateRotation(index, value)} />)}
+      {(['X', 'Y', 'Z'] as const).map((axis, index) => <AxisField key={axis} prefix="关节" axis={axis} value={angles[index]} bounds={rotationBounds[index]} step={0.1} disabled={!editable || locked} onChange={value => updateRotation(index, value)} />)}
       <div className="kf-track-actions"><button className="button secondary compact" disabled={!editable || locked} onClick={props.onWriteJoint}><Diamond size={13} />K 当前关节</button></div>
     </div>
     <div id="kf-root-controls" className={`kf-transform-group ${props.transformTool === 'translate' ? 'kf-transform-active' : ''}`}>

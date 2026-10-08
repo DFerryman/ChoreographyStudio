@@ -37,6 +37,7 @@
 .kf-track-actions > .button.compact { width: 100%; min-height: 34px; padding: 6px 10px; color: #64778b; background: #fff; border-color: #dde4ec; font-size: 11px; }
 .kf-write-actions { margin-top: 12px; }
 .kf-write-actions > .button { min-height: 44px; font-size: 12px; }
+.kf-transform-group > .kf-constraint-note { color: #8a693b; padding: 8px; background: #fbf7ef; border-radius: 5px; }
 .kf-write-actions > span { color: #8a919b; font-size: 10px; line-height: 1.6; }
 .kf-disclosure, .kf-shortcuts { min-width: 0; border-top: 1px solid #eceef1; color: #78818d; font-size: 11px; }
 .kf-disclosure > summary, .kf-shortcuts > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 11px 0; color: #6b7683; font-size: 11px; list-style: none; cursor: pointer; }

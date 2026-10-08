@@ -10,6 +10,7 @@ import { encodeSceneBackup, decodeSceneBackup } from './sceneBackup';
 import type { SceneSnapshot as Snapshot, SceneProject as Session } from './sceneProject';
 import { useModalFocus } from './useModalFocus';
 import { useEditorShortcuts } from './useEditorShortcuts';
+import { constrainJointRotation } from '../../../packages/core/src';
 
 type SceneAction = { type: 'new' } | { type: 'open' | 'copy' | 'delete'; id: string } | { type: 'import'; scene: SceneDocument<Session> } | { type: 'recoverAudio'; sceneId: string; countMapId: string; audio: Blob; audioName: string; name: string };
 type KeyframeDeleteTarget = { kind: 'joint'; joint: JointName; frame: number } | { kind: 'root' | 'pose'; frame: number };
@@ -26,6 +27,7 @@ function initialSession(): Session {
   return { history: [{ title: '我的第一段八拍', countMap, plan, take: bakePlan(plan, countMap) }], historyIndex: 0, revision: 1, audioDuration: 40, teacherCheckedRevision: null };
 }
 const clonePose = (pose: Pose): Pose => ({ root: [...pose.root], joints: Object.fromEntries(JOINT_NAMES.map(joint => [joint, [...pose.joints[joint]]])) as Pose['joints'] });
+const rotationsDiffer = (a: Quat, b: Quat) => Math.abs(a.reduce((sum, value, axis) => sum + value * b[axis], 0)) / Math.sqrt(a.reduce((sum, value) => sum + value * value, 0) * b.reduce((sum, value) => sum + value * value, 0)) < 1 - 1e-10;
 const posesDiffer = (a: Pose, b: Pose) => a.root.some((value, index) => Math.abs(value - b.root[index]) > 1e-6) || JOINT_NAMES.some(joint => Math.abs(a.joints[joint].reduce((dot, value, index) => dot + value * b.joints[joint][index], 0)) < 1 - 1e-7);
 const seconds = (value: number) => `${Math.floor(value / 60).toString().padStart(2, '0')}:${Math.floor(value % 60).toString().padStart(2, '0')}`;
 const cameraMatches = (a: StageCamera | null, b: StageCamera) => !!a && [...a.position, ...a.target, a.zoom ?? 1].every((value, index) => Math.abs(value - [...b.position, ...b.target, b.zoom ?? 1][index]) < 1e-6);
@@ -627,13 +629,20 @@ export default function App() {
     poseDraftRef.current = null; setPoseDraft(null); poseDraftBaseline.current = null;
     if (restoreStatus && baseline && baseline.version === sceneChangeVersion.current) setSaveStatus(baseline.status);
   }
-  function updatePoseDraft(next: Pose) {
+  function updatePoseDraft(next: Pose): boolean {
     if (pendingPlay.current) pause();
-    if (!active.take || playing || mirror || !manualEditing || modalOpen) return;
+    if (!active.take || playing || mirror || !manualEditing || modalOpen) return false;
     const reference = sampleTake(active.take, frameTime(editorFrame, active.countMap.durationSeconds));
-    if (!posesDiffer(next, reference)) { clearPoseDraft(true); return; }
+    const previous = poseDraftRef.current ?? reference;
+    const copied = clonePose(next);
+    // Only newly changed rotations are limited. Editing Root must not rewrite
+    // an unrelated rotation from an older scene or its immutable base.
+    for (const joint of EDITABLE_JOINT_NAMES) {
+      if (rotationsDiffer(copied.joints[joint], previous.joints[joint])) copied.joints[joint] = constrainJointRotation(joint, copied.joints[joint]);
+    }
+    if (!posesDiffer(copied, reference)) { clearPoseDraft(true); return false; }
     if (!poseDraftRef.current) poseDraftBaseline.current = { status: saveStatus === 'saving' ? 'dirty' : saveStatus, version: sceneChangeVersion.current };
-    const copied = clonePose(next); poseDraftRef.current = copied; setPoseDraft(copied); setSaveStatus('dirty');
+    poseDraftRef.current = copied; setPoseDraft(copied); setSaveStatus('dirty'); return true;
   }
   function copyPose() {
     if (!active.take || !manualEditing || playing || mirror || busy) return;
@@ -658,8 +667,7 @@ export default function App() {
       const bounds = [ROOT_TRANSLATION_LIMITS.x, ROOT_TRANSLATION_LIMITS.y, ROOT_TRANSLATION_LIMITS.z];
       next.root = action.pose.root.map((value, axis) => Math.max(bounds[axis][0], Math.min(bounds[axis][1], value))) as Vec3;
     }
-    const differs = posesDiffer(next, reference);
-    updatePoseDraft(next);
+    const differs = updatePoseDraft(next);
     setNotice(differs ? `已粘贴${action.includeRoot ? '完整姿态' : '局部旋转'}到第 ${action.frame} 帧，显式写 K 后才进入动画。` : '粘贴姿态与本帧相同，没有新增草稿或关键帧。');
   }
   function handleJointRotation(joint: JointName, rotation: Quat, phase: 'start' | 'change' | 'end') {
@@ -676,9 +684,12 @@ export default function App() {
     if (!manualSequence || !active.take || !editorPose || playing || mirror || !manualEditing) return false;
     if (kind === 'joint' && (!selectedJoint || !EDITABLE_JOINT_NAMES.includes(selectedJoint))) return false;
     try {
-      const pose = poseDraftRef.current ?? editorPose;
+      const pose = clonePose(poseDraftRef.current ?? editorPose);
+      if (kind === 'joint') pose.joints[selectedJoint!] = constrainJointRotation(selectedJoint!, pose.joints[selectedJoint!]);
+      else if (kind === 'pose') for (const joint of EDITABLE_JOINT_NAMES) pose.joints[joint] = constrainJointRotation(joint, pose.joints[joint]);
       const next = kind === 'pose' ? setPoseKeyframe(manualSequence, editorFrame, pose) : kind === 'root' ? upsertRootKeyframe(manualSequence, editorFrame, pose.root) : upsertRotationKeyframe(manualSequence, selectedJoint!, editorFrame, pose.joints[selectedJoint!]);
-      const take = bakeKeyframeSequence(next), remaining = poseDraftRef.current;
+      const take = bakeKeyframeSequence(next), remaining = poseDraftRef.current ? clonePose(poseDraftRef.current) : null;
+      if (remaining && kind === 'joint') remaining.joints[selectedJoint!] = [...pose.joints[selectedJoint!]];
       commit({ ...active, manual: next, take });
       if (remaining && kind !== 'pose' && posesDiffer(remaining, sampleTake(take, frameTime(editorFrame, take.durationSeconds)))) {
         const copied = clonePose(remaining); poseDraftRef.current = copied; setPoseDraft(copied);
@@ -845,7 +856,7 @@ export default function App() {
         <div className="studio-grid">
           <section className="viewer-panel" aria-label="3D动作预览">
             <div className="viewer-toolbar"><span className="viewer-title">{previewCandidate ? '替换预览' : '舞台'}<span className="muted-divider">/</span><span className="viewer-muted">{view === 'free' ? '自由视角' : '3D'}</span></span><div className="camera-toolbar"><div className="segmented" aria-label="观看视角">{([['front', '正面'], ['back', '背面']] as const).map(([preset, label]) => <button key={preset} className={view === preset ? 'selected' : ''} aria-pressed={view === preset} onClick={() => chooseView(preset)}>{label}</button>)}</div><button className="icon-button" aria-label="全身取景" disabled={!displayedTake || !ready || !!busy} title="全身取景" onClick={() => focusCamera('actor')}><Scan size={16} /></button><details className="editor-disclosure camera-options"><summary aria-label="相机选项" title="相机选项"><SlidersHorizontal size={16} /></summary><div className="disclosure-content"><div className="segmented">{([['left', '左侧'], ['right', '右侧'], ['top', '顶视']] as const).map(([preset, label]) => <button key={preset} aria-pressed={view === preset} onClick={() => chooseView(preset)}>{label}</button>)}</div><button className="button secondary compact" aria-label="复位相机" onClick={() => chooseView('front')}><RotateCcw size={14} />复位相机</button><button className="button secondary compact" disabled={!displayedTake || !selectedJoint || !ready || !!busy} onClick={() => focusCamera('joint')}><Focus size={14} />聚焦关节</button><span>仅改变观看，不修改动作</span></div></details></div></div>
-            <div className="stage-wrap"><Stage take={displayedTake} time={time} view={view} mirror={mirror} cameraState={camera ?? undefined} cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} cameraFocus={cameraFocus ?? undefined} onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction} selectedJoint={selectedJoint} onSelectJoint={chooseJoint} onJointPositionChange={handleJointPosition} poseOverride={manualEditing ? poseDraft : null} editMode={manualEditing && !modalOpen} transformTool={activeTransformTool} playing={playing} onJointRotationChange={handleJointRotation} onRootPositionChange={handleRootPosition} /><div className="stage-status"><span className="stage-tag">25 关节 · 原创骨架</span><span className="stage-hint"><span className="desktop-camera-hint">拖动旋转 · 右键平移 · 滚轮缩放</span><span className="mobile-camera-hint">单指旋转 · 双指平移/缩放</span></span></div><div className="count-overlay"><span>第 {currentCount.octet} 个八拍</span><strong>{currentCount.count}<small> / 8</small></strong></div>{!active.take && <div className="empty-overlay"><Sparkles size={24} /><strong>音乐准备好了</strong><p>生成模板初稿，开始查看你的组合。</p></div>}</div>
+            <div className="stage-wrap"><Stage take={displayedTake} time={time} view={view} mirror={mirror} cameraState={camera ?? undefined} cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} cameraFocus={cameraFocus ?? undefined} onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction} selectedJoint={selectedJoint} onSelectJoint={chooseJoint} onJointPositionChange={handleJointPosition} poseOverride={manualEditing ? poseDraft : null} editMode={manualEditing && !modalOpen} transformTool={activeTransformTool} playing={playing} onJointRotationChange={handleJointRotation} onRootPositionChange={handleRootPosition} /><div className="stage-status"><span className="stage-tag">原创人体 · 25 关节</span><span className="stage-hint"><span className="desktop-camera-hint">拖动旋转 · 右键平移 · 滚轮缩放</span><span className="mobile-camera-hint">单指旋转 · 双指平移/缩放</span></span></div><div className="count-overlay"><span>第 {currentCount.octet} 个八拍</span><strong>{currentCount.count}<small> / 8</small></strong></div>{!active.take && <div className="empty-overlay"><Sparkles size={24} /><strong>音乐准备好了</strong><p>生成模板初稿，开始查看你的组合。</p></div>}</div>
             <div className="stage-edit-tools">
               <div className="stage-tool-buttons" role="group" aria-label="舞台编辑工具">
                 <button aria-label="选择工具" aria-pressed={activeTransformTool === 'select'} className={activeTransformTool === 'select' ? 'selected' : ''} onClick={() => chooseTransformTool('select')} title="选择关节与移动相机；收起操作手柄"><MousePointer2 size={15} />选择</button>
@@ -864,7 +875,7 @@ export default function App() {
           </>} </aside>
         </div>
         {editorMode === 'keyframes' && manualSequence ? <KeyframeTimeline sequence={manualSequence} selectedJoint={selectedJoint} frame={editorFrame} onFrame={frame => seek(frameTime(frame, active.countMap.durationSeconds))} playing={playing} mirror={mirror} readOnly={!manualEditing || !!busy || modalOpen} onTransferKeyframes={requestKeyframeTransfer} /> : <section className="timeline-panel"><div className="timeline-heading"><div><div className="module-title"><span className="module-index">03</span><h2>{active.manual ? '基底八拍编排' : '你的八拍组合'} <span>{active.countMap.octetCount} 段</span></h2></div></div><button className="button compact secondary" onClick={generate} disabled={!!busy || !ready}>{busy ? <LoaderCircle className="spin" size={15} /> : <Sparkles size={15} />}{busy || (active.take ? '重新生成模板初稿' : '生成模板初稿')}</button></div><div className="octet-list" role="list" aria-label="八拍时间线">{slots.map((slot, index) => <button key={index} role="listitem" aria-label={`第${index + 1}个八拍 ${slot.label}`} className={`octet-card ${index === selected ? 'selected' : ''} ${playing && currentCount.octet === index + 1 ? 'playing' : ''}`} onClick={() => changeSelection(index)}><div className="octet-top"><span>{(index + 1).toString().padStart(2, '0')}</span>{index === selected ? <span className="selected-dot" /> : <span className="mini-wave"><i /><i /><i /></span>}</div><strong>{slot.label}</strong><small>{slot.startSeconds.toFixed(0)}–{slot.endSeconds.toFixed(0)} 秒</small><div className="count-ticks">{Array.from({ length: 8 }, (_, count) => <i key={count} className={playing && currentCount.octet === index + 1 && currentCount.count === count + 1 ? 'current' : ''} />)}</div></button>)}</div><div className="timeline-footer"><span><span className="legend-dot" />当前选择<span className="legend-dot pale" />完整八拍</span><span>{active.manual ? '手动编舞 · 卡片为基底标签' : '合成动作模板'} <i /> 作品 v{session.revision}</span></div></section>}
-        <footer className="workspace-footer"><span><span className="small-dot" />原创骨架 · 音乐与作品保存在本机</span><details className="editor-disclosure backup-menu"><summary>场景备份</summary><div className="backup-actions disclosure-content"><button onClick={exportProject} title="仅导出已写入的项目数据，不含音乐">下载项目备份</button><button onClick={() => { void exportFullScene(); }} disabled={!ready || !audioBlob || !!busy} title="包含原音乐、正式动作、历史和相机，可重新导入"><ArrowDownToLine size={14} />下载完整场景包</button></div></details></footer>
+        <footer className="workspace-footer"><span><span className="small-dot" />原创人体 · 音乐与作品保存在本机</span><details className="editor-disclosure backup-menu"><summary>场景备份</summary><div className="backup-actions disclosure-content"><button onClick={exportProject} title="仅导出已写入的项目数据，不含音乐">下载项目备份</button><button onClick={() => { void exportFullScene(); }} disabled={!ready || !audioBlob || !!busy} title="包含原音乐、正式动作、历史和相机，可重新导入"><ArrowDownToLine size={14} />下载完整场景包</button></div></details></footer>
       </section>
     </main>
     {notice && <div className="toast" role="status"><CheckCircle2 size={18} /><span>{notice}</span><button aria-label="关闭提示" onClick={() => setNotice('')}><X size={15} /></button></div>}
