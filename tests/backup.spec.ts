@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed, closeDisclosures } from './helpers';
+import { clickRevealed, closeDisclosures, reveal } from './helpers';
 
 // Independent legacy-compatible scene: a non-uniform base, moving Root and
 // Head arc expose accidental rebaking or data loss during local backup import.
@@ -211,7 +211,9 @@ test('@backup full scene bundles round-trip exact original audio, non-uniform an
   await clickRevealed(page, page.getByRole('button', { name: '复制当前姿态', exact: true, includeHidden: true }));
   await expect(page.getByLabel('已复制姿态', { exact: true })).toContainText('第 75 帧');
   await page.getByRole('button', { name: '背面', exact: true }).click();
-  await page.getByRole('combobox', { name: '播放速度', exact: true }).selectOption('0.5');
+  const speed = page.getByRole('combobox', { name: '播放速度', exact: true, includeHidden: true });
+  await reveal(page, speed); await speed.selectOption('0.5');
+  await closeDisclosures(page, '.kf-more');
   await clickRevealed(page, page.getByRole('button', { name: '教学预览', exact: true, includeHidden: true }));
   await page.getByRole('button', { name: '标记本版已试看', exact: true }).click();
   await save(page);
