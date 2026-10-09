@@ -51,6 +51,9 @@ function pngColors(png: Buffer): Set<string> {
 
 async function ready(page: Page) {
   await page.goto('/');
+  // Give media loading an ordinary user interaction without changing the
+  // scene, its initial clock or playback. The title has no editing action.
+  await page.locator('.project-title h1').click();
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeEnabled();
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.readyState)).toBeGreaterThanOrEqual(2);
 }
@@ -89,7 +92,9 @@ test('renders a nonblank 3D pose and advances audio time during playback', async
   await page.getByRole('button', { name: '播放', exact: true }).click();
   await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeVisible();
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.currentTime)).toBeGreaterThan(1);
-  await expect.poll(() => page.getByRole('slider', { name: '关键帧时间线进度', exact: true }).inputValue().then(Number)).toBeGreaterThan(30);
+  // The source timeline stores exact seconds, including nonuniform imported
+  // timestamps; playback must advance the actual scene clock beside the audio.
+  await expect.poll(() => page.getByRole('slider', { name: '关键帧时间线进度', exact: true }).inputValue().then(Number)).toBeGreaterThan(1);
   await page.getByRole('button', { name: '暂停', exact: true }).click();
   const movingFrame = await canvas.screenshot();
   expect(movingFrame.equals(initialFrame), 'Displayed pose should respond to playback time').toBe(false);

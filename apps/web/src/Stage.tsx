@@ -15,7 +15,7 @@ export type StageCameraFocus = { key: number; kind: 'actor' | 'joint'; joint?: J
 export type StageTransformTool = 'select' | 'rotate' | 'translate' | 'ik';
 export type StageIKEffector = 'LeftHand' | 'RightHand' | 'LeftFoot' | 'RightFoot';
 
-/** Terminal selections manipulate their limb end, never their read-only rotation. */
+/** IK terminal selections manipulate their limb end; rotation edits remain local. */
 export function getIKEffector(joint: JointName | null | undefined): StageIKEffector | null {
   if (!joint) return null;
   for (const side of ['Left', 'Right'] as const) {
@@ -59,6 +59,8 @@ type StageProps = {
   onJointRotationChange?: (joint: JointName, rotation: Quat, phase: 'start' | 'change' | 'end') => void;
   onRootPositionChange?: (position: Vec3, phase: 'start' | 'change' | 'end') => void;
   onIKTargetChange?: (effector: StageIKEffector, target: Vec3, phase: 'start' | 'change' | 'end') => void;
+  /** Roll back the active gesture on Escape, pointer cancellation or focus loss. */
+  onTransformCancel?: () => void;
 };
 
 type PreviewRig = {
@@ -106,7 +108,7 @@ function createPreviewRig(): PreviewRig {
 
 /** Clicking the skin selects the part it actually follows, not an empty-space
  * approximation. Fingertips and sole regions lead to their editable wrist or
- * ankle; the small explicit nodes still allow read-only terminal inspection. */
+ * ankle; the small explicit nodes allow terminal channel editing as well. */
 function surfaceJoint(hit: THREE.Intersection): JointName | null {
   if (!hit.face || !hit.barycoord) return null;
   const surface = hit.object;
@@ -345,6 +347,8 @@ export function Stage(props: StageProps) {
     let draggingJoint: JointName | null = null;
     let draggingRoot = false;
     let draggingIK: StageIKEffector | null = null;
+    let transformGesture: { kind: 'joint'; joint: JointName; value: Quat } |
+      { kind: 'root'; value: Vec3 } | { kind: 'ik'; effector: StageIKEffector; value: Vec3 } | null = null;
     let previousIKEffector: StageIKEffector | null = null;
     let residualSignature = '';
     let poseNeedsApply = false;
@@ -478,7 +482,7 @@ export function Stage(props: StageProps) {
 
     function canRotate() {
       const selected = selectionRef.current;
-      return canEdit() && activeTool() === 'rotate' && !!selected && EDITABLE_JOINT_SET.has(selected);
+      return canEdit() && activeTool() === 'rotate' && !!selected;
     }
 
     function canTranslate() {
@@ -494,12 +498,29 @@ export function Stage(props: StageProps) {
       controls.enabled = blockedTransformPointers.size === 0 && (!transform.enabled || (!transform.dragging && transform.axis === null));
     }
 
-    function transformFeedback(phase: 'start' | 'change' | 'end') {
+    function publishTransform(gesture: NonNullable<typeof transformGesture>, phase: 'start' | 'change' | 'end') {
+      if (gesture.kind === 'ik') current.current.onIKTargetChange?.(gesture.effector, [...gesture.value] as Vec3, phase);
+      else if (gesture.kind === 'root') current.current.onRootPositionChange?.([...gesture.value] as Vec3, phase);
+      else current.current.onJointRotationChange?.(gesture.joint, [...gesture.value] as Quat, phase);
+    }
+
+    function finishTransform(rollback = false) {
+      const gesture = transformGesture;
+      // Native mouseUp, pointer capture release and our document fallback can
+      // all describe the same end. Clear ownership before invoking the editor.
+      transformGesture = null;
+      if (!gesture) return;
+      if (rollback && current.current.onTransformCancel) current.current.onTransformCancel();
+      else publishTransform(gesture, 'end');
+    }
+
+    function transformFeedback(phase: 'start' | 'change') {
+      let next: typeof transformGesture = null;
       if (draggingIK && canIK()) {
         const position = ikGoal.position;
         if (!position.toArray().every(Number.isFinite)) return;
-        position.clampScalar(-20, 20);
-        current.current.onIKTargetChange?.(draggingIK, position.toArray() as Vec3, phase);
+        if (phase === 'change') position.clampScalar(-20, 20);
+        next = { kind: 'ik', effector: draggingIK, value: position.toArray() as Vec3 };
       } else if (draggingRoot && canTranslate()) {
         const position = rig.root.position;
         if (![position.x, position.y, position.z].every(Number.isFinite)) {
@@ -509,21 +530,32 @@ export function Stage(props: StageProps) {
         }
         // Native limits constrain the object itself; keep emitted draft data in
         // the same bounds even if another control changes the object mid-drag.
-        position.x = THREE.MathUtils.clamp(position.x, ...ROOT_TRANSLATION_LIMITS.x);
-        position.y = THREE.MathUtils.clamp(position.y, ...ROOT_TRANSLATION_LIMITS.y);
-        position.z = THREE.MathUtils.clamp(position.z, ...ROOT_TRANSLATION_LIMITS.z);
-        current.current.onRootPositionChange?.(position.toArray() as Vec3, phase);
+        if (phase === 'change') {
+          position.x = THREE.MathUtils.clamp(position.x, ...ROOT_TRANSLATION_LIMITS.x);
+          position.y = THREE.MathUtils.clamp(position.y, ...ROOT_TRANSLATION_LIMITS.y);
+          position.z = THREE.MathUtils.clamp(position.z, ...ROOT_TRANSLATION_LIMITS.z);
+        }
+        next = { kind: 'root', value: position.toArray() as Vec3 };
       } else if (draggingJoint && canRotate()) {
         const quaternion = rig.joints.get(draggingJoint)!.quaternion;
         if (!quaternion.toArray().every(Number.isFinite) || quaternion.lengthSq() <= Number.EPSILON) return;
-        const rotation = constrainJointRotation(draggingJoint, quaternion.toArray() as Quat);
-        quaternion.set(...rotation);
-        current.current.onJointRotationChange?.(draggingJoint, rotation, phase);
+        // Pressing a handle must not repair an imported author pose. Apply the
+        // normal human guidance only after movement; terminal channels have no
+        // anatomical envelope and retain a normalized local rotation.
+        const rotation = phase === 'start' ? quaternion.toArray() as Quat :
+          EDITABLE_JOINT_SET.has(draggingJoint) ? constrainJointRotation(draggingJoint, quaternion.toArray() as Quat) :
+            quaternion.clone().normalize().toArray() as Quat;
+        if (phase === 'change') quaternion.set(...rotation);
+        next = { kind: 'joint', joint: draggingJoint, value: rotation };
       }
+      if (!next) return;
+      transformGesture = next;
+      publishTransform(next, phase);
     }
 
-    function cancelTransform() {
+    function cancelTransform(rollback = false) {
       const canceledPointerId = pointerStart?.id;
+      finishTransform(rollback);
       // Capture can be released while the pointer is still held; its eventual
       // pointerup may land outside this canvas. Clear our gesture state now.
       pointerStart = null;
@@ -558,8 +590,8 @@ export function Stage(props: StageProps) {
     function cancelForCameraFocus() {
       const heldPointers = new Set(activePointers);
       if (pointerStart) heldPointers.add(pointerStart.id);
-      // The last objectChange already produced the current draft. Ending a
-      // camera action must not emit another pose change or commit it.
+      // Finish the last valid edit before framing so its channel is committed
+      // once even when the native pointerup can no longer reach the canvas.
       cancelTransform();
       controls.disconnect();
       controls.connect(canvas);
@@ -799,7 +831,6 @@ export function Stage(props: StageProps) {
         // which do not distinguish pointer IDs. Retain the last valid draft,
         // then block this whole touch group until all fingers are released.
         const gesturePointers = [...activePointers, event.pointerId];
-        transformFeedback('end');
         cancelTransform();
         for (const id of gesturePointers) blockedTransformPointers.add(id);
         transform.enabled = false;
@@ -903,11 +934,33 @@ export function Stage(props: StageProps) {
       if (activePointers.size === 0) cameraGesture = false;
       pointerStart = null;
       canvas.classList.remove('is-dragging');
-      if (transform.dragging) {
-        transformFeedback('end');
-        cancelTransform();
-      }
+      if (transform.dragging || transformGesture) cancelTransform(true);
       clearHover();
+    }
+
+    function onDocumentPointerEnd(event: PointerEvent) {
+      if (!transformGesture || pointerStart?.id !== event.pointerId) return;
+      if (event.type === 'pointercancel') onPointerCancel(event);
+      else {
+        // Capture runs before TransformControls releases pointer capture. The
+        // following native mouseUp is harmless because ownership is cleared.
+        finishTransform();
+        if (event.target !== canvas) cancelTransform();
+      }
+      schedule();
+    }
+
+    function onGestureKeyDown(event: KeyboardEvent) {
+      if (!transformGesture || event.key !== 'Escape' || event.isComposing) return;
+      event.preventDefault();
+      cancelTransform(true);
+      schedule();
+    }
+
+    function onWindowBlur() {
+      if (!transformGesture) return;
+      cancelTransform(true);
+      schedule();
     }
 
     function onPointerLeave() {
@@ -938,15 +991,21 @@ export function Stage(props: StageProps) {
 
     function onTransformObjectChange() {
       if (!transform.dragging) return;
+      if (transform.object !== desiredTransformObject() || current.current.take !== previousTake || current.current.time !== previousTime) {
+        cancelTransform();
+        schedule();
+        return;
+      }
       transformFeedback('change');
       schedule();
     }
 
     function onTransformEnd() {
-      transformFeedback('end');
+      finishTransform();
       draggingJoint = null;
       draggingRoot = false;
       draggingIK = null;
+      poseNeedsApply = true;
       schedule();
     }
 
@@ -960,6 +1019,7 @@ export function Stage(props: StageProps) {
 
     function onContextLost(event: Event) {
       event.preventDefault();
+      cancelTransform(true);
       stopped = true;
       humanLoad.abort();
       window.cancelAnimationFrame(frame);
@@ -975,6 +1035,10 @@ export function Stage(props: StageProps) {
     canvas.addEventListener('pointermove', onBlockedPointerMove, true);
     document.addEventListener('pointerup', onBlockedPointerEnd, true);
     document.addEventListener('pointercancel', onBlockedPointerEnd, true);
+    document.addEventListener('pointerup', onDocumentPointerEnd, true);
+    document.addEventListener('pointercancel', onDocumentPointerEnd, true);
+    document.addEventListener('keydown', onGestureKeyDown, true);
+    window.addEventListener('blur', onWindowBlur);
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('pointerup', onPointerUp);
@@ -1003,6 +1067,10 @@ export function Stage(props: StageProps) {
       canvas.removeEventListener('pointermove', onBlockedPointerMove, true);
       document.removeEventListener('pointerup', onBlockedPointerEnd, true);
       document.removeEventListener('pointercancel', onBlockedPointerEnd, true);
+      document.removeEventListener('pointerup', onDocumentPointerEnd, true);
+      document.removeEventListener('pointercancel', onDocumentPointerEnd, true);
+      document.removeEventListener('keydown', onGestureKeyDown, true);
+      window.removeEventListener('blur', onWindowBlur);
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
@@ -1032,7 +1100,7 @@ export function Stage(props: StageProps) {
   }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraFocus, bottomOverlayInset, selection, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool, ikTarget]);
 
   return (
-    <div className="stage3d" ref={containerRef} data-camera-offset-y="0" tabIndex={editMode ? 0 : undefined} role="region" aria-label="3D 动画舞台" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined} aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space K Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y Alt+ArrowUp Alt+ArrowDown' : undefined} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }} onKeyDown={event => {
+    <div className="stage3d" ref={containerRef} data-camera-offset-y="0" tabIndex={editMode ? 0 : undefined} role="region" aria-label="3D 动画舞台" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined} aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y Alt+ArrowUp Alt+ArrowDown' : undefined} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }} onKeyDown={event => {
       if (!editMode || event.nativeEvent.isComposing || !event.altKey || event.ctrlKey || event.metaKey || !['ArrowUp', 'ArrowDown'].includes(event.key)
         || (event.target !== containerRef.current && !(event.target instanceof HTMLCanvasElement))) return;
       event.preventDefault();
@@ -1055,8 +1123,8 @@ export function Stage(props: StageProps) {
         </div>}
         {hover && <div className="stage3d-joint-tooltip" style={{ left: hover.x, top: hover.y }} aria-hidden="true">{STAGE_JOINT_LABELS[hover.joint]}<span>点击选择</span></div>}
         {editMode && <div className={`stage3d-edit-indicator${transformTool === 'ik' ? ' is-ik' : ''}`} aria-label={transformTool === 'translate' ? 'Root 世界位移' : transformTool === 'ik' ? 'IK 手脚目标' : transformTool === 'rotate' ? '关节局部旋转' : '关节选择'}>
-          {(selection || transformTool === 'translate') && <output className="stage3d-selected-part" aria-label="选中姿态状态" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined}>{transformTool === 'translate' ? '角色' : STAGE_JOINT_LABELS[selection!]} · {!playing && poseOverride ? '草稿' : '正式'}</output>}
-          {playing ? '播放期间不可编辑' : mirror ? '关闭镜像后编辑' : transformTool === 'select' ? '点身体部位选择' : transformTool === 'translate' ? <>整体移动<span>{transformAxis ? `${transformAxis}轴` : '拖箭头调整位置'}</span></> : transformTool === 'ik' ? !getIKEffector(selection) ? '点手或脚，再拖箭头摆姿' : <>手脚协调<span>{transformAxis ? `${transformAxis}轴` : '拖箭头摆姿'}</span>{ikResidual !== null && ikResidual > 0.015 && <span className="stage3d-ik-residual" role="status">目标差 {(ikResidual * 100).toFixed(1)} cm</span>}</> : !selection ? '点身体部位，再拖彩色环摆姿' : !EDITABLE_JOINT_SET.has(selection) ? '末端关节仅查看' : <>旋转<span>{transformAxis ? `${transformAxis}轴` : '拖彩色环摆姿'}</span></>}
+          {(selection || transformTool === 'translate') && <output className="stage3d-selected-part" aria-label="选中姿态状态" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined}>{transformTool === 'translate' ? '角色' : STAGE_JOINT_LABELS[selection!]} · {!playing && poseOverride ? '编辑中' : '已记录'}</output>}
+          {playing ? '播放期间不可编辑' : mirror ? '关闭镜像后编辑' : transformTool === 'select' ? '点身体部位选择' : transformTool === 'translate' ? <>整体移动<span>{transformAxis ? `${transformAxis}轴` : '拖箭头调整位置'}</span></> : transformTool === 'ik' ? !getIKEffector(selection) ? '点手或脚，再拖箭头摆姿' : <>手脚协调<span>{transformAxis ? `${transformAxis}轴` : '拖箭头摆姿'}</span>{ikResidual !== null && ikResidual > 0.015 && <span className="stage3d-ik-residual" role="status">目标差 {(ikResidual * 100).toFixed(1)} cm</span>}</> : !selection ? '点身体部位，再拖彩色环摆姿' : <>旋转<span>{transformAxis ? `${transformAxis}轴` : '拖彩色环摆姿'}</span></>}
           {guidanceWarning}
         </div>}
         {!editMode && (poseGuidance.outsideSuggestedRange.length > 0 || poseGuidance.shoulderCoupling.length > 0) && <div className="stage3d-edit-indicator" aria-label="姿态建议提示">{guidanceWarning}</div>}

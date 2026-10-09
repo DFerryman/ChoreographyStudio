@@ -1,4 +1,4 @@
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, type Page, type TestInfo } from '@playwright/test';
 import { PerspectiveCamera, Vector3 } from 'three';
@@ -7,6 +7,7 @@ import type { SceneDocument } from '../apps/web/src/scene';
 import type { SceneProject } from '../apps/web/src/sceneProject';
 import { clickRevealed, closeDisclosures, reveal } from './helpers';
 import { applyStageViewOffset, editStageValue, selectStageJoint } from './stageInteractions';
+import { unpackScene } from '../apps/web/src/compactScene';
 
 export type Backup = { scene: SceneDocument<SceneProject> };
 export const current = (backup: Backup) => backup.scene.project.history[backup.scene.project.historyIndex];
@@ -46,6 +47,9 @@ export function fixture(floating = false) {
 
 export async function ready(page: Page) {
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeEnabled();
+  // Headless Chromium may defer valid local media until a native user
+  // activation. A title click activates it without changing playback or data.
+  await page.locator('.project-title h1').click();
   await expect(page.getByLabel('相机世界坐标')).not.toContainText('—');
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.readyState)).toBeGreaterThanOrEqual(2);
 }
@@ -74,7 +78,8 @@ export async function openFixture(page: Page, floating = false, mutate?: (source
 export async function backup(page: Page): Promise<Backup> {
   const pending = page.waitForEvent('download'); await clickRevealed(page, hiddenButton(page, '下载项目备份'));
   const path = await (await pending).path(); expect(path).toBeTruthy();
-  const document = JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  const wire = JSON.parse(await readFile(path!, 'utf8'));
+  const document = { ...wire, scene: wire.format === 'choreo-scene-backup-2' ? unpackScene(wire.scene) : wire.scene } as Backup;
   await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
   return document;
 }
@@ -105,8 +110,9 @@ export async function projection(page: Page, backup: Backup) {
   return { canvas, point: (world: Vec3) => { const point = new Vector3(...world).project(camera); return { x: box.x + (point.x + 1) * box.width / 2, y: box.y + (1 - point.y) * box.height / 2 }; } };
 }
 export async function screenshot(page: Page, info: TestInfo, name: string) {
-  await info.attach(name, { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
-  if (process.env.CHOREO_SCREENSHOT_DIR) { await mkdir(process.env.CHOREO_SCREENSHOT_DIR, { recursive: true }); await page.screenshot({ path: join(process.env.CHOREO_SCREENSHOT_DIR, name), fullPage: true }); }
+  const pixels = await page.screenshot({ fullPage: true });
+  await info.attach(name, { body: pixels, contentType: 'image/png' });
+  if (process.env.CHOREO_SCREENSHOT_DIR) { await mkdir(process.env.CHOREO_SCREENSHOT_DIR, { recursive: true }); await writeFile(join(process.env.CHOREO_SCREENSHOT_DIR, name), pixels); }
 }
 
 export function diagnostics(page: Page) {

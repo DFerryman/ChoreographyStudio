@@ -1,65 +1,103 @@
-/* Keep the stage at the full viewport size; editing controls float above it. */
+/* The viewport belongs to the stage; compact controls float above it. */
 .minimal-studio { background: #171b24; }
-.minimal-studio .topbar { min-height: 52px; height: 52px; padding: 6px 16px; gap: 12px; position: relative; z-index: 30; flex-wrap: nowrap; }
-.minimal-studio .project-title { gap: 5px; }
-.minimal-studio .project-title h1 { font-size: 15px; font-weight: 550; }
-.minimal-studio .project-tools { width: auto; justify-content: flex-end; gap: 8px; }
-.minimal-studio .save-state { font-size: 10px; }
+.minimal-studio .topbar { position: relative; z-index: 30; min-height: 52px; height: 52px; padding: 6px 16px; gap: 12px; flex-wrap: nowrap; border-bottom: 1px solid #ffffff0c; color: #e1e7f0; background: #1d232d; }
+.minimal-studio .project-title { gap: 7px; }
+.minimal-studio .project-title h1 { font-size: 14px; font-weight: 550; letter-spacing: 0; }
+.minimal-studio .project-title .rename-current { color: #7e8ca1; }
+.minimal-studio .project-tools { width: auto; justify-content: flex-end; gap: 7px; }
+.minimal-studio .save-state { color: #8c9ab0; font-size: 10px; }
+.minimal-studio .save-state.saved { display: none; }
+.minimal-studio .project-tools > .button { min-height: 34px; padding-inline: 11px; gap: 6px; border-color: #ffffff13; border-radius: 7px; color: #c4cfdf; background: #ffffff03; font-size: 12px; }
+.minimal-studio .project-tools > .button:hover:not(:disabled) { color: #eaf2ff; border-color: #ffffff26; background: #ffffff09; }
+.minimal-studio .history-tools { padding-right: 7px; border-color: #ffffff12; }
+.minimal-studio .history-tools > .icon-button { width: 34px; height: 34px; color: #9cabc0; }
+.minimal-studio .history-tools > .icon-button:hover:not(:disabled) { color: #dfebfc; background: #ffffff09; }
 .minimal-studio .workspace-content { padding: 0; max-width: none; }
 .immersive-studio .studio-grid { display: block; margin: 0; }
 .immersive-studio .viewer-panel { position: relative; border: 0; border-radius: 0; overflow: visible; background: #171b24; }
 .immersive-studio .stage-wrap { flex: none; height: calc(100dvh - 52px); min-height: 430px; border: 0; }
-.immersive-studio .viewer-toolbar { position: absolute; z-index: 12; top: 12px; right: 16px; padding: 0; min-height: 0; border: 0; background: transparent; }
+.immersive-studio .viewer-toolbar { position: absolute; z-index: 12; top: 14px; right: 16px; padding: 0; min-height: 0; border: 0; background: transparent; }
 .immersive-studio .viewer-title { display: none; }
-.immersive-studio .camera-toolbar { padding: 3px 5px; gap: 6px; border: 1px solid #ffffff22; border-radius: 9px; background: #202630db; color: #d5dce7; backdrop-filter: blur(12px); }
+.immersive-studio .camera-toolbar { padding: 4px; gap: 3px; border: 1px solid #ffffff16; border-radius: 10px; background: #232b37e6; color: #d5dce7; box-shadow: 0 4px 16px #0000000d; backdrop-filter: blur(16px); }
 .immersive-studio .camera-toolbar .segmented { background: transparent; border: 0; }
-.immersive-studio .camera-toolbar .segmented > button { color: #b0bac9; }
-.immersive-studio .camera-toolbar .segmented > button.selected { background: #45546b; color: #fff; box-shadow: none; }
-.immersive-studio .camera-options > summary { color: #bac8d9; }
-.immersive-studio .camera-options .disclosure-content { top: calc(100% + 8px); right: 0; z-index: 31; color: #506074; background: #fff; }
-.immersive-studio .stage-edit-tools { position: absolute; top: 12px; left: 16px; z-index: 12; padding: 3px; margin: 0; border: 1px solid #ffffff22; border-radius: 9px; background: #202630db; backdrop-filter: blur(12px); }
+.immersive-studio .camera-toolbar .segmented > button { min-height: 34px; padding-inline: 12px; border-radius: 6px; color: #9aa9bf; font-size: 12px; }
+.immersive-studio .camera-toolbar .segmented > button.selected { background: #415269; color: #eff5ff; box-shadow: inset 0 1px #ffffff08; }
+.immersive-studio .camera-toolbar > .icon-button, .immersive-studio .camera-options > summary { width: 34px; min-height: 34px; color: #a4b2c6; }
+.immersive-studio .camera-toolbar > .icon-button:hover:not(:disabled), .immersive-studio .camera-options > summary:hover { color: #e4efff; background: #ffffff09; }
+.immersive-studio .camera-options .disclosure-content { top: calc(100% + 10px); right: 0; z-index: 31; color: #506074; background: #fff; }
+.immersive-studio .camera-options .disclosure-content .segmented > button { min-height: 44px; border: 1px solid #e0e7ef; color: #60758f; background: #f0f4f9; }
+.immersive-studio .camera-options .disclosure-content .segmented > button[aria-pressed='true'] { border-color: #bdd4ed; color: #3c628e; background: #e3edf9; }
+.immersive-studio .camera-options .disclosure-content .button { border-color: #dce5ee; color: #60758f; background: #f0f4f9; font-size: 12px; }
+.immersive-studio .camera-options .disclosure-content .button:hover:not(:disabled) { border-color: #bfd2e6; color: #42668d; background: #e8f0f9; }
+.immersive-studio .camera-options .disclosure-content > span { color: #8a9aab; font-size: 11px; }
+.immersive-studio .stage-edit-tools { position: absolute; top: 14px; left: 16px; z-index: 12; padding: 4px; margin: 0; border: 1px solid #ffffff16; border-radius: 10px; background: #232b37e6; box-shadow: 0 4px 16px #0000000d; backdrop-filter: blur(16px); }
 .immersive-studio .stage-tool-buttons { gap: 3px; }
-.immersive-studio .stage-tool-buttons > button { min-height: 34px; border: 0; border-radius: 6px; color: #b3c0d0; padding: 6px 10px; font-size: 11px; background: transparent; }
-.immersive-studio .stage-tool-buttons > button.selected { color: #eff5ff; background: #45546b; }
+.immersive-studio .stage-tool-buttons > button { min-height: 34px; border: 0; border-radius: 6px; color: #a4b2c6; padding: 6px 11px; font-size: 12px; background: transparent; }
+.immersive-studio .stage-tool-buttons > button:hover:not(:disabled) { color: #e4efff; background: #ffffff09; }
+.immersive-studio .stage-tool-buttons > button.selected { color: #eef5ff; background: #415269; box-shadow: inset 0 1px #ffffff08; }
 .immersive-studio .stage-tool-help { display: none; }
 .immersive-studio .stage3d-gizmo { display: none; }
-.immersive-studio .stage3d-edit-indicator { bottom: auto; top: 64px; left: 16px; background: #202630ba; border: 0; font-size: 11px; }
-.timeline-overlay { position: absolute; z-index: 15; bottom: 14px; left: 14px; right: 14px; pointer-events: auto; }
+.immersive-studio .stage3d-edit-indicator { bottom: auto; top: 68px; left: 16px; padding: 6px 9px; border: 1px solid #ffffff08; border-radius: 6px; color: #bdc9db; background: #232b37b8; font-size: 10px; }
+.timeline-overlay { position: absolute; z-index: 15; bottom: 16px; left: 16px; right: 16px; pointer-events: auto; }
 .studio-more { position: relative; }
-.studio-more > summary, .scene-extras > summary { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; list-style: none; cursor: pointer; border-radius: 6px; }
+.studio-more > summary, .scene-extras > summary { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; list-style: none; cursor: pointer; border-radius: 7px; color: #a4b2c6; }
 .studio-more > summary::-webkit-details-marker, .scene-extras > summary::-webkit-details-marker { display: none; }
-.studio-more > summary:hover { background: #f0f3f7; }
-.studio-more-content { position: absolute; right: 0; top: 40px; z-index: 40; display: flex; flex-direction: column; gap: 12px; width: 260px; padding: 16px; border: 1px solid #dfe5ed; border-radius: 10px; background: #fff; box-shadow: 0 12px 42px #0003; }
+.studio-more > summary:hover { color: #e4efff; background: #ffffff09; }
+.studio-more-content { position: absolute; right: 0; top: 44px; z-index: 40; display: flex; flex-direction: column; gap: 12px; width: 260px; padding: 16px; border: 1px solid #dfe5ed; border-radius: 12px; color: #56677c; background: #f9fbfd; box-shadow: 0 16px 44px #07132950; }
 .studio-more-content > button { min-height: 36px; text-align: left; font-size: 12px; }
 .studio-more .workspace-mode { margin: 0; }
-.scene-extras { position: absolute; right: 16px; top: 60px; z-index: 13; color: #b3c0d0; }
-.scene-extras > summary { background: #202630db; border: 1px solid #ffffff22; }
-.scene-extras-content { position: absolute; right: 0; top: 42px; z-index: 40; width: min(440px, calc(100vw - 28px)); max-height: calc(100dvh - 190px); overflow: auto; padding: 12px; color: #576879; background: #fff; border-radius: 10px; box-shadow: 0 12px 42px #0004; }
+.scene-extras { position: absolute; right: 16px; top: 66px; z-index: 13; color: #a4b2c6; }
+.scene-extras > summary { background: #232b37e6; border: 1px solid #ffffff16; }
+.scene-extras-content { position: absolute; right: 0; top: 44px; z-index: 40; width: min(440px, calc(100vw - 28px)); max-height: calc(100dvh - 190px); overflow: auto; padding: 12px; color: #576879; background: #f9fbfd; border-radius: 12px; box-shadow: 0 16px 44px #07132950; }
 .scene-extras .scene-spacebar { display: flex; flex-direction: column; align-items: flex-start; }
 .scene-extras .realism-panel, .scene-extras .ai-panel { margin: 0; border: 0; }
-.immersive-studio .missing-audio { position: absolute; z-index: 32; top: 100px; left: 14px; right: 14px; }
-.immersive-studio .assist-candidate { position: absolute; z-index: 28; left: 14px; right: 14px; top: 150px; background: #fff; }
-.minimal-studio .toast { z-index: 60; bottom: 24px; }
+.immersive-studio .missing-audio { position: absolute; z-index: 32; top: 100px; left: 16px; right: 16px; }
+.immersive-studio .assist-candidate { position: absolute; z-index: 28; left: 16px; right: 16px; top: 150px; background: #fff; }
+.minimal-studio .toast { z-index: 60; bottom: 24px; pointer-events: none; }
+.minimal-studio .toast > button { width: 44px; min-height: 44px; pointer-events: auto; }
+.immersive-studio .toast { bottom: calc(var(--timeline-overlay-height, 0px) + 26px); padding: 7px 11px; }
 @media (max-width: 680px) {
-  .minimal-studio .topbar { padding: 6px 8px; gap: 4px; height: 52px; flex-wrap: nowrap; }
-  .minimal-studio .project-title h1 { font-size: 12px; max-width: 120px; }
-  .minimal-studio .project-title .rename-current { width: 22px; height: 28px; }
-  .minimal-studio .project-tools { gap: 3px; }
-  .minimal-studio .project-tools .button { padding: 6px; font-size: 11px; min-height: 36px; }
-  .minimal-studio .history-tools { gap: 0; padding: 0; }
-  .minimal-studio .history-tools .icon-button { width: 28px; height: 34px; }
+  .minimal-studio .topbar { padding: 4px 6px; gap: 4px; height: 52px; flex-wrap: nowrap; }
+  .minimal-studio .project-title { flex: 1; gap: 3px; min-width: 0; }
+  .minimal-studio .project-title h1 { max-width: 112px; min-width: 0; font-size: 12px; }
+  .minimal-studio .project-title .rename-current { width: 20px; height: 44px; }
+  .minimal-studio .project-tools { flex: none; gap: 2px; }
+  .minimal-studio .project-tools > .button { width: 44px; min-width: 44px; min-height: 44px; padding: 0; gap: 3px; flex-direction: column; border-color: transparent; background: transparent; font-size: 11px; line-height: 1; }
+  .minimal-studio .project-tools > .button > svg { width: 17px; height: 17px; }
+  .minimal-studio .history-tools { gap: 0; padding: 0; border: 0; }
+  .minimal-studio .history-tools > .icon-button { width: 44px; height: 44px; }
   .minimal-studio .save-state { position: absolute; top: 58px; left: 10px; color: #a8b8ca; pointer-events: none; font-size: 9px; }
   .immersive-studio .stage-wrap { min-height: 550px; }
   .immersive-studio .stage-edit-tools { top: 28px; left: 8px; }
-  .immersive-studio .stage-tool-buttons > button { min-height: 44px; padding: 6px 8px; }
+  .immersive-studio .stage-tool-buttons > button { min-height: 44px; padding: 6px 9px; }
   .immersive-studio .stage-tool-buttons > button > svg { width: 14px; }
-  .immersive-studio .viewer-toolbar { top: 80px; right: 8px; }
+  .immersive-studio .viewer-toolbar { top: 86px; right: 8px; }
   .immersive-studio .camera-toolbar .segmented { display: none; }
-  .immersive-studio .stage3d-edit-indicator { top: 83px; left: 8px; max-width: calc(100% - 112px); }
-  .scene-extras { top: 130px; right: 8px; }
+  .immersive-studio .camera-toolbar > .icon-button, .immersive-studio .camera-options > summary { width: 44px; min-height: 44px; }
+  .immersive-studio .stage3d-edit-indicator { top: 87px; left: 8px; max-width: calc(100% - 116px); }
+  .scene-extras { top: 146px; right: 8px; }
+  .scene-extras > summary { width: 44px; height: 44px; }
   .timeline-overlay { left: 6px; right: 6px; bottom: max(6px, env(safe-area-inset-bottom)); }
-  .studio-more > summary { width: 28px; }
+  .studio-more > summary { width: 44px; height: 44px; }
+  .studio-more-content > button, .studio-more-content summary { min-height: 44px; }
 }
-
 .scene-extras[open] { z-index: 25; }
 .immersive-studio .viewer-toolbar:has(.camera-options[open]) { z-index: 26; }
+@media (max-width: 360px) {
+  .immersive-studio .stage-tool-buttons > button { padding-inline: 6px; }
+}
+
+/* Operation history floats over the stage without changing toolbar height. */
+.operation-history { position: relative; flex: none; }
+.operation-history > summary { display: grid; place-items: center; min-width: 34px; height: 34px; padding: 0 4px; border-radius: 5px; color: #9cabc0; font-size: 10px; list-style: none; cursor: pointer; }
+.operation-history > summary::-webkit-details-marker { display: none; }
+.operation-history > summary:hover { color: #dfebfc; background: #ffffff09; }
+.operation-history-list { position: absolute; z-index: 45; top: calc(100% + 9px); right: 0; width: min(320px,calc(100vw - 16px)); max-height: min(60vh,430px); overflow-y: auto; padding: 10px; border: 1px solid #dfe5ed; border-radius: 9px; color: #617184; background: #f9fbfd; box-shadow: 0 12px 38px #07132950; }
+.operation-history:not([open]) .operation-history-list { display: none; }
+.operation-history-list > small { display: block; padding: 2px 4px 8px; color: #93a0ae; font-size: 9px; }
+.operation-history-list > button { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 32px; padding: 6px; border: 1px solid transparent; border-radius: 5px; color: #6c7e90; font-size: 10px; text-align: left; }
+.operation-history-list > button > small { flex: none; color: #96a4b3; font-size: 9px; }
+.operation-history-list > button:hover:not(:disabled) { background: #edf2f8; }
+.operation-history-list > button.current { border-color: #c1d4e8; color: #47759f; background: #e8f1fa; }
+.operation-history-list > button.undone { color: #a4b0bc; }
+@media (max-width: 680px) { .operation-history > summary { min-width: 30px; height: 44px; } .operation-history-list > button { min-height: 39px; } }

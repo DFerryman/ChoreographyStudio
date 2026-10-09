@@ -3,6 +3,7 @@ import { expect, type Page } from '@playwright/test';
 import { PerspectiveCamera, Plane, Quaternion, Raycaster, Vector2, Vector3 } from 'three';
 import { JOINT_NAMES, evaluatePose, rotationFromDegrees, rotationToDegrees, sampleTake, type JointName, type Pose, type Quat, type Vec3 } from '../packages/core/src';
 import { clickRevealed, closeDisclosures, reveal } from './helpers';
+import { unpackScene } from '../apps/web/src/compactScene';
 
 // These helpers operate the same canvas, handles and native disclosures as a
 // teacher. They do not mutate React state or introduce an editor-only test API.
@@ -35,6 +36,7 @@ async function exported(page: Page): Promise<Exported> {
   const path = await (await pending).path();
   expect(path).toBeTruthy();
   const document = JSON.parse(await readFile(path!, 'utf8'));
+  if (document.format === 'choreo-scene-backup-2') document.scene = unpackScene(document.scene);
   await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
   return document;
 }

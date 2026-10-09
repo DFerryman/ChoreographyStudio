@@ -1,9 +1,10 @@
-import { editStageValue, selectStageJoint, expectGestureRootKeys } from './stageInteractions';
+import { editStageValue, selectStageJoint } from './stageInteractions';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed, closeDisclosures } from './helpers';
+import { clickRevealed, closeDisclosures, reveal } from './helpers';
+import { unpackScene } from '../apps/web/src/compactScene';
 
 // Independent legacy-compatible scene: a non-uniform base, moving Root and
 // Head arc expose accidental rebaking or data loss during local backup import.
@@ -19,8 +20,8 @@ type Vec3 = [number, number, number];
 type Quat = [number, number, number, number];
 type Pose = { root: Vec3; joints: Record<Joint, Quat> };
 type Take = { id: string; schemaVersion: string; planId: string; countMapId: string; durationSeconds: number; times: number[]; poses: Pose[]; provenance: string };
-type Sequence = { schema: 'manual-keyframes-1'; id: string; fps: 30; baseTake: Take; rotations: Partial<Record<Joint, { frame: number; rotation: Quat }[]>>; root: { frame: number; position: Vec3 }[] };
-type Snapshot = { title: string; countMap: { id: string; durationSeconds: number }; plan: unknown; take: Take; manual?: Sequence };
+type Sequence = { schema: 'manual-keyframes-1'; id: string; fps: 30; baseTake: Take; rotations: Partial<Record<Joint, { frame: number; rotation: Quat }[]>>; root: { frame: number; position: Vec3 }[]; pointEdits?: { time: number; root?: Vec3; joints?: Partial<Record<Joint, Quat>> }[] };
+type Snapshot = { title: string; countMap: { id: string; durationSeconds: number }; plan: unknown; take: Take; manual?: Sequence; operation?: { label: string; time?: number; tracks?: ('root' | Joint)[] } };
 type Backup = { scene: { id: string; name: string; audioName: string; project: { historyIndex: number; history: Snapshot[]; revision: number; teacherCheckedRevision: number | null }; viewer: { time: number; selectedJoint: Joint | null; editorMode?: string; view: string; mirror: boolean; camera: { position: Vec3; target: Vec3; zoom?: number } } } };
 const current = (document: Backup) => document.scene.project.history[document.scene.project.historyIndex];
 const diagnostics = new WeakMap<Page, { errors: string[]; warnings: string[]; apiRequests: string[] }>();
@@ -103,7 +104,9 @@ async function backup(page: Page): Promise<Backup> {
   const pending = page.waitForEvent('download');
   await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await pending).path(); expect(path).toBeTruthy();
-  const document = JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  const wire = JSON.parse(await readFile(path!, 'utf8'));
+  expect(wire.format).toBe('choreo-scene-backup-2');
+  const document = { ...wire, scene: unpackScene(wire.scene) } as Backup;
   await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
   return document;
 }
@@ -111,19 +114,24 @@ async function numeric(page: Page, label: string, value: number) {
   await editStageValue(page, label, value);
 }
 async function frame(page: Page, value: number) {
-  await numeric(page, '当前帧', value);
-  await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue(String(value));
+  await closeDisclosures(page);
+  const seconds = page.getByRole('region', { name: '手动关键帧时间线', exact: true }).getByRole('spinbutton', { name: '当前时间（秒）', exact: true, includeHidden: true });
+  await reveal(page, seconds);
+  await seconds.fill(String(value / 30)); await seconds.press('Tab');
+  expect(Number(await seconds.inputValue())).toBe(value / 30);
+  await closeDisclosures(page, '.kf-point-inspector');
 }
 async function joint(page: Page, value: Joint | '') { await selectStageJoint(page, value as Parameters<typeof selectStageJoint>[1]); }
-async function rotationKey(page: Page, keyFrame: number, name: Joint, degrees: number) {
+async function rotationPoint(page: Page, keyFrame: number, name: Joint, degrees: number) {
   await frame(page, keyFrame); await joint(page, name); await numeric(page, '关节 Z 旋转（度）', degrees);
-  await clickRevealed(page, page.getByRole('button', { name: 'K 当前关节', exact: true, includeHidden: true })); await expect(draft(page)).toHaveCount(0);
+  await expect(guard(page)).toHaveCount(0);
+  expect(current(await backup(page)).operation?.tracks).toEqual([name]);
 }
-async function rootKey(page: Page, keyFrame: number, x: number) {
+async function rootPoint(page: Page, keyFrame: number, x: number) {
   await frame(page, keyFrame); await numeric(page, 'Root X 位移（米）', x);
-  await clickRevealed(page, page.getByRole('button', { name: 'K 位移', exact: true, includeHidden: true })); await expect(draft(page)).toHaveCount(0);
+  await expect(guard(page)).toHaveCount(0);
+  expect(current(await backup(page)).operation?.tracks).toEqual(['root']);
 }
-const draft = (page: Page) => page.getByRole('status').filter({ hasText: '姿态草稿 · 尚未写入关键帧' });
 const guard = (page: Page) => page.getByRole('dialog', { name: '写入这份姿态草稿？', exact: true });
 const importDialog = (page: Page) => page.getByRole('dialog', { name: '导入场景备份', exact: true });
 const importConfirm = (page: Page) => importDialog(page).getByRole('button', { name: '作为新场景导入', exact: true });
@@ -192,9 +200,11 @@ function rawBundle(bytes: Buffer) {
   const headerLength = bytes.readUInt32LE(magic.length);
   const header = JSON.parse(bytes.subarray(magic.length + 4, magic.length + 4 + headerLength).toString('utf8'));
   const audio = bytes.subarray(magic.length + 4 + headerLength);
-  expect(header.format).toBe('choreo-scene-bundle-1'); expect(header.audio.byteLength).toBe(audio.length);
+  expect(header.format).toBe('choreo-scene-bundle-2'); expect(header.scene.schema).toBe('compact-scene-1');
+  expect(header.scene.takes.length).toBeGreaterThan(0);
+  expect(header.audio.byteLength).toBe(audio.length);
   expect(header.audio.sha256).toBe(createHash('sha256').update(audio).digest('hex'));
-  return { header, audio };
+  return { header: { ...header, scene: unpackScene(header.scene) }, audio };
 }
 async function capture(page: Page, name: string) {
   if (!process.env.CHOREO_SCREENSHOT_DIR) return;
@@ -202,16 +212,18 @@ async function capture(page: Page, name: string) {
   await page.screenshot({ path: join(process.env.CHOREO_SCREENSHOT_DIR, name), fullPage: true });
 }
 
-test('@backup full scene bundles round-trip exact original audio, non-uniform animation, manual history and camera into a new local scene', async ({ page }) => {
+test('@backup compact full scene bundles round-trip automatic channel edits, exact original audio, non-uniform animation, history and camera into a new local scene', async ({ page }) => {
   test.setTimeout(180_000);
   const source = await openScene(page);
-  await rotationKey(page, 30, 'LeftUpperArm', 35); await rootKey(page, 75, 1.2); await rotationKey(page, 120, 'RightUpperArm', -35);
+  await rotationPoint(page, 30, 'LeftUpperArm', 35); await rootPoint(page, 75, 1.2); await rotationPoint(page, 120, 'RightUpperArm', -35);
   await page.getByRole('button', { name: '撤销', exact: true }).click();
   await frame(page, 75); await joint(page, 'LeftForeArm');
-  await clickRevealed(page, page.getByRole('button', { name: '复制当前姿态', exact: true, includeHidden: true }));
-  await expect(page.getByLabel('已复制姿态', { exact: true })).toContainText('第 75 帧');
+  await expect(guard(page)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^K (完整姿态|当前关节|位移)$/, includeHidden: true })).toHaveCount(0);
   await page.getByRole('button', { name: '背面', exact: true }).click();
-  await page.getByRole('combobox', { name: '播放速度', exact: true }).selectOption('0.5');
+  const speed = page.getByRole('combobox', { name: '播放速度', exact: true, includeHidden: true });
+  await reveal(page, speed); await speed.selectOption('0.5');
+  await closeDisclosures(page, '.kf-more, .kf-more-actions');
   await clickRevealed(page, page.getByRole('button', { name: '教学预览', exact: true, includeHidden: true }));
   await page.getByRole('button', { name: '标记本版已试看', exact: true }).click();
   await save(page);
@@ -250,7 +262,7 @@ test('@backup full scene bundles round-trip exact original audio, non-uniform an
 test('@backup malformed, oversized-header, truncated and tampered bundles perform no writes; legacy JSON requires explicit original music relinking', async ({ page }) => {
   test.setTimeout(210_000);
   const source = await openScene(page);
-  await rotationKey(page, 75, 'LeftUpperArm', 50); await save(page);
+  await rotationPoint(page, 75, 'LeftUpperArm', 50); await save(page);
   const original = await backup(page), bytes = await bundle(page), state = await localState(page);
   const oversizedHeader = Buffer.from(bytes); oversizedHeader.writeUInt32LE(32 * 1024 * 1024 + 1, 16);
   const badDigest = Buffer.from(bytes); badDigest[badDigest.length - 1] ^= 1;
@@ -309,7 +321,10 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
   const missing = await backup(page);
   expect(missing.scene.id).toBe(imported.scene.id); expect(missing.scene.project).toEqual(imported.scene.project);
   const beforeRecovery = await localState(page);
-  await numeric(page, 'Root X 位移（米）', 1.5); await expect(draft(page)).toBeVisible();
+  await numeric(page, 'Root X 位移（米）', 1.5); await expect(guard(page)).toHaveCount(0);
+  const latest = await backup(page);
+  expect(latest.scene.project.history).toHaveLength(imported.scene.project.history.length + 1);
+  expect(current(latest).operation?.tracks).toEqual(['root']);
   await page.getByRole('button', { name: '恢复原音乐', exact: true }).click();
   await expect(importDialog(page)).toBeVisible(); await expect(importConfirm(page)).toBeDisabled();
   const musicInput = importDialog(page).getByLabel('重新关联原音乐', { exact: true });
@@ -323,8 +338,7 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
   expect(await localState(page)).toEqual(beforeRecovery);
   await musicInput.setInputFiles({ name: 'original-backup-local.wav', mimeType: 'audio/wav', buffer: source.wave });
   await expect(importConfirm(page)).toBeEnabled(); await importConfirm(page).click();
-  await expect(guard(page)).toBeVisible();
-  await guard(page).getByRole('button', { name: '写入完整姿态后继续', exact: true }).click();
+  await expect(guard(page)).toHaveCount(0);
   await expect(unsaved(page)).toBeVisible();
   await expect(unsaved(page).getByRole('button', { name: '保存后继续', exact: true })).toBeDisabled();
   await unsaved(page).getByRole('button', { name: '不保存，继续', exact: true }).click();
@@ -337,9 +351,15 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
   expect(recovered.scene.project.revision).toBe(imported.scene.project.revision + 1); expect(recovered.scene.project.teacherCheckedRevision).toBeNull();
   expect(current(recovered).countMap).toEqual(current(imported).countMap); expect(current(recovered).plan).toEqual(current(imported).plan);
   expect(current(recovered).take.id).not.toBe(current(imported).take.id); expect(current(recovered).manual!.baseTake).toEqual(source.take);
-  expectGestureRootKeys(current(recovered).manual!.root, [{ frame: 75, position: [1.5, 1.05, 0] }]);
-  expect(Object.keys(current(recovered).manual!.rotations)).toHaveLength(19);
-  expect(current(recovered).take.poses[current(recovered).take.times.indexOf(2.5)].root).toEqual(current(recovered).manual!.root[0].position);
+  expect(current(recovered).manual!.root).toEqual([]);
+  expect(current(recovered).manual!.rotations).toEqual({});
+  expect(current(recovered).manual!.pointEdits).toHaveLength(1);
+  expect(Object.keys(current(recovered).manual!.pointEdits![0].joints!)).toEqual(['LeftUpperArm']);
+  const recordedRoot = current(recovered).manual!.pointEdits![0].root!;
+  expect(recordedRoot[0]).toBeCloseTo(1.5, 5);
+  expect(recordedRoot.slice(1)).toEqual([1.05, 0]);
+  expect(current(recovered).take.poses[current(recovered).take.times.indexOf(2.5)].root).toEqual(recordedRoot);
+  expect(recovered.scene.project).toEqual({ ...latest.scene.project, teacherCheckedRevision: null });
   expect(recovered.scene.viewer).toEqual(imported.scene.viewer);
   expect(await audioHash(page)).toBe(createHash('sha256').update(source.wave).digest('hex'));
   expect((await localState(page)).ids).toEqual([...beforeRecovery.ids, recovered.scene.id].sort());
@@ -355,22 +375,18 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
   }, missing.scene.id)).toEqual({ audioMissing: true, project: imported.scene.project });
 });
 
-test('@backup mobile export/import preserves draft cancellation and current scenes through quota failure, then retries once as a new scene', async ({ page }) => {
+test('@backup mobile export captures automatic channel edits and preserves current scenes through import cancellation and quota failure, then retries once as a new scene', async ({ page }) => {
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 390, height: 844 });
   const source = await openScene(page); await frame(page, 75); await joint(page, 'LeftUpperArm');
-  const original = await backup(page);
   await numeric(page, '关节 Z 旋转（度）', 45);
-  const downloads: string[] = []; page.on('download', download => downloads.push(download.suggestedFilename()));
-  await clickRevealed(page, page.getByRole('button', { name: '下载完整场景包', exact: true, includeHidden: true })); await expect(guard(page)).toBeVisible();
-  await guard(page).getByRole('button', { name: '取消', exact: true }).click();
-  await expect(draft(page)).toBeVisible(); expect(downloads).toEqual([]);
-  expect((await backup(page)).scene.project).toEqual(original.scene.project);
-  const pending = page.waitForEvent('download');
-  await clickRevealed(page, page.getByRole('button', { name: '下载完整场景包', exact: true, includeHidden: true }));
-  await guard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
-  const path = await (await pending).path(); expect(path).toBeTruthy();
-  const bytes = await readFile(path!); expect(rawBundle(bytes).audio).toEqual(source.wave);
+  const original = await backup(page);
+  expect(current(original).manual!.pointEdits).toHaveLength(1);
+  expect(Object.keys(current(original).manual!.pointEdits![0].joints!)).toEqual(['LeftUpperArm']);
+  await save(page);
+  const bytes = await bundle(page);
+  expect(rawBundle(bytes).audio).toEqual(source.wave);
+  expect(rawBundle(bytes).header.scene.project).toEqual(original.scene.project);
   await expect(guard(page)).toHaveCount(0);
   await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
   await numeric(page, 'Root X 位移（米）', 2);
@@ -381,10 +397,7 @@ test('@backup mobile export/import preserves draft cancellation and current scen
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     expect((await importConfirm(page).boundingBox())!.height).toBeGreaterThanOrEqual(44);
   }
-  await importConfirm(page).click(); await expect(guard(page)).toBeVisible();
-  await guard(page).getByRole('button', { name: '取消', exact: true }).click();
-  await expect(importDialog(page)).toBeVisible(); await expect(draft(page)).toBeVisible();
-  await importConfirm(page).click(); await guard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
+  await importConfirm(page).click(); await expect(guard(page)).toHaveCount(0);
   await expect(unsaved(page)).toBeVisible();
   await unsaved(page).getByRole('button', { name: '取消', exact: true }).click();
   await expect(importDialog(page)).toBeVisible();

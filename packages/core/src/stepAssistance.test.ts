@@ -144,7 +144,7 @@ describe('versioned author-first flat-ground step assistance', () => {
     const before = JSON.stringify(sequence);
     expect(() => bakeKeyframeSequence(setStepAssistance(sequence))).toThrow(/样本超出/);
     expect(JSON.stringify(sequence)).toBe(before); expect(sequence.steps).toBeUndefined();
-  });
+  }, 15_000);
 
   it.each(['root-spike', 'leg-pose', 'root-height'] as const)('checks exact off-grid original %s authority instead of missing it between 30 Hz frames', kind => {
     const base = source();

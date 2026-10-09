@@ -1,7 +1,8 @@
 import { ACTIONS, bakeKeyframeSequence, bakeLegacyKeyframeSequence, EDITABLE_JOINT_NAMES, getKeyframeCount, JOINT_NAMES, makeCountMap, MAX_KEYFRAME_COUNT, MAX_TAKE_SAMPLES, ROOT_TRANSLATION_LIMITS, type ArrangementPlan, type BakedTake, type CountMap, type JointName, type KeyframeSequence, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
 import type { SceneDocument, SceneViewer } from './scene';
-import type { SceneProject, SceneSnapshot } from './sceneProject';
+import type { SceneOperation, SceneProject, SceneSnapshot } from './sceneProject';
 import { MAX_FOOT_LOCKS, type FootLock } from '../../../packages/core/src/footLocks';
+import { packScene, unpackScene } from './compactScene';
 
 export const SCENE_BACKUP_LIMITS = {
   headerBytes: 32 * 1024 * 1024,
@@ -20,7 +21,11 @@ const editable = new Set<string>(EDITABLE_JOINT_NAMES);
 // UI must still decode the bytes; safe MIME metadata does not prove playability.
 const safeAudioType = (value: string) => value === 'application/octet-stream' || /^audio\/[a-z0-9][a-z0-9.+_-]{0,63}$/.test(value);
 type RecordValue = Record<string, unknown>;
-type ValidationContext = { strict: boolean };
+type ValidationContext = {
+  strict: boolean;
+  takes?: WeakMap<object, BakedTake>;
+  frozenEquivalence?: WeakMap<object, WeakMap<BakedTake, Set<string>>>;
+};
 const fail = (message: string): never => { throw new Error(`场景备份无效：${message}`); };
 const own = (value: RecordValue, key: string) => Object.prototype.hasOwnProperty.call(value, key);
 
@@ -108,18 +113,42 @@ function validatePose(value: unknown, context: ValidationContext): Pose {
 }
 function validateTake(value: unknown, map: CountMap, context: ValidationContext): BakedTake {
   const object = record(value, ['id', 'schemaVersion', 'planId', 'countMapId', 'durationSeconds', 'times', 'poses', 'provenance'], [], '动作', context);
+  const cached = context.takes?.get(object);
+  if (cached) {
+    if (cached.countMapId !== map.id) fail('动作版本、来源或数拍绑定无效。');
+    close(cached.durationSeconds, map.durationSeconds, '动作时长');
+    return cached;
+  }
   if (object.schemaVersion !== 'preview-1' || object.provenance !== 'synthetic-demo' || object.countMapId !== map.id) fail('动作版本、来源或数拍绑定无效。');
   const duration = finite(object.durationSeconds, '动作时长'); close(duration, map.durationSeconds, '动作时长');
   const times = array(object.times, 2, MAX_TAKE_SAMPLES, '动作采样时间').map(time => finite(time, '动作采样时间'));
   if (times[0] !== 0 || times.at(-1) !== duration || times.some((time, index) => time < 0 || time > duration || (index > 0 && time <= times[index - 1]))) fail('动作采样必须严格递增并保留精确首末时刻。');
   const poses = array(object.poses, times.length, times.length, '动作姿态').map(pose => validatePose(pose, context));
-  return { id: text(object.id, '动作 ID'), schemaVersion: 'preview-1', planId: text(object.planId, '动作编排 ID'), countMapId: map.id, durationSeconds: duration, times, poses, provenance: 'synthetic-demo' };
+  const take: BakedTake = { id: text(object.id, '动作 ID'), schemaVersion: 'preview-1', planId: text(object.planId, '动作编排 ID'), countMapId: map.id, durationSeconds: duration, times, poses, provenance: 'synthetic-demo' };
+  context.takes?.set(object, take);
+  return take;
+}
+function matchesAuthority(actual: BakedTake, reference: BakedTake): boolean {
+  return actual.times.length === reference.times.length && actual.times.every((time, index) => time === reference.times[index]) && actual.poses.every((pose, index) => {
+    const wanted = reference.poses[index];
+    return pose.root.every((component, axis) => Math.abs(component - wanted.root[axis]) <= 1e-9) && JOINT_NAMES.every(joint => {
+      const rotation = pose.joints[joint], target = wanted.joints[joint];
+      const sign = rotation.reduce((sum, component, axis) => sum + component * target[axis], 0) < 0 ? -1 : 1;
+      return rotation.every((component, axis) => Math.abs(component - target[axis] * sign) <= 1e-8);
+    });
+  });
 }
 function validateManual(value: unknown, map: CountMap, take: BakedTake, context: ValidationContext): KeyframeSequence {
-  const object = record(value, ['schema', 'id', 'fps', 'baseTake', 'rotations', 'root'], ['footLocks', 'authorKeyPriority', 'steps'], '手 K 序列', context);
+  const object = record(value, ['schema', 'id', 'fps', 'baseTake', 'rotations', 'root'], ['footLocks', 'authorKeyPriority', 'steps', 'pointEdits', 'pointBaseTake'], '手 K 序列', context);
   if (object.schema !== 'manual-keyframes-1' || object.fps !== 30) fail('手 K 版本或帧率无效。');
   const baseTake = validateTake(object.baseTake, map, context);
   if (baseTake.planId !== take.planId) fail('手 K 基底与动作编排绑定不同。');
+  let pointBaseTake: BakedTake | undefined;
+  if (object.pointBaseTake !== undefined) {
+    const frozen = record(object.pointBaseTake, ['id', 'schemaVersion', 'planId', 'countMapId', 'durationSeconds', 'times', 'poses', 'provenance'], [], '数据点原动作', context);
+    pointBaseTake = validateTake(frozen, map, context);
+    if (pointBaseTake.planId !== baseTake.planId || pointBaseTake.countMapId !== baseTake.countMapId || pointBaseTake.durationSeconds !== baseTake.durationSeconds) fail('数据点原动作与手 K 基底绑定不同。');
+  }
   const tracks = record(object.rotations, [], EDITABLE_JOINT_NAMES, '关节轨道', context);
   if (Object.keys(tracks).some(name => !editable.has(name))) fail('轨道包含不可编辑的末端关节。');
   const rotations = Object.fromEntries(Object.entries(tracks).map(([joint, values]) => [joint, array(values, 0, MAX_KEYFRAME_COUNT, '关节关键帧').map(value => {
@@ -132,6 +161,25 @@ function validateManual(value: unknown, map: CountMap, take: BakedTake, context:
     const limits = [ROOT_TRANSLATION_LIMITS.x, ROOT_TRANSLATION_LIMITS.y, ROOT_TRANSLATION_LIMITS.z];
     if (position.some((component, axis) => component < limits[axis][0] || component > limits[axis][1])) fail('Root 关键帧超出编辑边界。');
     return { frame: finite(key.frame, '关键帧索引'), position };
+  });
+  const pointEdits: KeyframeSequence['pointEdits'] = object.pointEdits === undefined ? undefined : array(object.pointEdits, 0, MAX_KEYFRAME_COUNT, '动作数据点').map(value => {
+    const point = record(value, ['time'], ['root', 'joints'], '动作数据点', context);
+    const time = finite(point.time, '动作数据点时间');
+    if (time < 0 || time > map.durationSeconds) fail('动作数据点时间超出场景范围。');
+    let root: Vec3 | undefined;
+    if (own(point, 'root')) {
+      root = vector(point.root, 3, '动作数据点 Root');
+      const limits = [ROOT_TRANSLATION_LIMITS.x, ROOT_TRANSLATION_LIMITS.y, ROOT_TRANSLATION_LIMITS.z];
+      if (root.some((component, axis) => component < limits[axis][0] || component > limits[axis][1])) fail('动作数据点 Root 超出编辑边界。');
+    }
+    let rotations: Partial<Record<JointName, Quat>> | undefined;
+    if (own(point, 'joints')) {
+      const values = record(point.joints, [], JOINT_NAMES, '动作数据点关节', context);
+      if (Object.keys(values).some(name => !joints.has(name))) fail('动作数据点包含未知关节。');
+      rotations = Object.fromEntries(Object.entries(values).map(([joint, rotation]) => [joint, vector(rotation, 4, '动作数据点旋转')]));
+    }
+    if (root === undefined && !Object.keys(rotations ?? {}).length) fail('动作数据点没有记录任何通道。');
+    return { time, ...(root !== undefined ? { root } : {}), ...(rotations !== undefined ? { joints: rotations } : {}) };
   });
   const finalFrame = Math.ceil(map.durationSeconds * 30);
   const footLocks: FootLock[] | undefined = object.footLocks === undefined ? undefined : array(object.footLocks, 0, MAX_FOOT_LOCKS, '脚锁').map(value => {
@@ -153,25 +201,45 @@ function validateManual(value: unknown, map: CountMap, take: BakedTake, context:
     if (authorKeyPriority === undefined) fail('自动步伐必须使用作者关键帧优先版本。');
     steps = { schema: 'ground-steps-1', startFrame, endFrame };
   }
-  const sequence: KeyframeSequence = { schema: 'manual-keyframes-1', id: text(object.id, '手 K 序列 ID'), fps: 30, baseTake, rotations, root, ...(footLocks !== undefined ? { footLocks } : {}), ...(authorKeyPriority !== undefined ? { authorKeyPriority } : {}), ...(steps !== undefined ? { steps } : {}) };
+  const sequence: KeyframeSequence = { schema: 'manual-keyframes-1', id: text(object.id, '手 K 序列 ID'), fps: 30, baseTake, rotations, root, ...(footLocks !== undefined ? { footLocks } : {}), ...(authorKeyPriority !== undefined ? { authorKeyPriority } : {}), ...(steps !== undefined ? { steps } : {}), ...(pointEdits !== undefined ? { pointEdits } : {}), ...(pointBaseTake !== undefined ? { pointBaseTake } : {}) };
   let expected: BakedTake;
   try { getKeyframeCount(sequence); expected = bakeKeyframeSequence(sequence); }
   catch { fail('手 K 轨道、脚锁、帧索引或采样资源无效。'); }
+  if (pointBaseTake !== undefined) {
+    // Only immutable source identity and all underlying evaluation inputs can
+    // reuse this check. IDs and point overlays do not define that authority.
+    const signature = JSON.stringify({ rotations, root, footLocks, authorKeyPriority, steps });
+    const frozen = object.pointBaseTake as object;
+    let sources = context.frozenEquivalence?.get(frozen);
+    let signatures = sources?.get(baseTake);
+    if (!signatures?.has(signature)) {
+      const underlying: KeyframeSequence = { ...sequence, pointEdits: [] };
+      delete underlying.pointBaseTake;
+      let equivalent: boolean;
+      try {
+        equivalent = matchesAuthority(pointBaseTake, bakeKeyframeSequence(underlying));
+        // Older unversioned contact files accepted either complete historical
+        // evaluator. Match one entire output, never a mixture of its poses.
+        if (!equivalent && authorKeyPriority === undefined && !steps && footLocks?.length) {
+          delete underlying.pointEdits;
+          equivalent = matchesAuthority(pointBaseTake, bakeKeyframeSequence(underlying));
+        }
+      } catch { fail('数据点原动作无法校验手 K 的原始求值。'); }
+      if (!equivalent!) fail('数据点原动作与手 K 的完整采样时间或原始求值不一致。');
+      if (context.frozenEquivalence) {
+        if (!sources) { sources = new WeakMap(); context.frozenEquivalence.set(frozen, sources); }
+        if (!signatures) { signatures = new Set(); sources.set(baseTake, signatures); }
+        signatures.add(signature);
+      }
+    }
+  }
   // v12 contacts could adjust even explicit K. Accept that historical output
   // only for an unversioned old sequence, checking the entire authority against
   // one deterministic evaluator. Never mix algorithms per pose or change a take
   // during import. Versioned author-priority sequences have no legacy fallback.
-  const matchesAuthority = (reference: BakedTake) => take.times.length === reference.times.length && take.times.every((time, index) => time === reference.times[index]) && take.poses.every((pose, index) => {
-    const wanted = reference.poses[index];
-    return pose.root.every((component, axis) => Math.abs(component - wanted.root[axis]) <= 1e-9) && JOINT_NAMES.every(joint => {
-      const actual = pose.joints[joint], target = wanted.joints[joint];
-      const sign = actual.reduce((sum, component, axis) => sum + component * target[axis], 0) < 0 ? -1 : 1;
-      return actual.every((component, axis) => Math.abs(component - target[axis] * sign) <= 1e-8);
-    });
-  });
-  if (!matchesAuthority(expected!) && sequence.authorKeyPriority === undefined && !sequence.steps && sequence.footLocks?.length) {
+  if (!matchesAuthority(take, expected!) && sequence.authorKeyPriority === undefined && !sequence.steps && sequence.footLocks?.length) {
     const legacyExpected = bakeLegacyKeyframeSequence(sequence);
-    if (matchesAuthority(legacyExpected)) expected = legacyExpected;
+    if (matchesAuthority(take, legacyExpected)) expected = legacyExpected;
   }
   if (take.times.length !== expected!.times.length || take.times.some((time, index) => time !== expected!.times[index])) fail('手 K 动作没有保留基底与关键帧的完整采样时间。');
   take.poses.forEach((pose, index) => {
@@ -189,10 +257,17 @@ function validateManual(value: unknown, map: CountMap, take: BakedTake, context:
 
 function preflightSamples(project: RecordValue) {
   let samples = 0;
+  const frozenTakes = new Set<object>();
   for (const snapshot of array(project.history, 1, SCENE_BACKUP_LIMITS.history, '历史')) {
     if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) fail('历史条目格式错误。');
     const entry = snapshot as RecordValue;
-    const candidates = [entry.take, entry.manual && typeof entry.manual === 'object' ? (entry.manual as RecordValue).baseTake : null];
+    const manual = entry.manual && typeof entry.manual === 'object' ? entry.manual as RecordValue : null;
+    const candidates = [entry.take, manual?.baseTake];
+    if (manual?.pointBaseTake !== undefined) {
+      const frozen = manual.pointBaseTake;
+      if (!frozen || typeof frozen !== 'object' || Array.isArray(frozen)) fail('数据点原动作格式错误。');
+      if (!frozenTakes.has(frozen as object)) { frozenTakes.add(frozen as object); candidates.push(frozen); }
+    }
     for (const value of candidates) {
       if (value == null) continue;
       if (typeof value !== 'object' || Array.isArray(value)) fail('动作格式错误。');
@@ -204,10 +279,11 @@ function preflightSamples(project: RecordValue) {
 function validateProject(value: unknown, context: ValidationContext): SceneProject {
   const object = record(value, ['history', 'historyIndex', 'revision', 'audioDuration', 'teacherCheckedRevision'], [], '项目', context);
   preflightSamples(object);
+  const takeContext: ValidationContext = { ...context, takes: new WeakMap(), frozenEquivalence: new WeakMap() };
   const audioDuration = finite(object.audioDuration, '原音频时长');
   if (audioDuration < 16 || audioDuration > 600) fail('原音频必须是 16 秒至 10 分钟。');
   const history: SceneSnapshot[] = array(object.history, 1, SCENE_BACKUP_LIMITS.history, '历史').map(value => {
-    const snapshot = record(value, ['title', 'countMap', 'plan', 'take'], ['manual', 'audioOffsetSeconds'], '历史条目', context);
+    const snapshot = record(value, ['title', 'countMap', 'plan', 'take'], ['manual', 'audioOffsetSeconds', 'operation'], '历史条目', context);
     const countMap = validateCountMap(snapshot.countMap, audioDuration, context);
     let audioOffsetSeconds: number | undefined;
     if (own(snapshot, 'audioOffsetSeconds')) {
@@ -216,15 +292,30 @@ function validateProject(value: unknown, context: ValidationContext): SceneProje
       if (Math.abs(audioOffsetSeconds * 30 - Math.round(audioOffsetSeconds * 30)) > 1e-9) fail('音乐轨偏移必须对齐 30 fps 整帧。');
     }
     const plan = validatePlan(snapshot.plan, countMap, context);
-    const take = snapshot.take === null ? null : validateTake(snapshot.take, countMap, context);
+    const take = snapshot.take === null ? null : validateTake(snapshot.take, countMap, takeContext);
     if (plan && take && plan.id !== take.planId) fail('动作与编排 ID 不一致。');
     if (!take && snapshot.manual != null) fail('手 K 序列缺少权威动作。');
-    const manual = snapshot.manual === undefined ? undefined : validateManual(snapshot.manual, countMap, take!, context);
-    return { title: text(snapshot.title, '作品名称'), countMap, plan, take, ...(manual ? { manual } : {}), ...(audioOffsetSeconds !== undefined ? { audioOffsetSeconds } : {}) };
+    const manual = snapshot.manual === undefined ? undefined : validateManual(snapshot.manual, countMap, take!, takeContext);
+    const operation = snapshot.operation === undefined ? undefined : validateOperation(snapshot.operation, countMap.durationSeconds, context);
+    return { title: text(snapshot.title, '作品名称'), countMap, plan, take, ...(manual ? { manual } : {}), ...(audioOffsetSeconds !== undefined ? { audioOffsetSeconds } : {}), ...(operation !== undefined ? { operation } : {}) };
   });
   const revision = integer(object.revision, 1, Number.MAX_SAFE_INTEGER, '作品版本');
   const teacherCheckedRevision = object.teacherCheckedRevision === null ? null : integer(object.teacherCheckedRevision, 1, revision, '试看版本');
   return { history, historyIndex: integer(object.historyIndex, 0, history.length - 1, '历史位置'), revision, audioDuration, teacherCheckedRevision };
+}
+function validateOperation(value: unknown, duration: number, context: ValidationContext): SceneOperation {
+  const operation = record(value, ['label'], ['time', 'tracks'], '操作记录', context);
+  let time: number | undefined;
+  if (own(operation, 'time')) {
+    time = finite(operation.time, '操作时间');
+    if (time < 0 || time > duration) fail('操作时间超出场景范围。');
+  }
+  let tracks: SceneOperation['tracks'];
+  if (own(operation, 'tracks')) {
+    tracks = array(operation.tracks, 0, JOINT_NAMES.length + 1, '操作通道').map(track => enumValue(track, ['root', ...JOINT_NAMES] as const, '操作通道'));
+    if (new Set(tracks).size !== tracks.length) fail('操作通道不能重复。');
+  }
+  return { label: text(operation.label, '操作名称'), ...(time !== undefined ? { time } : {}), ...(tracks !== undefined ? { tracks } : {}) };
 }
 function validateViewer(value: unknown, project: SceneProject, context: ValidationContext): SceneViewer {
   const object = record(value, ['camera', 'view', 'mirror', 'rate', 'loop', 'countSound', 'selectedSlot', 'selectedJoint', 'time'], ['gridVisible', 'axesVisible', 'rigMode', 'editorMode', 'transformTool'], '观看设置', context);
@@ -332,10 +423,18 @@ export async function encodeSceneBackup(scene: SceneDocument<SceneProject>): Pro
   const sanitized = validateScene(scene, { strict: false });
   const { audio: _audio, ...document } = sanitized;
   const audio = { byteLength: audioBlob.size, mimeType, sha256: await digest(audioBlob) };
-  const header = new TextEncoder().encode(JSON.stringify({ format: 'choreo-scene-bundle-1', scene: document, audio }));
+  const header = new TextEncoder().encode(JSON.stringify({ format: 'choreo-scene-bundle-2', scene: packScene(document), audio }));
   if (header.byteLength > SCENE_BACKUP_LIMITS.headerBytes) fail('场景数据超过 32 MiB，请减少历史或采样数据。');
   const prefix = new Uint8Array(prefixBytes); prefix.set(magic); new DataView(prefix.buffer).setUint32(magic.length, header.byteLength, true);
   return new Blob([prefix, header, audioBlob], { type: 'application/octet-stream' });
+}
+
+/** Lossless project-only export uses the same shared authority tables as full bundles. */
+export function encodeSceneJsonBackup(scene: SceneDocument<SceneProject>): Blob {
+  const { audio: _audio, ...document } = validateScene(scene, { strict: false });
+  const bytes = new TextEncoder().encode(JSON.stringify({ format: 'choreo-scene-backup-2', scene: packScene(document), audioIncluded: false }));
+  if (bytes.byteLength > SCENE_BACKUP_LIMITS.headerBytes) fail('场景数据超过 32 MiB，请减少历史或采样数据。');
+  return new Blob([bytes], { type: 'application/json' });
 }
 
 /** Read and validate without persistence; callers attach decoded music and create a new scene identity. */
@@ -346,9 +445,9 @@ export async function decodeSceneBackup(file: Blob): Promise<{ scene: SceneDocum
   if (!bundled) {
     if (file.size > SCENE_BACKUP_LIMITS.headerBytes) fail('旧版 JSON 数据超过 32 MiB。');
     const legacy = record(parseJson(await file.arrayBuffer()), ['format', 'scene', 'audioIncluded'], [], '旧版备份', { strict: true });
-    if (legacy.format !== 'choreo-scene-backup-1' || legacy.audioIncluded !== false) fail('备份格式不受支持。');
-    const scene = validateScene(legacy.scene, { strict: true });
-    const original = legacy.scene as RecordValue;
+    if (!['choreo-scene-backup-1', 'choreo-scene-backup-2'].includes(legacy.format as string) || legacy.audioIncluded !== false) fail('备份格式不受支持。');
+    const original = (legacy.format === 'choreo-scene-backup-2' ? unpackScene(legacy.scene) : legacy.scene) as RecordValue;
+    const scene = validateScene(original, { strict: true });
     if (original.audio != null) fail('旧版 JSON 不能包含原音频。');
     scene.project.teacherCheckedRevision = null;
     return { scene, needsAudio: true };
@@ -357,14 +456,15 @@ export async function decodeSceneBackup(file: Blob): Promise<{ scene: SceneDocum
   const headerLength = new DataView(prefix.buffer, prefix.byteOffset, prefix.byteLength).getUint32(magic.length, true);
   if (!headerLength || headerLength > SCENE_BACKUP_LIMITS.headerBytes || prefixBytes + headerLength >= file.size) fail('项目文件头长度无效或数据不完整。');
   const header = record(parseJson(await file.slice(prefixBytes, prefixBytes + headerLength).arrayBuffer()), ['format', 'scene', 'audio'], [], '完整备份', { strict: true });
-  if (header.format !== 'choreo-scene-bundle-1') fail('完整备份版本不受支持。');
+  if (!['choreo-scene-bundle-1', 'choreo-scene-bundle-2'].includes(header.format as string)) fail('完整备份版本不受支持。');
   const metadata = record(header.audio, ['byteLength', 'mimeType', 'sha256'], [], '音频记录', { strict: true });
   const byteLength = integer(metadata.byteLength, 1, SCENE_BACKUP_LIMITS.audioBytes, '音频字节数');
   if (file.size !== prefixBytes + headerLength + byteLength) fail('原音频缺失、截断或有多余数据。');
   const mimeType = text(metadata.mimeType, '音频 MIME 类型', 100), sha256 = text(metadata.sha256, '音频校验值', 64);
   if (!safeAudioType(mimeType) || !/^[a-f0-9]{64}$/.test(sha256)) fail('音频类型或 SHA-256 校验记录无效。');
-  const scene = validateScene(header.scene, { strict: true });
-  if ((header.scene as RecordValue).audio !== undefined) fail('原音频必须作为独立二进制数据保存。');
+  const document = header.format === 'choreo-scene-bundle-2' ? unpackScene(header.scene) : header.scene;
+  const scene = validateScene(document, { strict: true });
+  if ((document as RecordValue).audio !== undefined) fail('原音频必须作为独立二进制数据保存。');
   const audio = file.slice(prefixBytes + headerLength, file.size, mimeType);
   if (await digest(audio) !== sha256) fail('原音频校验失败，文件可能已损坏。');
   scene.audio = audio; scene.project.teacherCheckedRevision = null;

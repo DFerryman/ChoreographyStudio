@@ -74,6 +74,9 @@ const hash = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex')
 async function ready(page: Page) {
   await page.goto('/');
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeEnabled();
+  // Match the normal activation used by the shared stage/preview harness;
+  // preserve the strict real-media readiness prerequisite and every assertion.
+  await page.locator('.project-title h1').click();
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.readyState)).toBeGreaterThanOrEqual(2);
 }
 async function openMusic(page: Page) {

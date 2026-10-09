@@ -4,6 +4,7 @@ import { JOINT_NAMES, type BakedTake, type JointName, type Pose, type Quat, type
 import { sampleTake } from './index';
 import { applyFootLocks, cloneFootLock, validateFootLocks, type FootLock, type FootLockProtection } from './footLocks';
 import { accumulateStepResiduals, applyStepAssistance, buildStepPlan, validateStepAssistance, type StepAssistance, type StepAssistanceReport } from './stepAssistance';
+import { applyMotionPointEdits, cloneMotionPointEdits, freezePointAuthority, validateMotionPointEdits, type MotionPointEdit } from './motionPoints';
 
 export const EDITABLE_JOINT_NAMES: readonly JointName[] = JOINT_NAMES.filter(name => !name.endsWith('HandTip') && !name.endsWith('Toe') && !name.endsWith('Heel'));
 export const EDITABLE_JOINTS = EDITABLE_JOINT_NAMES;
@@ -27,6 +28,10 @@ export interface KeyframeSequence {
   footLocks?: FootLock[];
   /** Optional versioned flat-ground stepping, derived around author keys. */
   steps?: StepAssistance;
+  /** Exact-time edits over the evaluated motion; only supplied channels change. */
+  pointEdits?: MotionPointEdit[];
+  /** Original saved/evaluated authority before point edits; preserve its stored bits. */
+  pointBaseTake?: BakedTake;
 }
 
 export type KeyframeTransferScope =
@@ -171,12 +176,16 @@ function validateSequence(sequence: KeyframeSequence): void {
   if (!sequence || sequence.schema !== 'manual-keyframes-1' || sequence.fps !== FPS || !sequence.id || !sequence.rotations || typeof sequence.rotations !== 'object' || Array.isArray(sequence.rotations) || !Array.isArray(sequence.root)) throw new Error('关键帧序列格式或帧率无效。');
   if (sequence.authorKeyPriority !== undefined && sequence.authorKeyPriority !== 'author-key-priority-1') throw new Error('作者关键帧优先版本无效。');
   validateTake(sequence.baseTake);
+  if (sequence.pointBaseTake !== undefined) {
+    validateTake(sequence.pointBaseTake);
+    if (sequence.pointBaseTake.planId !== sequence.baseTake.planId || sequence.pointBaseTake.countMapId !== sequence.baseTake.countMapId || sequence.pointBaseTake.durationSeconds !== sequence.baseTake.durationSeconds) throw new Error('数据点源动作与原始动作绑定不一致。');
+  }
   if (sequence.footLocks !== undefined) validateFootLocks(sequence.footLocks, sequence.baseTake.durationSeconds);
   if (sequence.steps !== undefined) {
     validateStepAssistance(sequence.steps, sequence.baseTake.durationSeconds);
     if (sequence.authorKeyPriority !== 'author-key-priority-1') throw new Error('自动迈步必须声明作者关键帧优先。');
   }
-  let count = sequence.root.length;
+  let count = sequence.root.length + validateMotionPointEdits(sequence.pointEdits, sequence.baseTake.durationSeconds);
   const tracks = Object.entries(sequence.rotations) as [JointName, RotationKeyframe[]][];
   for (const [joint, keys] of tracks) {
     assertEditable(joint);
@@ -206,7 +215,12 @@ function copySequence(sequence: KeyframeSequence): KeyframeSequence {
     root: sequence.root.map(key => ({ frame: key.frame, position: [...key.position] as Vec3 })),
     ...(sequence.footLocks !== undefined ? { footLocks: sequence.footLocks.map(cloneFootLock) } : {}),
     ...(sequence.steps !== undefined ? { steps: { ...sequence.steps } } : {}),
+    ...(sequence.pointEdits !== undefined ? { pointEdits: cloneMotionPointEdits(sequence.pointEdits) } : {}),
   };
+}
+
+function withPointAuthority(sequence: KeyframeSequence, authority?: BakedTake): KeyframeSequence {
+  return !sequence.pointBaseTake && authority ? { ...sequence, pointBaseTake: freezePointAuthority(sequence, authority), pointEdits: sequence.pointEdits ?? [] } : sequence;
 }
 
 export function makeKeyframeSequence(baseTake: BakedTake): KeyframeSequence {
@@ -223,7 +237,7 @@ export function addFootLock(sequence: KeyframeSequence, lock: FootLock): Keyfram
   validateSequence(sequence);
   const next = copySequence(sequence);
   next.footLocks = [...(next.footLocks ?? []), cloneFootLock(lock)].sort((a, b) => a.startFrame - b.startFrame || a.foot.localeCompare(b.foot));
-  return finishMutation(next);
+  return finishMutation(next, sequence);
 }
 
 export function removeFootLock(sequence: KeyframeSequence, lockId: string): KeyframeSequence {
@@ -231,7 +245,7 @@ export function removeFootLock(sequence: KeyframeSequence, lockId: string): Keyf
   if (!sequence.footLocks?.some(lock => lock.id === lockId)) return sequence;
   const next = copySequence(sequence);
   next.footLocks = next.footLocks!.filter(lock => lock.id !== lockId);
-  return finishMutation(next);
+  return finishMutation(next, sequence);
 }
 
 /** Explicit adoption retains every source/author track and contact. */
@@ -241,24 +255,45 @@ export function setStepAssistance(sequence: KeyframeSequence, startFrame = 0, en
   validateStepAssistance(steps, sequence.baseTake.durationSeconds);
   if (sequence.steps?.schema === steps.schema && sequence.steps.startFrame === startFrame && sequence.steps.endFrame === endFrame) return sequence;
   const next = copySequence(sequence); next.steps = steps;
-  return finishMutation(next);
+  return finishMutation(next, sequence);
 }
 
 export function removeStepAssistance(sequence: KeyframeSequence): KeyframeSequence {
   validateSequence(sequence);
   if (!sequence.steps) return sequence;
   const next = copySequence(sequence); delete next.steps;
-  return finishMutation(next);
+  return finishMutation(next, sequence);
 }
 
 function upsert<T extends { frame: number }>(keys: T[], key: T): T[] {
   return [...keys.filter(previous => previous.frame !== key.frame), key].sort((a, b) => a.frame - b.frame);
 }
 
-function finishMutation(sequence: KeyframeSequence): KeyframeSequence {
+function finishMutation(sequence: KeyframeSequence, previous: KeyframeSequence): KeyframeSequence {
   // Includes the aggregate cap before returning a possibly atomic whole-pose write.
   sequence.authorKeyPriority = 'author-key-priority-1';
   validateSequence(sequence);
+  if (previous.pointBaseTake) {
+    const changedRoot = JSON.stringify(sequence.root) !== JSON.stringify(previous.root);
+    const changedJoints = JOINT_NAMES.filter(joint => JSON.stringify(sequence.rotations[joint] ?? []) !== JSON.stringify(previous.rotations[joint] ?? []));
+    const changedAssistance = JSON.stringify(sequence.footLocks ?? []) !== JSON.stringify(previous.footLocks ?? []) || JSON.stringify(sequence.steps) !== JSON.stringify(previous.steps) || (sequence.authorKeyPriority !== previous.authorKeyPriority && !!sequence.footLocks?.length);
+    if (changedRoot || changedJoints.length || changedAssistance) {
+      const derived = materializeKeyframeSequence({ ...sequence, pointBaseTake: undefined, pointEdits: [] }, true).take;
+      // Contacts and steps can couple Root and limb channels across the scene.
+      // Without those solvers, recompute only the explicitly changed tracks.
+      if (changedAssistance || sequence.footLocks?.length || sequence.steps || previous.footLocks?.length || previous.steps) sequence.pointBaseTake = derived;
+      else {
+        const stored = new Map(previous.pointBaseTake.times.map((time, index) => [time, previous.pointBaseTake!.poses[index]]));
+        sequence.pointBaseTake = { ...derived, poses: derived.times.map((time, index) => {
+          const pose = copyPose(stored.get(time) ?? sampleTake(previous.pointBaseTake!, time));
+          if (changedRoot) pose.root = [...derived.poses[index].root];
+          for (const joint of changedJoints) pose.joints[joint] = [...derived.poses[index].joints[joint]];
+          return pose;
+        }) };
+      }
+      if (new Set([...sequence.pointBaseTake.times, ...(sequence.pointEdits ?? []).map(edit => edit.time)]).size > MAX_TAKE_SAMPLES) throw new Error('数据点修改后的动作样本超出预览范围，请减少新增时刻。');
+    }
+  }
   return sequence;
 }
 
@@ -267,14 +302,14 @@ export function upsertRotationKeyframe(sequence: KeyframeSequence, joint: JointN
   const q = normalizedRotation(rotation);
   const next = copySequence(sequence);
   next.rotations[joint] = upsert(next.rotations[joint] ?? [], { frame, rotation: q });
-  return finishMutation(next);
+  return finishMutation(next, sequence);
 }
 
 export function upsertRootKeyframe(sequence: KeyframeSequence, frame: number, position: Vec3): KeyframeSequence {
   validateSequence(sequence); frameTime(frame, sequence.baseTake.durationSeconds);
   const next = copySequence(sequence);
   next.root = upsert(next.root, { frame, position: rootPosition(position) });
-  return finishMutation(next);
+  return finishMutation(next, sequence);
 }
 
 /** Commit all editable rotations and the root as one immutable operation. */
@@ -286,43 +321,43 @@ export function setPoseKeyframe(sequence: KeyframeSequence, frame: number, pose:
   const next = copySequence(sequence);
   next.root = upsert(next.root, { frame, position });
   for (const [joint, rotation] of rotations) next.rotations[joint] = upsert(next.rotations[joint] ?? [], { frame, rotation });
-  return finishMutation(next);
+  return finishMutation(next, sequence);
 }
 
-export function removeRotationKeyframe(sequence: KeyframeSequence, joint: JointName, frame: number): KeyframeSequence {
+export function removeRotationKeyframe(sequence: KeyframeSequence, joint: JointName, frame: number, authority?: BakedTake): KeyframeSequence {
   validateSequence(sequence); assertEditable(joint); frameTime(frame, sequence.baseTake.durationSeconds);
   if (!sequence.rotations[joint]?.some(key => key.frame === frame)) return sequence;
-  const next = copySequence(sequence);
+  const previous = withPointAuthority(sequence, authority), next = copySequence(previous);
   const keys = next.rotations[joint]?.filter(key => key.frame !== frame) ?? [];
   if (keys.length) next.rotations[joint] = keys;
   else delete next.rotations[joint];
-  return finishMutation(next);
+  return finishMutation(next, previous);
 }
 
-export function removeRootKeyframe(sequence: KeyframeSequence, frame: number): KeyframeSequence {
+export function removeRootKeyframe(sequence: KeyframeSequence, frame: number, authority?: BakedTake): KeyframeSequence {
   validateSequence(sequence); frameTime(frame, sequence.baseTake.durationSeconds);
   if (!sequence.root.some(key => key.frame === frame)) return sequence;
-  const next = copySequence(sequence);
+  const previous = withPointAuthority(sequence, authority), next = copySequence(previous);
   next.root = next.root.filter(key => key.frame !== frame);
-  return finishMutation(next);
+  return finishMutation(next, previous);
 }
 
 /** Remove every explicit root/rotation key at this frame, not the baked sample. */
-export function removePoseKeyframe(sequence: KeyframeSequence, frame: number): KeyframeSequence {
+export function removePoseKeyframe(sequence: KeyframeSequence, frame: number, authority?: BakedTake): KeyframeSequence {
   validateSequence(sequence); frameTime(frame, sequence.baseTake.durationSeconds);
   if (!sequence.root.some(key => key.frame === frame) && !Object.values(sequence.rotations).some(keys => keys!.some(key => key.frame === frame))) return sequence;
-  const next = copySequence(sequence);
+  const previous = withPointAuthority(sequence, authority), next = copySequence(previous);
   next.root = next.root.filter(key => key.frame !== frame);
   for (const joint of EDITABLE_JOINT_NAMES) {
     const keys = next.rotations[joint]?.filter(key => key.frame !== frame) ?? [];
     if (keys.length) next.rotations[joint] = keys;
     else delete next.rotations[joint];
   }
-  return finishMutation(next);
+  return finishMutation(next, previous);
 }
 
 /** Transfer only explicit source keys; destination-only tracks remain untouched. */
-export function transferKeyframes(sequence: KeyframeSequence, request: KeyframeTransferRequest): KeyframeTransferResult {
+export function transferKeyframes(sequence: KeyframeSequence, request: KeyframeTransferRequest, authority?: BakedTake): KeyframeTransferResult {
   validateSequence(sequence);
   if (!request || !['move', 'copy'].includes(request.operation) || !request.scope || !['all', 'joint', 'joints', 'root'].includes(request.scope.kind) || (request.collision !== undefined && !['reject', 'replace'].includes(request.collision))) throw new Error('关键帧移动或复制请求无效。');
   const { operation, scope, sourceFrame, targetFrame, collision = 'reject' } = request;
@@ -359,9 +394,9 @@ export function transferKeyframes(sequence: KeyframeSequence, request: KeyframeT
     return target && rotation.every((value, axis) => value === target.rotation[axis]);
   }) && (!root || (targetRoot && root.position.every((value, axis) => value === targetRoot.position[axis])))) return { status: 'noop', reason: 'unchanged', sequence, sourceKeyCount };
 
-  const count = sequence.root.length + Object.values(sequence.rotations).reduce((sum, keys) => sum + keys!.length, 0);
+  const count = sequence.root.length + Object.values(sequence.rotations).reduce((sum, keys) => sum + keys!.length, 0) + validateMotionPointEdits(sequence.pointEdits, sequence.baseTake.durationSeconds);
   if (operation === 'copy' && count + sourceKeyCount - collisions.length > MAX_KEYFRAME_COUNT) throw new Error(`当前预览最多支持 ${MAX_KEYFRAME_COUNT} 条关键帧记录。`);
-  const next = copySequence(sequence);
+  const previous = withPointAuthority(sequence, authority), next = copySequence(previous);
   for (const { joint, rotation } of rotations) {
     const retained = (next.rotations[joint] ?? []).filter(key => operation !== 'move' || key.frame !== sourceFrame);
     next.rotations[joint] = upsert(retained, { frame: targetFrame, rotation: [...rotation] as Quat });
@@ -370,7 +405,7 @@ export function transferKeyframes(sequence: KeyframeSequence, request: KeyframeT
     const retained = next.root.filter(key => operation !== 'move' || key.frame !== sourceFrame);
     next.root = upsert(retained, { frame: targetFrame, position: [...root.position] as Vec3 });
   }
-  return { status: 'changed', sequence: finishMutation(next), sourceKeyCount, replaced: collisions };
+  return { status: 'changed', sequence: finishMutation(next, previous), sourceKeyCount, replaced: collisions };
 }
 
 export function getKeyframeFrames(sequence: KeyframeSequence): number[] {
@@ -380,7 +415,7 @@ export function getKeyframeFrames(sequence: KeyframeSequence): number[] {
 
 export function getKeyframeCount(sequence: KeyframeSequence): number {
   validateSequence(sequence);
-  return sequence.root.length + Object.values(sequence.rotations).reduce((count, keys) => count + keys!.length, 0);
+  return sequence.root.length + Object.values(sequence.rotations).reduce((count, keys) => count + keys!.length, 0) + validateMotionPointEdits(sequence.pointEdits, sequence.baseTake.durationSeconds);
 }
 
 /** A short fade leaves room for assistance between, rather than freezing tracks. */
@@ -453,12 +488,17 @@ function evaluateTrack<T extends { frame: number }>(keys: T[], time: number, dur
 
 /** Materialize one authority for both renderer playback and JSON export. */
 export function bakeKeyframeSequence(sequence: KeyframeSequence): BakedTake {
-  return materializeKeyframeSequence(sequence, true).take;
+  if (sequence.pointBaseTake) {
+    validateSequence(sequence);
+    const source = sequence.pointBaseTake;
+    return applyMotionPointEdits({ ...source, id: newId('take'), times: [...source.times], poses: source.poses.map(copyPose) }, sequence.pointEdits);
+  }
+  return materializeKeyframeSequence(sequence, sequence.pointEdits === undefined || sequence.authorKeyPriority !== undefined).take;
 }
 
 /** Same planner and final FK measurements as the authoritative bake. */
 export function analyzeStepAssistance(sequence: KeyframeSequence): StepAssistanceReport {
-  return materializeKeyframeSequence(sequence, true).report;
+  return materializeKeyframeSequence(sequence, sequence.pointEdits === undefined || sequence.authorKeyPriority !== undefined).report;
 }
 
 /**
@@ -476,7 +516,10 @@ function materializeKeyframeSequence(sequence: KeyframeSequence, respectAuthorKe
   const base = sequence.baseTake;
   const frames = getKeyframeFrames(sequence);
   const locks = sequence.footLocks ?? [];
-  if (!frames.length && !locks.length && !sequence.steps) return { take: { ...base, id: newId('take'), times: [...base.times], poses: base.poses.map(copyPose) }, report: buildStepPlan(sequence, () => base.poses[0]).report };
+  if (!frames.length && !locks.length && !sequence.steps) {
+    const authority = sequence.pointBaseTake ?? base;
+    return { take: applyMotionPointEdits({ ...authority, id: newId('take'), times: [...authority.times], poses: authority.poses.map(copyPose) }, sequence.pointEdits), report: buildStepPlan(sequence, () => base.poses[0]).report };
+  }
   const duration = base.durationSeconds, finalFrame = lastFrame(duration);
   // Solved samples, not thousands of sparse K records. Preserve exact source
   // knots and the short final interval alongside the 30 Hz contact sampling.
@@ -521,7 +564,8 @@ function materializeKeyframeSequence(sequence: KeyframeSequence, respectAuthorKe
     accumulateStepResiduals(plan.report, plan, authored, pose, frame);
     return pose;
   });
-  return { take: { ...base, id: newId('take'), times, poses }, report: plan.report };
+  const authority = sequence.pointBaseTake ? { ...sequence.pointBaseTake, id: newId('take'), times: [...sequence.pointBaseTake.times], poses: sequence.pointBaseTake.poses.map(copyPose) } : { ...base, id: newId('take'), times, poses };
+  return { take: applyMotionPointEdits(authority, sequence.pointEdits), report: plan.report };
 }
 
 /** Neutral FK starting point; timing, selected music and arrangement binding stay. */

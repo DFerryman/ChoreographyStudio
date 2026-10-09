@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { analyzeStepAssistance, bakeKeyframeSequence, bakeLegacyKeyframeSequence, JOINT_NAMES, lastFrame, makeCountMap, makeKeyframeSequence, makePlan, rotationFromDegrees, setStepAssistance, upsertRootKeyframe, upsertRotationKeyframe, type BakedTake, type Pose } from '../../../packages/core/src';
+import { deepStrictEqual } from 'node:assert/strict';
+import { analyzeStepAssistance, bakeKeyframeSequence, bakeLegacyKeyframeSequence, JOINT_NAMES, lastFrame, makeCountMap, makeKeyframeSequence, makePlan, rotationFromDegrees, sampleTake, setStepAssistance, upsertRootKeyframe, upsertRotationKeyframe, type BakedTake, type Pose } from '../../../packages/core/src';
 import { createScene, type SceneDocument } from './scene';
-import { decodeSceneBackup, encodeSceneBackup, SCENE_BACKUP_LIMITS } from './sceneBackup';
+import { decodeSceneBackup, encodeSceneBackup, encodeSceneJsonBackup, SCENE_BACKUP_LIMITS } from './sceneBackup';
 import type { SceneProject } from './sceneProject';
 import { addFootLock } from '../../../packages/core/src/keyframes';
 import { captureFootLock } from '../../../packages/core/src/footLocks';
+import { packScene, unpackScene } from './compactScene';
 
 // Original nonuniform fixture: a short final 30 Hz interval and animated
 // readonly terminals make accidental rebaking, normalization and aliasing visible.
@@ -36,12 +38,14 @@ async function bundleParts(blob: Blob) {
   const magicLength = new TextEncoder().encode('CHOREO-BUNDLE-1\n').length;
   const prefixLength = magicLength + 4;
   const headerLength = new DataView(bytes.buffer).getUint32(magicLength, true);
-  const header = JSON.parse(new TextDecoder().decode(bytes.slice(prefixLength, prefixLength + headerLength)));
-  return { bytes, magicLength, prefixLength, header, audio: bytes.slice(prefixLength + headerLength) };
+  const rawHeader = JSON.parse(new TextDecoder().decode(bytes.slice(prefixLength, prefixLength + headerLength)));
+  const header = { ...rawHeader, scene: rawHeader.format === 'choreo-scene-bundle-2' ? unpackScene(rawHeader.scene) : rawHeader.scene };
+  return { bytes, magicLength, prefixLength, header, rawHeader, audio: bytes.slice(prefixLength + headerLength) };
 }
 async function changeHeader(blob: Blob, mutate: (header: Record<string, any>) => void): Promise<Blob> {
   const parts = await bundleParts(blob); mutate(parts.header);
-  const header = new TextEncoder().encode(JSON.stringify(parts.header));
+  const rawHeader = { ...parts.header, scene: parts.rawHeader.format === 'choreo-scene-bundle-2' ? packScene(parts.header.scene) : parts.header.scene };
+  const header = new TextEncoder().encode(JSON.stringify(rawHeader));
   const prefix = parts.bytes.slice(0, parts.prefixLength);
   new DataView(prefix.buffer).setUint32(parts.magicLength, header.byteLength, true);
   return new Blob([prefix, header, parts.audio]);
@@ -78,7 +82,240 @@ function stepsFixture() {
   return scene;
 }
 
+function pointFixture(time = .7) {
+  const scene = fixture(), original = scene.project.history[0];
+  const times = [0, .7, 2.5, original.countMap.durationSeconds];
+  const baseTake: BakedTake = {
+    ...original.take!, times, poses: times.map((time, index): Pose => ({
+      // Historical source coordinates must stay intact even outside today's edit bounds.
+      root: index === 0 ? [8, -1, -9] : [time / 80, 1.05, -.1 * index],
+      joints: Object.fromEntries(JOINT_NAMES.map((joint, jointIndex) => [joint, rotationFromDegrees([jointIndex + time, time / 2, -time])])) as Pose['joints'],
+    })),
+  };
+  const manual = makeKeyframeSequence(baseTake);
+  manual.pointEdits = [{ time, joints: { LeftHandTip: rotationFromDegrees([61, -7, 4]) } }];
+  scene.project.history = [
+    { ...original, take: baseTake },
+    { ...original, title: '微调左手末端', take: bakeKeyframeSequence(manual), manual, operation: { label: '调整左手末端', time, tracks: ['LeftHandTip'] } },
+  ];
+  scene.project.historyIndex = 1;
+  return scene;
+}
+
+function frozenPointFixture() {
+  const scene = fixture(), previous = scene.project.history[1], frozen = previous.take!;
+  // A saved authority can differ by a final floating point bit from this
+  // engine's SLERP. Import validates its meaning and must preserve those bits.
+  frozen.poses[1].root[0] += 1e-12;
+  frozen.poses[1].joints.Head[0] += Number.EPSILON;
+  const manual = { ...previous.manual!, pointBaseTake: frozen, pointEdits: [{ time: 1.01, joints: { LeftForeArm: rotationFromDegrees([35, 0, 0]) } }] };
+  scene.project.history.push({ ...previous, title: '冻结原动作后微调', manual, take: bakeKeyframeSequence(manual), operation: { label: '调整左肘', time: 1.01, tracks: ['LeftForeArm'] } });
+  scene.project.historyIndex = 2;
+  scene.project.revision = 3;
+  return scene;
+}
+
 describe('complete local scene backup', () => {
+  it('preserves the frozen saved authority exactly while validating its sparse baseline and permitting only the overlay extra time', async () => {
+    const source = frozenPointFixture(), before = structuredClone(source.project), frozen = source.project.history[1].take!;
+    for (const file of [legacy(source), encodeSceneJsonBackup(source), await encodeSceneBackup(source)]) {
+      const imported = await decodeSceneBackup(file), snapshot = imported.scene.project.history[2];
+      expect(imported.scene.project).toEqual({ ...before, teacherCheckedRevision: null });
+      expect(snapshot.manual!.pointBaseTake).toEqual(frozen);
+      expect(snapshot.take!.times).toEqual([...frozen.times, 1.01].sort((a, b) => a - b));
+      frozen.times.forEach((time, index) => expect(snapshot.take!.poses[snapshot.take!.times.indexOf(time)]).toEqual(frozen.poses[index]));
+      const again = await decodeSceneBackup(await encodeSceneBackup(imported.scene.audio ? imported.scene : { ...imported.scene, audio: source.audio }));
+      expect(again.scene.project.history).toEqual(before.history);
+    }
+    expect(source.project).toEqual(before);
+  });
+
+  it.each([
+    ['Root authority', (take: any) => { take.poses[1].root[0] += .01; }],
+    ['terminal authority', (take: any) => { take.poses[1].joints.LeftHandTip = rotationFromDegrees([40, 0, 0]); }],
+    ['frozen sampling grid', (take: any) => { take.times[1] += .001; }],
+  ])('rejects a self-consistent overlay with arbitrary hidden %s', async (_label, mutate) => {
+    const source = frozenPointFixture();
+    const file = legacy(source, data => {
+      const snapshot = data.scene.project.history[2];
+      mutate(snapshot.manual.pointBaseTake);
+      // The saved output now agrees with the forged frozen take. A check of
+      // only the final overlay would therefore miss the altered underlying data.
+      snapshot.take = bakeKeyframeSequence(snapshot.manual);
+    });
+    await expect(decodeSceneBackup(file)).rejects.toThrow(/数据点原动作/);
+  });
+
+  it.each([
+    ['foreign plan', (take: any) => { take.planId = 'foreign'; }],
+    ['foreign count map', (take: any) => { take.countMapId = 'foreign'; }],
+    ['changed duration', (take: any) => { take.durationSeconds += .1; }],
+    ['unknown frozen field', (take: any) => { take.hidden = true; }],
+  ])('rejects %s in a frozen point baseline', async (_label, mutate) => {
+    await expect(decodeSceneBackup(legacy(frozenPointFixture(), data => mutate(data.scene.project.history[2].manual.pointBaseTake)))).rejects.toThrow('场景备份无效');
+  });
+
+  it('never reuses frozen equivalence merely because later snapshots retain the same IDs', async () => {
+    for (const change of ['tracks', 'base'] as const) {
+      const source = frozenPointFixture(), previous = source.project.history[2], manual = { ...previous.manual! };
+      if (change === 'tracks') manual.rotations = { ...manual.rotations, Head: [{ frame: 90, rotation: rotationFromDegrees([70, -35, 8]) }] };
+      else {
+        manual.baseTake = structuredClone(manual.baseTake);
+        manual.baseTake.poses[0].root[0] += .04;
+      }
+      source.project.history.push({ ...previous, manual, take: bakeKeyframeSequence(manual) });
+      source.project.historyIndex = 3;
+      // Frozen identity and manual IDs are shared with the accepted prior
+      // snapshot; changed actual source/evaluation inputs still require a check.
+      await expect(encodeSceneBackup(source)).rejects.toThrow(/数据点原动作/);
+    }
+  });
+
+  it('charges one shared frozen authority once at the exact original sample budget and preserves that sharing after decode and re-export', async () => {
+    const source = fixture(), previous = source.project.history[0], duration = previous.countMap.durationSeconds;
+    const times = Array.from({ length: 6000 }, (_, index) => index === 5999 ? duration : duration * index / 5999);
+    const base: BakedTake = { ...previous.take!, times, poses: times.map(() => previous.take!.poses[0]) };
+    const manual = makeKeyframeSequence(base);
+    manual.pointBaseTake = base;
+    manual.pointEdits = [{ time: times[3000], joints: { Head: rotationFromDegrees([15, 0, 0]) } }];
+    const take = bakeKeyframeSequence(manual);
+    source.project.history = Array.from({ length: 12 }, (_, index) => ({ ...previous, title: `共享原动作 ${index}`, take, manual }));
+    source.project.historyIndex = 11; source.project.revision = 12;
+    // 12 × (6000 authority + 6000 base) + one 6000 frozen source = 150000.
+    const imported = await decodeSceneBackup(await encodeSceneBackup(source));
+    const frozen = imported.scene.project.history[0].manual!.pointBaseTake;
+    expect(frozen).toBe(imported.scene.project.history[0].manual!.baseTake);
+    imported.scene.project.history.forEach(snapshot => expect(snapshot.manual!.pointBaseTake).toBe(frozen));
+    deepStrictEqual(imported.scene.project, { ...source.project, teacherCheckedRevision: null });
+    // Full graph equality after re-export also guards against losing shared
+    // frozen identity and charging twelve extra sources on the next save.
+    deepStrictEqual((await decodeSceneBackup(await encodeSceneBackup(imported.scene))).scene.project, imported.scene.project);
+    // Independent source objects (as legacy JSON would allocate) cannot reuse
+    // the frozen-reference discount merely because their contents are equal.
+    const unshared = { ...source, project: { ...source.project, history: source.project.history.map(snapshot => ({ ...snapshot, manual: { ...snapshot.manual!, pointBaseTake: { ...base } } })) } };
+    await expect(encodeSceneBackup(unshared)).rejects.toThrow(/样本超出/);
+  }, 45_000);
+
+  it('exports twelve incremental snapshots compactly and restores all exact authority and history through both formats', async () => {
+    const source = pointFixture(), original = source.project.history[0], current = source.project.history[1];
+    source.project.history = [original, ...Array.from({ length: 11 }, (_, index) => {
+      const manual = structuredClone(current.manual!);
+      manual.pointEdits![0].joints!.LeftHandTip = rotationFromDegrees([40 + index, -7, 4]);
+      return { ...current, title: `微调 ${index + 1}`, manual, take: bakeKeyframeSequence(manual) };
+    })];
+    source.project.historyIndex = 11;
+    source.project.revision = 12;
+    const before = structuredClone(source.project), compactJson = encodeSceneJsonBackup(source), bundle = await encodeSceneBackup(source);
+    const json = JSON.parse(await compactJson.text()), parts = await bundleParts(bundle);
+    expect(json.format).toBe('choreo-scene-backup-2');
+    expect(parts.rawHeader.format).toBe('choreo-scene-bundle-2');
+    expect(parts.rawHeader.scene.schema).toBe('compact-scene-1');
+    expect(compactJson.size).toBeLessThan(legacy(source).size / 2);
+    for (const file of [compactJson, bundle]) {
+      const imported = await decodeSceneBackup(file);
+      expect(imported.scene.project).toEqual({ ...before, teacherCheckedRevision: null });
+      expect(imported.scene.project.history).toHaveLength(12);
+      if (imported.scene.audio) expect(await imported.scene.audio.arrayBuffer()).toEqual(await source.audio!.arrayBuffer());
+    }
+    expect(source.project).toEqual(before);
+  });
+
+  it('continues reading full version-one bundles with ordinary scene payloads', async () => {
+    const source = fixture(), parts = await bundleParts(await encodeSceneBackup(source));
+    const header = new TextEncoder().encode(JSON.stringify({ ...parts.header, format: 'choreo-scene-bundle-1' }));
+    const prefix = parts.bytes.slice(0, parts.prefixLength);
+    new DataView(prefix.buffer).setUint32(parts.magicLength, header.byteLength, true);
+    const imported = await decodeSceneBackup(new Blob([prefix, header, parts.audio]));
+    expect(imported.scene.project.history).toEqual(source.project.history);
+    expect(await imported.scene.audio!.arrayBuffer()).toEqual(await source.audio!.arrayBuffer());
+  });
+
+  it('roundtrips one selected source channel without losing Root, terminal joints, source times or earlier history', async () => {
+    const source = pointFixture(), original = structuredClone(source.project), base = source.project.history[0].take!;
+    for (const file of [legacy(source), await encodeSceneBackup(source)]) {
+      const imported = await decodeSceneBackup(file);
+      expect(imported.scene.project).toEqual({ ...original, teacherCheckedRevision: null });
+      const edited = imported.scene.project.history[1];
+      expect(edited.manual!.baseTake).toEqual(base);
+      expect(edited.manual!.pointEdits).toEqual([{ time: .7, joints: { LeftHandTip: rotationFromDegrees([61, -7, 4]) } }]);
+      expect(edited.manual!.root).toEqual([]);
+      expect(edited.manual!.rotations).toEqual({});
+      expect(edited.take!.times).toEqual(base.times);
+      base.times.forEach((time, index) => {
+        expect(edited.take!.poses[index].root).toEqual(base.poses[index].root);
+        JOINT_NAMES.forEach(joint => {
+          if (joint !== 'LeftHandTip' || time !== .7) expect(edited.take!.poses[index].joints[joint]).toEqual(base.poses[index].joints[joint]);
+        });
+      });
+      expect(edited.take!.poses[1].joints.LeftHandTip).toEqual(edited.manual!.pointEdits![0].joints!.LeftHandTip);
+      expect(imported.scene.project.history[0]).not.toHaveProperty('operation');
+      expect(imported.scene.project.history[0]).not.toHaveProperty('manual');
+    }
+    expect(source.project).toEqual(original);
+  });
+
+  it('preserves an exact off-grid point and only inserts that time without snapping or hiding inherited channel data', async () => {
+    const source = pointFixture(1.01), before = structuredClone(source.project), base = source.project.history[0].take!;
+    const imported = await decodeSceneBackup(await encodeSceneBackup(source));
+    const edited = imported.scene.project.history[1], take = edited.take!;
+    expect(edited.manual!.pointEdits![0].time).toBe(1.01);
+    expect(take.times).toEqual([0, .7, 1.01, 2.5, base.durationSeconds]);
+    const inserted = take.poses[take.times.indexOf(1.01)], inherited = sampleTake(base, 1.01);
+    expect(inserted.root).toEqual(inherited.root);
+    JOINT_NAMES.forEach(joint => {
+      if (joint !== 'LeftHandTip') expect(inserted.joints[joint]).toEqual(inherited.joints[joint]);
+    });
+    base.times.forEach((time, index) => expect(take.poses[take.times.indexOf(time)]).toEqual(base.poses[index]));
+    expect(imported.scene.project).toEqual({ ...before, teacherCheckedRevision: null });
+    expect(source.project).toEqual(before);
+  });
+
+  it('retains operation metadata per snapshot and keeps old snapshots and optional empty point collections unchanged', async () => {
+    const source = fixture();
+    source.project.history[1].manual!.pointEdits = [];
+    source.project.history[1].operation = { label: '移动整体', time: 3, tracks: ['root', 'Head', 'LeftHandTip'] };
+    for (const file of [legacy(source), await encodeSceneBackup(source)]) {
+      const imported = await decodeSceneBackup(file);
+      expect(imported.scene.project.history).toEqual(source.project.history);
+      expect(imported.scene.project.history[0]).not.toHaveProperty('operation');
+      expect(imported.scene.project.history[1].manual).toHaveProperty('pointEdits', []);
+    }
+    const older = fixture();
+    const imported = await decodeSceneBackup(await encodeSceneBackup(older));
+    expect(imported.scene.project.history[1].manual).not.toHaveProperty('pointEdits');
+    expect(imported.scene.project.history[1]).not.toHaveProperty('operation');
+  });
+
+  it.each([
+    ['unknown field', (point: any) => { point.hidden = true; }],
+    ['frame instead of exact time', (point: any) => { delete point.time; point.frame = 21; }],
+    ['out-of-scene time', (point: any) => { point.time = -1; }],
+    ['empty point', (point: any) => { point.joints = {}; }],
+    ['unknown joint', (point: any) => { point.joints.Invented = [0, 0, 0, 1]; }],
+    ['nonunit rotation', (point: any) => { point.joints.LeftHandTip = [0, 0, 0, 2]; }],
+    ['modified Root outside edit bounds', (point: any) => { point.root = [8, -1, -9]; }],
+  ])('rejects point edit %s without silently dropping or repairing the modification', async (_label, mutate) => {
+    const source = pointFixture();
+    await expect(decodeSceneBackup(legacy(source, data => mutate(data.scene.project.history[1].manual.pointEdits[0])))).rejects.toThrow('场景备份无效');
+  });
+
+  it('rejects repeated or unsorted exact points, and counts every selected channel against the combined sparse resource cap', async () => {
+    const source = pointFixture();
+    for (const mutate of [
+      (manual: any) => { manual.pointEdits.push({ ...manual.pointEdits[0] }); },
+      (manual: any) => { manual.pointEdits.push({ ...manual.pointEdits[0], time: .5 }); },
+      (manual: any) => { manual.pointEdits = Array.from({ length: 164 }, (_, index) => ({ time: index / 30, joints: Object.fromEntries(JOINT_NAMES.map(joint => [joint, [0, 0, 0, 1]])) })); },
+    ]) await expect(decodeSceneBackup(legacy(source, data => mutate(data.scene.project.history[1].manual)))).rejects.toThrow('场景备份无效');
+  });
+
+  it.each([
+    { label: '' }, { label: '错误', time: -1 }, { label: '错误', time: 999 },
+    { label: '错误', time: null }, { label: '错误', tracks: ['Invented'] },
+    { label: '错误', tracks: ['Head', 'Head'] }, { label: '错误', hidden: true },
+  ])('rejects malformed persisted operation metadata %j', async operation => {
+    await expect(decodeSceneBackup(legacy(fixture(), data => { data.scene.project.history[1].operation = operation; }))).rejects.toThrow('场景备份无效');
+  });
+
   it('roundtrips independent audio placements in each history without moving CountMap, K or original music', async () => {
     const source = fixture();
     source.project.history[0].audioOffsetSeconds = -1;
@@ -336,7 +573,7 @@ describe('complete local scene backup', () => {
   it('rejects unsupported bundle versions, unsafe MIME types and forged audio metadata', async () => {
     const file = await encodeSceneBackup(fixture());
     for (const mutate of [
-      (data: any) => { data.format = 'choreo-scene-bundle-2'; },
+      (data: any) => { data.format = 'choreo-scene-bundle-3'; },
       (data: any) => { data.audio.mimeType = 'text/html'; },
       (data: any) => { data.audio.sha256 = 'g'.repeat(64); },
       (data: any) => { data.audio.byteLength = 0.5; },

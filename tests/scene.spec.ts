@@ -1,9 +1,11 @@
-import { applyStageViewOffset, selectStageJoint, expectStageSelection } from './stageInteractions';
+import { applyStageViewOffset, editStageValue, expectStageSelection, expectStageValue, selectStageJoint, stageValue } from './stageInteractions';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { PerspectiveCamera, Vector3 } from 'three';
 import { expect, test, type Page } from '@playwright/test';
 import { clickRevealed, closeDisclosures, reveal } from './helpers';
+import { unpackScene } from '../apps/web/src/compactScene';
+import { JOINT_NAMES, type BakedTake, type KeyframeSequence } from '../packages/core/src';
 
 type Camera = { position: [number, number, number]; target: [number, number, number]; zoom?: number };
 type Backup = {
@@ -11,7 +13,7 @@ type Backup = {
     id: string;
     name: string;
     audioName: string;
-    project: { historyIndex: number; history: { take: unknown; plan: unknown }[] };
+    project: { historyIndex: number; history: { take: BakedTake | null; plan: unknown; manual?: KeyframeSequence; operation?: { label: string; time?: number; tracks?: string[] } }[] };
     viewer: { camera: Camera; view: string; mirror: boolean; rate: number; loop: boolean; countSound: boolean; selectedSlot: number; selectedJoint: string | null; time: number };
   };
 };
@@ -35,6 +37,9 @@ test.afterEach(async ({ page }, testInfo) => {
 
 async function ready(page: Page) {
   await page.goto('/');
+  // A harmless native click permits media preload while leaving the saved
+  // scene, choreography and initial playback time untouched.
+  await page.locator('.project-title h1').click();
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeEnabled();
   await expect(page.getByLabel('相机世界坐标')).not.toContainText('—');
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.readyState)).toBeGreaterThanOrEqual(2);
@@ -45,7 +50,8 @@ async function backup(page: Page): Promise<Backup> {
   await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await downloading).path();
   expect(path).toBeTruthy();
-  const document = JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  const document = JSON.parse(await readFile(path!, 'utf8'));
+  if (document.format === 'choreo-scene-backup-2') document.scene = unpackScene(document.scene);
   await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
   return document;
 }
@@ -305,23 +311,40 @@ test('saved scenes independently restore audio, choreography and camera settings
   await expect(remaining.getByRole('button', { name: `打开场景 ${sceneB.scene.name}`, exact: true })).toBeVisible();
 });
 
-test('cancel, failed save and discard during a dirty scene switch preserve the correct drafts and saved scenes', async ({ page }) => {
+test('cancel, failed save and discard preserve automatically recorded point edits and saved scenes', async ({ page }) => {
   test.setTimeout(120_000);
   await ready(page);
-  await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
   await renameCurrent(page, '保护场景 A'); await save(page);
   const sceneA = await backup(page);
-  await newScene(page); await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true })); await renameCurrent(page, '保护场景 B'); await save(page);
-  await page.getByRole('listitem', { name: /^第2个八拍/ }).click();
-  await page.getByRole('button', { name: '换一个八拍', exact: true }).click();
-  await page.getByRole('region', { name: '替换候选' }).getByRole('button', { name: '采用', exact: true }).click();
-  const draft = await backup(page);
+  await newScene(page); await renameCurrent(page, '保护场景 B'); await save(page);
+  const pristineB = await backup(page);
+  await page.getByRole('spinbutton', { name: '当前帧', exact: true }).fill('30');
+  await selectStageJoint(page, 'Head');
+  const target = await stageValue(page, '关节 X 旋转（度）') + 5;
+  await editStageValue(page, '关节 X 旋转（度）', target);
+  await expectStageValue(page, '关节 X 旋转（度）', target);
+  await expect(page.locator('.save-state')).toHaveText('有未保存更改');
+  const edited = await backup(page), originalTake = pristineB.scene.project.history[pristineB.scene.project.historyIndex].take!;
+  const current = edited.scene.project.history[edited.scene.project.historyIndex];
+  expect(edited.scene.project.history).toHaveLength(pristineB.scene.project.history.length + 1);
+  expect(current.operation).toMatchObject({ time: 1, tracks: ['Head'] });
+  expect(current.manual!.pointEdits).toHaveLength(1);
+  expect(current.manual!.pointEdits![0].time).toBe(1);
+  expect(Object.keys(current.manual!.pointEdits![0].joints!)).toEqual(['Head']);
+  expect(current.manual!.root).toEqual([]);
+  expect(current.manual!.rotations).toEqual({});
+  expect(current.take!.times).toEqual(originalTake.times);
+  current.take!.poses.forEach((pose, index) => {
+    expect(pose.root, 'A head adjustment must preserve the original Root path').toEqual(originalTake.poses[index].root);
+    for (const joint of JOINT_NAMES) if (joint !== 'Head' || current.take!.times[index] !== 1) expect(pose.joints[joint]).toEqual(originalTake.poses[index].joints[joint]);
+  });
   await openScene(page, sceneA.scene.name);
   const guard = page.getByRole('dialog', { name: '保留当前场景的修改？', exact: true });
   await expect(guard).toBeVisible();
   await guard.getByRole('button', { name: '取消', exact: true }).click();
   await page.getByRole('button', { name: '关闭场景列表', exact: true }).click();
-  expect(projectHash(await backup(page))).toBe(projectHash(draft));
+  expect(projectHash(await backup(page))).toBe(projectHash(edited));
+  await expectStageValue(page, '关节 X 旋转（度）', target);
   await expect(page.locator('.project-title h1')).toHaveText('保护场景 B');
 
   await openScene(page, sceneA.scene.name);
@@ -342,7 +365,8 @@ test('cancel, failed save and discard during a dirty scene switch preserve the c
   await page.evaluate(() => (window as unknown as { restoreSceneTransactions: () => void }).restoreSceneTransactions());
   await guard.getByRole('button', { name: '取消', exact: true }).click();
   await page.getByRole('button', { name: '关闭场景列表', exact: true }).click();
-  expect(projectHash(await backup(page))).toBe(projectHash(draft));
+  expect(projectHash(await backup(page))).toBe(projectHash(edited));
+  await expectStageValue(page, '关节 X 旋转（度）', target);
 
   await openScene(page, sceneA.scene.name);
   await guard.getByRole('button', { name: '保存后继续', exact: true }).click();
@@ -350,9 +374,11 @@ test('cancel, failed save and discard during a dirty scene switch preserve the c
   expect(projectHash(await backup(page))).toBe(projectHash(sceneA));
   await openScene(page, '保护场景 B');
   await expect(page.locator('.project-title h1')).toHaveText('保护场景 B');
-  await waitCamera(page, draft.scene.viewer.camera);
+  await waitCamera(page, edited.scene.viewer.camera);
   const savedB = await backup(page);
-  expect(projectHash(savedB)).toBe(projectHash(draft));
+  expect(projectHash(savedB)).toBe(projectHash(edited));
+  await expectStageSelection(page, 'Head');
+  await expectStageValue(page, '关节 X 旋转（度）', target);
   await clickRevealed(page, page.getByRole('button', { name: '右侧', exact: true, includeHidden: true }));
   await openScene(page, sceneA.scene.name);
   await guard.getByRole('button', { name: '不保存，继续', exact: true }).click();

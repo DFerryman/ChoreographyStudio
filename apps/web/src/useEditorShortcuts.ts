@@ -5,7 +5,6 @@ export type EditorShortcutOptions = {
   readOnly?: boolean;
   onStep: (direction: -1 | 1) => void;
   onPlay: () => void;
-  onWrite: () => void;
   onDelete: () => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -47,7 +46,6 @@ export function useEditorShortcuts(options: EditorShortcutOptions): void {
         action = () => callbacks.onStep(key === 'arrowleft' ? -1 : 1);
         allowRepeat = true;
       } else if (key === ' ' || key === 'spacebar' || event.code === 'Space') action = callbacks.onPlay;
-      else if (key === 'k') action = callbacks.onWrite;
       else if (key === 'delete') action = callbacks.onDelete;
 
       if (!action) return;
