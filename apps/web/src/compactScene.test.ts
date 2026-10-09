@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { JOINT_NAMES, type BakedTake, type Pose, type Quat } from '../../../packages/core/src/motion-types';
 import { packScene, unpackScene, type CompactScene } from './compactScene';
+import type { CameraTrack } from '../../../packages/core/src/cameraTrack';
 
 function take(id: string, times = [0, 0.008337038683859493, 0.0219137159934, 1.137]): BakedTake {
   return { id, schemaVersion: 'preview-1', planId: 'plan', countMapId: 'map', durationSeconds: times.at(-1)!, times, poses: times.map((time, index): Pose => ({
@@ -14,6 +15,26 @@ function scene(takes: BakedTake[], base = takes[0]) {
 const wire = (value: unknown) => JSON.parse(JSON.stringify(value));
 
 describe('lossless compact scene history', () => {
+  it('preserves twelve camera-only operations and exact off-grid keys while storing unchanged Take and base only once', () => {
+    const source = take('source'), original = scene(Array.from({ length: 12 }, () => source));
+    const withCamera = { ...original, project: { ...original.project, historyIndex: 6, history: original.project.history.map((snapshot, index) => ({ ...snapshot, countMap: { durationSeconds: source.durationSeconds }, cameraTrack: {
+      schema: 'camera-track-1', baseCamera: { position: [4, 3, -5], target: [0, 1, 0] }, keys: [
+        { time: .008337038683859493, camera: { position: [index + .137, 2, -4], target: [.1, 1.3, -.2], zoom: 1.137 } },
+        { time: .0219137159934, camera: { position: [-4, 3, 1.2], target: [.3, 1.1, -.5] } },
+      ],
+    } as CameraTrack, operation: { label: '移动相机', time: .008337038683859493, tracks: ['camera'] } })) } };
+    const packed = packScene(withCamera);
+    expect(packed.takes).toHaveLength(1);
+    const restored = unpackScene(wire(packed)) as typeof withCamera;
+    expect(restored).toEqual(withCamera);
+    expect(new Set(restored.project.history.map(snapshot => snapshot.take)).size).toBe(1);
+    expect(restored.project.history[0].take).toEqual(source);
+    const corrupt = wire(packed); corrupt.scene.project.history[0].cameraTrack.keys[0].time = 2;
+    expect(() => unpackScene(corrupt)).toThrow('场景压缩数据无效');
+    withCamera.project.history[0].cameraTrack.keys[0].camera.zoom = NaN;
+    expect(() => packScene(withCamera)).toThrow('场景压缩数据无效');
+  });
+
   it('restores nonuniform timestamps, all 25 channels, sparse keys, metadata and history exactly', () => {
     const base = take('source'), edited = structuredClone(base); edited.id = 'edited';
     edited.poses[1].joints.LeftHandTip = [0, .5, 0, Math.sqrt(.75)];

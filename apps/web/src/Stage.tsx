@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
-import { EDITABLE_JOINT_NAMES, JOINT_NAMES, RIG_DEFINITIONS, ROOT_TRANSLATION_LIMITS, sampleTake, type BakedTake, type JointName, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
+import { EDITABLE_JOINT_NAMES, JOINT_NAMES, RIG_DEFINITIONS, ROOT_TRANSLATION_LIMITS, sampleTake, type BakedTake, type JointName, type Pose, type Quat, type SampledCameraPose, type Vec3 } from '../../../packages/core/src';
 import { fitPerspectiveBounds } from './cameraFraming';
 import { constrainJointRotation, getBodyCollisions } from '../../../packages/core/src';
 import { disposeHumanoid, loadHumanoid, updateHumanoid } from './Humanoid';
@@ -40,7 +40,14 @@ type StageProps = {
   mirror: boolean;
   cameraResetKey?: number;
   cameraState?: StageCamera;
+  /** Exact authored/derived track view; null leaves ordinary navigation in control. */
+  cameraTrackState?: SampledCameraPose | null;
+  cameraTrackEditing?: boolean;
+  cameraEditRevision?: number;
+  cameraCancelKey?: number;
   cameraRestoreKey?: number;
+  /** One-shot author/history restoration, without legacy navigation clamping. */
+  cameraRestoreExact?: SampledCameraPose | null;
   cameraFocus?: StageCameraFocus;
   /** Transient screen space reserved by a floating timeline; never saved with the camera. */
   bottomOverlayInset?: number;
@@ -56,6 +63,7 @@ type StageProps = {
   onSelectJoint?: (joint: JointName | null) => void;
   onCameraChange?: (camera: StageCamera) => void;
   onCameraInteraction?: () => void;
+  onCameraGesture?: (camera: StageCamera, phase: 'start' | 'change' | 'end' | 'cancel') => void;
   onJointPositionChange?: (position: Vec3 | null) => void;
   onJointRotationChange?: (joint: JointName, rotation: Quat, phase: 'start' | 'change' | 'end') => Pose | void;
   onRootPositionChange?: (position: Vec3, phase: 'start' | 'change' | 'end') => Pose | void;
@@ -187,7 +195,7 @@ function StageFallback({ error }: { error: string }) {
 }
 
 export function Stage(props: StageProps) {
-  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraFocus, bottomOverlayInset, selectedJoint, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool = 'rotate', ikTarget } = props;
+  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selectedJoint, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool = 'rotate', ikTarget } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const current = useRef(props);
   const requestDraw = useRef<() => void>(() => {});
@@ -256,7 +264,7 @@ export function Stage(props: StageProps) {
     controls.screenSpacePanning = true;
     controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
     controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
-    let cameraKeyboardEnabled = !current.current.editMode;
+    let cameraKeyboardEnabled = !current.current.editMode || !!current.current.cameraTrackEditing;
     if (cameraKeyboardEnabled) controls.listenToKeyEvents(canvas);
     const transform = new TransformControls(camera, canvas);
     transform.setMode('rotate');
@@ -345,6 +353,7 @@ export function Stage(props: StageProps) {
     let previousView: StageView | undefined;
     let previousReset: number | undefined;
     let previousRestore: number | undefined;
+    let previousCameraCancel = current.current.cameraCancelKey;
     let previousFocusKey = current.current.cameraFocus?.key;
     let previousTake: BakedTake | null | undefined;
     let previousTime = Number.NaN;
@@ -365,6 +374,13 @@ export function Stage(props: StageProps) {
     const activePointers = new Set<number>();
     const blockedTransformPointers = new Set<number>();
     let cameraGesture = false;
+    let trackCameraSignature: string | null = null;
+    let wheelEventInProgress = false;
+    let cameraEndTimer: number | undefined;
+    let authoredCameraGesture: {
+      kind: 'pointer' | 'wheel' | 'keyboard'; before: StageCamera; up: Vec3; value: StageCamera;
+      take: BakedTake | null; time: number; revision?: number; tool?: StageTransformTool;
+    } | null = null;
     const humanLoad = new AbortController();
 
     function schedule() {
@@ -418,6 +434,7 @@ export function Stage(props: StageProps) {
         front: [0, 0.22, 1], back: [0, 0.22, -1], left: [1, 0.22, 0], right: [-1, 0.22, 0], top: [0, 1, 0.015],
       };
       applyingCamera = true;
+      camera.up.set(0, 1, 0);
       camera.zoom = 1;
       camera.updateProjectionMatrix();
       controls.target.set(0, 0.95, 0);
@@ -433,6 +450,7 @@ export function Stage(props: StageProps) {
       if (offset.lengthSq() < 0.0001) return false;
       offset.setLength(THREE.MathUtils.clamp(offset.length(), controls.minDistance, controls.maxDistance));
       applyingCamera = true;
+      camera.up.set(0, 1, 0);
       controls.target.set(...state.target);
       camera.position.copy(controls.target).add(offset);
       camera.zoom = Number.isFinite(state.zoom) ? THREE.MathUtils.clamp(state.zoom!, 0.5, 4) : 1;
@@ -443,12 +461,88 @@ export function Stage(props: StageProps) {
       return true;
     }
 
+    function readCamera(): StageCamera {
+      return { position: camera.position.toArray() as Vec3, target: controls.target.toArray() as Vec3, zoom: camera.zoom };
+    }
+
+    function sameCamera(a: StageCamera, b: StageCamera) {
+      return a.position.every((value, axis) => value === b.position[axis]) &&
+        a.target.every((value, axis) => value === b.target[axis]) && (a.zoom ?? 1) === (b.zoom ?? 1);
+    }
+
+    function applyTrackCamera(state: SampledCameraPose) {
+      // Sampling already validates the authored data. In particular, a derived
+      // orbit may exceed legacy navigation bounds: never clamp or round it.
+      applyingCamera = true;
+      camera.position.set(...state.position);
+      controls.target.set(...state.target);
+      camera.zoom = state.zoom ?? 1;
+      camera.up.set(...(state.up ?? [0, 1, 0]));
+      camera.updateProjectionMatrix();
+      camera.lookAt(controls.target);
+      camera.updateMatrixWorld(true);
+      applyingCamera = false;
+      manuallyMoved = true;
+    }
+
+    function beginCameraGesture(kind: 'pointer' | 'wheel' | 'keyboard') {
+      const state = current.current;
+      if (!initialized || applyingCamera || !state.cameraTrackEditing || state.playing || !state.onCameraGesture) return;
+      if (authoredCameraGesture?.kind !== kind) finishCameraGesture();
+      if (authoredCameraGesture) return;
+      const before = readCamera();
+      authoredCameraGesture = { kind, before, value: before, up: camera.up.toArray() as Vec3,
+        take: state.take, time: state.time, revision: state.cameraEditRevision, tool: state.transformTool };
+      state.onCameraGesture(before, 'start');
+    }
+
+    function finishCameraGesture(cancel = false, stopNative = false) {
+      clearCameraEnd();
+      const gesture = authoredCameraGesture;
+      // Clear before callbacks or capture release: native end can describe the
+      // same gesture, and a React update can invalidate its scene/time binding.
+      authoredCameraGesture = null;
+      if (!gesture) return;
+      if (stopNative) {
+        const captured = new Set(activePointers);
+        if (pointerStart) captured.add(pointerStart.id);
+        controls.disconnect();
+        controls.connect(canvas);
+        if (cameraKeyboardEnabled) controls.listenToKeyEvents(canvas);
+        activePointers.clear(); pointerStart = null; cameraGesture = false;
+        for (const id of captured) if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
+        canvas.classList.remove('is-dragging');
+      }
+      if (cancel) applyTrackCamera({ ...gesture.before, up: gesture.up });
+      current.current.onCameraGesture?.(cancel || sameCamera(gesture.before, gesture.value) ? gesture.before : gesture.value,
+        cancel || sameCamera(gesture.before, gesture.value) ? 'cancel' : 'end');
+      schedule();
+    }
+
+    function clearCameraEnd() {
+      if (cameraEndTimer !== undefined) window.clearTimeout(cameraEndTimer);
+      cameraEndTimer = undefined;
+    }
+
+    function deferCameraEnd() {
+      clearCameraEnd();
+      // Keep a continuous zoom burst together while native input is queued.
+      // Save, seek and tool changes still finish immediately through their guards.
+      cameraEndTimer = window.setTimeout(() => finishCameraGesture(), 500);
+    }
+
     function cameraFeedback() {
       const values = [...camera.position.toArray(), ...controls.target.toArray(), camera.zoom];
-      const signature = values.map(value => value.toFixed(5)).join(',');
+      // Inspect the actual renderer values even below the legacy display
+      // throttle; this is also the exact seek/playback browser contract.
+      container!.dataset.cameraPosition = JSON.stringify(camera.position.toArray());
+      container!.dataset.cameraTarget = JSON.stringify(controls.target.toArray());
+      container!.dataset.cameraZoom = JSON.stringify(camera.zoom);
+      container!.dataset.cameraUp = JSON.stringify(camera.up.toArray());
+      const signature = [...values, ...camera.up.toArray()].map(value => value.toFixed(5)).join(',');
       if (signature === cameraSignature) return;
       cameraSignature = signature;
-      current.current.onCameraChange?.({ position: camera.position.toArray() as Vec3, target: controls.target.toArray() as Vec3, zoom: camera.zoom });
+      if (!current.current.cameraTrackState && !authoredCameraGesture) current.current.onCameraChange?.(readCamera());
       const inverse = camera.quaternion.clone().invert();
       setGizmo([
         { name: 'X', color: '#f2727c', vector: new THREE.Vector3(1, 0, 0) },
@@ -596,6 +690,7 @@ export function Stage(props: StageProps) {
     }
 
     function cancelForCameraFocus() {
+      finishCameraGesture(false, true);
       const heldPointers = new Set(activePointers);
       if (pointerStart) heldPointers.add(pointerStart.id);
       // Finish the last valid edit before framing so its channel is committed
@@ -656,8 +751,9 @@ export function Stage(props: StageProps) {
 
     function draw() {
       const state = current.current;
-      if (cameraKeyboardEnabled === !!state.editMode) {
-        cameraKeyboardEnabled = !state.editMode;
+      const nextKeyboardEnabled = !state.editMode || !!state.cameraTrackEditing;
+      if (cameraKeyboardEnabled !== nextKeyboardEnabled) {
+        cameraKeyboardEnabled = nextKeyboardEnabled;
         if (cameraKeyboardEnabled) controls.listenToKeyEvents(canvas);
         else controls.stopListenToKeyEvents();
       }
@@ -670,6 +766,14 @@ export function Stage(props: StageProps) {
       previousFocusKey = state.cameraFocus?.key;
       const focusRequest = wasInitialized && !restoreChanged && state.take && focusChanged ? state.cameraFocus : undefined;
       const cameraViewChanged = state.view !== previousView || state.cameraResetKey !== previousReset;
+      if (state.cameraCancelKey !== previousCameraCancel) finishCameraGesture(true, true);
+      previousCameraCancel = state.cameraCancelKey;
+      if (authoredCameraGesture && (!state.cameraTrackEditing || state.playing || restoreChanged || cameraViewChanged || focusRequest ||
+        state.take !== authoredCameraGesture.take || state.time !== authoredCameraGesture.time ||
+        state.cameraEditRevision !== authoredCameraGesture.revision ||
+        state.transformTool !== authoredCameraGesture.tool)) {
+        finishCameraGesture(false, true);
+      }
       // A scene switch can clear the consumer's state even when its camera and
       // selected joint match the previous scene. Publish fresh scene feedback.
       if (!initialized || restoreChanged) {
@@ -677,12 +781,23 @@ export function Stage(props: StageProps) {
         jointSignature = '';
       }
       if (!initialized) {
-        if (!restore(state.cameraState)) preset(state.view);
+        if (state.cameraRestoreExact) applyTrackCamera(state.cameraRestoreExact);
+        else if (!restore(state.cameraState)) preset(state.view);
       } else if (restoreChanged) {
-        if (!restore(state.cameraState)) preset(state.view);
+        if (state.cameraRestoreExact) applyTrackCamera(state.cameraRestoreExact);
+        else if (!restore(state.cameraState)) preset(state.view);
       } else if ((state.view !== previousView && state.view !== 'free') || state.cameraResetKey !== previousReset) {
         preset(state.view);
       }
+      const nextTrackSignature = state.cameraTrackState ? JSON.stringify([
+        state.cameraTrackState.position, state.cameraTrackState.target, state.cameraTrackState.zoom ?? 1,
+        state.cameraTrackState.up ?? [0, 1, 0],
+      ]) : null;
+      if (state.cameraTrackState && !authoredCameraGesture &&
+        (nextTrackSignature !== trackCameraSignature || restoreChanged || cameraViewChanged || !wasInitialized)) {
+        applyTrackCamera(state.cameraTrackState);
+        trackCameraSignature = nextTrackSignature;
+      } else if (!state.cameraTrackState) trackCameraSignature = null;
       initialized = true;
       previousView = state.view;
       previousReset = state.cameraResetKey;
@@ -784,7 +899,7 @@ export function Stage(props: StageProps) {
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       applyProjectionOffset();
-      if (initialized && !manuallyMoved && Math.abs(oldAspect - camera.aspect) > 0.001) preset(current.current.view);
+      if (initialized && !current.current.cameraTrackState && !manuallyMoved && Math.abs(oldAspect - camera.aspect) > 0.001) preset(current.current.view);
       schedule();
     }
 
@@ -828,6 +943,9 @@ export function Stage(props: StageProps) {
     }
 
     function onPointerPrepare(event: PointerEvent) {
+      // Disabled wheel input may have no native end. A new pointer is always a
+      // pointer gesture, even if a previous wheel left its capture marker set.
+      wheelEventInProgress = false;
       if (blockedTransformPointers.size > 0) {
         blockedTransformPointers.add(event.pointerId);
         event.preventDefault();
@@ -909,6 +1027,7 @@ export function Stage(props: StageProps) {
         if (Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y) > 5) pointerStart.dragged = true;
         return;
       }
+      if (current.current.cameraTrackEditing) { clearHover(); return; }
       if (event.pointerType === 'touch') return;
       if (transform.enabled && (transform.dragging || transform.axis !== null)) {
         clearHover();
@@ -932,12 +1051,13 @@ export function Stage(props: StageProps) {
       const start = pointerStart;
       pointerStart = null;
       canvas.classList.remove('is-dragging');
-      if (!start.dragged && !start.gizmo && !transform.dragging && start.button === 0 && activePointers.size === 0) {
+      if (!current.current.cameraTrackEditing && !start.dragged && !start.gizmo && !transform.dragging && start.button === 0 && activePointers.size === 0) {
         selectJoint(pick(event, true));
       }
     }
 
     function onPointerCancel(event: PointerEvent) {
+      finishCameraGesture(true, true);
       activePointers.delete(event.pointerId);
       if (activePointers.size === 0) cameraGesture = false;
       pointerStart = null;
@@ -947,6 +1067,7 @@ export function Stage(props: StageProps) {
     }
 
     function onDocumentPointerEnd(event: PointerEvent) {
+      if (authoredCameraGesture && event.type === 'pointercancel') finishCameraGesture(true, true);
       if (!transformGesture || pointerStart?.id !== event.pointerId) return;
       if (event.type === 'pointercancel') onPointerCancel(event);
       else {
@@ -959,15 +1080,29 @@ export function Stage(props: StageProps) {
     }
 
     function onGestureKeyDown(event: KeyboardEvent) {
-      if (!transformGesture || event.key !== 'Escape' || event.isComposing) return;
+      if (event.isComposing) return;
+      if (event.key !== 'Escape') {
+        if (cameraKeyboardEnabled && current.current.cameraTrackEditing && controls.enabled &&
+          !event.altKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code) && event.target === canvas) {
+          beginCameraGesture('keyboard');
+        }
+        return;
+      }
+      if (!transformGesture && !authoredCameraGesture) return;
       event.preventDefault();
-      cancelTransform(true);
+      finishCameraGesture(true, true);
+      if (transformGesture) cancelTransform(true);
       schedule();
     }
 
+    function onGestureKeyUp(event: KeyboardEvent) {
+      if (authoredCameraGesture?.kind === 'keyboard' && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) finishCameraGesture();
+    }
+
     function onWindowBlur() {
-      if (!transformGesture) return;
-      cancelTransform(true);
+      if (!transformGesture && !authoredCameraGesture) return;
+      finishCameraGesture(true, true);
+      if (transformGesture) cancelTransform(true);
       schedule();
     }
 
@@ -1020,13 +1155,37 @@ export function Stage(props: StageProps) {
     function onControlsChange() {
       if (initialized && !applyingCamera) {
         manuallyMoved = true;
-        current.current.onCameraInteraction?.();
+        if (authoredCameraGesture) {
+          const value = readCamera();
+          if (!sameCamera(value, authoredCameraGesture.value)) {
+            authoredCameraGesture.value = value;
+            current.current.onCameraGesture?.(value, 'change');
+          }
+        } else current.current.onCameraInteraction?.();
       }
       schedule();
     }
 
+    function onControlsStart() {
+      beginCameraGesture(wheelEventInProgress ? 'wheel' : 'pointer');
+    }
+
+    function onControlsEnd() {
+      if (authoredCameraGesture?.kind === 'wheel') deferCameraEnd();
+      else finishCameraGesture();
+      // Clear inside the native start/end lifecycle. Reconnecting OrbitControls
+      // reorders DOM bubble listeners, so a separate bubble clearer is unsafe.
+      wheelEventInProgress = false;
+    }
+
+    function onWheelPrepare() {
+      if (authoredCameraGesture?.kind === 'wheel') clearCameraEnd();
+      wheelEventInProgress = true;
+    }
+
     function onContextLost(event: Event) {
       event.preventDefault();
+      finishCameraGesture(true, true);
       cancelTransform(true);
       stopped = true;
       humanLoad.abort();
@@ -1035,6 +1194,9 @@ export function Stage(props: StageProps) {
     }
 
     controls.addEventListener('change', onControlsChange);
+    controls.addEventListener('start', onControlsStart);
+    controls.addEventListener('end', onControlsEnd);
+    canvas.addEventListener('wheel', onWheelPrepare, { capture: true, passive: true });
     transform.addEventListener('change', onTransformChange);
     transform.addEventListener('mouseDown', onTransformStart);
     transform.addEventListener('objectChange', onTransformObjectChange);
@@ -1046,6 +1208,7 @@ export function Stage(props: StageProps) {
     document.addEventListener('pointerup', onDocumentPointerEnd, true);
     document.addEventListener('pointercancel', onDocumentPointerEnd, true);
     document.addEventListener('keydown', onGestureKeyDown, true);
+    document.addEventListener('keyup', onGestureKeyUp, true);
     window.addEventListener('blur', onWindowBlur);
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
@@ -1060,10 +1223,14 @@ export function Stage(props: StageProps) {
 
     return () => {
       stopped = true;
+      finishCameraGesture(true);
       requestDraw.current = () => {};
       window.cancelAnimationFrame(frame);
       observer.disconnect();
       controls.removeEventListener('change', onControlsChange);
+      controls.removeEventListener('start', onControlsStart);
+      controls.removeEventListener('end', onControlsEnd);
+      canvas.removeEventListener('wheel', onWheelPrepare, true);
       controls.dispose();
       transform.removeEventListener('change', onTransformChange);
       transform.removeEventListener('mouseDown', onTransformStart);
@@ -1078,6 +1245,7 @@ export function Stage(props: StageProps) {
       document.removeEventListener('pointerup', onDocumentPointerEnd, true);
       document.removeEventListener('pointercancel', onDocumentPointerEnd, true);
       document.removeEventListener('keydown', onGestureKeyDown, true);
+      document.removeEventListener('keyup', onGestureKeyUp, true);
       window.removeEventListener('blur', onWindowBlur);
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointermove', onPointerMove);
@@ -1105,7 +1273,7 @@ export function Stage(props: StageProps) {
 
   useEffect(() => {
     requestDraw.current();
-  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraFocus, bottomOverlayInset, selection, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool, ikTarget]);
+  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selection, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool, ikTarget]);
 
   return (
     <div className="stage3d" ref={containerRef} data-camera-offset-y="0" tabIndex={editMode ? 0 : undefined} role="region" aria-label="3D 动画舞台" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined} aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y Alt+ArrowUp Alt+ArrowDown' : undefined} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }} onKeyDown={event => {
@@ -1135,7 +1303,8 @@ export function Stage(props: StageProps) {
           {playing ? '播放期间不可编辑' : mirror ? '关闭镜像后编辑' : transformTool === 'select' ? '点身体部位选择' : transformTool === 'translate' ? <>整体移动<span>{transformAxis ? `${transformAxis}轴` : '拖箭头调整位置'}</span></> : transformTool === 'ik' ? !getIKEffector(selection) ? '点手或脚，再拖箭头摆姿' : <>手脚协调<span>{transformAxis ? `${transformAxis}轴` : '拖箭头摆姿'}</span>{ikResidual !== null && ikResidual > 0.015 && <span className="stage3d-ik-residual" role="status">目标差 {(ikResidual * 100).toFixed(1)} cm</span>}</> : !selection ? '点身体部位，再拖彩色环摆姿' : <>旋转<span>{transformAxis ? `${transformAxis}轴` : '拖彩色环摆姿'}</span></>}
           {guidanceWarning}
         </div>}
-        {!editMode && (hasCapsuleCollisions || props.collisionFeedback || poseGuidance.outsideSuggestedRange.length > 0 || poseGuidance.shoulderCoupling.length > 0) && <div className="stage3d-edit-indicator" aria-label="姿态建议提示">{guidanceWarning}</div>}
+        {!editMode && cameraTrackEditing && <div className="stage3d-edit-indicator" aria-label="相机轨道编辑">{playing ? '相机轨道 · 播放中' : '相机 · 拖动画面，松手记录'}{guidanceWarning}</div>}
+        {!editMode && !cameraTrackEditing && (hasCapsuleCollisions || props.collisionFeedback || poseGuidance.outsideSuggestedRange.length > 0 || poseGuidance.shoulderCoupling.length > 0) && <div className="stage3d-edit-indicator" aria-label="姿态建议提示">{guidanceWarning}</div>}
         <span className="stage3d-selection-announcement" aria-live="polite">{selection ? `已选中${STAGE_JOINT_LABELS[selection]}` : '未选中关节'}</span>
       </>}
     </div>

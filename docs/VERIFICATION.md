@@ -1,10 +1,73 @@
 # 预览验证记录
 
-## Version 20 · 可复用人物碰撞体与新手势保护（本地基础通过，发布验收中）
+## Version 21 · 精确秒摄像机轨道（本地验证完成，发布待实际回执）
+
+本轮新增独立摄像机轨道：显式选中 Camera 后记录精确秒 position／target／zoom，与项目历史及场景备份一起保存；查看手势、取景、seek／播放、数值编辑、拖动／改时／删除和取消分别验证。原作者关节／Root K、采样动作与原音乐字节保持。摄像机 bake 仅记录未来需求，本轮没有实现。
+
+截至 2026-10-09，本地最终 Camera4、旧功能3、完整 foundation／build 与 Worker 类型检查已通过。新 main source／tree、对应 GitHub CI、Cloudflare version／100% deployment 和唯一公网验收均待实际回执；下方 AF v20 的线上通过记录仅属于其已发布源码。
+
+| 实际本地证据 | 结果与精确范围 |
+| --- | --- |
+| 最终 Camera batch9 | 4／4、EXIT0；12:41:05.467Z开始，171594.342ms；unexpected／skipped／flaky／report errors0。四例 diagnostics 的 errors／warnings／expectedHttpErrors／API 均为空 |
+| Camera 同源冻结 | 84份实际 source bytecopy、before／after与最终当前文件全部一致；App `0d88a90f529975fd3d4faca83146b27ea3d8fba960a04a66bada6c747da71275`、Stage `f87d5ed10c5cc6a1794f629136992ac919959cbf3f9d5678cb1755c6e9f64c9d`、spec `813081eec4cc3c2ce5613342a5af55338d0bc9efd61917edf096f51ce83bfbd4` |
+| 真实公开项目回环 | camera第4例实际本地导入项目已发布的 complex-street-dance.choreo：26710050B／5040 poses／原WAV7200044B，源SHA `e5f3d969c550fa6d401706b08cbe8beafb80a9346e1029e4d2c7a10a906afad5`。不是缺失的用户私人附件；原音频／动作与完整历史无损核对 |
+| 最终旧功能3 | 3／3、EXIT0；12:46:54.243Z开始，74228.848ms，89 source before／after与当前SHA一致。两个points桌面／390用例的 errors／warnings／expectedHttpErrors／API为空；scene camera用例仅记录errors／warnings为空，没有扩大为API0 |
+| 最终完整检查 | `npm run check` EXIT0，12:48:54开始；619／619、32／32 files，34.26s；`tsc --noEmit`与Vite1952模块、580ms构建通过。保留已有大chunk警告，不把它计为失败 |
+| 最终 Worker | `npm run typecheck:worker` EXIT0，Wrangler types与Worker TypeScript通过；保留代理环境提示及npm版本通知 |
+| commit前封存 | runtime81／dist26／tests69／offline16／delivery2；inventory SHA `d8ebf7910998524fd289d1ede533e6c774eb302303f83e3f0f1a198270d751da`。新Git source字节比较待commit后进行，库存数不是测试数 |
+
+分层证据单独记录：core摄像机16项、持久化148项；Stage隔离探针 `stage-only-probe-results.json` 实际8项、errors=[]，revision中断 `stage-revision-interrupt.json` 实际1项、passed=true。这些探针与完整App4、旧3、619 foundation分别计数，不相加冒充端到端实跑。
+
+Camera原report946000B／SHA `7d6c09ee943f26180e17136985c94d8beb75c240e8533f506d3bf78e6124f6fe`；旧3原report354754B／SHA `85668d5c113aa3a5274e74ef788798aa0a963220d4ef6bee63055f48a9b7fd0b`；最终check log1156B／SHA `4e967e53f8689f2ba0dc2435903bf760c77f08428b9552c12e8250e71e4837bb`；Worker log1481B／SHA `cc927123b7329142ee2e78d036f6febc4298b10f78b7f5571bda7706c983a40e`。离线收据审计保存在 `work/camera-release/local-camera-final9-audit.json`、`local-final-evidence.json`；未重新执行这些检查。
+
+Root亲自审阅batch9四张实际App图：桌面／390px Camera lane与数值inspector清晰，恢复37.5s公开动作及原WAV的图可接受。两份审图receipt为 `root-local-camera-image-review.json` 和 `root-local-camera-original-image-review.json`；桌面author取景的脚部可能被已有浮动timeline遮住，不承诺每个摄像机姿态全身无遮挡。截图审阅与数据断言／发布证据分别记录。
+
+### 开发失败与工具取消观察（全部原文件保留）
+
+| 批次 | 原始最终结果与失败范围 |
+| --- | --- |
+| batch1 | 0通过／4失败：Chromium launch阶段crashpad setsockopt权限错误，四项应用断言未运行 |
+| batch2 | 1通过／3失败：case1取景后revision4而非2；case3 Escape后revision7而非5；case4导入dialog未关闭 |
+| batch3 | 3通过／1失败：case1 wheel historyIndex4而非2 |
+| batch4 | 2通过／2失败：case1 wheel historyIndex3而非2；case4 afterEach发现useEffect依赖长度变化 |
+| batch5 | 2通过／2失败：case1 wheel historyIndex3而非2；case4 afterEach发现net::ERR_FILE_NOT_FOUND |
+| batch6 | 最终JSON为3通过／1失败：case1 afterEach发现HMR后的useEffect依赖长度变化。原cancel metadata的工具exit130／completedCases0仅为当时观察；reviewer证实Ctrl+C没有终止Node／npm子进程，不能据此称未执行或无断言 |
+| batch7 | 3通过／1超时：case3备份按钮被history-tools浮层拦截，180s timeout |
+| batch8 | 最终JSON为3通过／1超时：case3第二次history浮层拦截备份按钮，180s timeout；工具exit130同样未终止子进程，最终结果以原report为准 |
+| batch9 | 直接Node runner启动，reviewer确认启动前活跃runner0；上述最终4／4正式同源通过，不能抹去先前失败／取消观察 |
+
+500ms wheel idle是设计调整，未证实为batch5的timing根因。已确认的原生wheel根因是OrbitControls reconnect重排DOM bubble listener，使旧bubble clearer先清capture标记、wheel被误当pointer而重复start／end。修复在native controls end内清标记；before探针两次start／end，after探针一次start／end及两次change，当时仍使用180ms完成，证据在 `stage-wheel-reconnect-before.json`／`after.json`。
+
+原音频URL生命周期修复在撤销本组件拥有的旧object URL前pause／remove src／load，停止旧原生音频请求；新显式src已有时保持新源。最终4例console／API空与真实原音频回环已核验，公网诊断仍待新版本实际收据。开发批次与工具取消纠正见 `work/camera-release/browser-history-corrected-before-final.json`，早期11:37检查及先前局部通过不替代最终收据。
+
+### 新源码发布待办
+
+待Root提交／push本轮最终main后，核对准确SHA／tree的attempt1 CI：Python3.12及锁定requirements、`avatar:fit -- --check`、6 offline、foundation／build／Worker和浏览器逐例真实数量；私有附件skip单列，不先写预计45项为通过。CI第4camera例的真实公开pack分支由 `CHOREO_CAMERA_FIXTURE` 控制，无此环境时不能声称CI做了上述公开源回环。随后核对新Cloudflare原生version和单一100%部署，再做唯一有界HTTP5与相关公网批次；正常TLS、实际资源／模型SHA、diagnostics／API与截图验收分别保留。当前没有本轮CI／部署／公网通过结论。
+
+## Version 20 · 可复用人物碰撞体与新手势保护（AF 中间版已上线验证）
 
 当前人物使用 17 个离线骨段凸包，包围盒粗相与共享 Rapier 0.21 接触查询；通用生成器保留胶囊、盒、凸包选项，模型适配器独立。9 位几何规范化、模型／rig／几何指纹与 `--check` 支持换模和持续复现；GitHub CI 增加锁定 Python 依赖、过期配置检查及 6 项换模测试。生成器、映射、配置与覆盖报告全部进入源码，原模型和作者动作不因拟合改写。
 
-最终算法 `local-convex-and-primitive-fit-2`／几何 SHA `28277b1614a4d61330b28d28992b97d1456eec7951b56590e69ce880feb73f90`；17 凸包含 1,846 顶点／3,624 面，全部 8,483 中性皮肤点被覆盖。6 项 Python 换模测试、只读生成核对、2 项从实际 GLB 独立计算的覆盖测试通过；后两项也包含在完整基础数量中。完整 `npm run check` 于 11:02 UTC 实际 EXIT0：**581／581、31 文件、36.17 秒，前端类型及 Vite 构建 493 ms**；Worker 生成类型／TypeScript EXIT0。核心定向 47／47 另计，不能与完整基础相加。main、准确源码 CI 和上线结果待后续实际回填。
+本段发布证据准确绑定碰撞源码 [af1415d](https://github.com/DFerryman/ChoreographyStudio/commit/af1415d70613dc983640f840b13abfed29578045)／tree `57d9c2af6d0d473f11a649986c9666d580795dbb`，已 push `main`。后续相机轨道 v21 在独立工作树继续实现，尚待其自己的最终源码、完整检查、准确 CI 和 Cloudflare 发布验收；AF 的通过记录不能替代相机轨道验收。
+
+| AF 实际发布证据 | 结果与范围 |
+| --- | --- |
+| 准确源码 CI | [37922754770](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37922754770)／job113794375265／attempt1／main push，2026-10-09T11:31:49Z job success，run 于11:31:50Z更新；未手动 rerun |
+| CI 离线模型生成 | Python3.12.15、NumPy2.3.5、SciPy1.17.0 安装通过，`avatar:fit -- --check` 实际核对17碰撞体／8,483中性点全覆盖，6项换模测试通过 |
+| CI 基础与构建 | 581／581、31条唯一文件行合计581，39.99秒；前端类型／Vite1950模块、660ms构建与Worker类型通过 |
+| CI 实际浏览器 | 9文件、IDs1..42各一次；41实际通过、私有附件case18跳过1项，13.2分钟。新碰撞case4..7全部通过；failed／flaky0，跳过不计通过 |
+| 原生 Cloudflare | version24 `6140d4f5-507d-4c3c-bc48-35c2f9396f50`，deployment `e7162c7d-5be7-4746-af6e-c409b94cdad1`／2026-10-09T11:25:23.396828Z，100%；source／tree注释与原AI／ASSETS／限频绑定读回相符 |
+| 封存和发布后离线核对 | runtime79／dist26／tests67／offline16／delivery2，新增／删除／SHA变化0；源码与AF Git blobs逐字节相同，库存数不等于测试数 |
+| 有界 HTTP | 唯一5／5，11:26:02.458920–11:26:06.858186Z，根页／主JS／CSS逐bytes／SHA精确、health／capabilities两只读GET成功，正常TLS verify0／retry0 |
+| 唯一相关公网批次 | 6／6，11:26:19.646Z开始、104,395.052ms，四碰撞＋原points桌面／390两项；unexpected／skipped／flaky／report errors0 |
+| 实际公网诊断 | 六份正常TLS诊断与六份应用诊断的errors／warnings／pageErrors／API／failedRequests全空，15个document全200；`ignoreHTTPSErrors=false`／secureContext=true，所有业务API先abort |
+| 实际模型读取 | 四碰撞用例共10次GLB读取均200／glTF／480,376B／SHA `6570b23a63a0a5b87ad3fa5f8d7a24536c8e7fc3ceb03d28893cb48966cc6527`，与冻结模型逐字节／SHA相符 |
+
+CI完整日志99,943B／SHA256 `879f2efda52c0111d9295bef70cd3414e070ba2d979148f701405627b9190b2a`；公网报告1,361,575B／SHA256 `306f8c890832f30153fc584bf7c15e829fc8eabda61c8dcc78d1d92253d5e6c9`。Root亲自查看同批全部7张实际App图：桌面碰撞截停、Root地面、作者原值保留及points编辑可接受，mobile points图人物全身清晰；`capsule-loaded-skin-390.png`的近取景中部分头部被顶部工具栏遮挡，保持为明确局限，不能宣称任何取景下全身无遮挡。图片审阅、本地图与自动断言分计。正常TLS临时profile只复制既有代理CA的Chrome原生ServerCertificate用户库，已离线在Trusted Certificates复核；HOME与原浏览器参数保持，未关闭证书验证。真实Workers AI／付费推理／D1用户数据写入／新图片上传0，没有追加公网测试批次。
+
+发布／统计首失败原样保留：首Wrangler upload因默认 `/home/agent/.config/.wrangler` 缺失退出，改用任务内 `XDG_CONFIG_HOME` 后实际上传／部署EXIT0；直接job-log下载重定向403产生0B，随后官方`gh run view --job --log`取得上述完整成功日志。空日志审计及初次遗漏无时长skip行的离线统计失败另计，修正解析后复用同一日志通过；这两项不是workflow失败，没有rerun或重新执行浏览器。
+
+最终算法 `local-convex-and-primitive-fit-2`／几何 SHA `28277b1614a4d61330b28d28992b97d1456eec7951b56590e69ce880feb73f90`；17 凸包含 1,846 顶点／3,624 面，全部 8,483 中性皮肤点被覆盖。6 项 Python 换模测试、只读生成核对、2 项从实际 GLB 独立计算的覆盖测试通过；后两项也包含在完整基础数量中。完整 `npm run check` 于 11:02 UTC 实际 EXIT0：**581／581、31 文件、36.17 秒，前端类型及 Vite 构建 493 ms**；Worker 生成类型／TypeScript EXIT0。核心定向 47／47 另计，不能与完整基础相加。该段为本地证据，AF发布与准确源码CI结果独立记录于上表。
 
 本地浏览器 **8 个独立场景分批覆盖通过**，不是首批 8／8：初始 8 批实际 4 通过／4 失败、236.621 秒；新手柄测试误读辅助对象的 camera，修正为同一保存相机和舞台偏移后 focused2／2、29.8 秒。两个旧合成手势触发新增前臂／骨盆、前臂／大腿及加深既有手／大腿接触；仅将合成源双上臂向外张开 ±20°，其余断言／真实源用例保持，portable3／3、60.9 秒。原文件在合成函数之外逐字节相同。初批成功的新 Root／原生作者姿态、独立真实场景证据保留，真实包 SHA 与已公开项目包一致，严格核对 5,040 原姿态／时刻／未改通道及 7,200,044 B 原音乐；不称重新获得私有附件。所有批次浏览器 errors／warnings／API 均空，新测试实际 GLB 200／glTF／SHA 精确；首 Vite sandbox listen EPERM 未执行用例，另计环境启动失败。Root 实际亲审 7 张本地图，包括截停、作者原值、390px 与 IK；390px 取消图有既有近取景遮住部分头部，未宣称每个取景都完整无遮挡。运行／构建源未因测试修正变化。
 
@@ -12,7 +75,7 @@
 
 独立审查实际验证：新配置即使复用相同 ID 也不串缓存；50 个临时配置的 100 个缓存 raw shape 经 GC 全部释放。审查发现同中心盒状凸包接触值低估导致逃逸冻结，已仅对数学上等同盒子的凸体使用解析检测，四个外退角度完整接受；无效凸包错误路径原先遗留 5 个临时胶囊，修复后 created5／free5。重复受阻地面／身体手势不漂移、未改作者通道保持。早期安装树实际为 Rapier 0.12，已通过锁文件 `npm ci` 恢复实际 0.21 后完成最终检查；旧后端检查不能作为最终凸包通过证据。中途 Worker 类型收窄失败已修正，最终 EXIT0 单独记录。
 
-云端 Node 测量：初始化约 49 ms、建立凸包约 14 ms；诊断中位数 0.742 ms／p95 1.334 ms，Root 手势中位数 0.824–0.912 ms，较大手臂扫掠 11.799 ms／p95 18.375 ms。这些是本次云端几何测量，不是用户设备帧率。构建保留大 chunk 提示：Rapier 独立 chunk 约 4.34 MB／gzip 1.67 MB，只在模型加载时初始化一次；前端主 JS 约 1.28 MB，CSS 与模型资产保持。最终本地／公网浏览器回执与源码封存继续补齐，未提前宣称上线。
+云端 Node 测量：初始化约 49 ms、建立凸包约 14 ms；诊断中位数 0.742 ms／p95 1.334 ms，Root 手势中位数 0.824–0.912 ms，较大手臂扫掠 11.799 ms／p95 18.375 ms。这些是本次云端几何测量，不是用户设备帧率。构建保留大 chunk 提示：Rapier 独立 chunk 约 4.34 MB／gzip 1.67 MB，只在模型加载时初始化一次；前端主 JS 约 1.28 MB，CSS 与模型资产保持。AF本地、准确源码CI、公网和封存证据分别记录，后续相机轨道v21仍待独立验收。
 
 ## Version 19 · 精确源点、局部自动记录与长期交互标准（已上线验证，准确源码 CI 通过）
 

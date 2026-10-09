@@ -9,6 +9,7 @@ export { JOINT_NAMES } from './motion-types';
 export type { BakedTake, JointName, Pose, Quat, Vec3 } from './motion-types';
 export * from './keyframes';
 export * from './motionPoints';
+export * from './cameraTrack';
 export * from './jointConstraints';
 export * from './humanoid';
 export * from './ik';

@@ -1,4 +1,5 @@
 import { JOINT_NAMES, type BakedTake, type Pose, type Quat, type Vec3 } from '../../../packages/core/src/motion-types';
+import { validateProjectCameraTracks } from './sceneCameraTrack';
 
 /** Lossless wire storage only. Runtime scenes keep their ordinary full snapshots. */
 export const COMPACT_SCENE_LIMITS = { takes: 36, samplesPerTake: 6001, totalSamples: 150_000, history: 12 } as const;
@@ -60,6 +61,7 @@ function takeMetadata(take: BakedTake): TakeMetadata {
 function sceneHistory(value: unknown) {
   const scene = object(value), project = object(scene.project), history = array(project.history, COMPACT_SCENE_LIMITS.history);
   if (!history.length) fail();
+  try { validateProjectCameraTracks(project); } catch { fail(); }
   return { scene, project, history: history.map(value => object(value)) };
 }
 

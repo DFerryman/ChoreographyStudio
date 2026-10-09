@@ -1,5 +1,48 @@
 # Cloudflare 预览部署
 
+## v21 · 精确秒摄像机轨道（本地检查完成，尚待发布）
+
+本轮Camera轨道及历史／场景备份回环已完成本地验收。新main source／tree尚待Root提交／push；准确CI、新Cloudflare version／单一100% deployment、正常TLS有界HTTP与唯一公网批次均尚待实际回执。当前入口 [工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/) 的已发布证据仍对应下方AF v20源码，不能作为本轮Camera通过记录。
+
+| 本轮已完成项 | 实际收据与范围 |
+| --- | --- |
+| Camera最终4 | batch9 4／4，EXIT0，12:41:05.467Z／171594.342ms；84 source bytecopy及before／after／当前均一致；4份应用diagnostics errors／warnings／HTTP errors／API为空 |
+| 旧功能3 | 3／3，EXIT0，12:46:54.243Z／74228.848ms；89 source不变；两个points用例API／console／HTTP errors为空，scene camera仅console/errors/warnings记录为空 |
+| foundation／build | 最终619／619、32／32 files，12:48:54开始，34.26s；TypeScript与Vite1952模块、580ms通过，既有大chunk警告保留 |
+| Worker | 最终Wrangler types及Worker TypeScript EXIT0；代理环境与npm通知保留 |
+| commit前源／dist封存 | runtime81／dist26／tests69／offline16／delivery2；inventory SHA `d8ebf7910998524fd289d1ede533e6c774eb302303f83e3f0f1a198270d751da`；正式Git blob字节比较待新commit |
+| Root实际审图 | Camera桌面／390、数值inspector与原公开动作／WAV恢复四图accepted；桌面author取景脚部可能被已有timeline遮挡，不承诺所有姿态无遮挡 |
+
+最终Camera report SHA `7d6c09ee943f26180e17136985c94d8beb75c240e8533f506d3bf78e6124f6fe`；旧3report SHA `85668d5c113aa3a5274e74ef788798aa0a963220d4ef6bee63055f48a9b7fd0b`；check log SHA `4e967e53f8689f2ba0dc2435903bf760c77f08428b9552c12e8250e71e4837bb`；Worker log SHA `cc927123b7329142ee2e78d036f6febc4298b10f78b7f5571bda7706c983a40e`。原始文件与离线汇总位于 `work/camera-browser/batch9-report.json`、`work/camera-legacy-final/`及`work/camera-release/`，本段未重跑检查。
+
+所有开发失败／取消观察保留，精确范围见 [VERIFICATION.md](VERIFICATION.md)。batch6／8工具层exit130未终止Node／npm子进程，两份原最终report均3通过／1失败或超时，不能写为未执行或无断言。500ms wheel idle仅设计调整，已证实的wheel问题为原生OrbitControls reconnect/bubble顺序分类；原音频object URL生命周期已修复。本轮真实公开complex-street-dance fixture在浏览器本地回环5040 poses及原WAV7200044B，不是缺失私人附件，音乐不上传server。摄像机bake仅未来需求。
+
+待本轮新main准确CI通过后，由Root读取官方Wrangler version／deployments原生JSON，核对同一source／tree、100%和既有绑定／限频／SPA／API-first／headers，再执行唯一有界正常TLS公共验收。公网前从最终main重拷测试，保留应用断言，native wrapper核对准确source和新100% version；不使用precommit prepared-copy，不把versions view单独当作100%证明。实际CI／HTTP／public数量、资源SHA、截图和写入计数待原始收据后再更新，没有本轮AI／付费／D1／公网行为的新增通过结论。
+
+## v20 · 可复用人物碰撞体（AF 中间版已上线验证）
+
+[打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。人物采用17个离线骨段凸包，新舞台旋转／Root／IK手势截停新增或加深的身体／地面接触；导入、播放和显式作者数值保持原值并提示接触。通用拟合器保留胶囊／盒／凸包选择，换模适配与拟合算法分离，生成源码及报告可复现。默认人物与原音乐／动作数据保持，具体边界见 [COLLISION_PROXIES.md](COLLISION_PROXIES.md)。
+
+此发布准确绑定 [af1415d](https://github.com/DFerryman/ChoreographyStudio/commit/af1415d70613dc983640f840b13abfed29578045)／tree `57d9c2af6d0d473f11a649986c9666d580795dbb`，已 push main。后续相机轨道v21正在独立工作树实现，尚待新的最终源码／完整检查／准确CI／Cloudflare验收；以下AF发布证据仅对应碰撞版。
+
+| AF 实际部署项 | 原生读回与同源结果 |
+| --- | --- |
+| Version／number／tag | `6140d4f5-507d-4c3c-bc48-35c2f9396f50`／24／v20-body-collision |
+| Version创建UTC | 2026-10-09T11:18:57.571091Z |
+| 首deployment／UTC | `e7162c7d-5be7-4746-af6e-c409b94cdad1`／2026-10-09T11:25:23.396828Z |
+| 流量／source注释 | 100%；version和deployment均包含完整AF source／tree，官方Wrangler原生JSON读回相符 |
+| 官方上传／部署 | 修正任务内配置目录后EXIT0；Read29资产，2新／修改文件上传、21复用；Worker startup3ms为CLI测量，不是设备帧率 |
+| 保持的绑定／策略 | AI、ASSETS、RELEASE_STAGE；API20／60s namespace2026100601、AI2／60s namespace2026100801；SPA fallback、`/api/*` worker-first和安全headers原样 |
+| 准确CI | [37922754770](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37922754770)／job113794375265／attempt1／main push，于11:31:49Z job success；Python3.12.15／锁定依赖／生成核对／offline6、581基础31文件、前端构建／Worker类型全部通过 |
+| CI实际浏览器 | 41通过、私有fixture1项跳过；9文件／IDs1..42逐项核对，13.2分钟，新碰撞4项实际通过，未rerun |
+| 发布后封存核对 | runtime79／dist26／tests67／offline16／delivery2与最终冻结bytes／SHA完全相同，源码与AF Git blobs逐字节一致 |
+| 有界HTTP | 5／5，11:26:02.458920–11:26:06.858186Z；正常TLS verify0／retry0，根页／JS／CSS bytes／SHA精确及health／capabilities两只读GET成功 |
+| 唯一相关公网 | 6／6，11:26:19.646Z开始、104,395.052ms；四碰撞＋原points桌面／390，0unexpected／skip／flaky／report errors；六实际TLS和应用诊断全零，15document200，API先abort |
+
+主JS `index-Cj6ftVs3.js`1,284,585B／SHA256 `2a297baefe20d13a3263b4c808a5df3689c405b490960041b8812d9e87735884`；CSS `index-B5ZA0MHA.css`72,223B／`b698624b8677a8fdad833d3ec57bd206c3870f927d16f387fa79342d9909bfb9`。四碰撞用例共10次实际默认GLB读取200／glTF／480,376B，SHA `6570b23a63a0a5b87ad3fa5f8d7a24536c8e7fc3ceb03d28893cb48966cc6527`与冻结模型一致。公网报告1,361,575B／SHA `306f8c890832f30153fc584bf7c15e829fc8eabda61c8dcc78d1d92253d5e6c9`；准确CI日志99,943B／SHA `879f2efda52c0111d9295bef70cd3414e070ba2d979148f701405627b9190b2a`，完整失败历史和实际范围见 [验证记录](VERIFICATION.md)。
+
+首upload因默认 `/home/agent/.config/.wrangler` 缺失退出，随后只将XDG配置目录置于任务work内，HOME与应用源码保持；成功上传／部署独立记录。公网使用离线原生复核的既有CA用户信任库，`ignoreHTTPSErrors=false`，原浏览器参数保持。Root亲审本批全部7张实际App图，接受桌面碰撞／作者原值／Root地面／points流程及清晰mobile points全身；loaded-skin390近取景有部分头部被顶部工具栏遮挡，明确记录取景局限，不宣称所有视图都无遮挡。审图与自动断言、本地图分别计数。真实Workers AI／付费推理／D1用户数据写入／新图片上传0；没有为本次离线核对再次运行公网。旧v19及更早发布记录全部保留。
+
 ## v19 · 精确数据点自动记录（已上线验证，准确源码 CI 通过）
 
 [打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。当前默认手动流程不依赖 AI：选精确时刻、在场景选部位，Timeline 自动聚焦对应点，直接编辑并在松手时只记录局部／IK关联变化；一手势一撤销。Root 与全部25局部旋转可见可改，原数据及音乐无损往返；完整姿态快照按钮／K快捷键移除。用户要求将此布局和流程作为后续标准，见 [EDITOR_INTERACTION_STANDARD.md](EDITOR_INTERACTION_STANDARD.md)。

@@ -1,4 +1,5 @@
 import { createScene, sceneMetadata, type SceneDocument, type SceneMetadata, type SceneViewer } from './scene';
+import { validateProjectCameraTracks } from './sceneCameraTrack';
 
 export type StoredProject<T> = { project: T; audio: Blob | null; audioName: string };
 const DATABASE_NAME = 'choreo-studio-preview';
@@ -57,6 +58,7 @@ function isScene(value: unknown): value is SceneDocument<unknown, unknown> {
 
 export async function saveScene<TProject, TViewer = SceneViewer>(scene: SceneDocument<TProject, TViewer>): Promise<SceneDocument<TProject, TViewer>> {
   if (!isScene(scene)) throw new Error('场景格式不受支持。');
+  validateProjectCameraTracks(scene.project);
   const saved = { ...scene, name: scene.name.trim() || '未命名场景', updatedAt: new Date().toISOString() };
   return withStore(db => transact(db, ['scenes', 'sceneIndex', 'sceneMeta'], 'readwrite', transaction => {
     transaction.objectStore('scenes').put(saved, saved.id);
@@ -69,12 +71,14 @@ export async function saveScene<TProject, TViewer = SceneViewer>(scene: SceneDoc
 }
 
 export async function loadScene<TProject, TViewer = SceneViewer>(id: string): Promise<SceneDocument<TProject, TViewer> | null> {
-  return withStore(db => transact(db, ['scenes'], 'readonly', transaction => {
+  const scene = await withStore(db => transact(db, ['scenes'], 'readonly', transaction => {
     let result: SceneDocument<TProject, TViewer> | null = null;
     const request = transaction.objectStore('scenes').get(id);
     request.onsuccess = () => { if (isScene(request.result)) result = request.result as SceneDocument<TProject, TViewer>; };
     return () => result;
   }));
+  if (scene) validateProjectCameraTracks(scene.project);
+  return scene;
 }
 
 export async function listScenes(): Promise<SceneMetadata[]> {
@@ -96,6 +100,8 @@ export async function setCurrentScene(id: string | null): Promise<void> {
       const request = transaction.objectStore('scenes').get(id);
       request.onsuccess = () => {
         if (!isScene(request.result)) { transaction.abort(); return; }
+        try { validateProjectCameraTracks(request.result.project); }
+        catch { transaction.abort(); return; }
         meta.put(id, CURRENT_SCENE);
         meta.put(true, LEGACY_MIGRATED);
       };
@@ -120,6 +126,8 @@ async function migrateLegacy<TProject, TViewer>(db: IDBDatabase, options: { lega
       legacy.onsuccess = () => {
         const value = legacy.result as StoredProject<TProject> | undefined;
         if (value?.project) {
+          try { validateProjectCameraTracks(value.project); }
+          catch { transaction.abort(); return; }
           const scene = createScene<TProject, TViewer>({
             name: options.legacyName ?? legacyName(value.project), project: value.project,
             audio: value.audio ?? null, audioName: value.audioName ?? '', viewer: options.legacyViewer,
@@ -136,7 +144,7 @@ async function migrateLegacy<TProject, TViewer>(db: IDBDatabase, options: { lega
 }
 
 export async function loadCurrentScene<TProject, TViewer = SceneViewer>(options: { legacyViewer?: TViewer; legacyName?: string } = {}): Promise<SceneDocument<TProject, TViewer> | null> {
-  return withStore(async db => {
+  const scene = await withStore(async db => {
     await migrateLegacy<TProject, TViewer>(db, options);
     return transact(db, ['sceneMeta', 'scenes'], 'readonly', transaction => {
       let result: SceneDocument<TProject, TViewer> | null = null;
@@ -149,6 +157,8 @@ export async function loadCurrentScene<TProject, TViewer = SceneViewer>(options:
       return () => result;
     });
   });
+  if (scene) validateProjectCameraTracks(scene.project);
+  return scene;
 }
 
 export async function deleteScene(id: string): Promise<void> {
@@ -169,6 +179,8 @@ export async function renameScene(id: string, name: string): Promise<SceneMetada
     const request = transaction.objectStore('scenes').get(id);
     request.onsuccess = () => {
       if (!isScene(request.result)) return;
+      try { validateProjectCameraTracks(request.result.project); }
+      catch { transaction.abort(); return; }
       const renamed = { ...request.result, name: name.trim() || '未命名场景', updatedAt: new Date().toISOString() };
       result = sceneMetadata(renamed);
       transaction.objectStore('scenes').put(renamed, id);
@@ -189,16 +201,19 @@ export async function duplicateScene<TProject, TViewer = SceneViewer>(id: string
 
 // Kept for a smooth v1 UI transition; new scene operations never write this old record.
 export async function saveProject<T>(value: StoredProject<T>): Promise<void> {
+  validateProjectCameraTracks(value.project);
   return withStore(db => transact(db, ['projects'], 'readwrite', transaction => {
     transaction.objectStore('projects').put(value, 'current');
     return () => undefined;
   }));
 }
 export async function loadProject<T>(): Promise<StoredProject<T> | null> {
-  return withStore(db => transact(db, ['projects'], 'readonly', transaction => {
+  const value = await withStore(db => transact(db, ['projects'], 'readonly', transaction => {
     let result: StoredProject<T> | null = null;
     const request = transaction.objectStore('projects').get('current');
     request.onsuccess = () => { result = request.result ?? null; };
     return () => result;
   }));
+  if (value) validateProjectCameraTracks(value.project);
+  return value;
 }

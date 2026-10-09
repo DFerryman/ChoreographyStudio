@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Diamond, Minus, Music2, Plus, Trash2 } from 'lucide-react';
-import { EDITABLE_JOINT_NAMES, frameTime, lastFrame, sampleTake, type BakedTake, type JointName, type KeyframeSequence, type KeyframeTransferRequest, type KeyframeTransferScope, type Quat, type Vec3 } from '../../../packages/core/src';
+import { Camera, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Diamond, Minus, Music2, Plus, Trash2 } from 'lucide-react';
+import { EDITABLE_JOINT_NAMES, frameTime, lastFrame, sampleTake, type BakedTake, type CameraPose, type CameraTrack, type JointName, type KeyframeSequence, type KeyframeTransferRequest, type KeyframeTransferScope, type Quat, type Vec3 } from '../../../packages/core/src';
 import { STAGE_JOINT_LABELS } from './Stage';
 import { TIMELINE_MAX_FRAME_PIXELS, timelineAnchorAtFraction, timelineDragFrame, timelineEdgeScroll, timelineMajorTickFrames, timelineTimeAtX, timelineWidth, timelineXAtTime, timelineZoomAtWidth } from './timelineGeometry';
 import './KeyframeEditor.css';
@@ -15,6 +15,17 @@ const GROUPS: { id: string; label: string; joints: JointName[] }[] = [
 ];
 const pointLabel = (point: Point) => point === 'root' ? '整体位移' : STAGE_JOINT_LABELS[point];
 const sameTime = (a: number, b: number) => Math.abs(a - b) < 1e-10;
+
+/** Camera authoring stays separate from body-channel selection and pose solvers. */
+export type CameraTimelineProps = {
+  track?: CameraTrack;
+  value: CameraPose;
+  selected: boolean;
+  onSelect: (time: number) => void;
+  onChange: (time: number, value: CameraPose) => void;
+  onMove: (sourceTime: number, targetTime: number) => void;
+  onDelete?: () => void;
+};
 
 /** Dense-track hit testing and sample navigation preserve exact source timestamps. */
 function nearestIndex(times: number[], time: number): number {
@@ -45,10 +56,68 @@ type KeyframeTimelineProps = {
   transport: ReactNode;
   playbackOptions: ReactNode;
   history?: ReactNode;
+  camera?: CameraTimelineProps;
   audio?: { name: string; offsetSeconds: number; durationSeconds: number; waveform: number[]; onMove: (offsetSeconds: number) => void; disabled?: boolean };
   onTime: (time: number) => void;
   onTransferKeyframes: (request: Omit<KeyframeTransferRequest, 'collision'>) => void;
 };
+
+function CameraValues({ time, value, baseCamera, keyTime, duration, disabled, onChange, onMove }: {
+  time: number; value: CameraPose; baseCamera?: CameraPose; keyTime?: number; duration: number; disabled: boolean;
+  onChange: CameraTimelineProps['onChange']; onMove: CameraTimelineProps['onMove'];
+}) {
+  const effectiveZoom = value.zoom ?? 1;
+  const components = [...value.position, ...value.target, effectiveZoom];
+  const signature = components.join(',');
+  const [values, setValues] = useState(() => components.map(String));
+  const [error, setError] = useState('');
+  const [keySeconds, setKeySeconds] = useState(String(keyTime ?? time));
+  const cancelled = useRef(false);
+  const timeCancelled = useRef(false);
+  useEffect(() => { setValues(components.map(String)); setError(''); }, [time, signature]);
+  useEffect(() => { setKeySeconds(String(keyTime ?? time)); }, [keyTime, time]);
+  function commit() {
+    if (cancelled.current) { cancelled.current = false; return; }
+    if (disabled) return;
+    const parsed = values.map(text => text.trim() ? Number(text) : NaN);
+    if (!parsed.every(Number.isFinite) || parsed.slice(0, 6).some(component => Math.abs(component) > 1000)
+      || parsed[6] < .5 || parsed[6] > 4
+      || Math.hypot(...parsed.slice(0, 3).map((component, axis) => component - parsed[axis + 3])) < .01) {
+      setError('位置与目标需在 ±1000 m 内且相距至少 0.01 m，缩放范围为 0.5–4。'); return;
+    }
+    setError('');
+    if (parsed.some((component, index) => component !== components[index])) onChange(time, {
+      position: parsed.slice(0, 3) as Vec3, target: parsed.slice(3, 6) as Vec3,
+      ...(value.zoom !== undefined || parsed[6] !== effectiveZoom ? { zoom: parsed[6] } : {}),
+    });
+  }
+  function moveKey() {
+    if (timeCancelled.current) { timeCancelled.current = false; return; }
+    if (disabled || keyTime === undefined) return;
+    const parsed = keySeconds.trim() ? Number(keySeconds) : NaN;
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > duration) {
+      setError(`关键帧时间需在 0–${duration} 秒内。`); return;
+    }
+    setError('');
+    if (parsed !== keyTime) { setKeySeconds(String(keyTime)); onMove(keyTime, parsed); }
+  }
+  const field = (index: number, label: string, aria: string) => <label key={index}>{label}<input aria-label={aria} type="number" step="any" min={index === 6 ? .5 : -1000} max={index === 6 ? 4 : 1000} value={values[index]} disabled={disabled} onChange={event => setValues(previous => previous.map((old, axis) => axis === index ? event.target.value : old))} onBlur={commit} onKeyDown={event => {
+    if (event.key === 'Enter') event.currentTarget.blur();
+    if (event.key === 'Escape') { event.stopPropagation(); cancelled.current = true; setValues(components.map(String)); setError(''); event.currentTarget.blur(); }
+  }} /></label>;
+  return <div className="kf-point-values kf-camera-values">
+    <div className="kf-value-heading">镜头位置 · m<span>离开输入框自动记录</span></div>
+    <div className="kf-value-fields">{[0, 1, 2].map(index => field(index, ['X', 'Y', 'Z'][index], `镜头位置${['X', 'Y', 'Z'][index]}`))}</div>
+    <div className="kf-value-heading kf-camera-target-heading">注视目标 · m</div>
+    <div className="kf-value-fields">{[3, 4, 5].map(index => field(index, ['X', 'Y', 'Z'][index - 3], `镜头目标${['X', 'Y', 'Z'][index - 3]}`))}</div>
+    <div className="kf-camera-secondary-fields">{field(6, '缩放', '镜头缩放')}{keyTime !== undefined && <label>关键帧秒<input aria-label="镜头关键帧时间（秒）" type="number" min={0} max={duration} step="any" value={keySeconds} disabled={disabled} onChange={event => setKeySeconds(event.target.value)} onBlur={moveKey} onKeyDown={event => {
+      if (event.key === 'Enter') event.currentTarget.blur();
+      if (event.key === 'Escape') { event.stopPropagation(); timeCancelled.current = true; setKeySeconds(String(keyTime)); setError(''); event.currentTarget.blur(); }
+    }} /></label>}</div>
+    {error && <p className="kf-value-error" role="alert">{error}</p>}
+    {baseCamera && <details className="kf-source-values"><summary>查看镜头基准值</summary><code>位置 {baseCamera.position.map(String).join(' · ')}<br />注视目标 {baseCamera.target.map(String).join(' · ')}<br />缩放 {baseCamera.zoom ?? '1（默认）'}</code></details>}
+  </div>;
+}
 
 function PointValues({ point, time, value, sourceValue, sourceExact, pointBaseValue, pointBaseExact, manualValue, disabled, onChange }: {
   point: Point; time: number; value: Vec3 | Quat; sourceValue: Vec3 | Quat; sourceExact: boolean; pointBaseValue?: Vec3 | Quat; pointBaseExact: boolean; manualValue?: Vec3 | Quat; disabled: boolean;
@@ -83,12 +152,13 @@ function PointValues({ point, time, value, sourceValue, sourceExact, pointBaseVa
 }
 
 export function KeyframeTimeline(props: KeyframeTimelineProps) {
-  const { sequence, frame, selectedJoint, onFrame, playing, mirror = false, readOnly = false, onTransferKeyframes, audio } = props;
+  const { sequence, frame, selectedJoint, onFrame, playing, mirror = false, readOnly = false, onTransferKeyframes, audio, camera } = props;
   const take = props.take ?? sequence.pointBaseTake ?? sequence.baseTake;
   const duration = take.durationSeconds, end = lastFrame(duration);
   const time = props.selectedTime ?? frameTime(frame, duration);
   const selectedPoint = props.selectedPoint === undefined ? selectedJoint : props.selectedPoint;
-  const selectedGroup = GROUPS.find(group => selectedPoint !== 'root' && selectedPoint && group.joints.includes(selectedPoint));
+  const selectedGroup = !camera?.selected ? GROUPS.find(group => selectedPoint !== 'root' && selectedPoint && group.joints.includes(selectedPoint)) : undefined;
+  const selectedRowId = camera?.selected ? 'camera' : selectedPoint;
   const locked = playing || mirror || readOnly;
   const [expanded, setExpanded] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set());
@@ -110,6 +180,9 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
   const moreDisclosure = useRef<HTMLDetailsElement>(null);
   const inspectorDisclosure = useRef<HTMLDetailsElement>(null);
   const pointEdits = sequence.pointEdits ?? [];
+  const cameraKeys = camera?.track?.keys ?? [];
+  const cameraTimes = cameraKeys.map(key => key.time);
+  const cameraKey = cameraKeys.find(key => key.time === time);
   const times = useMemo(() => [...new Set([...take.times, ...sequence.baseTake.times, ...(sequence.pointBaseTake?.times ?? []), ...sequence.root.map(key => frameTime(key.frame, duration)), ...Object.values(sequence.rotations).flatMap(keys => keys?.map(key => frameTime(key.frame, duration)) ?? []), ...pointEdits.map(edit => edit.time)])].sort((a, b) => a - b), [take, sequence, duration]);
   const sourceTimes = useMemo(() => new Set(sequence.baseTake.times), [sequence.baseTake]);
   const pointBaseTimes = useMemo(() => new Set(sequence.pointBaseTake?.times ?? []), [sequence.pointBaseTake]);
@@ -128,7 +201,8 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
   type DragBase = { pointerId: number; element: HTMLButtonElement; startX: number; pointerX: number; startScroll: number; laneWidth: number; duration: number; moved: boolean };
   type KeyDrag = DragBase & { kind: 'key'; rowId: string; scope: KeyframeTransferScope; sourceFrame: number; targetFrame: number };
   type AudioDrag = DragBase & { kind: 'audio'; sourceOffset: number; targetOffset: number };
-  type Drag = KeyDrag | AudioDrag;
+  type CameraDrag = DragBase & { kind: 'camera'; sourceTime: number; targetTime: number };
+  type Drag = KeyDrag | AudioDrag | CameraDrag;
   const [drag, setDrag] = useState<Drag | null>(null);
   const dragRef = useRef<Drag | null>(null);
   const suppressClick = useRef(false);
@@ -148,8 +222,9 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
     if (cancel || !active.moved || locked) return;
     if (active.kind === 'key' && active.sourceFrame !== active.targetFrame) onTransferKeyframes({ operation: 'move', scope: active.scope, sourceFrame: active.sourceFrame, targetFrame: active.targetFrame });
     else if (active.kind === 'audio' && audio && !audio.disabled && active.sourceOffset !== active.targetOffset) audio.onMove(active.targetOffset);
+    else if (active.kind === 'camera' && camera && active.sourceTime !== active.targetTime) camera.onMove(active.sourceTime, active.targetTime);
   }
-  useEffect(() => { finishDrag(true); }, [sequence.id, sequence.baseTake.id, time, locked, audio?.offsetSeconds, audio?.name, audio?.disabled, audio?.durationSeconds]);
+  useEffect(() => { finishDrag(true); }, [sequence.id, sequence.baseTake.id, time, locked, audio?.offsetSeconds, audio?.name, audio?.disabled, audio?.durationSeconds, camera?.track, camera?.selected]);
   useLayoutEffect(() => {
     const container = viewport.current, label = rulerLabel.current;
     if (!container || !label) return;
@@ -178,13 +253,13 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
   useEffect(() => { setZoom(0); if (viewport.current) viewport.current.scrollLeft = 0; }, [sequence.baseTake.id]);
   useEffect(() => {
     if (selectedGroup) setExpandedGroups(previous => previous.has(selectedGroup.id) ? previous : new Set([...previous, selectedGroup.id]));
-    if (selectedPoint) setExpanded(true);
-  }, [selectedPoint]);
+    if (selectedRowId) setExpanded(true);
+  }, [selectedRowId]);
   useEffect(() => {
-    if (!selectedPoint || playing || !expanded || dragRef.current || panRef.current || scrubRef.current) return;
+    if (!selectedRowId || playing || !expanded || dragRef.current || panRef.current || scrubRef.current) return;
     const nextPaint = requestAnimationFrame(() => {
       const container = viewport.current;
-      const row = container?.querySelector<HTMLDivElement>(`[data-track-id="${selectedPoint}"]`);
+      const row = container?.querySelector<HTMLDivElement>(`[data-track-id="${selectedRowId}"]`);
       const point = row?.querySelector<HTMLButtonElement>('[data-selected-point="true"]');
       if (!container || !row || !point) return;
       const bounds = container.getBoundingClientRect(), rowBounds = row.getBoundingClientRect();
@@ -196,7 +271,7 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
       else if (pointBounds.right > bounds.right - 8) container.scrollLeft += pointBounds.right - bounds.right + 8;
     });
     return () => cancelAnimationFrame(nextPaint);
-  }, [selectedPoint, time, expanded, expandedGroups, playing, geometry.visibleWidth, geometry.labelWidth]);
+  }, [selectedRowId, time, expanded, expandedGroups, playing, geometry.visibleWidth, geometry.labelWidth]);
   useEffect(() => {
     const cancel = (event: globalThis.KeyboardEvent) => {
       if (event.key !== 'Escape') return;
@@ -239,7 +314,8 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
     const pointerDelta = active.pointerX - active.startX;
     const scrollDelta = (viewport.current?.scrollLeft ?? active.startScroll) - active.startScroll;
     if (active.kind === 'key') active.targetFrame = timelineDragFrame(active.sourceFrame, pointerDelta, scrollDelta, active.laneWidth, lastFrame(active.duration));
-    else { const sourceX = timelineXAtTime(active.sourceOffset, active.laneWidth, active.duration); const target = timelineTimeAtX(sourceX + pointerDelta + scrollDelta, active.laneWidth, active.duration); const bound = Math.max(0, Math.ceil(active.duration * 30) - 1) / 30; active.targetOffset = Math.max(-bound, Math.min(bound, Math.round(target * 30) / 30)); }
+    else if (active.kind === 'audio') { const sourceX = timelineXAtTime(active.sourceOffset, active.laneWidth, active.duration); const target = timelineTimeAtX(sourceX + pointerDelta + scrollDelta, active.laneWidth, active.duration); const bound = Math.max(0, Math.ceil(active.duration * 30) - 1) / 30; active.targetOffset = Math.max(-bound, Math.min(bound, Math.round(target * 30) / 30)); }
+    else { const sourceX = timelineXAtTime(active.sourceTime, active.laneWidth, active.duration); active.targetTime = Math.max(0, Math.min(active.duration, timelineTimeAtX(sourceX + pointerDelta + scrollDelta, active.laneWidth, active.duration))); }
     setDrag({ ...active });
   }
   function scrollWhileDragging() {
@@ -248,7 +324,7 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
     if (active.moved) { const rect = container.getBoundingClientRect(); const shift = timelineEdgeScroll(active.pointerX, rect.left + geometry.labelWidth, rect.left + container.clientWidth); if (shift) { const previous = container.scrollLeft; container.scrollLeft += shift; if (previous !== container.scrollLeft) updateDrag(active); } }
     scrollAnimation.current = requestAnimationFrame(scrollWhileDragging);
   }
-  function beginDrag(event: ReactPointerEvent<HTMLButtonElement>, payload: Omit<KeyDrag, keyof DragBase> | Omit<AudioDrag, keyof DragBase>) {
+  function beginDrag(event: ReactPointerEvent<HTMLButtonElement>, payload: Omit<KeyDrag, keyof DragBase> | Omit<AudioDrag, keyof DragBase> | Omit<CameraDrag, keyof DragBase>) {
     if (event.button !== 0 || !event.isPrimary || locked || dragRef.current || panRef.current || scrubRef.current || payload.kind === 'audio' && audio?.disabled) return;
     const lane = event.currentTarget.closest('.kf-lane-track');
     if (!lane) return;
@@ -298,6 +374,29 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
     else { if (point !== 'root') props.onSelectJoint?.(point); props.onTime(nextTime); }
     if (inspect) { setInspectorOpen(true); if (inspectorDisclosure.current) inspectorDisclosure.current.open = true; }
   }
+  function selectCamera(nextTime: number, inspect = false) {
+    if (!camera || playing || suppressClick.current || dragRef.current) return;
+    camera.onSelect(nextTime);
+    if (inspect) { setInspectorOpen(true); if (inspectorDisclosure.current) inspectorDisclosure.current.open = true; }
+  }
+  function seekCameraLane(event: React.MouseEvent<HTMLDivElement>, inspect = false) {
+    if (playing || suppressClick.current || (event.target as Element).closest('button')) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const requested = Math.max(0, Math.min(duration, timelineTimeAtX(event.clientX - rect.left, rect.width, duration)));
+    const nearest = cameraTimes.length ? cameraTimes[nearestIndex(cameraTimes, requested)] : undefined;
+    selectCamera(nearest !== undefined && Math.abs(timelineXAtTime(nearest, rect.width, duration) - (event.clientX - rect.left)) <= 6 ? nearest : requested, inspect);
+  }
+  function stepCamera(direction: -1 | 1) {
+    if (!cameraTimes.length) return;
+    const nearest = nearestIndex(cameraTimes, time);
+    const index = cameraTimes[nearest] === time ? nearest + direction : direction < 0 ? (cameraTimes[nearest] < time ? nearest : nearest - 1) : (cameraTimes[nearest] > time ? nearest : nearest + 1);
+    if (index >= 0 && index < cameraTimes.length) selectCamera(cameraTimes[index]);
+  }
+  function cameraKeysPressed(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); event.stopPropagation(); stepCamera(event.key === 'ArrowLeft' ? -1 : 1); }
+    else if ((event.key === 'Home' || event.key === 'End') && cameraTimes.length) { event.preventDefault(); event.stopPropagation(); selectCamera(event.key === 'Home' ? cameraTimes[0] : cameraTimes.at(-1)!); }
+    else if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); selectCamera(time, true); }
+  }
   function seekLane(event: React.MouseEvent<HTMLDivElement>, point: Point, inspect = false) {
     if (playing || suppressClick.current || (event.target as Element).closest('button')) return;
     const rect = event.currentTarget.getBoundingClientRect();
@@ -317,7 +416,7 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
   }
   function toggleGroup(id: string) { finishDrag(true); finishPan(true); finishScrub(); setExpandedGroups(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; }); }
   function renderRow(id: string, label: string, rowFrames: number[], point: Point, scope: KeyframeTransferScope, options?: { child?: boolean; group?: boolean; joints?: JointName[] }) {
-    const selected = options?.group ? selectedGroup?.id === id : selectedPoint === point;
+    const selected = !camera?.selected && (options?.group ? selectedGroup?.id === id : selectedPoint === point);
     const rowEdits = pointEdits.filter(edit => options?.joints ? options.joints.some(joint => edit.joints?.[joint]) : point === 'root' ? edit.root : edit.joints?.[point]);
     const sparseTimes = new Set(rowFrames.map(keyFrame => frameTime(keyFrame, duration)));
     const selectedEdit = rowEdits.some(edit => sameTime(edit.time, time)) || sparseTimes.has(time);
@@ -331,6 +430,22 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
         })}
         {rowEdits.filter(edit => !sparseTimes.has(edit.time)).map(edit => { const editPoint = options?.joints ? options.joints.find(joint => joint === selectedPoint && edit.joints?.[joint]) ?? options.joints.find(joint => edit.joints?.[joint]) ?? point : point; return <button key={`edit-${edit.time}`} className="kf-lane-key kf-point-edit" data-time={edit.time} data-point={editPoint} aria-label={`${label}${edit.time} 秒修改点`} title={`${label} · ${edit.time} 秒 · 已修改`} style={{ left: `${position(edit.time)}%` }} disabled={playing} onClick={event => { event.stopPropagation(); selectPoint(edit.time, editPoint); }} onDoubleClick={event => { event.stopPropagation(); selectPoint(edit.time, editPoint, true); }}><Diamond size={9} fill="currentColor" /></button>; })}
         {selected && !options?.group && <button className={`kf-selected-point ${selectedEdit ? 'authored' : ''}`} data-selected-point="true" data-time={time} data-point={point} aria-label={`选中${label}${time} 秒数据点`} title={`${label} · ${time} 秒 · 双击查看数值`} style={{ left: `${position(time)}%`, pointerEvents: sparseTimes.has(time) ? 'none' : undefined }} disabled={playing} onKeyDown={event => pointKeys(event, point)} onClick={event => { event.stopPropagation(); selectPoint(time, point); }} onDoubleClick={event => { event.stopPropagation(); selectPoint(time, point, true); }} />}
+        <span className="kf-row-playhead" style={{ left: `${position(time)}%` }} aria-hidden="true" />
+      </div>
+    </div>;
+  }
+  function renderCameraRow() {
+    if (!camera) return null;
+    return <div className={`kf-lane kf-camera-lane ${camera.selected ? 'selected' : ''}`} data-track-id="camera" aria-label="镜头轨道">
+      <div className="kf-lane-label"><button className="kf-track-select" aria-label="选择镜头轨道" aria-pressed={camera.selected} title="选中后调整镜头会自动记录" onClick={() => selectCamera(time)}><Camera size={11} />镜头</button></div>
+      <div className="kf-lane-track" data-key-count={cameraKeys.length} role="slider" tabIndex={playing ? -1 : 0} aria-label="镜头数据点时间" aria-valuemin={0} aria-valuemax={duration} aria-valuenow={time} aria-valuetext={`${time} 秒 · ${cameraKey ? '镜头关键帧' : '调整镜头后自动记录'}`} onKeyDown={cameraKeysPressed} onClick={event => seekCameraLane(event)} onDoubleClick={event => seekCameraLane(event, true)}>
+        {cameraKeys.map(key => {
+          const moving = drag?.kind === 'camera' && drag.sourceTime === key.time;
+          const shownTime = moving ? drag.targetTime : key.time;
+          return <button key={key.time} className={`kf-lane-key kf-camera-key ${key.time === time && camera.selected ? 'selected' : ''} ${moving && drag.moved ? 'dragging' : ''}`} data-time={key.time} data-point="camera" data-camera-key="true" aria-label={`镜头${key.time} 秒关键帧`} title={`镜头 · ${key.time} 秒 · 拖动移动此镜头记录`} style={{ left: `${position(shownTime)}%` }} disabled={playing}
+            onPointerDown={event => beginDrag(event, { kind: 'camera', sourceTime: key.time, targetTime: key.time })} onPointerMove={moveDrag} onPointerUp={event => { if (event.pointerId === dragRef.current?.pointerId) finishDrag(); }} onPointerCancel={() => finishDrag(true)} onLostPointerCapture={() => finishDrag(true)} onClick={event => { event.stopPropagation(); selectCamera(key.time); }} onDoubleClick={event => { event.stopPropagation(); selectCamera(key.time, true); }}><Diamond size={9} fill="currentColor" />{moving && drag.moved && <span className="kf-drag-time">{Number(shownTime.toFixed(6))} 秒</span>}</button>;
+        })}
+        {camera.selected && <button className={`kf-selected-point ${cameraKey ? 'authored' : ''}`} data-selected-point="true" data-time={time} data-point="camera" aria-label={`选中镜头${time} 秒数据点`} title={`镜头 · ${time} 秒 · 双击查看数值`} style={{ left: `${position(time)}%`, pointerEvents: cameraKey ? 'none' : undefined }} disabled={playing} onKeyDown={cameraKeysPressed} onClick={event => { event.stopPropagation(); selectCamera(time); }} onDoubleClick={event => { event.stopPropagation(); selectCamera(time, true); }} />}
         <span className="kf-row-playhead" style={{ left: `${position(time)}%` }} aria-hidden="true" />
       </div>
     </div>;
@@ -352,15 +467,21 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
     <div className="kf-timeline-toolbar">
       <div className="kf-timeline-transport">{props.transport}</div>
       <div className="kf-frame-controls"><button className="icon-button" aria-label="上一帧" disabled={frame === 0 || playing} onClick={() => onFrame(frame - 1)}><ChevronLeft size={14} /></button><label>帧<input aria-label="当前帧" type="number" min={0} max={end} step={1} value={frame} disabled={playing} onChange={event => { if (!event.target.value.trim()) return; const next = Number(event.target.value); if (Number.isFinite(next)) onFrame(Math.max(0, Math.min(end, Math.round(next)))); }} /></label><button className="icon-button" aria-label="下一帧" disabled={frame === end || playing} onClick={() => onFrame(frame + 1)}><ChevronRight size={14} /></button></div>
-      <details ref={inspectorDisclosure} className="kf-point-inspector" open={inspectorOpen} onToggle={event => setInspectorOpen(event.currentTarget.open)}><summary aria-label="选中数据点数值" title="查看与编辑当前数据点数值"><span>{selectedPoint ? pointLabel(selectedPoint) : '选择部位'}</span><code data-time={time}>{Number(time.toFixed(6))}s</code>{props.editStatus && <i className={`kf-edit-status ${props.editStatus}`}>{props.editStatus === 'editing' ? '调整中' : '已记录'}</i>}</summary><div className="kf-point-popover">
-        <div className="kf-point-heading"><strong>{pointLabel(currentPoint)}</strong><label>秒<input aria-label="当前时间（秒）" type="number" min={0} max={duration} step="any" value={time} disabled={playing} onChange={event => { if (event.target.value.trim() && Number.isFinite(Number(event.target.value))) props.onTime(Math.max(0, Math.min(duration, Number(event.target.value)))); }} /></label></div>
+      <details ref={inspectorDisclosure} className={`kf-point-inspector ${camera?.selected ? 'kf-camera-inspector' : ''}`} open={inspectorOpen} onToggle={event => setInspectorOpen(event.currentTarget.open)}><summary aria-label="选中数据点数值" title="查看与编辑当前数据点数值"><span>{camera?.selected ? '镜头' : selectedPoint ? pointLabel(selectedPoint) : '选择部位'}</span><code data-time={time} title={`${time} 秒`}>{camera?.selected ? time : Number(time.toFixed(6))}s</code>{props.editStatus && <i className={`kf-edit-status ${props.editStatus}`}>{props.editStatus === 'editing' ? '调整中' : '已记录'}</i>}</summary><div className="kf-point-popover">
+        <div className="kf-point-heading"><strong>{camera?.selected ? '镜头' : pointLabel(currentPoint)}</strong><label>秒<input aria-label="当前时间（秒）" type="number" min={0} max={duration} step="any" value={time} disabled={playing} onChange={event => { if (event.target.value.trim() && Number.isFinite(Number(event.target.value))) props.onTime(Math.max(0, Math.min(duration, Number(event.target.value)))); }} /></label></div>
+        {camera?.selected ? <>
+          <div className="kf-sample-navigation"><button aria-label="上一镜头关键帧" disabled={playing || !cameraTimes.length || time <= cameraTimes[0]} onClick={() => stepCamera(-1)}><ChevronLeft size={12} /></button><span>{cameraKey ? `镜头关键帧 · ${cameraTimes.indexOf(time) + 1} / ${cameraTimes.length}` : '调整镜头后自动记录'}</span><button aria-label="下一镜头关键帧" disabled={playing || !cameraTimes.length || time >= cameraTimes.at(-1)!} onClick={() => stepCamera(1)}><ChevronRight size={12} /></button></div>
+          <CameraValues time={time} value={camera.value} baseCamera={camera.track?.baseCamera} keyTime={cameraKey?.time} duration={duration} disabled={locked} onChange={camera.onChange} onMove={camera.onMove} />
+          {cameraKey && camera.onDelete && <button className="kf-delete-point" disabled={locked} onClick={camera.onDelete}><Trash2 size={12} />删除镜头关键帧</button>}
+        </> : <>
         <div className="kf-sample-navigation"><button aria-label="上一数据点" disabled={playing || time <= times[0]} onClick={() => stepPoint(-1, currentPoint)}><ChevronLeft size={12} /></button><span>{exactSample ? `${sourceTimes.has(time) ? '源样本' : pointBaseTimes.has(time) ? '编辑前样本' : '计算样本'} · ${sampleIndex + 1} / ${times.length}` : '新时间点 · 调整后自动记录'}</span><button aria-label="下一数据点" disabled={playing || time >= times.at(-1)!} onClick={() => stepPoint(1, currentPoint)}><ChevronRight size={12} /></button></div>
         <PointValues point={currentPoint} time={time} value={currentValue} sourceValue={sourceValue} sourceExact={sourceTimes.has(time)} pointBaseValue={pointBaseValue} pointBaseExact={pointBaseTimes.has(time)} manualValue={manualValue} disabled={locked} onChange={props.onPointValueChange} />
         {deletePoint && <button className="kf-delete-point" disabled={locked} onClick={deletePoint}><Trash2 size={12} />撤去本点修改</button>}
+        </>}
       </div></details>
       {props.history && <div className="kf-history-slot">{props.history}</div>}
       <button className="kf-collapse-button" aria-label={expanded ? '收起时间线' : '展开时间线'} aria-expanded={expanded} title={expanded ? '收起时间线' : '展开时间线'} onClick={() => { finishDrag(true); finishPan(true); finishScrub(); setExpanded(!expanded); }}>{expanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}</button>
-      <details ref={moreDisclosure} className="kf-more" aria-label="更多时间线选项"><summary title="时间线选项">时间线选项</summary><div className="kf-more-popover">{props.playbackOptions}<p>点击人物关节会定位对应轨道。调整后自动记录该点及 IK 实际改变的关节。</p><p>轨道左右键切换精确数据点，Enter 查看数值。Ctrl / ⌘ + Z 撤销，Shift + Z 重做。</p></div></details>
+      <details ref={moreDisclosure} className="kf-more" aria-label="更多时间线选项"><summary title="时间线选项">时间线选项</summary><div className="kf-more-popover">{props.playbackOptions}<p>点击人物关节会定位对应轨道。调整后自动记录该点及 IK 实际改变的关节。{camera && '选中镜头轨道后，调整镜头会自动记录；选中其他轨道时仅改变观看视角。'}</p><p>轨道左右键切换精确数据点，Enter 查看数值。Ctrl / ⌘ + Z 撤销，Shift + Z 重做。</p></div></details>
     </div>
     {expanded && <><div className="kf-timeline-viewbar"><div className="kf-timeline-legend" aria-label="时间线数据图例"><span><i className="source" />源样本 {sourceTimes.size}</span><span><i className="evaluated" />计算 {times.length - sourceTimes.size}</span><span><Diamond size={8} fill="currentColor" />已修改</span></div>
       <div className="kf-zoom-controls" aria-label="时间线视图缩放"><button className={zoom === 0 ? 'active' : ''} aria-label="适合整段时间线" disabled={gestureActive} onClick={() => changeZoom(0)}>全段</button><button aria-label="缩小时间线" disabled={gestureActive || zoom === 0} onClick={() => changeZoom(zoom - 12.5)}><Minus size={11} /></button><input aria-label="时间线缩放" aria-valuetext={`每帧间距 ${pixelsPerFrame.toFixed(2)} 像素`} type="range" min={0} max={100} step={.5} value={zoom} disabled={gestureActive} onChange={event => changeZoom(Number(event.target.value))} /><button aria-label="放大时间线" disabled={gestureActive || zoom === 100} onClick={() => changeZoom(zoom + 12.5)}><Plus size={11} /></button><button className={zoom === 100 ? 'active' : ''} aria-label="逐帧查看时间线" disabled={gestureActive} onClick={() => changeZoom(100)}>逐帧</button><label className="kf-frame-spacing">间距<input aria-label="时间线每帧间距" type="number" min={Number((geometry.visibleWidth / end).toFixed(4))} max={Math.max(TIMELINE_MAX_FRAME_PIXELS, geometry.visibleWidth / end)} step={.5} value={Number(pixelsPerFrame.toFixed(2))} disabled={gestureActive} onChange={event => { const pixels = Number(event.target.value); if (event.target.value.trim() && Number.isFinite(pixels)) changeZoom(timelineZoomAtWidth(geometry.visibleWidth, duration, pixels * end)); }} />px</label></div>
@@ -369,6 +490,7 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
       {audio && <div className="kf-lane kf-audio-lane" data-track-id="audio" aria-label="音乐轨道"><div className="kf-lane-label"><Music2 size={11} /><span>音乐</span></div><div className="kf-lane-track kf-audio-content" data-frame-max={end} onClick={event => seekLane(event, currentPoint)}>
         <button className={`kf-audio-clip ${drag?.kind === 'audio' && drag.moved ? 'dragging' : ''}`} aria-label="移动音频片段" title={`${audio.name} · 拖动对齐音乐`} disabled={locked || audio.disabled} data-offset-seconds={audioOffset} data-duration-seconds={audio.durationSeconds} style={{ left: `${audioLeft / timeWidth * 100}%`, width: `${audioWidth / timeWidth * 100}%` }} onPointerDown={event => beginDrag(event, { kind: 'audio', sourceOffset: audio.offsetSeconds, targetOffset: audio.offsetSeconds })} onPointerMove={moveDrag} onPointerUp={event => { if (event.pointerId === dragRef.current?.pointerId) finishDrag(); }} onPointerCancel={() => finishDrag(true)} onLostPointerCapture={() => finishDrag(true)} onClick={event => event.stopPropagation()}><svg className="kf-waveform" viewBox={`0 0 ${Math.max(wave.length, 1)} 24`} preserveAspectRatio="none" aria-hidden="true">{wave.map((value, index) => { const amplitude = Math.max(.5, Math.min(1, Math.abs(value)) * 11); return <line key={index} x1={index + .5} x2={index + .5} y1={12 - amplitude} y2={12 + amplitude} />; })}</svg><span className="kf-audio-name" style={{ left: `${audioWidth > 0 ? Math.max(0, -audioLeft) / audioWidth * 100 : 0}%` }}>{drag?.kind === 'audio' && drag.moved ? `${audioOffset > 0 ? '+' : ''}${audioOffset.toFixed(3)} s` : audio.name}</span></button><span className="kf-row-playhead" style={{ left: `${position(time)}%` }} aria-hidden="true" />
       </div></div>}
+      {renderCameraRow()}
       {renderRow('root', '整体位移', sequence.root.map(key => key.frame), 'root', { kind: 'root' })}
       {GROUPS.map(group => { const groupFrames = [...new Set(group.joints.flatMap(joint => (sequence.rotations[joint] ?? []).map(key => key.frame)))].sort((a, b) => a - b); const firstJoint = selectedPoint && selectedPoint !== 'root' && group.joints.includes(selectedPoint) ? selectedPoint : group.joints[0]; return <div key={group.id} className="kf-track-group">{renderRow(group.id, group.label, groupFrames, firstJoint, { kind: 'joints', joints: group.joints.filter(joint => EDITABLE_JOINT_NAMES.includes(joint)) }, { group: true, joints: group.joints })}{expandedGroups.has(group.id) && group.joints.map(joint => renderRow(joint, STAGE_JOINT_LABELS[joint], (sequence.rotations[joint] ?? []).map(key => key.frame), joint, { kind: 'joint', joint }, { child: true }))}</div>; })}
     </div></div></>}

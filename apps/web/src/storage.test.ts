@@ -2,6 +2,7 @@ import { IDBFactory, IDBObjectStore } from 'fake-indexeddb';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createScene, defaultSceneViewer, type SceneViewer } from './scene';
 import { deleteScene, duplicateScene, listScenes, loadCurrentScene, loadProject, loadScene, renameScene, saveProject, saveScene, setCurrentScene } from './storage';
+import type { CameraTrack } from '../../../packages/core/src/cameraTrack';
 
 const audioBytes = async (blob: Blob | null) => blob ? [...new Uint8Array(await blob.arrayBuffer())] : null;
 const scene = (name: string, bytes: number[], viewer: SceneViewer = defaultSceneViewer()) => createScene({
@@ -25,10 +26,72 @@ async function seedLegacy(value: unknown): Promise<void> {
   db.close();
 }
 
+function cameraScene() {
+  const track: CameraTrack = { schema: 'camera-track-1', baseCamera: { position: [4.1128377319291, 3, -5], target: [.4, 1.4, -.3] }, keys: [
+    { time: .008337038683859493, camera: { position: [3.99551433211, 2, -4], target: [.1, 1.3, -.2], zoom: 1.137 } },
+    { time: 3.0219137159934, camera: { position: [-4, 3, 1.2], target: [.3, 1.1, -.5] } },
+  ] };
+  const take = { times: [0, .008337038683859493, .0219137159934, 4.137], poses: [{ root: [8, -1, -9], joints: { Head: [Number.EPSILON, 0, 0, 1] } }] };
+  const original = { title: '保存的原稿', countMap: { durationSeconds: 4.137 }, take, manual: { baseTake: take }, audioOffsetSeconds: .1 };
+  const history: (typeof original & { cameraTrack?: CameraTrack; operation?: { label: string; time: number; tracks: string[] } })[] = [
+    original, { ...original, cameraTrack: track, operation: { label: '移动相机', time: track.keys[0].time, tracks: ['camera'] } },
+  ];
+  return createScene({ name: '相机作品', audio: new Blob([new Uint8Array([0, 255, 19, 10])], { type: 'audio/wav' }), audioName: 'original.wav', project: {
+    history, historyIndex: 0, revision: 2, audioDuration: 40, teacherCheckedRevision: null,
+  } });
+}
+
+async function overwriteStoredScene(value: ReturnType<typeof cameraScene>) {
+  const db = await new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open('choreo-studio-preview', 2);
+    request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
+  });
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction('scenes', 'readwrite');
+    transaction.objectStore('scenes').put(value, value.id);
+    transaction.oncomplete = () => resolve(); transaction.onabort = () => reject(transaction.error);
+  });
+  db.close();
+}
+
 beforeEach(() => { vi.stubGlobal('indexedDB', new IDBFactory()); });
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('explicit local scene persistence', () => {
+  it('reopens and copies optional camera history exactly, including an undone position, while isolating edits and preserving source motion and audio', async () => {
+    const original = cameraScene(), before = structuredClone(original.project);
+    const saved = await saveScene(original), restored = await loadCurrentScene<typeof original.project>();
+    expect(restored?.project).toEqual(before);
+    expect(restored?.project.history[0]).not.toHaveProperty('cameraTrack');
+    expect(restored?.project.history[1].cameraTrack?.baseCamera).not.toHaveProperty('zoom');
+    expect(await audioBytes(restored?.audio ?? null)).toEqual([0, 255, 19, 10]);
+    const copy = await duplicateScene<typeof original.project>(saved.id);
+    if (!copy?.project.history[1].cameraTrack) throw new Error('missing copied camera track');
+    copy.project.historyIndex = 1;
+    copy.project.history[1].cameraTrack.keys[0].camera.position[0] = 99;
+    await saveScene(copy);
+    expect((await loadScene<typeof original.project>(saved.id))?.project).toEqual(before);
+    expect((await loadScene<typeof original.project>(copy.id))?.project.history[1].take).toEqual(before.history[1].take);
+    expect(original.project).toEqual(before);
+  });
+
+  it('rejects invalid camera saves atomically and refuses corrupt stored tracks on load, selection, copying or renaming', async () => {
+    const good = await saveScene(scene('有效作品', [7])), camera = await saveScene(cameraScene());
+    await setCurrentScene(good.id);
+    const invalid = structuredClone(camera); invalid.project.history[1].cameraTrack!.keys[0].time = 99;
+    await expect(saveScene(invalid)).rejects.toThrow(/相机/);
+    expect((await loadScene<typeof camera.project>(camera.id))?.project).toEqual(camera.project);
+    expect((await loadCurrentScene())?.id).toBe(good.id);
+    await overwriteStoredScene(invalid);
+    await expect(loadScene(camera.id)).rejects.toThrow(/相机/);
+    await expect(setCurrentScene(camera.id)).rejects.toThrow();
+    await expect(duplicateScene(camera.id)).rejects.toThrow(/相机/);
+    await expect(renameScene(camera.id, '不应提交')).rejects.toThrow();
+    expect((await loadCurrentScene())?.id).toBe(good.id);
+    expect((await listScenes()).find(value => value.id === camera.id)?.name).toBe(camera.name);
+    expect(await listScenes()).toHaveLength(2);
+  });
+
   it('reopens two independent scenes with exact original music, camera and editor state', async () => {
     const viewer: SceneViewer = {
       ...defaultSceneViewer(), view: 'free', camera: { position: [3.2, 2.8, -4.5], target: [0.4, 1.1, 0.7], zoom: 1.3 },

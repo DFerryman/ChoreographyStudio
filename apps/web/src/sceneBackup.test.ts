@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { deepStrictEqual } from 'node:assert/strict';
-import { analyzeStepAssistance, bakeKeyframeSequence, bakeLegacyKeyframeSequence, JOINT_NAMES, lastFrame, makeCountMap, makeKeyframeSequence, makePlan, rotationFromDegrees, sampleTake, setStepAssistance, upsertRootKeyframe, upsertRotationKeyframe, type BakedTake, type Pose } from '../../../packages/core/src';
+import { analyzeStepAssistance, bakeKeyframeSequence, bakeLegacyKeyframeSequence, JOINT_NAMES, lastFrame, makeCountMap, makeKeyframeSequence, makePlan, MAX_CAMERA_KEYS, rotationFromDegrees, sampleTake, setStepAssistance, upsertRootKeyframe, upsertRotationKeyframe, type BakedTake, type CameraTrack, type Pose } from '../../../packages/core/src';
 import { createScene, type SceneDocument } from './scene';
 import { decodeSceneBackup, encodeSceneBackup, encodeSceneJsonBackup, SCENE_BACKUP_LIMITS } from './sceneBackup';
 import type { SceneProject } from './sceneProject';
@@ -114,6 +114,90 @@ function frozenPointFixture() {
   scene.project.revision = 3;
   return scene;
 }
+
+function cameraFixture() {
+  const scene = frozenPointFixture(), previous = scene.project.history.at(-1)!;
+  const cameraTrack: CameraTrack = {
+    schema: 'camera-track-1', baseCamera: { position: [4.1128377319291, 3, -5], target: [.4, 1.4, -.3] },
+    keys: [
+      { time: .008337038683859493, camera: { position: [3.99551433211, 2.1, -4], target: [.1, 1.3, -.2], zoom: 1.137 } },
+      { time: 3.0219137159934, camera: { position: [-4, 3, 1.2], target: [.3, 1.1, -.5] } },
+    ],
+  };
+  scene.project.history.push({ ...previous, cameraTrack, operation: { label: '移动相机', time: cameraTrack.keys[0].time, tracks: ['camera'] } });
+  const edited = structuredClone(cameraTrack); edited.keys[0].camera.position[0] += Number.EPSILON * 2;
+  scene.project.history.push({ ...previous, cameraTrack: edited, operation: { label: '微调相机', time: edited.keys[0].time, tracks: ['camera'] } });
+  // Save an undone state too: both the current view and future redo track matter.
+  scene.project.historyIndex = 3;
+  scene.project.revision = 5;
+  scene.project.teacherCheckedRevision = 5;
+  return scene;
+}
+
+describe('independent authored camera backup', () => {
+  it('retains off-grid camera keys, base, undone history and redo state without changing any Take, baseTake, original grid or music', async () => {
+    const source = cameraFixture(), before = structuredClone(source.project), viewer = structuredClone(source.viewer);
+    const full = await encodeSceneBackup(source);
+    const packed = (await bundleParts(full)).rawHeader.scene;
+    // Camera operations retain the shared authoritative Take rather than rebaking it.
+    expect(packed.scene.project.history[2].take).toEqual(packed.scene.project.history[3].take);
+    expect(packed.scene.project.history[3].take).toEqual(packed.scene.project.history[4].take);
+    for (const file of [legacy(source), encodeSceneJsonBackup(source), full]) {
+      const imported = await decodeSceneBackup(file);
+      deepStrictEqual(imported.scene.project, { ...before, teacherCheckedRevision: null });
+      deepStrictEqual(imported.scene.viewer, viewer);
+      expect(imported.scene.project.history[0]).not.toHaveProperty('cameraTrack');
+      expect(imported.scene.project.history[3].cameraTrack!.baseCamera).not.toHaveProperty('zoom');
+      expect(imported.scene.project.history[4].cameraTrack!.keys[0].time).toBe(.008337038683859493);
+      if (imported.scene.audio) expect(await imported.scene.audio.arrayBuffer()).toEqual(await source.audio!.arrayBuffer());
+    }
+    deepStrictEqual(source.project, before);
+  });
+
+  it('validates camera keys against each historical duration and supports camera motion before a dance Take exists', async () => {
+    const source = fixture(), long = makeCountMap({ bpm: 120, musicBeatsPerDanceCount: 1, firstCountSourceSeconds: 0, octetCount: 8, audioDurationSeconds: 40 });
+    const short = makeCountMap({ bpm: 120, musicBeatsPerDanceCount: 1, firstCountSourceSeconds: 0, octetCount: 4, audioDurationSeconds: 40 });
+    const camera = { position: [4, 3, -5] as [number, number, number], target: [0, 1, 0] as [number, number, number] };
+    source.project.history = [
+      { title: '长镜头', countMap: long, plan: null, take: null, cameraTrack: { schema: 'camera-track-1', baseCamera: camera, keys: [{ time: 31.137, camera }] } },
+      { title: '短镜头', countMap: short, plan: null, take: null, cameraTrack: { schema: 'camera-track-1', baseCamera: camera, keys: [{ time: 15.137, camera }] } },
+    ];
+    source.viewer.selectedSlot = 0; source.viewer.time = 0;
+    const restored = await decodeSceneBackup(await encodeSceneBackup(source));
+    expect(restored.scene.project.history).toEqual(source.project.history);
+    await expect(decodeSceneBackup(legacy(source, data => { data.scene.project.history[1].cameraTrack.keys[0].time = 31.137; }))).rejects.toThrow(/相机/);
+  });
+
+  it.each([
+    ['schema', (track: any) => { track.schema = 'camera-track-2'; }],
+    ['track-only preview data', (track: any) => { track.interpolation = 'spline'; }],
+    ['pose-only preview up', (track: any) => { track.keys[0].camera.up = [0, 1, 0]; }],
+    ['key-only extra field', (track: any) => { track.keys[0].frame = 0; }],
+    ['base camera', (track: any) => { delete track.baseCamera; }],
+    ['nonfinite position', (track: any) => { track.baseCamera.position[0] = Infinity; }],
+    ['coordinate bounds', (track: any) => { track.keys[0].camera.position[0] = 1001; }],
+    ['empty viewing direction', (track: any) => { track.baseCamera.position = track.baseCamera.target; }],
+    ['zero zoom', (track: any) => { track.keys[0].camera.zoom = 0; }],
+    ['too-large zoom', (track: any) => { track.baseCamera.zoom = 4.00001; }],
+    ['nonfinite time', (track: any) => { track.keys[0].time = NaN; }],
+    ['negative time', (track: any) => { track.keys[0].time = -.001; }],
+    ['past duration', (track: any) => { track.keys[1].time = 600; }],
+    ['duplicate time', (track: any) => { track.keys[1].time = track.keys[0].time; }],
+    ['unordered time', (track: any) => { track.keys.reverse(); }],
+    ['key resource cap', (track: any) => { track.keys = Array.from({ length: MAX_CAMERA_KEYS + 1 }, (_, index) => ({ time: index / 1000, camera: track.baseCamera })); }],
+  ])('rejects invalid authored camera %s before applying a backup', async (_label, mutate) => {
+    await expect(decodeSceneBackup(legacy(cameraFixture(), data => mutate(data.scene.project.history[3].cameraTrack)))).rejects.toThrow(/场景备份无效/);
+  });
+
+  it('keeps legacy camera view settings separate and never manufactures a camera track on old imports', async () => {
+    const source = fixture();
+    for (const file of [legacy(source), encodeSceneJsonBackup(source), await encodeSceneBackup(source)]) {
+      const imported = await decodeSceneBackup(file);
+      expect(imported.scene.viewer.camera).toEqual(source.viewer.camera);
+      imported.scene.project.history.forEach(snapshot => expect(snapshot).not.toHaveProperty('cameraTrack'));
+    }
+  });
+});
 
 describe('complete local scene backup', () => {
   it('preserves the frozen saved authority exactly while validating its sparse baseline and permitting only the overlay extra time', async () => {

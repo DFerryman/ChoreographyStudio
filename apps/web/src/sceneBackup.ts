@@ -1,14 +1,16 @@
-import { ACTIONS, bakeKeyframeSequence, bakeLegacyKeyframeSequence, EDITABLE_JOINT_NAMES, getKeyframeCount, JOINT_NAMES, makeCountMap, MAX_KEYFRAME_COUNT, MAX_TAKE_SAMPLES, ROOT_TRANSLATION_LIMITS, type ArrangementPlan, type BakedTake, type CountMap, type JointName, type KeyframeSequence, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
+import { ACTIONS, bakeKeyframeSequence, bakeLegacyKeyframeSequence, EDITABLE_JOINT_NAMES, getKeyframeCount, JOINT_NAMES, makeCountMap, MAX_KEYFRAME_COUNT, MAX_TAKE_SAMPLES, ROOT_TRANSLATION_LIMITS, type ArrangementPlan, type BakedTake, type CameraTrack, type CountMap, type JointName, type KeyframeSequence, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
 import type { SceneDocument, SceneViewer } from './scene';
 import type { SceneOperation, SceneProject, SceneSnapshot } from './sceneProject';
 import { MAX_FOOT_LOCKS, type FootLock } from '../../../packages/core/src/footLocks';
 import { packScene, unpackScene } from './compactScene';
+import { SCENE_CAMERA_TRACK_LIMITS, validateProjectCameraTracks } from './sceneCameraTrack';
 
 export const SCENE_BACKUP_LIMITS = {
   headerBytes: 32 * 1024 * 1024,
   audioBytes: 100 * 1024 * 1024,
   history: 12,
   totalSamples: 150_000,
+  totalCameraKeys: SCENE_CAMERA_TRACK_LIMITS.totalKeys,
 } as const;
 export const SCENE_BUNDLE_MAGIC = 'CHOREO-BUNDLE-1\n';
 const magic = new TextEncoder().encode(SCENE_BUNDLE_MAGIC);
@@ -278,12 +280,14 @@ function preflightSamples(project: RecordValue) {
 }
 function validateProject(value: unknown, context: ValidationContext): SceneProject {
   const object = record(value, ['history', 'historyIndex', 'revision', 'audioDuration', 'teacherCheckedRevision'], [], '项目', context);
+  try { validateProjectCameraTracks(object); }
+  catch (error) { fail(error instanceof Error ? error.message : '相机轨道格式无效。'); }
   preflightSamples(object);
   const takeContext: ValidationContext = { ...context, takes: new WeakMap(), frozenEquivalence: new WeakMap() };
   const audioDuration = finite(object.audioDuration, '原音频时长');
   if (audioDuration < 16 || audioDuration > 600) fail('原音频必须是 16 秒至 10 分钟。');
   const history: SceneSnapshot[] = array(object.history, 1, SCENE_BACKUP_LIMITS.history, '历史').map(value => {
-    const snapshot = record(value, ['title', 'countMap', 'plan', 'take'], ['manual', 'audioOffsetSeconds', 'operation'], '历史条目', context);
+    const snapshot = record(value, ['title', 'countMap', 'plan', 'take'], ['manual', 'cameraTrack', 'audioOffsetSeconds', 'operation'], '历史条目', context);
     const countMap = validateCountMap(snapshot.countMap, audioDuration, context);
     let audioOffsetSeconds: number | undefined;
     if (own(snapshot, 'audioOffsetSeconds')) {
@@ -296,8 +300,9 @@ function validateProject(value: unknown, context: ValidationContext): SceneProje
     if (plan && take && plan.id !== take.planId) fail('动作与编排 ID 不一致。');
     if (!take && snapshot.manual != null) fail('手 K 序列缺少权威动作。');
     const manual = snapshot.manual === undefined ? undefined : validateManual(snapshot.manual, countMap, take!, takeContext);
+    const cameraTrack = own(snapshot, 'cameraTrack') ? snapshot.cameraTrack as CameraTrack : undefined;
     const operation = snapshot.operation === undefined ? undefined : validateOperation(snapshot.operation, countMap.durationSeconds, context);
-    return { title: text(snapshot.title, '作品名称'), countMap, plan, take, ...(manual ? { manual } : {}), ...(audioOffsetSeconds !== undefined ? { audioOffsetSeconds } : {}), ...(operation !== undefined ? { operation } : {}) };
+    return { title: text(snapshot.title, '作品名称'), countMap, plan, take, ...(manual ? { manual } : {}), ...(cameraTrack !== undefined ? { cameraTrack } : {}), ...(audioOffsetSeconds !== undefined ? { audioOffsetSeconds } : {}), ...(operation !== undefined ? { operation } : {}) };
   });
   const revision = integer(object.revision, 1, Number.MAX_SAFE_INTEGER, '作品版本');
   const teacherCheckedRevision = object.teacherCheckedRevision === null ? null : integer(object.teacherCheckedRevision, 1, revision, '试看版本');
@@ -312,7 +317,7 @@ function validateOperation(value: unknown, duration: number, context: Validation
   }
   let tracks: SceneOperation['tracks'];
   if (own(operation, 'tracks')) {
-    tracks = array(operation.tracks, 0, JOINT_NAMES.length + 1, '操作通道').map(track => enumValue(track, ['root', ...JOINT_NAMES] as const, '操作通道'));
+    tracks = array(operation.tracks, 0, JOINT_NAMES.length + 2, '操作通道').map(track => enumValue(track, ['root', ...JOINT_NAMES, 'camera'] as const, '操作通道'));
     if (new Set(tracks).size !== tracks.length) fail('操作通道不能重复。');
   }
   return { label: text(operation.label, '操作名称'), ...(time !== undefined ? { time } : {}), ...(tracks !== undefined ? { tracks } : {}) };
