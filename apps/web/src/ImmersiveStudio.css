@@ -83,3 +83,6 @@
 }
 .scene-extras[open] { z-index: 25; }
 .immersive-studio .viewer-toolbar:has(.camera-options[open]) { z-index: 26; }
+@media (max-width: 360px) {
+  .immersive-studio .stage-tool-buttons > button { padding-inline: 6px; }
+}
