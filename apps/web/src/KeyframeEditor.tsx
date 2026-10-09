@@ -211,7 +211,7 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
     const rulerHeight = viewport.querySelector('.kf-ruler-row')?.getBoundingClientRect().height ?? 0;
     if (rect.top < view.top + rulerHeight) viewport.scrollTop += rect.top - view.top - rulerHeight;
     else if (rect.bottom > view.top + viewport.clientHeight) viewport.scrollTop += rect.bottom - view.top - viewport.clientHeight;
-  }, [selectedJoint, expanded, expandedGroups]);
+  }, [selectedJoint, expanded, expandedGroups, geometry.visibleWidth, geometry.labelWidth]);
   function changeZoom(next: number, pointerX?: number) {
     const viewport = viewportRef.current;
     if (!viewport || dragRef.current || panRef.current || scrubRef.current) return;
