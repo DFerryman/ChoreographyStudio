@@ -1,5 +1,6 @@
 import { editStageValue, selectStageJoint } from './stageInteractions';
 import { createHash } from 'node:crypto';
+import { deepStrictEqual } from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
@@ -72,6 +73,9 @@ function fixture() {
 }
 async function ready(page: Page) {
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeEnabled();
+  // Match the shared harness's native media activation without changing the
+  // authored scene or starting playback in headless Chromium.
+  await page.locator('.project-title h1').click();
   await expect(page.getByLabel('相机世界坐标')).not.toContainText('—');
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.readyState)).toBeGreaterThanOrEqual(2);
 }
@@ -95,7 +99,7 @@ async function openScene(page: Page) {
   }, { scene: source.scene, bytes: Array.from(source.wave) });
   await page.reload(); await ready(page);
   await expect(page.locator('.project-title h1')).toHaveText(source.scene.name);
-  expect(current(await backup(page)).take).toEqual(source.take);
+  deepStrictEqual(current(await backup(page)).take, source.take);
   await clickRevealed(page, page.getByRole('button', { name: '手动 K帧', exact: true, includeHidden: true }));
   await expect(page.getByRole('region', { name: '手动关键帧时间线', exact: true })).toBeVisible();
   return source;
@@ -196,7 +200,7 @@ function rawBundle(bytes: Buffer) {
   // Independently inspect the documented binary envelope, rather than using
   // the encoder/decoder under test to prove its own output.
   const magic = Buffer.from('CHOREO-BUNDLE-1\n', 'utf8');
-  expect(bytes.subarray(0, magic.length)).toEqual(magic);
+  deepStrictEqual(bytes.subarray(0, magic.length), magic);
   const headerLength = bytes.readUInt32LE(magic.length);
   const header = JSON.parse(bytes.subarray(magic.length + 4, magic.length + 4 + headerLength).toString('utf8'));
   const audio = bytes.subarray(magic.length + 4 + headerLength);
@@ -230,9 +234,9 @@ test('@backup compact full scene bundles round-trip automatic channel edits, exa
   const original = await backup(page), savedState = await localState(page), bytes = await bundle(page);
   expect(original.scene.project.teacherCheckedRevision).toBe(original.scene.project.revision);
   const inspected = rawBundle(bytes);
-  expect(inspected.audio).toEqual(source.wave);
-  expect(inspected.header.scene.project).toEqual(original.scene.project);
-  expect(inspected.header.scene.viewer).toEqual(original.scene.viewer);
+  deepStrictEqual(inspected.audio, source.wave);
+  deepStrictEqual(inspected.header.scene.project, original.scene.project);
+  deepStrictEqual(inspected.header.scene.viewer, original.scene.viewer);
   expect(inspected.header.scene.audio).toBeUndefined();
   expect(inspected.header.scene.poseClipboard).toBeUndefined(); expect(inspected.header.scene.poseDraft).toBeUndefined();
   await openImport(page); await chooseBackup(page, bytes);
@@ -245,17 +249,17 @@ test('@backup compact full scene bundles round-trip automatic channel edits, exa
   const imported = await backup(page), after = await localState(page);
   expect(imported.scene.id).not.toBe(original.scene.id);
   expect(after.ids).toEqual([...savedState.ids, imported.scene.id].sort()); expect(after.currentId).toBe(imported.scene.id);
-  expect(imported.scene.project).toEqual({ ...original.scene.project, teacherCheckedRevision: null });
-  expect(imported.scene.viewer).toEqual(original.scene.viewer);
-  expect(current(imported).manual!.baseTake).toEqual(source.take);
+  deepStrictEqual(imported.scene.project, { ...original.scene.project, teacherCheckedRevision: null });
+  deepStrictEqual(imported.scene.viewer, original.scene.viewer);
+  deepStrictEqual(current(imported).manual!.baseTake, source.take);
   expect(await audioHash(page)).toBe(createHash('sha256').update(source.wave).digest('hex'));
   await page.reload(); await ready(page);
-  const restored = await backup(page); expect(restored.scene).toEqual(imported.scene);
+  const restored = await backup(page); deepStrictEqual(restored.scene, imported.scene);
   expect(await audioHash(page)).toBe(createHash('sha256').update(source.wave).digest('hex'));
   await page.getByRole('button', { name: '场景', exact: true }).click();
   await page.getByRole('dialog', { name: '本机场景', exact: true }).getByRole('button', { name: `打开场景 ${original.scene.name}`, exact: true }).click();
   await expect(page.locator('.project-title h1')).toHaveText(original.scene.name);
-  expect((await backup(page)).scene.project).toEqual(original.scene.project);
+  deepStrictEqual((await backup(page)).scene.project, original.scene.project);
   expect(await audioHash(page)).toBe(createHash('sha256').update(source.wave).digest('hex'));
 });
 
@@ -292,8 +296,8 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
   await importConfirm(page).click(); await expect(importDialog(page)).toHaveCount(0);
   const imported = await backup(page);
   expect(imported.scene.id).not.toBe(original.scene.id);
-  expect(imported.scene.project).toEqual({ ...original.scene.project, teacherCheckedRevision: null });
-  expect(current(imported).manual!.baseTake).toEqual(source.take);
+  deepStrictEqual(imported.scene.project, { ...original.scene.project, teacherCheckedRevision: null });
+  deepStrictEqual(current(imported).manual!.baseTake, source.take);
   expect(await audioHash(page)).toBe(createHash('sha256').update(source.wave).digest('hex'));
 
   // Simulate an existing local scene whose music blob has become unavailable.
@@ -319,7 +323,7 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
   await expect(page.getByRole('button', { name: '下载完整场景包', exact: true, includeHidden: true })).toBeDisabled();
   expect(await page.locator('audio').evaluate((audio: HTMLAudioElement) => ({ src: audio.getAttribute('src'), currentSrc: audio.currentSrc }))).toEqual({ src: null, currentSrc: '' });
   const missing = await backup(page);
-  expect(missing.scene.id).toBe(imported.scene.id); expect(missing.scene.project).toEqual(imported.scene.project);
+  expect(missing.scene.id).toBe(imported.scene.id); deepStrictEqual(missing.scene.project, imported.scene.project);
   const beforeRecovery = await localState(page);
   await numeric(page, 'Root X 位移（米）', 1.5); await expect(guard(page)).toHaveCount(0);
   const latest = await backup(page);
@@ -345,12 +349,12 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
   await expect(importDialog(page)).toHaveCount(0); await ready(page);
   const recovered = await backup(page);
   expect(recovered.scene.id).not.toBe(missing.scene.id);
-  expect(recovered.scene.project.history.slice(0, imported.scene.project.history.length)).toEqual(imported.scene.project.history);
+  deepStrictEqual(recovered.scene.project.history.slice(0, imported.scene.project.history.length), imported.scene.project.history);
   expect(recovered.scene.project.history).toHaveLength(imported.scene.project.history.length + 1);
   expect(recovered.scene.project.historyIndex).toBe(imported.scene.project.historyIndex + 1);
   expect(recovered.scene.project.revision).toBe(imported.scene.project.revision + 1); expect(recovered.scene.project.teacherCheckedRevision).toBeNull();
   expect(current(recovered).countMap).toEqual(current(imported).countMap); expect(current(recovered).plan).toEqual(current(imported).plan);
-  expect(current(recovered).take.id).not.toBe(current(imported).take.id); expect(current(recovered).manual!.baseTake).toEqual(source.take);
+  expect(current(recovered).take.id).not.toBe(current(imported).take.id); deepStrictEqual(current(recovered).manual!.baseTake, source.take);
   expect(current(recovered).manual!.root).toEqual([]);
   expect(current(recovered).manual!.rotations).toEqual({});
   expect(current(recovered).manual!.pointEdits).toHaveLength(1);
@@ -359,11 +363,11 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
   expect(recordedRoot[0]).toBeCloseTo(1.5, 5);
   expect(recordedRoot.slice(1)).toEqual([1.05, 0]);
   expect(current(recovered).take.poses[current(recovered).take.times.indexOf(2.5)].root).toEqual(recordedRoot);
-  expect(recovered.scene.project).toEqual({ ...latest.scene.project, teacherCheckedRevision: null });
-  expect(recovered.scene.viewer).toEqual(imported.scene.viewer);
+  deepStrictEqual(recovered.scene.project, { ...latest.scene.project, teacherCheckedRevision: null });
+  deepStrictEqual(recovered.scene.viewer, imported.scene.viewer);
   expect(await audioHash(page)).toBe(createHash('sha256').update(source.wave).digest('hex'));
   expect((await localState(page)).ids).toEqual([...beforeRecovery.ids, recovered.scene.id].sort());
-  expect(await page.evaluate(async id => {
+  deepStrictEqual(await page.evaluate(async id => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open('choreo-studio-preview', 2);
       request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
@@ -372,7 +376,7 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
       const tx = db.transaction(['scenes'], 'readonly'), request = tx.objectStore('scenes').get(id);
       tx.oncomplete = () => { db.close(); resolve({ audioMissing: request.result.audio === null, project: request.result.project }); }; tx.onerror = () => { db.close(); reject(tx.error); };
     });
-  }, missing.scene.id)).toEqual({ audioMissing: true, project: imported.scene.project });
+  }, missing.scene.id), { audioMissing: true, project: imported.scene.project });
 });
 
 test('@backup mobile export captures automatic channel edits and preserves current scenes through import cancellation and quota failure, then retries once as a new scene', async ({ page }) => {
@@ -385,8 +389,8 @@ test('@backup mobile export captures automatic channel edits and preserves curre
   expect(Object.keys(current(original).manual!.pointEdits![0].joints!)).toEqual(['LeftUpperArm']);
   await save(page);
   const bytes = await bundle(page);
-  expect(rawBundle(bytes).audio).toEqual(source.wave);
-  expect(rawBundle(bytes).header.scene.project).toEqual(original.scene.project);
+  deepStrictEqual(rawBundle(bytes).audio, source.wave);
+  deepStrictEqual(rawBundle(bytes).header.scene.project, original.scene.project);
   await expect(guard(page)).toHaveCount(0);
   await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
   await numeric(page, 'Root X 位移（米）', 2);
@@ -421,7 +425,7 @@ test('@backup mobile export captures automatic channel edits and preserves curre
   if (await unsaved(page).isVisible()) await unsaved(page).getByRole('button', { name: '不保存，继续', exact: true }).click();
   await expect(importDialog(page)).toHaveCount(0); await expect(page.locator('.save-state')).toHaveText('已保存到本机');
   const imported = await backup(page); expect(imported.scene.id).not.toBe(original.scene.id);
-  expect(imported.scene.project).toEqual({ ...original.scene.project, teacherCheckedRevision: null });
+  deepStrictEqual(imported.scene.project, { ...original.scene.project, teacherCheckedRevision: null });
   expect(await audioHash(page)).toBe(createHash('sha256').update(source.wave).digest('hex'));
   expect((await localState(page)).ids).toEqual([...beforeFailure.ids, imported.scene.id].sort());
   await page.setViewportSize({ width: 390, height: 844 }); await capture(page, 'choreo-backup-mobile.png');

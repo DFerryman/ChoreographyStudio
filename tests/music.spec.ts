@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import { clickRevealed, closeDisclosures } from './helpers';
+import { unpackScene } from '../apps/web/src/compactScene';
 
 type Diagnostics = { errors: string[]; warnings: string[]; apiRequests: string[] };
 type DecodeRequest = { ready: boolean; finished: boolean; release: (success: boolean) => void };
@@ -130,6 +131,7 @@ async function confirmAndVerify(page: Page, name: string, expectedHash: string, 
   const path = await (await downloading).path();
   expect(path).toBeTruthy();
   const exported = JSON.parse(await readFile(path!, 'utf8'));
+  if (exported.format === 'choreo-scene-backup-2') exported.scene = unpackScene(exported.scene);
   await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
   expect(exported.scene.audioName).toBe(name);
   expect(exported.scene.project.audioDuration).toBe(duration);

@@ -285,7 +285,7 @@ function finishMutation(sequence: KeyframeSequence, previous: KeyframeSequence):
       else {
         const stored = new Map(previous.pointBaseTake.times.map((time, index) => [time, previous.pointBaseTake!.poses[index]]));
         sequence.pointBaseTake = { ...derived, poses: derived.times.map((time, index) => {
-          const pose = copyPose(stored.get(time) ?? sampleTake(previous.pointBaseTake!, time));
+          const pose = copyPose(stored.get(time) ?? derived.poses[index]);
           if (changedRoot) pose.root = [...derived.poses[index].root];
           for (const joint of changedJoints) pose.joints[joint] = [...derived.poses[index].joints[joint]];
           return pose;

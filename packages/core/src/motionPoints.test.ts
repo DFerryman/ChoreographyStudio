@@ -225,6 +225,31 @@ describe('point edits preserve assistance, legacy evaluation and atomic caps', (
     expect(sequence.pointBaseTake).toBeUndefined();
   });
 
+  it('evaluates new sparse support times from the canonical source without resampling an old support knot', () => {
+    const base = source();
+    base.poses = base.times.map((time, index) => pose(index / 10, time * 6));
+    const sequence = upsertRootKeyframe(makeKeyframeSequence(base), 10, [1.2, 1.1, .3]);
+    const authority = bakeKeyframeSequence(sequence), newTime = .5;
+    const moved = transferKeyframes(sequence, { operation: 'move', scope: { kind: 'root' }, sourceFrame: 10, targetFrame: 15 }, authority);
+    expect(moved.status).toBe('changed');
+    const canonical = bakeKeyframeSequence({ ...moved.sequence, pointBaseTake: undefined, pointEdits: [] });
+    const insertedIndex = canonical.times.indexOf(newTime);
+    const repeatedInterpolation = sampleTake(authority, newTime).joints.Head;
+    const directInterpolation = canonical.poses[insertedIndex].joints.Head;
+    expect(Math.max(...directInterpolation.map((value, axis) => Math.abs(value - repeatedInterpolation[axis])))).toBeGreaterThan(1e-8);
+    expect(moved.sequence.pointBaseTake!.poses[insertedIndex]).toEqual(canonical.poses[insertedIndex]);
+    // The frozen source remains equivalent to the full official sparse bake,
+    // while every retained imported timestamp keeps its original channel bits.
+    expect(moved.sequence.pointBaseTake!.times).toEqual(canonical.times);
+    expect(moved.sequence.pointBaseTake!.poses).toEqual(canonical.poses);
+    const take = bakeKeyframeSequence(moved.sequence);
+    for (const [index, time] of authority.times.entries()) {
+      const nextIndex = take.times.indexOf(time);
+      if (nextIndex < 0) continue;
+      for (const joint of JOINT_NAMES) expect(take.poses[nextIndex].joints[joint]).toEqual(authority.poses[index].joints[joint]);
+    }
+  });
+
   it('refreshes the full derived authority when assistance changes and keeps point edits highest', () => {
     const base = { ...source(), poses: source().poses.map(() => neutral()) };
     const sequence = makeKeyframeSequence(base), authority = bakeKeyframeSequence(sequence);

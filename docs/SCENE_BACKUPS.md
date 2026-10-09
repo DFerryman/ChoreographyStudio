@@ -1,5 +1,15 @@
 # 本机场景备份与恢复 · v10 基线与 v12/v13 扩展
 
+## 当前 v19 · 局部自动记录与无损完整包（发布验收中）
+
+备份和恢复遵守[编辑交互长期标准](EDITOR_INTERACTION_STANDARD.md)。导入后选择精确时刻、在场景选部位，Timeline 自动聚焦对应数据点；直接调整并松手，局部变化和 IK 关联变化自动记录，一手势一撤销。无需再写完整姿态 K 或确认草稿，保存／下载包含已自动记录的正式状态和操作历史。场景切换及未保存修改继续使用原场景保护。
+
+完整包的 JSON 头格式为 `choreo-scene-bundle-2`；JSON 项目备份为 `choreo-scene-backup-2`。场景数据采用 `compact-scene-1` 的无损 Take 共享／差量编码，容器魔数仍为 `CHOREO-BUNDLE-1`，旧 v1 包与 JSON 继续导入。原音乐字节与 SHA-256 不变，未改动作通道及原采样时刻保持；不靠重采样或丢历史缩小文件。操作记录最多 12 个快照，随本机保存、重开及完整包恢复。
+
+原始 Root、全部 25 个局部旋转、作者 K 和精确点修改均通过 Timeline 查看／编辑；保存的编辑前有效采样也有可查看的对应数值。历史和共享引用接受有界严格校验，不以关闭数据关系校验或放宽原值精度处理导出问题。实际版本证据见[验证](VERIFICATION.md)及[部署](DEPLOYMENT.md)。
+
+## v10 至 v13 格式和显式写 K 流程（历史）
+
 2026-10-08 的 v12 已交付可选持久脚锁和 `ik` 视口工具值；v13补充可选作者优先求值标记与严格整份旧算法兼容。旧文件缺少这些字段时保留权威动作，既有音乐/CountMap/历史/事务与资源规则继续。54项备份检查及准确v13源码319基础/81浏览器已通过；下述v10为历史证据，实际版本见 [VERIFICATION.md](VERIFICATION.md) / [DEPLOYMENT.md](DEPLOYMENT.md)。
 
 本轮已交付「下载 → 重新导入 → 继续编舞」的本机闭环。实现位于 `apps/web/src/sceneBackup.ts`，仍使用 `choreo-scene-1`、`preview-1` 和原创程序化骨架，读取、校验、音频解码与保存均在浏览器完成。107 项基础检查、最终构建/Worker 类型与 dry run、相关本地范围及缺音乐定向复核、单轮线上 8 项、5 HTTP 和[实际源码 CI 完整 38 项](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37636175196)通过；[运行源码](https://github.com/DFerryman/ChoreographyStudio/commit/9fbc115f12d2580ff76b7cf5354fa581081579d8)已 push 并部署 Cloudflare v10。实际版本、失败/修正历史及最终文档同步收据见 [VERIFICATION.md](VERIFICATION.md) / [DEPLOYMENT.md](DEPLOYMENT.md)。

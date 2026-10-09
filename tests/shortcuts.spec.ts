@@ -302,6 +302,9 @@ test('@shortcuts composition, modified keys, repeated writes and native focused 
   await expect(frameInput(page)).toHaveValue('120');
   await page.locator('#shortcut-contenteditable').evaluate(element => element.remove());
 
+  // Root is a selected timeline point even when no skeleton joint is selected.
+  // Select a body point first so the following blank-canvas click clears both.
+  await selectJoint(page, 'LeftUpperArm');
   await page.getByRole('button', { name: '选择工具', exact: true }).click();
   await selectJoint(page, ''); await key(page, 'k'); await key(page, 'Delete');
   expect((await backup(page)).scene.project).toEqual(baseline.scene.project);
