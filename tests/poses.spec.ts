@@ -89,7 +89,7 @@ async function ready(page: Page) {
 }
 async function editor(page: Page) {
   const region = page.getByRole('region', { name: '手动关键帧时间线', exact: true });
-  if (!await region.isVisible()) await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
+  if (!await region.isVisible()) await clickRevealed(page, page.getByRole('button', { name: '手动 K帧', exact: true, includeHidden: true }));
   await expect(region).toBeVisible();
 }
 async function openFixture(page: Page, includeSecond = false, outsideSourceRoot = false) {
@@ -328,9 +328,9 @@ test('@poses mobile pose reuse stays reachable without overflow; new scenes and 
   await expect(page.locator('.project-title h1')).toHaveText('未命名场景'); await ready(page); await editor(page);
   await expect(clipboard(page)).toHaveText('未复制姿态'); await expect(paste(page, true)).toBeDisabled();
   await clickRevealed(page, copy(page)); await expect(paste(page, true)).toBeEnabled();
-  await page.getByRole('button', { name: '导入音乐', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '导入音乐', exact: true, includeHidden: true }));
   await page.getByRole('dialog', { name: '先把音乐和数拍准备好', exact: true }).getByRole('button', { name: '确认数拍，进入工作台', exact: true }).click();
-  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
   await expect(page.getByRole('button', { name: '生成模板初稿', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: '生成模板初稿', exact: true }).click(); await editor(page);
   await expect(clipboard(page)).toHaveText('未复制姿态'); await expect(paste(page)).toBeDisabled(); await expect(paste(page, true)).toBeDisabled();

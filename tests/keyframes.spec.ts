@@ -1,8 +1,8 @@
-import { editStageValue, expectStageValue, stageValue, selectStageJoint, expectStageSelection, stageSelectedJoint, expectGestureRootKeys } from './stageInteractions';
+import { applyStageViewOffset, editStageValue, expectStageValue, stageValue, selectStageJoint, expectStageSelection, stageSelectedJoint, expectGestureRootKeys } from './stageInteractions';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed, reveal, seekSeconds } from './helpers';
+import { clickRevealed, closeDisclosures, reveal, seekSeconds } from './helpers';
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
 
 // This fixture keeps the published v4 schema, without importing the new editor
@@ -165,7 +165,7 @@ const draftNote = (page: Page) => page.getByRole('status').filter({ hasText: '�
 const draftGuard = (page: Page) => page.getByRole('dialog', { name: '写入这份姿态草稿？', exact: true });
 async function editor(page: Page) {
   const region = page.getByRole('region', { name: '手动关键帧时间线', exact: true });
-  if (!await region.isVisible()) await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
+  if (!await region.isVisible()) await clickRevealed(page, page.getByRole('button', { name: '手动 K帧', exact: true, includeHidden: true }));
   await expect(region).toBeVisible();
 }
 async function selectJoint(page: Page, joint: Joint) {
@@ -356,7 +356,7 @@ test('old v4 scenes retain their original audio and motion, while explicit joint
   await expect(page.getByLabel('关节局部旋转', { exact: true })).toContainText('末端关节仅查看');
   await sameSnapshot(page, beforeMirror);
 
-  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
   await page.getByRole('listitem', { name: /^第2个八拍/ }).click();
   await page.getByRole('button', { name: '换一个八拍', exact: true }).click();
   const candidate = page.getByRole('region', { name: '替换候选', exact: true });
@@ -533,12 +533,14 @@ test('dragging a visible local rotation ring edits a pose draft while orbiting c
   const before = await backup(page), original = current(before);
   const cameraBefore = before.scene.viewer.camera;
   expect(cameraBefore).toBeTruthy();
+  await closeCameraOptions(page);
   const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!;
   const projection = new PerspectiveCamera(40, box.width / box.height, 0.05, 80);
   projection.position.fromArray(cameraBefore.position);
   projection.zoom = cameraBefore.zoom ?? 1;
+  await applyStageViewOffset(page, projection);
   projection.lookAt(new Vector3(...cameraBefore.target));
   projection.updateProjectionMatrix(); projection.updateMatrixWorld(true);
   const hips = new Vector3(0, 1.05, 0);
@@ -590,7 +592,7 @@ test('dragging a visible local rotation ring edits a pose draft while orbiting c
 
 async function closeCameraOptions(page: Page) {
   const options = page.locator('.camera-options');
-  if (await options.getAttribute('open') !== null) await options.locator(':scope > summary').click();
+  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more');
   await expect(options).not.toHaveAttribute('open');
 }
 
@@ -598,11 +600,13 @@ async function closeCameraOptions(page: Page) {
 // All handle targets are projected from the exported camera and public pose;
 // the tests never reach into React or the Three.js renderer's private objects.
 async function publicProjection(page: Page, camera: Camera) {
+  await closeCameraOptions(page);
   const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!;
   const projection = new PerspectiveCamera(40, box.width / box.height, 0.05, 80);
   projection.position.fromArray(camera.position); projection.zoom = camera.zoom ?? 1;
+  await applyStageViewOffset(page, projection);
   projection.lookAt(new Vector3(...camera.target)); projection.updateProjectionMatrix(); projection.updateMatrixWorld(true);
   return {
     camera: projection, canvas,
@@ -640,8 +644,8 @@ async function settledLandmark(page: Page, joint: Joint) {
 test('@controls-entry selecting a visible joint exposes direct rotation actions and keeps playback, mirror and terminal states explicit', async ({ page }) => {
   test.setTimeout(180_000);
   await openLegacyScene(page);
-  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
-  await expect(page.getByRole('button', { name: '八拍编排', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
+  await expect(page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
   const original = await backup(page);
   await realHipsSelection(page, original);
   const rotate = page.getByRole('button', { name: '旋转工具', exact: true });
@@ -653,7 +657,7 @@ test('@controls-entry selecting a visible joint exposes direct rotation actions 
   await page.getByRole('button', { name: '播放', exact: true }).click();
   await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeVisible();
   await rotate.click();
-  await expect(page.getByRole('button', { name: '手动 K帧', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: '手动 K帧', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'false');
   await expect(page.getByRole('button', { name: '旋转工具', exact: true })).toHaveAttribute('aria-pressed', 'true');
@@ -663,8 +667,8 @@ test('@controls-entry selecting a visible joint exposes direct rotation actions 
   // The real gizmo must accept an input; a coordinate-only inspector would
   // pass a visibility check but cannot produce this uncommitted pose.
   const paused = await backup(page);
-  const projection = await publicProjection(page, paused.scene.viewer.camera);
   const hips = await worldPosition(page) as Vec3;
+  const projection = await publicProjection(page, paused.scene.viewer.camera);
   const radius = projection.camera.position.distanceTo(new Vector3(...hips)) * 1.9 * Math.tan(40 * Math.PI / 360) / projection.camera.zoom * 0.95 / 8;
   const ring = (angle: number) => projection.point([hips[0] + radius * Math.cos(angle), hips[1] + radius * Math.sin(angle), hips[2]]);
   await axisDrag(page, ring(0.55), ring(1.2), '关节局部旋转', 'Z');
@@ -681,7 +685,7 @@ test('@controls-entry selecting a visible joint exposes direct rotation actions 
   await page.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
   await page.screenshot({ path: '/tmp/choreo-controls-entry-desktop.png', fullPage: true });
 
-  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
   await page.getByRole('listitem', { name: /^第1个八拍/ }).click();
   await page.getByRole('button', { name: '换一个八拍', exact: true }).click();
   const candidate = page.getByRole('region', { name: '替换候选', exact: true });
@@ -690,7 +694,7 @@ test('@controls-entry selecting a visible joint exposes direct rotation actions 
   await rotate.click();
   await expect(page.locator('.viewer-title')).toContainText('舞台');
   await sameSnapshot(page, committed);
-  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
   await expect(candidate).toBeVisible();
   await expect(candidate.getByRole('button', { name: '采用', exact: true })).toBeEnabled();
   await rotate.click();
@@ -867,6 +871,7 @@ test.describe('native gesture recovery', () => {
     const ordinaryTouchCamera = (await backup(page)).scene.viewer.camera;
     // Downloading the backup scrolls to the footer. Native CDP touches use
     // viewport coordinates, so locate the visible canvas again after it.
+    await closeCameraOptions(page);
     await first.canvas.scrollIntoViewIfNeeded();
     await rendered();
     const cameraBox = (await first.canvas.boundingBox())!;

@@ -7,6 +7,8 @@ export type SceneSnapshot = {
   plan: ArrangementPlan | null;
   take: BakedTake | null;
   manual?: KeyframeSequence;
+  /** Placement of the unchanged selected music segment on the scene timeline. */
+  audioOffsetSeconds?: number;
 };
 
 export type SceneProject = {

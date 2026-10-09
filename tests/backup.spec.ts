@@ -95,7 +95,7 @@ async function openScene(page: Page) {
   await page.reload(); await ready(page);
   await expect(page.locator('.project-title h1')).toHaveText(source.scene.name);
   expect(current(await backup(page)).take).toEqual(source.take);
-  await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '手动 K帧', exact: true, includeHidden: true }));
   await expect(page.getByRole('region', { name: '手动关键帧时间线', exact: true })).toBeVisible();
   return source;
 }
@@ -208,7 +208,7 @@ test('@backup full scene bundles round-trip exact original audio, non-uniform an
   await expect(page.getByLabel('已复制姿态', { exact: true })).toContainText('第 75 帧');
   await page.getByRole('button', { name: '背面', exact: true }).click();
   await page.getByRole('combobox', { name: '播放速度', exact: true }).selectOption('0.5');
-  await page.getByRole('button', { name: '教学预览', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '教学预览', exact: true, includeHidden: true }));
   await page.getByRole('button', { name: '标记本版已试看', exact: true }).click();
   await save(page);
   const original = await backup(page), savedState = await localState(page), bytes = await bundle(page);

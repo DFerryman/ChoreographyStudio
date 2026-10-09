@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { expect, type Page } from '@playwright/test';
 import { PerspectiveCamera, Plane, Quaternion, Raycaster, Vector2, Vector3 } from 'three';
 import { JOINT_NAMES, evaluatePose, rotationFromDegrees, rotationToDegrees, sampleTake, type JointName, type Pose, type Quat, type Vec3 } from '../packages/core/src';
-import { clickRevealed, reveal } from './helpers';
+import { clickRevealed, closeDisclosures, reveal } from './helpers';
 
 // These helpers operate the same canvas, handles and native disclosures as a
 // teacher. They do not mutate React state or introduce an editor-only test API.
@@ -34,11 +34,13 @@ async function exported(page: Page): Promise<Exported> {
   await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await pending).path();
   expect(path).toBeTruthy();
-  return JSON.parse(await readFile(path!, 'utf8'));
+  const document = JSON.parse(await readFile(path!, 'utf8'));
+  await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
+  return document;
 }
 
 export async function stageValue(page: Page, label: string): Promise<number> {
-  if (!poseLabels.test(label)) return Number(await page.getByRole('spinbutton', { name: label, exact: true }).inputValue());
+  if (!poseLabels.test(label)) return Number(await page.getByRole('spinbutton', { name: label, exact: true, includeHidden: true }).inputValue());
   const axis = label.includes(' X ') ? 0 : label.includes(' Y ') ? 1 : 2;
   const stage = page.getByRole('region', { name: '3D 动画舞台', exact: true });
   const attribute = label.startsWith('Root') ? 'data-root-position' : 'data-local-rotation';
@@ -75,14 +77,27 @@ export async function readStagePose(page: Page) {
   return { document, pose, selected };
 }
 
+/** The displayed camera reserves transient screen space without changing its saved world state. */
+export async function applyStageViewOffset(page: Page, camera: PerspectiveCamera) {
+  const { width, height, value } = await page.getByRole('region', { name: '3D 动画舞台', exact: true }).evaluate((stage: HTMLElement) => ({ width: stage.clientWidth, height: stage.clientHeight, value: stage.getAttribute('data-camera-offset-y') }));
+  expect(value, 'The stage must expose its actual transient camera projection').not.toBeNull();
+  expect(width).toBeGreaterThan(0); expect(height).toBeGreaterThan(0);
+  const offsetY = Number(value);
+  expect(Number.isFinite(offsetY)).toBe(true);
+  // The renderer uses integer client dimensions; CSS pointer coordinates can
+  // still have a fractional bounding box and are mapped through that box below.
+  camera.aspect = width / height;
+  if (offsetY !== 0) camera.setViewOffset(width, height, 0, offsetY, width, height);
+}
+
 async function projection(page: Page, document: Exported) {
   const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
-  const cameraOptions = page.locator('.camera-options');
-  if (await cameraOptions.count() && await cameraOptions.evaluate((element: HTMLDetailsElement) => element.open)) await cameraOptions.locator(':scope > summary').click();
+  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more, .kf-more-actions');
   await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!, state = document.scene.viewer.camera;
   const camera = new PerspectiveCamera(40, box.width / box.height, .05, 80);
   camera.position.fromArray(state.position); camera.zoom = state.zoom ?? 1;
+  await applyStageViewOffset(page, camera);
   camera.lookAt(new Vector3(...state.target)); camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
   const point = (world: Vector3) => {
     const projected = world.clone().project(camera);
@@ -130,8 +145,18 @@ export async function selectStageJoint(page: Page, joint: JointName | '' | null)
   } else {
     await page.getByRole('button', { name: '选择工具', exact: true }).click();
     const fresh = await projection(page, state.document);
-    await page.mouse.click(fresh.box.x + fresh.box.width * .96, fresh.box.y + fresh.box.height * .1);
-    await expectStageSelection(page, null);
+    const viewport = page.viewportSize()!;
+    for (const [x, y] of [[.04, .45], [.96, .45], [.04, .3], [.96, .3], [.04, .6], [.96, .6], [.5, .15]] as const) {
+      const point = { x: fresh.box.x + fresh.box.width * x, y: fresh.box.y + fresh.box.height * y };
+      if (point.x <= 0 || point.x >= viewport.width || point.y <= 0 || point.y >= viewport.height) continue;
+      if (!await fresh.canvas.evaluate((canvas, point) => document.elementFromPoint(point.x, point.y) === canvas, point)) continue;
+      await page.mouse.click(point.x, point.y);
+      if (await stageSelectedJoint(page) === null) {
+        await expectStageSelection(page, null);
+        return;
+      }
+    }
+    throw new Error('No visible blank canvas point was available to clear the selected body part.');
   }
 }
 
@@ -148,7 +173,8 @@ async function hoverHandle(page: Page, point: (angle: number) => { x: number; y:
 /** Former precision-panel calls now exercise a real pointer drag. */
 export async function editStageValue(page: Page, label: string, value: number) {
   if (!poseLabels.test(label)) {
-    const input = page.getByRole('spinbutton', { name: label, exact: true });
+    const input = page.getByRole('spinbutton', { name: label, exact: true, includeHidden: true });
+    await reveal(page, input);
     await input.fill(String(value)); await input.press('Tab'); return;
   }
   const axis = label.includes(' X ') ? 'X' : label.includes(' Y ') ? 'Y' : 'Z';
@@ -157,6 +183,7 @@ export async function editStageValue(page: Page, label: string, value: number) {
   const state = await readStagePose(page), root = label.startsWith('Root');
   expect(root || state.selected, 'Rotation requires an actual selected body part').toBeTruthy();
   const prior = state.document.scene.viewer.transformTool ?? 'rotate';
+  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more');
   await page.getByRole('button', { name: root ? '移动角色工具' : '旋转工具', exact: true }).click();
   const view = await projection(page, state.document), fk = evaluatePose(state.pose);
   const center = new Vector3(...(root ? state.pose.root : fk[state.selected!].position));

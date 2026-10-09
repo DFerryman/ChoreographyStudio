@@ -29,8 +29,14 @@ export interface KeyframeSequence {
   steps?: StepAssistance;
 }
 
-export type KeyframeTransferScope = { kind: 'all' } | { kind: 'joint'; joint: JointName } | { kind: 'root' };
-export type KeyframeTransferTrack = Exclude<KeyframeTransferScope, { kind: 'all' }>;
+export type KeyframeTransferScope =
+  { kind: 'all' } |
+  { kind: 'joint'; joint: JointName } |
+  /** Transfer this nonempty, unique set of editable rotation tracks atomically. */
+  { kind: 'joints'; joints: JointName[] } |
+  { kind: 'root' };
+/** Collisions identify occupied concrete tracks, even for a grouped request. */
+export type KeyframeTransferTrack = Extract<KeyframeTransferScope, { kind: 'joint' | 'root' }>;
 export type KeyframeTransferRequest = {
   operation: 'move' | 'copy';
   scope: KeyframeTransferScope;
@@ -318,17 +324,24 @@ export function removePoseKeyframe(sequence: KeyframeSequence, frame: number): K
 /** Transfer only explicit source keys; destination-only tracks remain untouched. */
 export function transferKeyframes(sequence: KeyframeSequence, request: KeyframeTransferRequest): KeyframeTransferResult {
   validateSequence(sequence);
-  if (!request || !['move', 'copy'].includes(request.operation) || !request.scope || !['all', 'joint', 'root'].includes(request.scope.kind) || (request.collision !== undefined && !['reject', 'replace'].includes(request.collision))) throw new Error('关键帧移动或复制请求无效。');
+  if (!request || !['move', 'copy'].includes(request.operation) || !request.scope || !['all', 'joint', 'joints', 'root'].includes(request.scope.kind) || (request.collision !== undefined && !['reject', 'replace'].includes(request.collision))) throw new Error('关键帧移动或复制请求无效。');
   const { operation, scope, sourceFrame, targetFrame, collision = 'reject' } = request;
   if (scope.kind === 'joint') assertEditable(scope.joint);
+  let groupedJoints: Set<JointName> | undefined;
+  if (scope.kind === 'joints') {
+    if (!Array.isArray(scope.joints) || !scope.joints.length || scope.joints.length > EDITABLE_JOINT_NAMES.length) throw new Error('关键帧关节分组必须是非空且不重复的可编辑骨骼数组。');
+    groupedJoints = new Set(scope.joints);
+    if (groupedJoints.size !== scope.joints.length) throw new Error('关键帧关节分组必须是非空且不重复的可编辑骨骼数组。');
+    for (const joint of groupedJoints) assertEditable(joint);
+  }
   frameTime(sourceFrame, sequence.baseTake.durationSeconds);
   frameTime(targetFrame, sequence.baseTake.durationSeconds);
-  const joints = scope.kind === 'root' ? [] : scope.kind === 'joint' ? [scope.joint] : EDITABLE_JOINT_NAMES;
+  const joints = scope.kind === 'root' ? [] : scope.kind === 'joint' ? [scope.joint] : groupedJoints ? EDITABLE_JOINT_NAMES.filter(joint => groupedJoints.has(joint)) : EDITABLE_JOINT_NAMES;
   const rotations = joints.flatMap(joint => {
     const key = sequence.rotations[joint]?.find(key => key.frame === sourceFrame);
     return key ? [{ joint, rotation: key.rotation }] : [];
   });
-  const root = scope.kind === 'joint' ? undefined : sequence.root.find(key => key.frame === sourceFrame);
+  const root = scope.kind === 'all' || scope.kind === 'root' ? sequence.root.find(key => key.frame === sourceFrame) : undefined;
   const sourceKeyCount = rotations.length + (root ? 1 : 0);
   if (sourceFrame === targetFrame) return { status: 'noop', reason: 'same-frame', sequence, sourceKeyCount };
   if (!sourceKeyCount) return { status: 'noop', reason: 'empty-source', sequence, sourceKeyCount };

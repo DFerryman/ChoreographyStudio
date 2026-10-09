@@ -1,5 +1,17 @@
 # Cloudflare 预览部署
 
+## v18 · 极简舞台与分轨时间线（发布验收中）
+
+本轮运行改动为铺满视口的舞台、底部浮层Timeline、音乐／Root／身体分轨拖动及音频偏移时钟；v17人物资产、Worker源、静态ASSETS、只读业务API、20／分钟API与2／分钟AI限频配置均未改。450／450本地基础、前端类型／构建和Worker类型检查通过，Wrangler dry-run通过；浏览器复核与main／准确源码CI／实际Cloudflare上传／有界公网核验仍待实际记录，不能把dry-run当上线。主JS `index-DL-vZM0V.js` 1138041B／SHA256 `f0d9cecb899bad68997fe9c9ab7d2ad5e999a6a4a05ede9a60cae00fddda9f73`，CSS `index-kmxrmj-f.css` 66297B／SHA256 `7d557823d890502d455c693246eabc41655e324601a7b24aa9566c85b0267e1a`。
+
+授权目标仍为GitHub main及 [Cloudflare预览](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。没有D1写入或真实Workers AI／付费推理，验证会阻断AI调用。以下v17及之前全文保留。
+
+发布前实际指针probe发现草稿提示增高Timeline导致拖动中投影变化，已修复为手柄拖动期间冻结投影、释放后更新。03:00:21 UTC最终本地检查450／450（24文件、9.44秒）、类型／构建通过；最终JS `index-JAM6kMSD.js`1138058B／SHA256 `1297e24c678fb3c058747619ad087bacc8be8039a288caf0cececf88431be9df`，CSS不变。上述旧bundle为修复前历史，实际上传必须绑定这一最终运行产物。
+
+固定运行源最终新增浏览器6／6（03:02:25.040Z、96.267秒）通过，6份实际API／errors／warnings0，原高精度与draft→K准确保持；root接受最终桌面／手机两图。旧功能相关回归正在验收，GitHub／Cloudflare／公网仍未发布结果。
+
+旧功能相关13场景经首12通过／1失败和仅空白选择测试helper纠正后focused1通过完成覆盖；原精度／动作断言未放宽，运行源与dist冻结复用，不记首13全绿。root接受新增6轮的桌面／手机／展开关节3图。准备提交最终运行版本并推送main，再实际部署和有界公网核验。
+
 ## v17 · 用户所选 06 人物（已上线，准确源码CI通过）
 
 Quaternius Superhero Male默认人物及display-2来源形体修正已完成本地验收；仅换默认人物，不加模型切换UI，不推进七组后续功能。421／421基础（22文件、15.36秒）、前端类型／Vite构建通过；Worker源及配置未变，实际类型检查EXIT0复用，首默认日志路径ENOENT与第二继承代理warning留档。主JS `index-CBtn1tpp.js`1125855B／SHA256 `2d5eb17e74847f1bf0dc81199c2d3ac6e5a48533d3f36d8890b07027a4c714fd`；CSS63251B／SHA `ba41e19f29da5255caa74edd5523fd67e98f12ef2038e7b1d5506da08463b375`。public模型README21099B／SHA `14a040b502495cbd844209ec056681a9da82feeb7cde18035215d068b5dd5202`及六新来源资产冻结，不随最后Markdown结果回填改变。

@@ -5,15 +5,17 @@ import { PerspectiveCamera, Vector3 } from 'three';
 import { JOINT_NAMES, type BakedTake, type JointName, type Pose, type Vec3 } from '../packages/core/src';
 import type { SceneDocument } from '../apps/web/src/scene';
 import type { SceneProject } from '../apps/web/src/sceneProject';
-import { clickRevealed, reveal } from './helpers';
-import { editStageValue, selectStageJoint } from './stageInteractions';
+import { clickRevealed, closeDisclosures, reveal } from './helpers';
+import { applyStageViewOffset, editStageValue, selectStageJoint } from './stageInteractions';
 
 export type Backup = { scene: SceneDocument<SceneProject> };
 export const current = (backup: Backup) => backup.scene.project.history[backup.scene.project.historyIndex];
 export const draft = (page: Page) => page.getByRole('status').filter({ hasText: '姿态草稿 · 尚未写入关键帧' });
 export const hiddenButton = (page: Page, name: string) => page.getByRole('button', { name, exact: true, includeHidden: true });
 export async function openRealism(page: Page) {
+  await closeDisclosures(page, '.studio-more, .kf-more, .kf-more-actions');
   const panel = page.locator('details.realism-panel');
+  await reveal(page, panel.locator(':scope > summary'));
   if (!(await panel.evaluate((element: HTMLDetailsElement) => element.open))) await panel.locator(':scope > summary').click();
   await expect(panel.getByText('标准中性人体', { exact: false })).toBeVisible();
 }
@@ -89,10 +91,13 @@ export async function save(page: Page) {
   await page.getByRole('button', { name: '保存', exact: true }).click(); await expect(page.locator('.save-state')).toHaveText('已保存到本机');
 }
 export async function projection(page: Page, backup: Backup) {
+  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more, .kf-more-actions');
   const canvas = page.getByRole('img', { name: '人体编舞动作预览' }); await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!, state = backup.scene.viewer.camera!;
   const camera = new PerspectiveCamera(40, box.width / box.height, .05, 80);
-  camera.position.fromArray(state.position); camera.zoom = state.zoom ?? 1; camera.lookAt(new Vector3(...state.target)); camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
+  camera.position.fromArray(state.position); camera.zoom = state.zoom ?? 1;
+  await applyStageViewOffset(page, camera);
+  camera.lookAt(new Vector3(...state.target)); camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
   return { canvas, point: (world: Vec3) => { const point = new Vector3(...world).project(camera); return { x: box.x + (point.x + 1) * box.width / 2, y: box.y + (1 - point.y) * box.height / 2 }; } };
 }
 export async function screenshot(page: Page, info: TestInfo, name: string) {

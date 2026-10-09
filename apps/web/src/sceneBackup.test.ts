@@ -79,6 +79,44 @@ function stepsFixture() {
 }
 
 describe('complete local scene backup', () => {
+  it('roundtrips independent audio placements in each history without moving CountMap, K or original music', async () => {
+    const source = fixture();
+    source.project.history[0].audioOffsetSeconds = -1;
+    source.project.history[1].audioOffsetSeconds = 31 / 30;
+    const original = structuredClone(source.project);
+    for (const file of [legacy(source), await encodeSceneBackup(source)]) {
+      const imported = await decodeSceneBackup(file);
+      expect(imported.scene.project).toEqual({ ...original, teacherCheckedRevision: null });
+      expect(imported.scene.project.history[0].audioOffsetSeconds).toBe(-1);
+      expect(imported.scene.project.history[1].audioOffsetSeconds).toBe(31 / 30);
+      if (imported.scene.audio) expect(await imported.scene.audio.arrayBuffer()).toEqual(await source.audio!.arrayBuffer());
+    }
+    expect(source.project).toEqual(original);
+  });
+
+  it('keeps the omitted offset on old snapshots instead of rewriting historical data', async () => {
+    const source = fixture();
+    for (const file of [legacy(source), await encodeSceneBackup(source)]) {
+      const imported = await decodeSceneBackup(file);
+      expect(imported.scene.project.history[0]).not.toHaveProperty('audioOffsetSeconds');
+      expect(imported.scene.project.history[1]).not.toHaveProperty('audioOffsetSeconds');
+    }
+  });
+
+  it.each([null, '1', .01, Infinity, 100, -100])('rejects invalid music placement %s instead of silently moving the clip', async value => {
+    const source = fixture();
+    const file = legacy(source, data => { data.scene.project.history[1].audioOffsetSeconds = value; });
+    await expect(decodeSceneBackup(file)).rejects.toThrow(/音乐轨偏移/);
+  });
+
+  it('rejects a shift equal to scene duration and permits the final overlapping snapped frame', async () => {
+    const source = fixture(), snapshot = source.project.history[1];
+    await expect(decodeSceneBackup(legacy(source, data => { data.scene.project.history[1].audioOffsetSeconds = snapshot.countMap.durationSeconds; }))).rejects.toThrow(/音乐轨偏移/);
+    snapshot.audioOffsetSeconds = (Math.ceil(snapshot.countMap.durationSeconds * 30) - 1) / 30;
+    const imported = await decodeSceneBackup(await encodeSceneBackup(source));
+    expect(imported.scene.project.history[1].audioOffsetSeconds).toBe(snapshot.audioOffsetSeconds);
+  });
+
   // Full-history encode/import rechecks derived IK several times. Allow slower
   // CI CPUs to finish all authority comparisons without relaxing assertions.
   it('roundtrips derived stepping, exact authored sparse K, original base, foot locks and earlier history in JSON and full bundles', async () => {

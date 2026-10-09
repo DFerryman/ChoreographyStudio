@@ -1,9 +1,9 @@
-import { editStageValue, expectStageValue, stageValue, selectStageJoint, expectStageSelection, stageSelectedJoint, expectGestureRootKeys } from './stageInteractions';
+import { applyStageViewOffset, editStageValue, expectStageValue, stageValue, selectStageJoint, expectStageSelection, stageSelectedJoint, expectGestureRootKeys } from './stageInteractions';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed, reveal } from './helpers';
+import { clickRevealed, closeDisclosures, reveal, timelineScopeFrames } from './helpers';
 import { PerspectiveCamera, Vector3 } from 'three';
 
 // Independent legacy-compatible scene: a non-uniform base, moving Root and
@@ -97,7 +97,7 @@ async function openScene(page: Page) {
   await page.reload(); await ready(page);
   await expect(page.locator('.project-title h1')).toHaveText(source.scene.name);
   expect(current(await backup(page)).take).toEqual(source.take);
-  await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '手动 K帧', exact: true, includeHidden: true }));
   await expect(page.getByRole('region', { name: '手动关键帧时间线', exact: true })).toBeVisible();
   return source;
 }
@@ -130,7 +130,7 @@ async function visibleFrames(page: Page, expected: number[]) {
   if (expected.length) await reveal(page, timeline(page).getByRole('list', { name: '关键帧列表', exact: true, includeHidden: true }));
   await expect(timeline(page).getByRole('listitem')).toHaveCount(expected.length);
   expect(await timeline(page).getByRole('listitem').evaluateAll(items => items.map(item => item.getAttribute('aria-label')))).toEqual(expected.map(value => `第 ${value} 帧关键帧`));
-  await expect(timeline(page).getByRole('button', { name: /^跳到第 \d+ 帧关键帧$/ })).toHaveCount(expected.length);
+  expect(await timelineScopeFrames(page)).toEqual(expected);
 }
 async function unchanged(page: Page, snapshot: Snapshot) { expect(current(await backup(page))).toEqual(snapshot); }
 async function capture(page: Page, name: string) {
@@ -145,7 +145,11 @@ const destination = (page: Page) => page.getByRole('spinbutton', { name: '关键
 const transfer = (page: Page, operation: 'copy' | 'move') => page.getByRole('button', { name: operation === 'copy' ? '复制当前范围关键帧' : '移动当前范围关键帧', exact: true, includeHidden: true });
 const collision = (page: Page) => page.getByRole('dialog', { name: '目标帧已有关键帧', exact: true });
 async function target(page: Page, value: number | '') { await reveal(page, destination(page)); await destination(page).fill(String(value)); await destination(page).press('Tab'); }
-async function scope(page: Page, value: 'all' | 'joint' | 'root') { await page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true }).selectOption(value); }
+async function scope(page: Page, value: 'all' | 'joint' | 'root') {
+  const filter = page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true, includeHidden: true });
+  await reveal(page, filter);
+  await filter.selectOption(value);
+}
 async function audioHash(page: Page) {
   return page.locator('audio').evaluate(async (audio: HTMLAudioElement) => {
     const bytes = await (await fetch(audio.src)).arrayBuffer();
@@ -164,10 +168,12 @@ async function seeded(page: Page) {
   return source;
 }
 async function holdRootArrow(page: Page, root: Vec3, cameraState: Camera) {
+  await closeDisclosures(page);
   const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   await canvas.scrollIntoViewIfNeeded(); const box = (await canvas.boundingBox())!;
   const camera = new PerspectiveCamera(40, box.width / box.height, 0.05, 80);
   camera.position.fromArray(cameraState.position); camera.zoom = cameraState.zoom ?? 1;
+  await applyStageViewOffset(page, camera);
   camera.lookAt(new Vector3(...cameraState.target)); camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
   const factor = camera.position.distanceTo(new Vector3(...root)) * 1.9 * Math.tan(40 * Math.PI / 360) / camera.zoom * 0.95 / 4;
   const point = new Vector3(root[0] + factor * 0.38, root[1], root[2]).project(camera);
@@ -281,7 +287,7 @@ test('@transfer draft cancellation and discard preserve source keys; write-befor
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '120');
     input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true }));
   });
-  await page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true }).evaluate((input: HTMLSelectElement) => { input.value = 'root'; input.dispatchEvent(new Event('change', { bubbles: true })); });
+  await page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true, includeHidden: true }).evaluate((input: HTMLSelectElement) => { input.value = 'root'; input.dispatchEvent(new Event('change', { bubbles: true })); });
   // The removed joint form cannot queue a selection behind a modal. The
   // live filter and target above still exercise captured transfer view state;
   // immutable source-track contents are checked below.

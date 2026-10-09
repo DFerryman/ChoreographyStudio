@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { clickRevealed } from './helpers';
 import { editStageValue, expectStageValue } from './stageInteractions';
 
 const diagnostics = new WeakMap<Page, { errors: string[]; warnings: string[]; apiRequests: string[] }>();
@@ -33,8 +34,8 @@ async function focusInside(dialog: Locator) {
 
 test('music and progress dialogs trap keyboard focus, cancel safely and restore their triggers', async ({ page }) => {
   await ready(page);
-  const trigger = page.getByRole('button', { name: '导入音乐', exact: true });
-  await trigger.click();
+  const trigger = page.getByRole('button', { name: '导入音乐', exact: true, includeHidden: true });
+  await clickRevealed(page, trigger);
   const music = page.getByRole('dialog', { name: '先把音乐和数拍准备好', exact: true });
   const close = music.getByRole('button', { name: '关闭音乐设置', exact: true });
   const confirm = music.getByRole('button', { name: '确认数拍，进入工作台', exact: true });
@@ -49,8 +50,8 @@ test('music and progress dialogs trap keyboard focus, cancel safely and restore 
   await expect(music).toHaveCount(0); await expect(trigger).toBeFocused();
   await expect(page.getByRole('heading', { name: '我的第一段八拍', exact: true })).toBeVisible();
 
-  const progress = page.getByRole('button', { name: '交互预览', exact: true });
-  await progress.click();
+  const progress = page.getByRole('button', { name: '使用说明与版本进展', exact: true, includeHidden: true });
+  await clickRevealed(page, progress);
   const about = page.getByRole('dialog', { name: '从可操作，到真正可教学', exact: true });
   await expect(about.getByRole('button', { name: '关闭版本说明', exact: true })).toBeFocused();
   await page.keyboard.press('Shift+Tab'); await expect(about.getByRole('link', { name: '查看源码与阶段任务', exact: true })).toBeFocused();
@@ -80,7 +81,7 @@ test('mobile stacked dialogs preserve autofocus, choose the higher guard layer a
   await expect(library).toBeVisible();
   await page.keyboard.press('Escape'); await expect(library).toHaveCount(0); await expect(scenes).toBeFocused();
 
-  await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '手动 K帧', exact: true, includeHidden: true }));
   await editStageValue(page, 'Root X 位移（米）', 1.25);
   const draft = page.getByRole('status').filter({ hasText: '姿态草稿 · 尚未写入关键帧' });
   await expect(draft).toBeVisible();

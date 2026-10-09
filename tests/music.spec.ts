@@ -70,7 +70,7 @@ async function ready(page: Page) {
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.readyState)).toBeGreaterThanOrEqual(2);
 }
 async function openMusic(page: Page) {
-  await page.getByRole('button', { name: '导入音乐', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '导入音乐', exact: true, includeHidden: true }));
   await expect(musicDialog(page)).toBeVisible();
 }
 async function uploadHeld(page: Page, name: string, bytes: Buffer, index = 0) {
@@ -113,7 +113,7 @@ async function confirmAndVerify(page: Page, name: string, expectedHash: string, 
   await expect(confirm(page)).toBeEnabled();
   await confirm(page).click();
   await expect(musicDialog(page)).toHaveCount(0);
-  await expect(page.locator('.music-file strong')).toHaveText(name);
+  await expect(page.locator('.kf-audio-name')).toHaveText(name);
   const downloading = page.waitForEvent('download');
   await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await downloading).path();

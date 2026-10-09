@@ -1,9 +1,9 @@
-import { selectStageJoint, expectStageSelection } from './stageInteractions';
+import { applyStageViewOffset, selectStageJoint, expectStageSelection } from './stageInteractions';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { PerspectiveCamera, Vector3 } from 'three';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed, reveal } from './helpers';
+import { clickRevealed, closeDisclosures, reveal } from './helpers';
 
 type Camera = { position: [number, number, number]; target: [number, number, number]; zoom?: number };
 type Backup = {
@@ -64,6 +64,7 @@ async function waitCamera(page: Page, camera: Camera) {
 }
 
 async function drag(page: Page, button: 'left' | 'right', start = [0.7, 0.42], end = [0.86, 0.49]) {
+  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more, .kf-more-actions');
   const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!;
@@ -143,12 +144,14 @@ test('camera gestures and presets change the view, preserve the take, and keep j
 
   // Forward-project a known landmark through the publicly exported camera.
   // This never reads renderer internals or duplicates its raycast selection algorithm.
+  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more, .kf-more-actions');
   const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!;
   const camera = new PerspectiveCamera(40, box.width / box.height, 0.05, 80);
   camera.position.fromArray(orbited.scene.viewer.camera.position);
   camera.zoom = orbited.scene.viewer.camera.zoom ?? 1;
+  await applyStageViewOffset(page, camera);
   camera.lookAt(new Vector3(...orbited.scene.viewer.camera.target));
   camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
   const point = new Vector3(0, 1.05, 0).project(camera);
@@ -166,10 +169,11 @@ test('camera gestures and presets change the view, preserve the take, and keep j
   await expect.poll(() => coordinateText(page)).not.toBe(beforePanText);
   const panned = await backup(page);
   expect(panned.scene.viewer.camera.target).not.toEqual(beforePan.scene.viewer.camera.target);
+  const beforeZoom = await coordinateText(page);
+  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more, .kf-more-actions');
   await canvas.scrollIntoViewIfNeeded();
   const zoomBox = (await canvas.boundingBox())!;
   await page.mouse.move(zoomBox.x + zoomBox.width * 0.7, zoomBox.y + zoomBox.height * 0.4);
-  const beforeZoom = await coordinateText(page);
   await page.mouse.wheel(0, 500);
   await expect.poll(() => coordinateText(page)).not.toBe(beforeZoom);
   const zoomed = await backup(page);
@@ -185,9 +189,9 @@ test('camera gestures and presets change the view, preserve the take, and keep j
 test('saved scenes independently restore audio, choreography and camera settings, while copied scenes can change and be deleted', async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   await ready(page);
-  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
   const wave = fixtureWave(), expectedAudio = createHash('sha256').update(wave).digest('hex');
-  await page.getByRole('button', { name: '导入音乐', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '导入音乐', exact: true, includeHidden: true }));
   const music = page.getByRole('dialog', { name: '先把音乐和数拍准备好', exact: true });
   await music.getByLabel('作品名称').fill('场景 A · 原音频');
   await music.getByLabel('上传音乐文件').setInputFiles({ name: 'scene-A-original.wav', mimeType: 'audio/wav', buffer: wave });
@@ -207,7 +211,7 @@ test('saved scenes independently restore audio, choreography and camera settings
   await save(page);
   const sceneA = await backup(page);
 
-  await newScene(page); await page.getByRole('button', { name: '八拍编排', exact: true }).click();
+  await newScene(page); await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
   await renameCurrent(page, '场景 B · 节奏示例');
   await page.getByRole('listitem', { name: /^第3个八拍/ }).click();
   await clickRevealed(page, page.getByRole('button', { name: '左侧', exact: true, includeHidden: true }));
@@ -297,10 +301,10 @@ test('saved scenes independently restore audio, choreography and camera settings
 test('cancel, failed save and discard during a dirty scene switch preserve the correct drafts and saved scenes', async ({ page }) => {
   test.setTimeout(120_000);
   await ready(page);
-  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
   await renameCurrent(page, '保护场景 A'); await save(page);
   const sceneA = await backup(page);
-  await newScene(page); await page.getByRole('button', { name: '八拍编排', exact: true }).click(); await renameCurrent(page, '保护场景 B'); await save(page);
+  await newScene(page); await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true })); await renameCurrent(page, '保护场景 B'); await save(page);
   await page.getByRole('listitem', { name: /^第2个八拍/ }).click();
   await page.getByRole('button', { name: '换一个八拍', exact: true }).click();
   await page.getByRole('region', { name: '替换候选' }).getByRole('button', { name: '采用', exact: true }).click();

@@ -42,6 +42,8 @@ type StageProps = {
   cameraState?: StageCamera;
   cameraRestoreKey?: number;
   cameraFocus?: StageCameraFocus;
+  /** Transient screen space reserved by a floating timeline; never saved with the camera. */
+  bottomOverlayInset?: number;
   selectedJoint?: JointName | null;
   gridVisible?: boolean;
   axesVisible?: boolean;
@@ -182,7 +184,7 @@ function StageFallback({ error }: { error: string }) {
 }
 
 export function Stage(props: StageProps) {
-  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraFocus, selectedJoint, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool = 'rotate', ikTarget } = props;
+  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraFocus, bottomOverlayInset, selectedJoint, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool = 'rotate', ikTarget } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const current = useRef(props);
   const requestDraw = useRef<() => void>(() => {});
@@ -348,6 +350,7 @@ export function Stage(props: StageProps) {
     let poseNeedsApply = false;
     let hovered: JointName | null = null;
     let cameraSignature = '';
+    let projectionSignature = '';
     let jointSignature = '';
     let pointerStart: { id: number; x: number; y: number; dragged: boolean; button: number; gizmo: boolean } | null = null;
     const activePointers = new Set<number>();
@@ -376,6 +379,29 @@ export function Stage(props: StageProps) {
     function fitDistance() {
       const halfHeight = Math.max(1.31, 1.31 / Math.max(camera.aspect, 0.2));
       return halfHeight / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) + 0.3;
+    }
+
+    function overlayInset() {
+      const inset = current.current.bottomOverlayInset ?? 0;
+      return Number.isFinite(inset) ? THREE.MathUtils.clamp(inset, 0, Math.max(0, height - 1)) : 0;
+    }
+
+    function applyProjectionOffset() {
+      if (width <= 0 || height <= 0) return;
+      // TransformControls keeps its pointer-down plane in the current camera
+      // projection. A newly visible draft note must not move that projection
+      // underneath the active drag; mouseup schedules the latest inset.
+      if (transform.dragging) return;
+      const offsetY = overlayInset() / 2;
+      const signature = `${width},${height},${offsetY}`;
+      if (signature === projectionSignature) return;
+      projectionSignature = signature;
+      // Positive view-offset Y moves projected objects upward by that many
+      // CSS pixels, preserving full canvas dimensions and the camera's scale.
+      if (offsetY > 0) camera.setViewOffset(width, height, 0, offsetY, width, height);
+      else camera.clearViewOffset();
+      camera.updateProjectionMatrix();
+      container!.dataset.cameraOffsetY = String(offsetY);
     }
 
     function preset(nextView: StageView) {
@@ -508,6 +534,7 @@ export function Stage(props: StageProps) {
       draggingIK = null;
       poseNeedsApply = true;
       transform.dragging = false;
+      applyProjectionOffset();
       transform.detach();
       // TransformControls otherwise retains its gesture pointermove hook when
       // editing is disabled before pointerup. Reconnect its public lifecycle.
@@ -565,9 +592,11 @@ export function Stage(props: StageProps) {
           if (mesh.geometry.boundingBox) bounds.union(mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrixWorld));
         }
       }
+      const safeHeight = Math.max(1, height - overlayInset());
+      const safeFov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * safeHeight / Math.max(1, height)));
       const fit = fitPerspectiveBounds({
         bounds, position: camera.position, target: controls.target, up: camera.up,
-        aspect: camera.aspect, fov: camera.fov, near: camera.near,
+        aspect: width / safeHeight, fov: safeFov, near: camera.near,
         minDistance: request.kind === 'joint' ? 1.5 : controls.minDistance,
         maxDistance: controls.maxDistance, padding: request.kind === 'joint' ? 1.05 : 1.18,
       });
@@ -594,6 +623,7 @@ export function Stage(props: StageProps) {
       }
       frame = 0;
       if (stopped || width <= 0 || height <= 0) return;
+      applyProjectionOffset();
       const restoreChanged = state.cameraRestoreKey !== previousRestore;
       const wasInitialized = initialized;
       const focusChanged = state.cameraFocus?.key !== previousFocusKey;
@@ -713,6 +743,7 @@ export function Stage(props: StageProps) {
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
+      applyProjectionOffset();
       if (initialized && !manuallyMoved && Math.abs(oldAspect - camera.aspect) > 0.001) preset(current.current.view);
       schedule();
     }
@@ -998,10 +1029,10 @@ export function Stage(props: StageProps) {
 
   useEffect(() => {
     requestDraw.current();
-  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraFocus, selection, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool, ikTarget]);
+  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraFocus, bottomOverlayInset, selection, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool, ikTarget]);
 
   return (
-    <div className="stage3d" ref={containerRef} tabIndex={editMode ? 0 : undefined} role="region" aria-label="3D 动画舞台" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined} aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space K Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y Alt+ArrowUp Alt+ArrowDown' : undefined} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }} onKeyDown={event => {
+    <div className="stage3d" ref={containerRef} data-camera-offset-y="0" tabIndex={editMode ? 0 : undefined} role="region" aria-label="3D 动画舞台" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined} aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space K Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y Alt+ArrowUp Alt+ArrowDown' : undefined} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }} onKeyDown={event => {
       if (!editMode || event.nativeEvent.isComposing || !event.altKey || event.ctrlKey || event.metaKey || !['ArrowUp', 'ArrowDown'].includes(event.key)
         || (event.target !== containerRef.current && !(event.target instanceof HTMLCanvasElement))) return;
       event.preventDefault();

@@ -154,7 +154,7 @@ test('@realism the standard body profile is built in and read only, with a clear
   const source = await openFixture(page), original = await backup(page);
   await openRealism(page);
   await clickRevealed(page, hiddenButton(page, '生成重力候选'));
-  const panel = page.locator('details').filter({ has: page.locator('summary', { hasText: /^真实约束$/ }) });
+  const panel = page.locator('details.realism-panel');
   await expect(panel).toContainText('标准中性人体');
   await expect(panel).toContainText('70 kg');
   expect(await panel.getByRole('spinbutton', { name: /体重|质量|摩擦|惯量|重力|驱动/ }).count()).toBe(0);

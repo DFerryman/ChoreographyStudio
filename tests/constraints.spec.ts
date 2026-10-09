@@ -4,8 +4,8 @@ import { inflateSync } from 'node:zlib';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { Euler, PerspectiveCamera, Quaternion, Vector3 } from 'three';
 import { evaluatePose, isJointRotationWithinLimits } from '../packages/core/src';
-import { clickRevealed, reveal } from './helpers';
-import { editStageValue, expectStageValue, selectStageJoint as select, stageValue } from './stageInteractions';
+import { clickRevealed, closeDisclosures, reveal } from './helpers';
+import { applyStageViewOffset, editStageValue, expectStageValue, selectStageJoint as select, stageValue } from './stageInteractions';
 
 const joints = [
   'Hips', 'Spine', 'Chest', 'Neck', 'Head',
@@ -131,10 +131,13 @@ async function position(page: Page, joint: Joint): Promise<Vec3> {
   return Array.from((await label.locator('strong').innerText()).matchAll(/[XYZ]\s*(-?\d+(?:\.\d+)?)/g), match => Number(match[1])) as Vec3;
 }
 async function projection(page: Page, state: Camera) {
+  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more');
   const canvas = page.getByRole('img', { name: '人体编舞动作预览' }); await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!;
   const camera = new PerspectiveCamera(40, box.width / box.height, 0.05, 80);
-  camera.position.fromArray(state.position); camera.zoom = state.zoom ?? 1; camera.lookAt(new Vector3(...state.target)); camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
+  camera.position.fromArray(state.position); camera.zoom = state.zoom ?? 1;
+  await applyStageViewOffset(page, camera);
+  camera.lookAt(new Vector3(...state.target)); camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
   return { canvas, box, camera, point: (world: Vec3) => { const point = new Vector3(...world).project(camera); return { x: box.x + (point.x + 1) * box.width / 2, y: box.y + (1 - point.y) * box.height / 2 }; } };
 }
 async function capture(page: Page, testInfo: TestInfo, name: string) {

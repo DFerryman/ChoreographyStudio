@@ -1,9 +1,9 @@
-import { editStageValue, expectStageValue, stageValue, selectStageJoint, expectStageSelection, stageSelectedJoint, readStagePose } from './stageInteractions';
+import { applyStageViewOffset, editStageValue, expectStageValue, stageValue, selectStageJoint, expectStageSelection, stageSelectedJoint, readStagePose } from './stageInteractions';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed, reveal, seekSeconds } from './helpers';
+import { clickRevealed, closeDisclosures, reveal, seekSeconds } from './helpers';
 import { PerspectiveCamera, Quaternion, Vector3 } from 'three';
 
 // Original local data with non-uniform samples and a translated, articulated
@@ -194,6 +194,7 @@ async function projected(page: Page, state: Camera, points: Vector3[]) {
   const box = (await canvas.boundingBox())!;
   const camera = new PerspectiveCamera(40, box.width / box.height, 0.05, 80);
   camera.position.fromArray(state.position); camera.zoom = state.zoom ?? 1;
+  await applyStageViewOffset(page, camera);
   camera.lookAt(new Vector3(...state.target)); camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
   return points.map(point => point.clone().project(camera));
 }
@@ -215,7 +216,7 @@ test('@framing whole-body framing brings a translated current pose into view wit
   test.setTimeout(120_000);
   const source = await openFixture(page);
   await expect(focus(page)).toBeDisabled();
-  await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '手动 K帧', exact: true, includeHidden: true }));
   await clickRevealed(page, page.getByRole('button', { name: '左侧', exact: true, includeHidden: true }));
   await numeric(page, '当前帧', 75);
   await page.getByRole('button', { name: '保存', exact: true }).click();
@@ -249,8 +250,8 @@ test('@framing joint focus centers editable and read-only landmarks, honors mirr
   nearPoint(focused.scene.viewer.camera.target, worldRig(source.take.poses[2]).joint('LeftForeArm'));
   sameDirection(focused.scene.viewer.camera, fitted.scene.viewer.camera);
   expect(distance(focused.scene.viewer.camera)).toBeLessThan(distance(fitted.scene.viewer.camera));
-  const center = (await projected(page, focused.scene.viewer.camera, [worldRig(source.take.poses[2]).joint('LeftForeArm')]))[0];
-  expect(Math.abs(center.x)).toBeLessThan(1e-7); expect(Math.abs(center.y)).toBeLessThan(1e-7);
+  const [center, projectionOrigin] = await projected(page, focused.scene.viewer.camera, [worldRig(source.take.poses[2]).joint('LeftForeArm'), new Vector3(...focused.scene.viewer.camera.target)]);
+  expect(Math.abs(center.x - projectionOrigin.x)).toBeLessThan(1e-7); expect(Math.abs(center.y - projectionOrigin.y)).toBeLessThan(1e-7);
   expect(focused.scene.project).toEqual(before.scene.project);
   await joint(page, 'LeftHandTip'); await expect(focus(page)).toBeEnabled();
   sameCamera((await backup(page)).scene.viewer.camera, focused.scene.viewer.camera);
@@ -265,10 +266,10 @@ test('@framing joint focus centers editable and read-only landmarks, honors mirr
   const labels = await page.getByLabel('选中关节世界坐标').locator('strong > span').allTextContents();
   const dataPoint = labels.map(label => Number(label.replace(/^[XYZ]/, '')));
   nearPoint(dataPoint, worldRig(source.take.poses[2]).joint('LeftHandTip'), 2);
-  await page.getByRole('button', { name: '教学预览', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '教学预览', exact: true, includeHidden: true }));
   const teaching = await cameraAction(page, 'whole');
   await expectVisible(page, teaching.scene.viewer.camera, source.take.poses[2], true);
-  await expect(page.getByRole('button', { name: '教学预览', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('heading', { name: '当前教学段落', exact: true })).toBeVisible();
   expect(teaching.scene.project).toEqual(before.scene.project);
   expect(teaching.scene.viewer.time).toBe(2.5); expect(teaching.scene.viewer.mirror).toBe(true);
 });
@@ -276,7 +277,7 @@ test('@framing joint focus centers editable and read-only landmarks, honors mirr
 test('@framing framing uses an unwritten pose without resolving it, and saved cameras survive manual movement, seeking, resize, reload and scene switches', async ({ page }) => {
   test.setTimeout(180_000);
   const source = await openFixture(page, true), original = await backup(page);
-  await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '手动 K帧', exact: true, includeHidden: true }));
   await numeric(page, '当前帧', 75); await joint(page, 'LeftUpperArm');
   await numeric(page, '关节 Z 旋转（度）', 60); await numeric(page, 'Root X 位移（米）', -5);
   const pose = (await readStagePose(page)).pose;
@@ -299,8 +300,9 @@ test('@framing framing uses an unwritten pose without resolving it, and saved ca
   expect(committed.scene.project.revision).toBe(original.scene.project.revision + 1);
   expect(current(committed).manual!.root).toEqual([{ frame: 75, position: pose.root }]);
   const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
-  await canvas.scrollIntoViewIfNeeded(); let box = (await canvas.boundingBox())!;
   const beforeHeldFocus = await cameraText(page);
+  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more');
+  await canvas.scrollIntoViewIfNeeded(); let box = (await canvas.boundingBox())!;
   await page.mouse.move(box.x + box.width * 0.78, box.y + box.height * 0.55);
   await page.mouse.down({ button: 'right' });
   // Keyboard activation can occur while a canvas pointer remains held. The
@@ -308,6 +310,7 @@ test('@framing framing uses an unwritten pose without resolving it, and saved ca
   await whole(page).focus(); await page.keyboard.press('Enter');
   await expect.poll(() => cameraText(page)).not.toBe(beforeHeldFocus);
   const interrupted = await backup(page);
+  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more');
   await canvas.scrollIntoViewIfNeeded();
   box = (await canvas.boundingBox())!;
   await page.mouse.move(box.x + box.width * 0.88, box.y + box.height * 0.66, { steps: 6 });
@@ -317,8 +320,9 @@ test('@framing framing uses an unwritten pose without resolving it, and saved ca
   expect(released.scene.project).toEqual(committed.scene.project);
   expect(released.scene.viewer.selectedJoint).toBe('LeftForeArm');
   await expect(draft(page)).toHaveCount(0);
-  await canvas.scrollIntoViewIfNeeded(); box = (await canvas.boundingBox())!;
   const previousCamera = await cameraText(page);
+  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more');
+  await canvas.scrollIntoViewIfNeeded(); box = (await canvas.boundingBox())!;
   await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.6); await page.mouse.down({ button: 'right' });
   await page.mouse.move(box.x + box.width * 0.77, box.y + box.height * 0.64, { steps: 8 }); await page.mouse.up({ button: 'right' });
   await expect.poll(() => cameraText(page)).not.toBe(previousCamera);
@@ -355,7 +359,7 @@ test('@framing portrait framing stays usable at 390 and 320 pixels, targets the 
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   }
   await joint(page, 'Hips');
-  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
   await page.getByRole('button', { name: '换一个八拍', exact: true }).click();
   const candidate = page.getByRole('region', { name: '替换候选', exact: true });
   await expect(candidate.getByRole('button', { name: '切回原稿', exact: false })).toBeVisible();

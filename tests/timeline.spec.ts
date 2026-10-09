@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { Euler, Quaternion } from 'three';
 import { backup, current, diagnostics, draft, numeric, openFixture, save, screenshot, select } from './realismHelpers';
 import { expectStageValue } from './stageInteractions';
+import { closeDisclosures } from './helpers';
 
 test.beforeEach(async ({ page }) => { await page.route('**/api/**', route => route.abort('blockedbyclient')); });
 
@@ -13,6 +14,7 @@ for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: width === 1440 ? 1000 : 844 });
     const source = await openFixture(page);
     const original = await backup(page);
+    await closeDisclosures(page);
     const timeline = page.getByRole('region', { name: '手动关键帧时间线', exact: true });
     const stage = page.getByRole('region', { name: '3D动作预览', exact: true });
     const record = timeline.getByRole('button', { name: 'K 完整姿态', exact: true });
@@ -26,9 +28,17 @@ for (const width of [1440, 390]) {
     await expect(page.getByRole('combobox', { name: '选择关节', exact: true, includeHidden: true })).toHaveCount(0);
     await expect(page.getByRole('spinbutton', { name: /^(关节|Root) [XYZ]/, includeHidden: true })).toHaveCount(0);
     for (const label of ['更多编辑操作', '关键帧明细', '移动与复制关键帧', '键盘快捷键']) {
-      const details = timeline.locator('details').filter({ has: page.locator('summary').filter({ hasText: new RegExp(`^${label}$`) }) });
+      const details = timeline.locator('summary').filter({ hasText: new RegExp(`^${label}$`) }).locator('..');
       await expect(details).not.toHaveAttribute('open');
+      if (label === '更多编辑操作') await expect(details.locator(':scope > summary')).toBeVisible();
+      else await expect(details.locator(':scope > summary')).toBeHidden();
     }
+    await expect(timeline.getByRole('spinbutton', { name: '当前时间（秒）', exact: true, includeHidden: true })).toBeHidden();
+    await expect(timeline.getByRole('combobox', { name: '关键帧轨道筛选', exact: true, includeHidden: true })).toBeHidden();
+    const canvas = (await page.getByRole('img', { name: '人体编舞动作预览', exact: true }).boundingBox())!;
+    const floatingTimeline = (await timeline.boundingBox())!;
+    expect(floatingTimeline.y).toBeGreaterThan(canvas.y);
+    expect(floatingTimeline.y + floatingTimeline.height).toBeLessThanOrEqual(canvas.y + canvas.height);
     await page.locator('.project-title').scrollIntoViewIfNeeded();
     if (width === 1440) await expect(record).toBeInViewport();
     else {
@@ -59,7 +69,10 @@ for (const width of [1440, 390]) {
     expect(source.take.times.every(time => take.take.times.includes(time))).toBe(true);
     expect(take.countMap).toEqual(current(original).countMap);
     expect(take.plan).toEqual(current(original).plan);
-    await expect(timeline.getByRole('button', { name: /^跳到第 \d+ 帧关键帧$/ })).toHaveCount(3);
+    const rootKeys = timeline.locator('[data-track-id="root"] .kf-lane-key');
+    await expect(rootKeys).toHaveCount(3);
+    expect(await rootKeys.evaluateAll(keys => keys.map(key => Number(key.getAttribute('data-frame'))))).toEqual([0, 90, 240]);
+    await expect(timeline.locator('.kf-lane-key')).toHaveCount(18);
     // The visible midpoint follows the same 0 -> 60 degree arc and 0 -> .9m
     // displacement. Verify the exact recorded endpoints independently below;
     // the stage gesture may differ from its requested value by subpixel input.
@@ -87,6 +100,7 @@ for (const width of [1440, 390]) {
     await page.reload();
     await expect(cursor).toHaveValue('45');
     expect((await backup(page)).scene.project).toEqual(saved.scene.project);
+    await closeDisclosures(page);
     const audioHash = await page.locator('audio').evaluate(async (audio: HTMLAudioElement) => {
       const bytes = await (await fetch(audio.src)).arrayBuffer();
       return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), byte => byte.toString(16).padStart(2, '0')).join('');

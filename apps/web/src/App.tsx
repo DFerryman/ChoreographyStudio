@@ -17,13 +17,17 @@ import { requestAIArrangement } from './aiClient';
 import { RealismPanel, StepAssistanceSummary } from './RealismPanel';
 import { analyzeStepAssistance, removeStepAssistance, setStepAssistance, type StepAssistanceReport } from '../../../packages/core/src';
 import './Assistance.css';
+import { useTimelinePlayback } from './useTimelinePlayback';
+import { snapAudioOffset } from './audioTimeline';
+import { useAudioWaveform } from './useAudioWaveform';
 
 type SceneAction = { type: 'new' } | { type: 'open' | 'copy' | 'delete'; id: string } | { type: 'import'; scene: SceneDocument<Session> } | { type: 'recoverAudio'; sceneId: string; countMapId: string; audio: Blob; audioName: string; name: string };
 type KeyframeDeleteTarget = { kind: 'joint'; joint: JointName; frame: number } | { kind: 'root' | 'pose'; frame: number };
 type PoseClipboard = { pose: Pose; frame: number; fromDraft: boolean; sceneId: string };
 type PosePasteAction = { type: 'pastePose'; pose: Pose; includeRoot: boolean; frame: number; sceneId: string; countMapId: string };
-type TransferAction = { type: 'transferKeys'; request: Omit<KeyframeTransferRequest, 'collision'>; sceneId: string; countMapId: string };
-type PoseAction = { type: 'seek'; time: number } | { type: 'mode'; mode: 'arrange' | 'keyframes' } | { type: 'scene'; action: SceneAction } | { type: 'history'; direction: -1 | 1 } | { type: 'selection'; index: number } | { type: 'candidate'; simpler: boolean } | { type: 'deleteKey'; target: KeyframeDeleteTarget } | PosePasteAction | TransferAction | { type: 'play' | 'save' | 'music' | 'generate' | 'adopt' | 'neutral' | 'teaching' | 'backup' };
+type TransferAction = { type: 'transferKeys'; originFrame: number; request: Omit<KeyframeTransferRequest, 'collision'>; sceneId: string; countMapId: string };
+type AudioMoveAction = { type: 'moveAudio'; offsetSeconds: number; sceneId: string; countMapId: string };
+type PoseAction = AudioMoveAction | { type: 'seek'; time: number } | { type: 'mode'; mode: 'arrange' | 'keyframes' } | { type: 'scene'; action: SceneAction } | { type: 'history'; direction: -1 | 1 } | { type: 'selection'; index: number } | { type: 'candidate'; simpler: boolean } | { type: 'deleteKey'; target: KeyframeDeleteTarget } | PosePasteAction | TransferAction | { type: 'play' | 'save' | 'music' | 'generate' | 'adopt' | 'neutral' | 'teaching' | 'backup' };
 type PendingTransfer = { action: TransferAction; sequenceId: string; revision: number; collisions: KeyframeTransferTrack[] };
 type ResetAction = 'generate' | 'adopt' | 'music' | 'neutral' | 'adoptAssist';
 type Candidate = { baseRevision: number; slotIndex: number; plan: ArrangementPlan; take: BakedTake };
@@ -89,6 +93,8 @@ export default function App() {
   const [audioUrl, setAudioUrl] = useState('');
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
+  const [timelineInset, setTimelineInset] = useState(240);
+  const timelineOverlayRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState(0);
   const [view, setView] = useState<StageView>('front');
   const [camera, setCamera] = useState<StageCamera | null>(null);
@@ -141,8 +147,6 @@ export default function App() {
   const decodingContext = useRef<AudioContext | null>(null);
   const [auditionCount, setAuditionCount] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
-  const pendingPlay = useRef<{ audio: HTMLAudioElement } | null>(null);
-  const activePlay = useRef<{ audio: HTMLAudioElement } | null>(null);
   const cueContext = useRef<AudioContext | null>(null);
   const audition = useRef<{ audio: HTMLAudioElement; url: string; frame: number } | null>(null);
   const sessionRef = useRef(session);
@@ -164,6 +168,21 @@ export default function App() {
   const stale = candidate && candidate.baseRevision !== session.revision;
   const manualEditing = editorMode === 'keyframes' && page === 'studio' && !previewCandidate && !previewAssist;
   const modalOpen = libraryOpen || importOpen || createOpen || aboutOpen || !!renameTarget || !!deleteTarget || !!pendingPoseAction || !!pendingSceneAction || !!pendingResetAction || !!pendingTransfer;
+  const timelinePlayback = useTimelinePlayback({
+    restoreKey: `${currentScene.id}:${session.historyIndex}:${session.revision}`, audioRef, countMap: active.countMap, audioOffsetSeconds: active.audioOffsetSeconds ?? 0,
+    rate, loopRange: loop ? { startSeconds: selected * active.countMap.durationSeconds / active.countMap.octetCount, endSeconds: (selected + 1) * active.countMap.durationSeconds / active.countMap.octetCount } : null,
+    time, onTimeChange: setTime, onPlayingChange: setPlaying,
+    onError: () => setNotice('音频尚未就绪，或浏览器阻止了播放。请再点一次播放。'),
+    beforePlay: async () => { if (!cueContext.current) cueContext.current = new AudioContext(); await cueContext.current.resume(); },
+  });
+  const waveform = useAudioWaveform(audioBlob, active.countMap);
+  const lastCue = useRef(-1);
+  useEffect(() => {
+    if (!playing) { lastCue.current = -1; return; }
+    const index = Math.floor(time / (60 / active.countMap.bpm * active.countMap.musicBeatsPerDanceCount));
+    if (countSound && index !== lastCue.current) beep();
+    lastCue.current = index;
+  }, [time, playing, countSound, active.countMap]);
   const activeTransformTool = manualEditing ? transformTool : 'select';
   const editableSelectedJoint = selectedJoint !== null && EDITABLE_JOINT_NAMES.includes(selectedJoint);
   const rotateUnavailable = !active.take ? '先生成动作初稿，再旋转关节。' : !selectedJoint ? '先点击人物，选择要调整的部位。' : !editableSelectedJoint ? '末端节点只读；请选择肩、肘、髋等可旋转关节。' : busy ? '请等待当前操作完成。' : null;
@@ -205,6 +224,32 @@ export default function App() {
     onRedo: () => { if (!playing) navigateHistory(1); },
   });
 
+  useEffect(() => {
+    const selector = 'details.studio-more[open], details.scene-extras[open], details.camera-options[open], details.kf-more-actions[open]';
+    function dismiss(event: PointerEvent) {
+      if (document.querySelector('[aria-modal="true"]')) return;
+      document.querySelectorAll<HTMLDetailsElement>(selector).forEach(details => {
+        if (event.target instanceof Node && !details.contains(event.target)) details.open = false;
+      });
+    }
+    function escape(event: KeyboardEvent) {
+      if (document.querySelector('[aria-modal="true"]')) return;
+      if (event.key === 'Escape') document.querySelectorAll<HTMLDetailsElement>(selector).forEach(details => { details.open = false; });
+    }
+    document.addEventListener('pointerdown', dismiss, true);
+    document.addEventListener('keydown', escape);
+    return () => { document.removeEventListener('pointerdown', dismiss, true); document.removeEventListener('keydown', escape); };
+  }, []);
+
+  useEffect(() => {
+    const overlay = timelineOverlayRef.current;
+    if (!overlay) { setTimelineInset(0); return; }
+    const measure = () => setTimelineInset(Math.ceil(overlay.getBoundingClientRect().height) + 16);
+    const observer = new ResizeObserver(measure);
+    observer.observe(overlay); measure();
+    return () => observer.disconnect();
+  }, [editorMode, !!manualSequence]);
+
   useEffect(() => { sessionRef.current = session; }, [session]);
   useEffect(() => { cancelAssistance(); setAssistCandidate(null); setPreviewAssist(false); setIKTarget(null); setIKResidual(null); }, [currentScene.id, active.countMap.id, session.revision]);
   useEffect(() => { setIKTarget(null); setIKResidual(null); }, [editorFrame, selectedJoint]);
@@ -245,67 +290,37 @@ export default function App() {
     oscillator.connect(gain); gain.connect(context.destination);
     oscillator.start(); oscillator.stop(context.currentTime + 0.07);
   }
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!playing || !audio) return;
-    let frame = 0, lastUpdate = 0, lastCount = -1;
-    const tick = (timestamp: number) => {
-      let next = Math.max(0, audio.currentTime - active.countMap.sourceOffsetSeconds);
-      const rangeStart = selected * active.countMap.durationSeconds / active.countMap.octetCount;
-      const rangeEnd = rangeStart + active.countMap.durationSeconds / active.countMap.octetCount;
-      if (loop && (next >= rangeEnd || next < rangeStart - 0.02)) {
-        audio.currentTime = active.countMap.sourceOffsetSeconds + rangeStart; next = rangeStart; lastCount = -1;
-      } else if (next >= active.countMap.durationSeconds || audio.ended) {
-        audio.pause(); setPlaying(false); setTime(active.countMap.durationSeconds); return;
-      }
-      const countIndex = Math.floor(next / (60 / active.countMap.bpm * active.countMap.musicBeatsPerDanceCount));
-      if (countSound && countIndex !== lastCount) { beep(); lastCount = countIndex; }
-      if (timestamp - lastUpdate > 1000 / 30) { setTime(next); lastUpdate = timestamp; }
-      frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [playing, active.countMap, loop, selected, countSound]);
-  useEffect(() => {
-    const sync = () => { if (!document.hidden && audioRef.current && playing) setTime(Math.max(0, audioRef.current.currentTime - active.countMap.sourceOffsetSeconds)); };
-    document.addEventListener('visibilitychange', sync);
-    return () => document.removeEventListener('visibilitychange', sync);
-  }, [playing, active.countMap]);
-  useEffect(() => { if (audioRef.current) audioRef.current.playbackRate = rate; }, [rate]);
-  useEffect(() => { if (modalOpen && pendingPlay.current) pause(); }, [modalOpen]);
-  useEffect(() => () => { pendingPlay.current?.audio.pause(); pendingPlay.current = null; audioReadToken.current += 1; void decodingContext.current?.close().catch(() => {}); const run = audition.current; audition.current = null; run?.audio.pause(); if (run) { cancelAnimationFrame(run.frame); URL.revokeObjectURL(run.url); } void cueContext.current?.close(); }, []);
+  useEffect(() => { if (modalOpen && timelinePlayback.isPending()) pause(); }, [modalOpen]);
+  useEffect(() => () => { audioReadToken.current += 1; void decodingContext.current?.close().catch(() => {}); const run = audition.current; audition.current = null; run?.audio.pause(); if (run) { cancelAnimationFrame(run.frame); URL.revokeObjectURL(run.url); } void cueContext.current?.close(); }, []);
 
-  function pause() { const pending = pendingPlay.current; pendingPlay.current = null; activePlay.current = null; pending?.audio.pause(); audioRef.current?.pause(); setPlaying(false); if (playing && editorMode === 'keyframes') { const raw = Math.max(0, (audioRef.current?.currentTime ?? active.countMap.sourceOffsetSeconds + time) - active.countMap.sourceOffsetSeconds); const snapped = frameTime(frameAtTime(raw, active.countMap.durationSeconds), active.countMap.durationSeconds); setTime(snapped); if (audioRef.current) audioRef.current.currentTime = active.countMap.sourceOffsetSeconds + snapped; } }
+  function pause() {
+    const wasPlaying = timelinePlayback.isPlaying();
+    const raw = timelinePlayback.pause();
+    if (wasPlaying && editorMode === 'keyframes') timelinePlayback.seek(frameTime(frameAtTime(raw, active.countMap.durationSeconds), active.countMap.durationSeconds));
+  }
   function seek(next: number) {
-    if (pendingPlay.current) pause();
+    if (timelinePlayback.isPending()) pause();
     if (guardPose({ type: 'seek', time: next })) return;
     seekDirect(editorMode === 'keyframes' && !playing ? frameTime(frameAtTime(next, active.countMap.durationSeconds), active.countMap.durationSeconds) : next);
   }
-  function seekDirect(next: number, keepPendingPlay = false) {
-    if (!keepPendingPlay && pendingPlay.current) pause();
-    const value = Math.max(0, Math.min(active.countMap.durationSeconds, next));
-    if (audioRef.current) audioRef.current.currentTime = active.countMap.sourceOffsetSeconds + value;
-    setTime(value);
-  }
+  function seekDirect(next: number) { timelinePlayback.seek(next); }
   async function togglePlay() {
-    if (playing || pendingPlay.current) { pause(); return; }
+    if (playing || timelinePlayback.isPending()) { pause(); return; }
     if (guardPose({ type: 'play' })) return;
     if (!displayedTake || !audioRef.current || !ready || !audioBlob) return;
-    const audio = audioRef.current;
-    const run = { audio }; pendingPlay.current = run; activePlay.current = run;
-    try {
-      if (!cueContext.current) cueContext.current = new AudioContext();
-      await cueContext.current.resume();
-      if (pendingPlay.current !== run) return;
-      if (time >= active.countMap.durationSeconds - 0.01) seekDirect(loop ? selected * active.countMap.durationSeconds / active.countMap.octetCount : 0, true);
-      else if (loop) seekDirect(selected * active.countMap.durationSeconds / active.countMap.octetCount, true);
-      else audio.currentTime = active.countMap.sourceOffsetSeconds + time;
-      audio.playbackRate = rate;
-      await audio.play();
-      if (pendingPlay.current !== run) { if (!activePlay.current || activePlay.current.audio !== audio) audio.pause(); return; }
-      setPlaying(true);
-    } catch { if (pendingPlay.current === run) setNotice('音频尚未就绪，或浏览器阻止了播放。请再点一次播放。'); }
-    finally { if (pendingPlay.current === run) pendingPlay.current = null; }
+    const start = loop ? selected * active.countMap.durationSeconds / active.countMap.octetCount : time >= active.countMap.durationSeconds - .01 ? 0 : time;
+    await timelinePlayback.play(start);
+  }
+  function moveAudio(offsetSeconds: number) {
+    if (playing || !manualEditing || mirror || busy || !audioBlob) return;
+    const action: AudioMoveAction = { type: 'moveAudio', offsetSeconds: snapAudioOffset(offsetSeconds, active.countMap.durationSeconds), sceneId: currentScene.id, countMapId: active.countMap.id };
+    if (guardPose(action)) return;
+    performAudioMove(action);
+  }
+  function performAudioMove(action: AudioMoveAction) {
+    if (action.sceneId !== currentScene.id || action.countMapId !== active.countMap.id || playing || !manualEditing || mirror || busy) return;
+    if (action.offsetSeconds === (active.audioOffsetSeconds ?? 0)) return;
+    commit({ ...active, audioOffsetSeconds: action.offsetSeconds });
   }
   function changeSelection(index: number) { if (guardPose({ type: 'selection', index })) return; setSelected(index); seek(index * active.countMap.durationSeconds / active.countMap.octetCount); markSceneDirty(); }
   function commit(next: Snapshot) {
@@ -679,7 +694,7 @@ export default function App() {
     if (restoreStatus && baseline && baseline.version === sceneChangeVersion.current) setSaveStatus(baseline.status);
   }
   function updatePoseDraft(next: Pose): boolean {
-    if (pendingPlay.current) pause();
+    if (timelinePlayback.isPending()) pause();
     if (!active.take || playing || mirror || !manualEditing || modalOpen) return false;
     const reference = sampleTake(active.take, frameTime(editorFrame, active.countMap.durationSeconds));
     const previous = poseDraftRef.current ?? reference;
@@ -878,7 +893,7 @@ export default function App() {
   }
   function requestKeyframeTransfer(request: Omit<KeyframeTransferRequest, 'collision'>) {
     if (!manualSequence || !active.take || playing || mirror || !manualEditing || busy) return;
-    const action: TransferAction = { type: 'transferKeys', request: { ...request, scope: { ...request.scope } }, sceneId: currentScene.id, countMapId: active.countMap.id };
+    const action: TransferAction = { type: 'transferKeys', originFrame: editorFrame, request: { ...request, scope: request.scope.kind === 'joints' ? { ...request.scope, joints: [...request.scope.joints] } : { ...request.scope } }, sceneId: currentScene.id, countMapId: active.countMap.id };
     if (guardPose(action)) return;
     performKeyframeTransfer(action);
   }
@@ -887,7 +902,7 @@ export default function App() {
     if (poseDraftRef.current) {
       setPendingTransfer(null); guardPose(action); return;
     }
-    if (action.sceneId !== currentScene.id || action.countMapId !== active.countMap.id || action.request.sourceFrame !== editorFrame) {
+    if (action.sceneId !== currentScene.id || action.countMapId !== active.countMap.id || action.originFrame !== editorFrame) {
       setPendingTransfer(null); setNotice('来源场景、数拍或帧已改变，请重新操作关键帧。'); return;
     }
     if (replacement && (replacement.sequenceId !== manualSequence.id || replacement.revision !== session.revision)) {
@@ -929,7 +944,7 @@ export default function App() {
     markSceneDirty();
   }
   function currentEditTime() {
-    const rawTime = playing && audioRef.current ? Math.max(0, audioRef.current.currentTime - active.countMap.sourceOffsetSeconds) : time;
+    const rawTime = playing ? timelinePlayback.getTime() : time;
     return frameTime(frameAtTime(rawTime, active.countMap.durationSeconds), active.countMap.durationSeconds);
   }
   function chooseTransformTool(tool: StageTransformTool) {
@@ -968,6 +983,7 @@ export default function App() {
       case 'teaching': openTeachingPreview(); break;
       case 'backup': void exportFullScene(); break;
       case 'transferKeys': performKeyframeTransfer(action); break;
+      case 'moveAudio': performAudioMove(action); break;
       case 'assist': void generateAssistance(action.kind, action.prompt); break;
       case 'adoptAssist': adoptAssistance(); break;
       case 'previewAssist': showAssistCandidate(); break;
@@ -999,33 +1015,23 @@ export default function App() {
 
   const playbackTransport = <div className="player-main"><button className="play-button" aria-label={playing ? '暂停' : '播放'} disabled={!displayedTake || !ready || !audioBlob} onClick={togglePlay}>{playing ? <Pause size={19} fill="currentColor" /> : <Play size={19} fill="currentColor" />}</button><span className="time-display">{seconds(time)}<span> / {seconds(active.countMap.durationSeconds)}</span></span>{editorMode !== 'keyframes' && <input aria-label="播放进度" type="range" min={0} max={active.countMap.durationSeconds} step={0.01} value={time} disabled={!displayedTake} onChange={event => seek(Number(event.target.value))} style={{ '--progress': `${time / active.countMap.durationSeconds * 100}%` } as React.CSSProperties} />}<button className={`icon-button ${loop ? 'toggled' : ''}`} aria-label="循环当前八拍" title="循环当前八拍" aria-pressed={loop} onClick={() => { setLoop(!loop); markSceneDirty(); if (!loop) seek(selected * active.countMap.durationSeconds / active.countMap.octetCount); }}><Repeat2 size={18} /></button><select aria-label="播放速度" value={rate} onChange={event => { setRate(Number(event.target.value)); markSceneDirty(); }}><option value={0.5}>0.5×</option><option value={0.75}>0.75×</option><option value={1}>1×</option></select></div>;
   const playbackOptions = <details className="editor-disclosure playback-options"><summary>播放选项</summary><div className="player-options"><button className={mirror ? 'option active' : 'option'} aria-pressed={mirror} onClick={() => changeMirror(!mirror)}><Copy size={14} />镜像观看</button><button className={countSound ? 'option active' : 'option'} aria-pressed={countSound} onClick={() => { setCountSound(!countSound); markSceneDirty(); }}><Volume2 size={15} />节拍提示</button><span>{mirror ? "镜像仅影响观看，坐标保持原始世界空间" : "播放与视角不修改动作数据"}</span></div></details>;
-  const manualTimeline = manualSequence ? <KeyframeTimeline sequence={manualSequence} selectedJoint={selectedJoint} frame={editorFrame} onFrame={frame => seek(frameTime(frame, active.countMap.durationSeconds))} playing={playing} mirror={mirror} readOnly={!manualEditing || !!busy || modalOpen} dirty={!!poseDraft} transport={playbackTransport} playbackOptions={playbackOptions} onTime={next => seek(frameTime(frameAtTime(next, active.countMap.durationSeconds), active.countMap.durationSeconds))} onWriteJoint={() => { writeKeyframe('joint'); }} onWriteRoot={() => { writeKeyframe('root'); }} onWritePose={() => { writeKeyframe('pose'); }} onDiscard={() => clearPoseDraft(true)} onDelete={() => deleteKeyframe()} onDeleteJoint={() => { if (selectedJoint) deleteKeyframe({ kind: 'joint', joint: selectedJoint, frame: editorFrame }); }} onDeleteRoot={() => deleteKeyframe({ kind: 'root', frame: editorFrame })} onNeutral={startNeutral} onTransferKeyframes={requestKeyframeTransfer} clipboard={poseClipboard ? { frame: poseClipboard.frame, fromDraft: poseClipboard.fromDraft } : null} onCopyPose={copyPose} onPastePose={pastePose} /> : null;
+  const manualTimeline = manualSequence ? <KeyframeTimeline audio={{ name: audioName, offsetSeconds: active.audioOffsetSeconds ?? 0, durationSeconds: active.countMap.durationSeconds, waveform, onMove: moveAudio, disabled: !audioBlob }} sequence={manualSequence} selectedJoint={selectedJoint} frame={editorFrame} onFrame={frame => seek(frameTime(frame, active.countMap.durationSeconds))} playing={playing} mirror={mirror} readOnly={!manualEditing || !!busy || modalOpen} dirty={!!poseDraft} transport={playbackTransport} playbackOptions={playbackOptions} onTime={next => seek(frameTime(frameAtTime(next, active.countMap.durationSeconds), active.countMap.durationSeconds))} onWriteJoint={() => { writeKeyframe('joint'); }} onWriteRoot={() => { writeKeyframe('root'); }} onWritePose={() => { writeKeyframe('pose'); }} onDiscard={() => clearPoseDraft(true)} onDelete={() => deleteKeyframe()} onDeleteJoint={() => { if (selectedJoint) deleteKeyframe({ kind: 'joint', joint: selectedJoint, frame: editorFrame }); }} onDeleteRoot={() => deleteKeyframe({ kind: 'root', frame: editorFrame })} onNeutral={startNeutral} onTransferKeyframes={requestKeyframeTransfer} clipboard={poseClipboard ? { frame: poseClipboard.frame, fromDraft: poseClipboard.fromDraft } : null} onCopyPose={copyPose} onPastePose={pastePose} /> : null;
 
   const assistanceCandidatePanel = assistCandidate && <section className="assist-candidate" aria-label={assistCandidate.kind === 'steps' ? '步伐候选' : '辅助候选'}><div><strong>{assistCandidate.kind === 'steps' ? '步伐预览' : assistCandidate.kind === 'ai' ? 'AI 编排候选' : '重力候选'}</strong><p>{assistCandidate.summary}</p>{assistCandidate.kind === 'steps' && <StepAssistanceSummary report={assistCandidate.report} label="步伐预览结果" />}<small>{assistCandidate.kind === 'steps' ? '本地平地步伐计算；采用保留原关键帧、动作基底与脚锁。' : assistCandidate.kind === 'ai' ? 'Workers AI 选择原创动作与幅度，姿态受关节限位；接触与物理仍需检查。' : '内置人体与 Rapier 动态代理；尚未经过教师或实测人体验证。'}</small></div><div className="assist-actions">{(assistCandidate.kind !== 'steps' || assistCandidate.report.stepCount > 0) && <button className="button secondary compact" onClick={() => { if (previewAssist) { pause(); setPreviewAssist(false); } else showAssistCandidate(); }}>{previewAssist ? '返回原稿' : '预览候选'}</button>}<button className="button primary compact" disabled={!validAssistCandidate() || (assistCandidate.kind === 'steps' && assistCandidate.report.stepCount === 0)} onClick={adoptAssistance}>{assistCandidate.kind === 'steps' ? '采用步伐' : '采用候选'}</button><button className="text-button" onClick={() => { pause(); setPreviewAssist(false); setAssistCandidate(null); }}>{assistCandidate.kind === 'steps' ? '关闭预览' : '关闭候选'}</button></div></section>;
 
-  return <div className="app-shell">
-    <audio ref={audioRef} src={audioUrl || undefined} preload="auto" onLoadedMetadata={() => { if (audioRef.current) audioRef.current.currentTime = active.countMap.sourceOffsetSeconds + time; }} onEnded={() => { pause(); setTime(active.countMap.durationSeconds); }} onError={() => { if (ready && audioUrl) setNotice('音乐无法播放。请重新导入支持的音频格式。'); }} />
-    <aside className="sidebar">
-      <a className="brand" href="#" onClick={event => { event.preventDefault(); setPage('studio'); }} aria-label="八拍 首页"><span className="brand-mark"><i /><i /><i /></span><span className="brand-name">八拍</span></a>
-      <nav aria-label="主导航">
-        <button className={page === 'studio' ? 'nav-item active' : 'nav-item'} aria-current={page === 'studio' ? 'page' : undefined} onClick={() => setPage('studio')}><Layers3 size={21} /><span>编舞工作台</span></button>
-        <button className={page === 'teaching' ? 'nav-item active' : 'nav-item'} aria-current={page === 'teaching' ? 'page' : undefined} onClick={openTeachingPreview}><Headphones size={21} /><span>教学预览</span></button>
-      </nav>
-      <div className="sidebar-bottom"><button className="help-link" onClick={() => setAboutOpen(true)} aria-label="使用说明与版本进展"><CircleHelp size={20} /><span>版本说明</span></button><a className="repo-link" href="https://github.com/DFerryman/ChoreographyStudio" target="_blank" rel="noreferrer" aria-label="查看GitHub源码"><GitBranch size={19} /><span>源码</span></a><div className="sidebar-status"><span />本机创作</div></div>
-    </aside>
-
+  return <div className={`app-shell minimal-studio ${editorMode === 'keyframes' ? 'immersive-studio' : ''}`}>
+    <audio ref={audioRef} src={audioUrl || undefined} preload="auto" onLoadedMetadata={timelinePlayback.syncAudio} onError={() => { if (ready && audioUrl) setNotice('音乐无法播放。请重新导入支持的音频格式。'); }} />
     <main className="main-content">
       <header className="topbar">
-        <div className="project-heading"><div className="breadcrumbs">创作空间 <span>/</span> {page === 'studio' ? '编舞工作台' : '教学预览'}</div><div className="project-title"><h1>{currentScene.name}</h1><button className="icon-button rename-current" aria-label="修改当前场景名称" title="修改场景名称" onClick={() => { setRenameTarget({ id: currentScene.id, name: currentScene.name }); setRenameValue(currentScene.name); }}><Pencil size={13} /></button><span className="local-tag">本机场景</span></div></div>
-        <div className="project-tools"><span className={`save-state ${saveStatus}`}><span />{saveStatus === 'saved' ? '已保存到本机' : saveStatus === 'saving' ? '保存中' : saveStatus === 'failed' ? '保存失败' : '有未保存更改'}</span><button className="button secondary compact scene-library-button" onClick={() => { void openLibrary(); }} disabled={!ready || sceneActionBusy || saveStatus === "saving"}><FolderOpen size={15} />场景</button><div className="history-tools"><button className="icon-button" title="撤销" aria-label="撤销" disabled={session.historyIndex === 0 || !!busy} onClick={() => navigateHistory(-1)}><Undo2 size={17} /></button><button className="icon-button" title="重做" aria-label="重做" disabled={session.historyIndex >= session.history.length - 1 || !!busy} onClick={() => navigateHistory(1)}><Redo2 size={17} /></button></div><button className="button secondary compact save-button" onClick={save} disabled={!ready || !audioBlob || saveStatus === 'saving'}><Save size={15} />保存</button><button className="button primary compact new-project" title="调整当前场景的音乐与数拍" onClick={openCreate} disabled={!ready || !!busy}><Upload size={15} />导入音乐</button></div>
+        <div className="project-heading"><div className="project-title"><h1>{currentScene.name}</h1><button className="icon-button rename-current" aria-label="修改当前场景名称" title="修改场景名称" onClick={() => { setRenameTarget({ id: currentScene.id, name: currentScene.name }); setRenameValue(currentScene.name); }}><Pencil size={13} /></button></div></div>
+        <div className="project-tools"><span className={`save-state ${saveStatus}`}><span />{saveStatus === 'saved' ? '已保存到本机' : saveStatus === 'saving' ? '保存中' : saveStatus === 'failed' ? '保存失败' : '有未保存更改'}</span><button className="button secondary compact scene-library-button" onClick={() => { void openLibrary(); }} disabled={!ready || sceneActionBusy || saveStatus === "saving"}><FolderOpen size={15} />场景</button><div className="history-tools"><button className="icon-button" title="撤销" aria-label="撤销" disabled={session.historyIndex === 0 || !!busy} onClick={() => navigateHistory(-1)}><Undo2 size={17} /></button><button className="icon-button" title="重做" aria-label="重做" disabled={session.historyIndex >= session.history.length - 1 || !!busy} onClick={() => navigateHistory(1)}><Redo2 size={17} /></button></div><button className="button secondary compact save-button" onClick={save} disabled={!ready || !audioBlob || saveStatus === 'saving'}><Save size={15} />保存</button><details className="studio-more"><summary aria-label="更多工具"><SlidersHorizontal size={17} /></summary><div className="studio-more-content"><button className="button secondary compact new-project" title="调整当前场景的音乐与数拍" onClick={openCreate} disabled={!ready || !!busy}><Upload size={15} />导入音乐</button><div className="workspace-mode" role="group" aria-label="编舞模式"><button aria-pressed={editorMode === 'arrange'} onClick={() => changeEditorMode('arrange')}>八拍编排</button><button aria-pressed={editorMode === 'keyframes'} disabled={!active.take} onClick={() => changeEditorMode('keyframes')}>手动 K帧</button></div><button onClick={openTeachingPreview}>教学预览</button><button onClick={() => setAboutOpen(true)}>使用说明与版本进展</button><details className="editor-disclosure backup-menu"><summary>场景备份</summary><div className="backup-actions disclosure-content"><button onClick={exportProject}>下载项目备份</button><button onClick={() => { void exportFullScene(); }} disabled={!ready || !audioBlob || !!busy}><ArrowDownToLine size={14} />下载完整场景包</button></div></details></div></details></div>
       </header>
       <section className="workspace-content">
-        <div className="workspace-toolbar"><div><h2>{page === 'studio' ? editorMode === 'keyframes' ? '关键帧工作台' : '编排工作台' : '教学工作台'}</h2><span>{active.countMap.octetCount} 个八拍 <i /> {Math.round(active.countMap.durationSeconds * 10) / 10} 秒</span></div><div className="workspace-mode" role="group" aria-label="编舞模式"><button aria-pressed={editorMode === 'arrange'} className={editorMode === 'arrange' ? 'selected' : ''} onClick={() => changeEditorMode('arrange')}>八拍编排</button><button aria-pressed={editorMode === 'keyframes'} className={editorMode === 'keyframes' ? 'selected' : ''} disabled={!active.take} onClick={() => changeEditorMode('keyframes')}>手动 K帧</button></div><button className="version-pill" onClick={() => setAboutOpen(true)}><span />交互预览 <ArrowUpRight size={13} /></button></div>
         {ready && !audioBlob && <div className="missing-audio" role="alert"><strong>原音乐缺失</strong><p>编舞与数拍仍在。请关联原曲后恢复为新场景，当前作品会保留。</p><button className="button secondary compact" onClick={openAudioRecovery} disabled={!!busy || sceneActionBusy}>恢复原音乐</button></div>}
         <div className={editorMode === 'keyframes' ? 'studio-grid manual-workspace' : 'studio-grid'}>
           <section className="viewer-panel" aria-label="3D动作预览">
             <div className="viewer-toolbar"><span className="viewer-title">{previewAssist ? '辅助预览' : previewCandidate ? '替换预览' : '舞台'}<span className="muted-divider">/</span><span className="viewer-muted">{view === 'free' ? '自由视角' : '3D'}</span></span><div className="camera-toolbar"><div className="segmented" aria-label="观看视角">{([['front', '正面'], ['back', '背面']] as const).map(([preset, label]) => <button key={preset} className={view === preset ? 'selected' : ''} aria-pressed={view === preset} onClick={() => chooseView(preset)}>{label}</button>)}</div><button className="icon-button" aria-label="全身取景" disabled={!displayedTake || !ready || !!busy} title="全身取景" onClick={() => focusCamera('actor')}><Scan size={16} /></button><details className="editor-disclosure camera-options"><summary aria-label="相机选项" title="相机选项"><SlidersHorizontal size={16} /></summary><div className="disclosure-content"><div className="segmented">{([['left', '左侧'], ['right', '右侧'], ['top', '顶视']] as const).map(([preset, label]) => <button key={preset} aria-pressed={view === preset} onClick={() => chooseView(preset)}>{label}</button>)}</div><button className="button secondary compact" aria-label="复位相机" onClick={() => chooseView('front')}><RotateCcw size={14} />复位相机</button><button className="button secondary compact" disabled={!displayedTake || !selectedJoint || !ready || !!busy} onClick={() => focusCamera('joint')}><Focus size={14} />聚焦关节</button><span>仅改变观看，不修改动作</span></div></details></div></div>
-            <div className="stage-wrap"><Stage take={displayedTake} time={time} view={view} mirror={mirror} cameraState={camera ?? undefined} cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} cameraFocus={cameraFocus ?? undefined} onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction} selectedJoint={selectedJoint} onSelectJoint={chooseJoint} onJointPositionChange={handleJointPosition} poseOverride={manualEditing ? poseDraft : null} editMode={manualEditing && !modalOpen} transformTool={activeTransformTool} playing={playing} onJointRotationChange={handleJointRotation} onRootPositionChange={handleRootPosition} ikTarget={ikTarget} onIKTargetChange={handleIKTarget} /><div className="stage-status"><span className="stage-tag">中性人体 · 25 关节</span><span className="stage-hint"><span className="desktop-camera-hint">拖动旋转 · 右键平移 · 滚轮缩放</span><span className="mobile-camera-hint">单指旋转 · 双指平移/缩放</span></span></div><div className="count-overlay"><span>第 {currentCount.octet} 个八拍</span><strong>{currentCount.count}<small> / 8</small></strong></div>{!active.take && <div className="empty-overlay"><Sparkles size={24} /><strong>音乐准备好了</strong><p>生成模板初稿，开始查看你的组合。</p></div>}</div>
+            <div className="stage-wrap"><Stage bottomOverlayInset={editorMode === 'keyframes' ? timelineInset : 0} take={displayedTake} time={time} view={view} mirror={mirror} cameraState={camera ?? undefined} cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} cameraFocus={cameraFocus ?? undefined} onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction} selectedJoint={selectedJoint} onSelectJoint={chooseJoint} onJointPositionChange={handleJointPosition} poseOverride={manualEditing ? poseDraft : null} editMode={manualEditing && !modalOpen} transformTool={activeTransformTool} playing={playing} onJointRotationChange={handleJointRotation} onRootPositionChange={handleRootPosition} ikTarget={ikTarget} onIKTargetChange={handleIKTarget} />{!active.take && <div className="empty-overlay"><Sparkles size={24} /><strong>音乐准备好了</strong><p>生成模板初稿，开始查看你的组合。</p></div>}{editorMode === 'keyframes' && manualSequence && <div ref={timelineOverlayRef} className="timeline-overlay">{manualTimeline}</div>}</div>
             <div className="stage-edit-tools">
               <div className="stage-tool-buttons" role="group" aria-label="舞台编辑工具">
                 <button aria-label="选择工具" aria-pressed={activeTransformTool === 'select'} className={activeTransformTool === 'select' ? 'selected' : ''} onClick={() => chooseTransformTool('select')} title="选择关节与移动相机；收起操作手柄"><MousePointer2 size={15} />选择</button>
@@ -1035,9 +1041,11 @@ export default function App() {
               </div>
               <div className="stage-tool-help"><span>{toolHelp}</span></div>
             </div>
-            <details className="editor-disclosure stage-diagnostics"><summary>舞台信息</summary><div className="scene-spacebar"><span>右手坐标 · Y↑ · +Z前向 · XZ地面 · 1单位=1m</span><span className="camera-coordinates" aria-label="相机世界坐标">相机 <b>X</b>{camera?.position[0].toFixed(2) ?? '—'} <b>Y</b>{camera?.position[1].toFixed(2) ?? '—'} <b>Z</b>{camera?.position[2].toFixed(2) ?? '—'}</span><span className="joint-coordinates" aria-label="选中关节世界坐标"><span>{selectedJoint ? `${STAGE_JOINT_LABELS[selectedJoint]} · 世界坐标（m）` : "点击人物选择部位"}</span><strong>{jointPosition ? jointPosition.map((value, index) => <span key={index}><b>{["X", "Y", "Z"][index]}</b>{value.toFixed(3)}</span>) : <span>未选部位</span>}</strong></span></div></details>
-            {editorMode === 'keyframes' && manualSequence ? manualTimeline : <div className="player">{playbackTransport}{playbackOptions}</div>}
+            {editorMode !== 'keyframes' && <div className="player">{playbackTransport}{playbackOptions}</div>}
+            <details className="scene-extras"><summary aria-label="场景辅助工具"><SlidersHorizontal size={15} /></summary><div className="scene-extras-content">            <details className="editor-disclosure stage-diagnostics"><summary>舞台信息</summary><div className="scene-spacebar"><span>右手坐标 · Y↑ · +Z前向 · XZ地面 · 1单位=1m</span><span className="camera-coordinates" aria-label="相机世界坐标">相机 <b>X</b>{camera?.position[0].toFixed(2) ?? '—'} <b>Y</b>{camera?.position[1].toFixed(2) ?? '—'} <b>Z</b>{camera?.position[2].toFixed(2) ?? '—'}</span><span className="joint-coordinates" aria-label="选中关节世界坐标"><span>{selectedJoint ? `${STAGE_JOINT_LABELS[selectedJoint]} · 世界坐标（m）` : "点击人物选择部位"}</span><strong>{jointPosition ? jointPosition.map((value, index) => <span key={index}><b>{["X", "Y", "Z"][index]}</b>{value.toFixed(3)}</span>) : <span>未选部位</span>}</strong></span></div></details>
+
             {editorMode === 'keyframes' && manualSequence && editorPose && <RealismPanel pose={previewAssist && assistCandidate ? sampleTake(assistCandidate.take, time) : editorPose} sequence={manualSequence} frame={editorFrame} duration={active.countMap.durationSeconds} disabled={!manualEditing || playing || mirror || modalOpen || !!busy || !!assistBusy} ikResidual={ikResidual} motionState={motionIsDynamic(displayedTake, time) ? 'dynamic' : 'quasi-static'} onLock={lockFoot} onRemoveLock={unlockFoot} onPhysics={() => { void generateAssistance('physics'); }} onCancel={cancelAssistance} simulating={assistBusy === 'physics'} progress={assistProgress} stepReport={stepReport} onSteps={() => { void generateAssistance('steps'); }} onRemoveSteps={disableStepAssistance} calculatingSteps={assistBusy === 'steps'} stepCandidate={assistCandidate?.kind === 'steps' ? assistanceCandidatePanel : null} />}
+{page === 'studio' && <AIPanel onGenerate={prompt => { void generateAssistance('ai', prompt); }} onCancel={cancelAssistance} busy={assistBusy === 'ai'} disabled={!ready || !active.take || !!busy || !!assistBusy || modalOpen} error={assistError} />}</div></details>
           </section>
           {editorMode !== 'keyframes' && <aside className="inspector">
             <section className="music-card"><div className="section-heading"><div className="module-title"><span className="module-index">01</span><h2>音乐与数拍</h2></div><button className="text-button" onClick={openCreate} disabled={!ready || !!busy}>调整</button></div><div className="music-file"><span className="file-icon"><FileAudio size={21} /></span><div><strong title={audioName}>{audioName}</strong><small>{audioName === '八拍节奏示例.wav' ? '原创节奏示例 · 本机生成' : '本机音频 · 不上传服务器'}</small></div></div><div className="waveform" aria-hidden="true">{Array.from({ length: 52 }, (_, index) => <i key={index} style={{ height: `${8 + Math.abs(Math.sin(index * 1.7) * Math.cos(index * 0.47)) * 30}px`, opacity: index / 52 <= time / active.countMap.durationSeconds ? 1 : 0.34 }} />)}</div><div className="music-metrics"><div><strong>{active.countMap.bpm}<small> BPM</small></strong><span>稳定节奏 · 手动确认</span></div><div><strong>{active.countMap.octetCount}<small> 个八拍</small></strong><span>{Math.round(active.countMap.durationSeconds * 10) / 10} 秒完整选段</span></div></div><div className="confirmed-note"><CheckCircle2 size={14} />数拍已确认<span>4/4</span></div></section>
@@ -1045,10 +1053,9 @@ export default function App() {
             {candidate && <section className={`candidate-card ${stale ? 'expired' : ''}`} aria-label="替换候选"><div className="candidate-title"><span className="candidate-icon"><Sparkles size={15} /></span><strong>{stale ? '候选已过期' : '替换候选'}</strong><span>第 {candidate.slotIndex + 1} 段</span></div><p>{stale ? '作品版本已经改变。可以观看，但需重新生成才能采用。' : candidate.plan.slots[candidate.slotIndex].label}</p><button className="text-button" onClick={() => { pause(); setPreviewCandidate(!previewCandidate); seek(candidate.slotIndex * active.countMap.durationSeconds / active.countMap.octetCount); }}>{previewCandidate ? '切回原稿' : '查看替换预览'} <ArrowRight size={14} /></button><div className="candidate-actions"><button className="button primary compact" disabled={!!stale} onClick={adopt}><Check size={14} />采用</button><button className="button secondary compact" onClick={() => { pause(); setCandidate(null); setPreviewCandidate(false); }}>放弃</button></div></section>}
           </aside>}
         </div>
-        {page === 'studio' && <AIPanel onGenerate={prompt => { void generateAssistance('ai', prompt); }} onCancel={cancelAssistance} busy={assistBusy === 'ai'} disabled={!ready || !active.take || !!busy || !!assistBusy || modalOpen} error={assistError} />}
         {assistCandidate?.kind !== 'steps' && assistanceCandidatePanel}
         {editorMode === 'keyframes' ? null : <section className="timeline-panel"><div className="timeline-heading"><div><div className="module-title"><span className="module-index">03</span><h2>{active.manual ? '基底八拍编排' : '你的八拍组合'} <span>{active.countMap.octetCount} 段</span></h2></div></div><button className="button compact secondary" onClick={generate} disabled={!!busy || !ready}>{busy ? <LoaderCircle className="spin" size={15} /> : <Sparkles size={15} />}{busy || (active.take ? '重新生成模板初稿' : '生成模板初稿')}</button></div><div className="octet-list" role="list" aria-label="八拍时间线">{slots.map((slot, index) => <button key={index} role="listitem" aria-label={`第${index + 1}个八拍 ${slot.label}`} className={`octet-card ${index === selected ? 'selected' : ''} ${playing && currentCount.octet === index + 1 ? 'playing' : ''}`} onClick={() => changeSelection(index)}><div className="octet-top"><span>{(index + 1).toString().padStart(2, '0')}</span>{index === selected ? <span className="selected-dot" /> : <span className="mini-wave"><i /><i /><i /></span>}</div><strong>{slot.label}</strong><small>{slot.startSeconds.toFixed(0)}–{slot.endSeconds.toFixed(0)} 秒</small><div className="count-ticks">{Array.from({ length: 8 }, (_, count) => <i key={count} className={playing && currentCount.octet === index + 1 && currentCount.count === count + 1 ? 'current' : ''} />)}</div></button>)}</div><div className="timeline-footer"><span><span className="legend-dot" />当前选择<span className="legend-dot pale" />完整八拍</span><span>{active.manual ? '手动编舞 · 卡片为基底标签' : '合成动作模板'} <i /> 作品 v{session.revision}</span></div></section>}
-        <footer className="workspace-footer"><span><span className="small-dot" />中性人体 · 音乐与作品保存在本机</span><details className="editor-disclosure backup-menu"><summary>场景备份</summary><div className="backup-actions disclosure-content"><button onClick={exportProject} title="仅导出已写入的项目数据，不含音乐">下载项目备份</button><button onClick={() => { void exportFullScene(); }} disabled={!ready || !audioBlob || !!busy} title="包含原音乐、正式动作、历史和相机，可重新导入"><ArrowDownToLine size={14} />下载完整场景包</button></div></details></footer>
+
       </section>
     </main>
     {notice && <div className="toast" role="status"><CheckCircle2 size={18} /><span>{notice}</span><button aria-label="关闭提示" onClick={() => setNotice('')}><X size={15} /></button></div>}

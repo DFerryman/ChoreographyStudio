@@ -1,6 +1,7 @@
 import { editStageValue, expectStageValue, selectStageJoint } from './stageInteractions';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
+import { clickRevealed, reveal } from './helpers';
 
 type Snapshot = {
   countMap: { durationSeconds: number; sourceOffsetSeconds: number };
@@ -56,15 +57,14 @@ async function ready(page: Page) {
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeEnabled();
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.readyState)).toBeGreaterThanOrEqual(2);
   const editor = page.getByRole('region', { name: '手动关键帧时间线', exact: true });
-  if (!await editor.isVisible()) await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
+  if (!await editor.isVisible()) await clickRevealed(page, page.getByRole('button', { name: '手动 K帧', exact: true, includeHidden: true }));
   await expect(editor).toBeVisible();
 }
 
 async function backup(page: Page): Promise<Backup> {
-  const download = page.getByRole('button', { name: '下载项目备份', exact: true });
-  if (!await download.isVisible()) await page.locator('summary').filter({ hasText: '场景备份' }).click();
+  const download = page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true });
   const downloading = page.waitForEvent('download');
-  await download.click();
+  await clickRevealed(page, download);
   const path = await (await downloading).path();
   expect(path).toBeTruthy();
   return JSON.parse(await readFile(path!, 'utf8')) as Backup;
@@ -90,6 +90,12 @@ async function frame(page: Page, value: number) {
   await expect(frameInput(page)).toHaveValue(String(value));
 }
 
+async function filter(page: Page, value: 'joint' | 'root') {
+  const input = page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true, includeHidden: true });
+  await reveal(page, input);
+  await input.selectOption(value);
+}
+
 async function selectJoint(page: Page, joint: string) {
   await selectStageJoint(page, joint as Parameters<typeof selectStageJoint>[1]);
 }
@@ -100,7 +106,7 @@ async function rootKey(page: Page, value = 1.2) {
   await expect(draft(page)).toBeVisible();
   await key(page, 'k');
   await expect(draft(page)).toHaveCount(0);
-  await page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true }).selectOption('root');
+  await filter(page, 'root');
   await expect(page.getByLabel('筛选轨道状态', { exact: true })).toContainText('本帧已写 K');
 }
 
@@ -150,14 +156,15 @@ async function expectNoPlaybackError(page: Page) {
 
 test('@shortcuts frame arrows preserve the exact non-uniform final interval and leave focused numeric inputs alone', async ({ page }) => {
   await ready(page);
-  await page.getByRole('button', { name: '导入音乐', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '导入音乐', exact: true, includeHidden: true }));
   const music = page.getByRole('dialog', { name: '先把音乐和数拍准备好', exact: true });
   await music.getByRole('spinbutton', { name: '音乐速度 BPM', exact: true }).fill('117');
   await music.getByRole('spinbutton', { name: '选取几个完整八拍', exact: true }).fill('4');
   await music.getByRole('button', { name: '确认数拍，进入工作台', exact: true }).click();
   await expect(music).toHaveCount(0);
+  await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
   await page.getByRole('button', { name: '生成模板初稿', exact: true }).click();
-  await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '手动 K帧', exact: true, includeHidden: true }));
   await expect(frameInput(page)).toBeVisible();
   const baseline = await backup(page);
   const duration = current(baseline).countMap.durationSeconds;
@@ -171,7 +178,8 @@ test('@shortcuts frame arrows preserve the exact non-uniform final interval and 
   await page.keyboard.down('ArrowRight'); await expect(frameInput(page)).toHaveValue('3');
   await page.keyboard.up('ArrowRight');
 
-  const seconds = page.getByRole('spinbutton', { name: '当前时间（秒）', exact: true });
+  const seconds = page.getByRole('spinbutton', { name: '当前时间（秒）', exact: true, includeHidden: true });
+  await reveal(page, seconds);
   await seconds.focus(); await seconds.press('ArrowLeft'); await seconds.press('k'); await seconds.press('Space');
   await expect(frameInput(page)).toHaveValue('3');
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeVisible();
@@ -179,7 +187,7 @@ test('@shortcuts frame arrows preserve the exact non-uniform final interval and 
 
   await frame(page, end - 1);
   await key(page, 'ArrowRight'); await expect(frameInput(page)).toHaveValue(String(end));
-  const finalTime = Number(await page.getByRole('spinbutton', { name: '当前时间（秒）', exact: true }).inputValue());
+  const finalTime = Number(await seconds.inputValue());
   expect(finalTime).toBeCloseTo(duration, 6);
   const atEnd = await backup(page);
   expect(atEnd.scene.viewer.time).toBe(duration);
@@ -187,7 +195,7 @@ test('@shortcuts frame arrows preserve the exact non-uniform final interval and 
   expect(current(atEnd).take.times.at(-1)).toBe(duration);
   await key(page, 'ArrowRight'); await expect(frameInput(page)).toHaveValue(String(end));
   await key(page, 'ArrowLeft'); await expect(frameInput(page)).toHaveValue(String(end - 1));
-  expect(Number(await page.getByRole('spinbutton', { name: '当前时间（秒）', exact: true }).inputValue())).toBeCloseTo((end - 1) / 30, 6);
+  expect(Number(await seconds.inputValue())).toBeCloseTo((end - 1) / 30, 6);
 });
 
 test('@shortcuts K and Delete affect the active joint or Root track and keyboard history restores the exact animation', async ({ page }) => {
@@ -196,7 +204,7 @@ test('@shortcuts K and Delete affect the active joint or Root track and keyboard
   await page.getByRole('button', { name: '旋转工具', exact: true }).click();
   await number(page, '关节 Z 旋转（度）', 45);
   await key(page, 'k'); await expect(draft(page)).toHaveCount(0);
-  await page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true }).selectOption('joint');
+  await filter(page, 'joint');
   await expect(page.getByLabel('筛选轨道状态', { exact: true })).toContainText('本帧已写 K');
   await rootKey(page);
   const authored = current(await backup(page));
@@ -266,8 +274,8 @@ test('@shortcuts composition, modified keys, repeated writes and native focused 
   await expect(frameInput(page)).toHaveValue('120');
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeVisible();
 
-  await page.locator('.playback-options > summary').click();
-  const mirror = page.getByRole('button', { name: '镜像观看', exact: true });
+  const mirror = page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true });
+  await reveal(page, mirror);
   await mirror.focus(); await page.keyboard.press('Space');
   await expect(mirror).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeVisible();
@@ -332,7 +340,7 @@ test('@shortcuts repeated Space and a new modal cancel pending audio resume befo
   await expectPaused(page); await expectNoPlaybackError(page);
 
   await key(page, 'Space'); await held(page, 'resumes', 1);
-  await page.getByRole('button', { name: '导入音乐', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '导入音乐', exact: true, includeHidden: true }));
   const music = page.getByRole('dialog', { name: '先把音乐和数拍准备好', exact: true });
   await expect(music).toBeVisible();
   await release(page, 'resumes', 1, false);

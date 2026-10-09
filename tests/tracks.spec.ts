@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed, reveal } from './helpers';
+import { clickRevealed, reveal, timelineScopeFrames } from './helpers';
 
 // Independent v4 scene: a non-uniform base, moving Root, and an untouched
 // Head arc make a mistaken whole-pose delete visible in exported motion.
@@ -94,7 +94,7 @@ async function openScene(page: Page) {
   await page.reload(); await ready(page);
   await expect(page.locator('.project-title h1')).toHaveText(source.scene.name);
   expect(current(await backup(page)).take).toEqual(source.take);
-  await page.getByRole('button', { name: '手动 K帧', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '手动 K帧', exact: true, includeHidden: true }));
   await expect(page.getByRole('region', { name: '手动关键帧时间线', exact: true })).toBeVisible();
   return source;
 }
@@ -139,7 +139,12 @@ async function visibleFrames(page: Page, expected: number[]) {
   if (expected.length) await reveal(page, timeline(page).getByRole('list', { name: '关键帧列表', exact: true, includeHidden: true }));
   await expect(timeline(page).getByRole('listitem')).toHaveCount(expected.length);
   expect(await timeline(page).getByRole('listitem').evaluateAll(items => items.map(item => item.getAttribute('aria-label')))).toEqual(expected.map(value => `第 ${value} 帧关键帧`));
-  await expect(timeline(page).getByRole('button', { name: /^跳到第 \d+ 帧关键帧$/ })).toHaveCount(expected.length);
+  expect(await timelineScopeFrames(page)).toEqual(expected);
+}
+async function scope(page: Page, value: 'all' | 'joint' | 'root') {
+  const filter = page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true, includeHidden: true });
+  await reveal(page, filter);
+  await filter.selectOption(value);
 }
 async function unchanged(page: Page, snapshot: Snapshot) { expect(current(await backup(page))).toEqual(snapshot); }
 async function capture(page: Page, name: string) {
@@ -241,35 +246,34 @@ test('@tracks timeline filters scope navigation, the all-track filter sees every
   await rotationKey(page, 30, 'LeftUpperArm', 20); await rotationKey(page, 90, 'LeftUpperArm', 60);
   await rotationKey(page, 60, 'RightUpperArm', -35); await rootKey(page, 120, 1.1);
   const authored = await backup(page);
-  const filter = page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true });
-  await filter.selectOption('all'); await visibleFrames(page, [30, 60, 90, 120]);
-  await joint(page, 'LeftUpperArm'); await frame(page, 0); await filter.selectOption('joint'); await visibleFrames(page, [30, 90]);
-  const previous = page.getByRole('button', { name: '时间线上一关键帧', exact: true });
-  const next = page.getByRole('button', { name: '时间线下一关键帧', exact: true });
-  await expect(previous).toBeDisabled(); await next.click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('30');
-  await next.click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('90'); await expect(next).toBeDisabled();
-  await previous.click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('30');
-  await filter.selectOption('all');
-  await next.click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('60');
-  await previous.click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('30');
-  await filter.selectOption('root'); await visibleFrames(page, [120]);
-  await next.click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('120');
-  await frame(page, 150); await previous.click(); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('120');
-  await filter.selectOption('joint'); await joint(page, ''); await visibleFrames(page, []); await expect(previous).toBeDisabled(); await expect(next).toBeDisabled();
+  await scope(page, 'all'); await visibleFrames(page, [30, 60, 90, 120]);
+  await joint(page, 'LeftUpperArm'); await frame(page, 0); await scope(page, 'joint'); await visibleFrames(page, [30, 90]);
+  const previous = page.getByRole('button', { name: '时间线上一关键帧', exact: true, includeHidden: true });
+  const next = page.getByRole('button', { name: '时间线下一关键帧', exact: true, includeHidden: true });
+  await expect(previous).toBeDisabled(); await clickRevealed(page, next); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('30');
+  await clickRevealed(page, next); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('90'); await expect(next).toBeDisabled();
+  await clickRevealed(page, previous); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('30');
+  await scope(page, 'all');
+  await clickRevealed(page, next); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('60');
+  await clickRevealed(page, previous); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('30');
+  await scope(page, 'root'); await visibleFrames(page, [120]);
+  await clickRevealed(page, next); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('120');
+  await frame(page, 150); await clickRevealed(page, previous); await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('120');
+  await scope(page, 'joint'); await joint(page, ''); await visibleFrames(page, []); await expect(previous).toBeDisabled(); await expect(next).toBeDisabled();
   await joint(page, 'LeftHandTip'); await visibleFrames(page, []);
   await joint(page, 'RightUpperArm'); await visibleFrames(page, [60]);
   await joint(page, 'LeftUpperArm'); await visibleFrames(page, [30, 90]);
   expect((await backup(page)).scene.project).toEqual(authored.scene.project);
   await frame(page, 90); await numeric(page, '关节 Z 旋转（度）', 85);
-  await previous.click(); await expect(guard(page)).toBeVisible();
+  await clickRevealed(page, previous); await expect(guard(page)).toBeVisible();
   await guard(page).getByRole('button', { name: '取消', exact: true }).click();
   await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('90'); await expect(draft(page)).toBeVisible();
   await unchanged(page, current(authored));
-  await previous.click(); await guard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
+  await clickRevealed(page, previous); await guard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
   await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('30'); await expect(draft(page)).toHaveCount(0);
   await numeric(page, '关节 Z 旋转（度）', 45); await expectStageValue(page, '关节 Z 旋转（度）', 45);
   const authoredRotation = await selectedRotation(page);
-  await next.click(); await expect(guard(page)).toBeVisible();
+  await clickRevealed(page, next); await expect(guard(page)).toBeVisible();
   await guard(page).getByRole('button', { name: '写入完整姿态后继续', exact: true }).click();
   await expect(page.getByRole('spinbutton', { name: '当前帧', exact: true })).toHaveValue('90'); await expect(draft(page)).toHaveCount(0);
   const committed = await backup(page), sequence = current(committed).manual!;
@@ -285,7 +289,7 @@ test('@tracks mobile track actions are reachable and deletion, undo, save and re
   const source = await openScene(page);
   await rotationKey(page, 45, 'LeftUpperArm', 55); await rootKey(page, 45, 1.2);
   const authored = current(await backup(page));
-  await page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true }).selectOption('joint'); await visibleFrames(page, [45]);
+  await scope(page, 'joint'); await visibleFrames(page, [45]);
   for (const width of [390, 320]) {
     await page.setViewportSize({ width, height: 844 });
     for (const name of ['删除当前关节 K', '删除 Root K', '时间线上一关键帧', '时间线下一关键帧']) {
@@ -305,7 +309,7 @@ test('@tracks mobile track actions are reachable and deletion, undo, save and re
   const restored = await backup(page);
   expect(restored.scene.id).toBe(saved.scene.id); expect(restored.scene.project).toEqual(saved.scene.project);
   expect(restored.scene.audioName).toBe(saved.scene.audioName); expect(current(restored).manual!.baseTake).toEqual(source.take);
-  await expect(page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true })).toHaveValue('all');
+  await expect(page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true, includeHidden: true })).toHaveValue('all');
   const audioHash = await page.locator('audio').evaluate(async (audio: HTMLAudioElement) => {
     const bytes = await (await fetch(audio.src)).arrayBuffer();
     return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), value => value.toString(16).padStart(2, '0')).join('');
@@ -315,7 +319,7 @@ test('@tracks mobile track actions are reachable and deletion, undo, save and re
   if (process.env.CHOREO_SCREENSHOT_DIR) {
     await page.setViewportSize({ width: 390, height: 844 });
     await frame(page, 45);
-    await page.getByRole('combobox', { name: '关键帧轨道筛选', exact: true }).selectOption('joint');
+    await scope(page, 'joint');
     await capture(page, 'choreo-tracks-mobile.png');
   }
 });

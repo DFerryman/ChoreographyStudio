@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight, ClipboardPaste, Copy, Diamond, RotateCcw, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { ArrowRight, ChevronDown, ChevronUp, Minus, Music2, Plus, ChevronLeft, ChevronRight, ClipboardPaste, Copy, Diamond, RotateCcw, Trash2 } from 'lucide-react';
 import { EDITABLE_JOINT_NAMES, frameTime, getKeyframeFrames, lastFrame, type JointName, type KeyframeSequence, type KeyframeTransferRequest, type KeyframeTransferScope } from '../../../packages/core/src';
 import { STAGE_JOINT_LABELS } from './Stage';
 import './KeyframeEditor.css';
@@ -34,6 +34,7 @@ type KeyframeTimelineProps = {
   dirty: boolean;
   transport: ReactNode;
   playbackOptions: ReactNode;
+  audio?: { name: string; offsetSeconds: number; durationSeconds: number; waveform: number[]; onMove: (offsetSeconds: number) => void; disabled?: boolean };
   onTime: (time: number) => void;
   onWriteJoint: () => void;
   onWriteRoot: () => void;
@@ -78,23 +79,124 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
   const trackName = filter === 'root' ? 'Root 位移' : filter === 'joint' ? selectedJoint ? `${STAGE_JOINT_LABELS[selectedJoint]} · 局部旋转` : '未选关节' : '全部轨道';
   const trackStatus = filter === 'joint' && !editable ? selectedJoint ? '末端节点只读' : '请选择关节' : `${frames.includes(frame) ? '本帧已写 K' : '本帧未写 K'} · ${frames.length} 个关键时刻`;
   const empty = filter === 'joint' ? !selectedJoint ? '请在舞台点击人物部位，查看它的旋转关键帧。' : !editable ? '这个末端节点只读，没有可编辑旋转轨。请选择肩、肘、髋等骨骼。' : `${STAGE_JOINT_LABELS[selectedJoint]}尚无显式旋转 K，当前使用基底动画；写入「K 当前关节」后在此查看。` : filter === 'root' ? 'Root 尚无显式位移 K，当前使用基底动画；写入「K 位移」后在此查看。' : '还没有手动关键帧。调整姿态后点击 K，将这一帧写入序列。';
-  return <section className="kf-timeline" aria-label="手动关键帧时间线">
-    <div className="kf-timeline-transport">{props.transport}<button className="button primary kf-record" aria-label="K 完整姿态" title="在当前帧记录完整姿态，中间自动插帧；每次写入均可撤销" disabled={locked} onClick={props.onWritePose}><Diamond size={15} fill={keyed ? 'currentColor' : 'none'} />{keyed ? '更新关键帧' : '添加关键帧'}</button></div>
-    <div className="timeline-heading"><div className="module-title"><h2>时间轴 <span>{frames.length} 个关键时刻</span></h2></div><span className="kf-timeline-duration">30 FPS · {duration.toFixed(3)} s</span></div>
-    <div className="kf-frame-controls"><button className="icon-button" aria-label="上一帧" disabled={frame === 0 || playing} onClick={() => onFrame(frame - 1)}><ChevronLeft size={17} /></button><label>帧<input aria-label="当前帧" type="number" min={0} max={end} step={1} value={frame} disabled={playing} onChange={event => { if (!event.target.value.trim()) return; const next = Number(event.target.value); if (Number.isFinite(next)) onFrame(Math.max(0, Math.min(end, Math.round(next)))); }} /></label><button className="icon-button" aria-label="下一帧" disabled={frame === end || playing} onClick={() => onFrame(frame + 1)}><ChevronRight size={17} /></button><label className="kf-time-field">秒<input aria-label="当前时间（秒）" type="number" min={0} max={duration} step={1 / 30} value={Number(frameTime(frame, duration).toFixed(6))} disabled={playing} onChange={event => { if (!event.target.value.trim()) return; const next = Number(event.target.value); if (Number.isFinite(next)) props.onTime(Math.max(0, Math.min(duration, next))); }} /></label></div>
-    <div className="kf-timeline-controls"><label className="kf-filter-field"><span>查看轨道</span><select aria-label="关键帧轨道筛选" value={filter} onChange={event => setFilter(event.target.value as typeof filter)}><option value="all">全部轨道</option><option value="joint">选中关节</option><option value="root">Root 位移</option></select></label><div className="kf-filter-status" aria-label="筛选轨道状态"><strong>{trackName}</strong><span>{trackStatus}</span></div><KeyNavigation frames={frames} frame={frame} playing={playing} onFrame={onFrame} timeline /></div>
-    <div className="kf-track"><input aria-label="关键帧时间线进度" type="range" min={0} max={end} step={1} value={frame} disabled={playing} onChange={event => onFrame(Number(event.target.value))} /><div className="kf-markers">{frames.map(keyFrame => <button key={keyFrame} className={keyFrame === frame ? 'selected' : ''} aria-label={`跳到第 ${keyFrame} 帧关键帧`} title={`${keyFrame} 帧 · ${frameTime(keyFrame, duration).toFixed(3)} 秒`} style={{ left: `${keyFrame / end * 100}%` }} disabled={playing} onClick={() => onFrame(keyFrame)}><Diamond size={11} fill="currentColor" /></button>)}<span className="kf-playhead" style={{ left: `${frame / end * 100}%` }} /></div></div>
-    <div className="kf-track-labels"><span>0 帧</span><span>{frame} 帧 · {frameTime(frame, duration).toFixed(3)} 秒</span><span>{end} 帧</span></div>
-    {props.dirty && <div className="kf-draft-note" role="status">姿态草稿 · 尚未写入关键帧<button disabled={locked} onClick={props.onDiscard}>撤回草稿</button></div>}
-    {!frames.length && <div className="kf-empty">{empty}</div>}
+  const groups: { id: string; label: string; joints: JointName[] }[] = [
+    { id: 'body', label: '身体', joints: ['Hips', 'Spine', 'Chest', 'Neck', 'Head'] },
+    { id: 'left-arm', label: '左臂', joints: ['LeftShoulder', 'LeftUpperArm', 'LeftForeArm', 'LeftHand'] },
+    { id: 'right-arm', label: '右臂', joints: ['RightShoulder', 'RightUpperArm', 'RightForeArm', 'RightHand'] },
+    { id: 'left-leg', label: '左腿', joints: ['LeftUpperLeg', 'LeftLowerLeg', 'LeftFoot'] },
+    { id: 'right-leg', label: '右腿', joints: ['RightUpperLeg', 'RightLowerLeg', 'RightFoot'] },
+  ];
+  type DragBase = { pointerId: number; element: HTMLButtonElement; startX: number; laneWidth: number; moved: boolean };
+  type KeyDrag = DragBase & { kind: 'key'; rowId: string; scope: KeyframeTransferScope; sourceFrame: number; targetFrame: number };
+  type AudioDrag = DragBase & { kind: 'audio'; sourceOffset: number; targetOffset: number };
+  type Drag = KeyDrag | AudioDrag;
+  const [expanded, setExpanded] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set());
+  const [zoom, setZoom] = useState(1);
+  const [drag, setDrag] = useState<Drag | null>(null);
+  const dragRef = useRef<Drag | null>(null);
+  const suppressClick = useRef(false);
+  const cancelledPointer = useRef<number | null>(null);
+  const moreDisclosure = useRef<HTMLDetailsElement>(null);
+  const { audio } = props;
+  const selectedGroup = groups.find(group => selectedJoint && (group.joints.includes(selectedJoint) || group.id === 'left-arm' && selectedJoint === 'LeftHandTip' || group.id === 'right-arm' && selectedJoint === 'RightHandTip' || group.id === 'left-leg' && ['LeftToe', 'LeftHeel'].includes(selectedJoint) || group.id === 'right-leg' && ['RightToe', 'RightHeel'].includes(selectedJoint)));
+  function finishDrag(cancel = false) {
+    const active = dragRef.current;
+    if (!active) return;
+    dragRef.current = null;
+    setDrag(null);
+    if (active.element.hasPointerCapture(active.pointerId)) active.element.releasePointerCapture(active.pointerId);
+    if (cancel || active.moved) {
+      suppressClick.current = true;
+      if (cancel) cancelledPointer.current = active.pointerId;
+      else window.setTimeout(() => { suppressClick.current = false; }, 0);
+    }
+    if (cancel || !active.moved || locked) return;
+    if (active.kind === 'key' && active.sourceFrame !== active.targetFrame) onTransferKeyframes({ operation: 'move', scope: active.scope, sourceFrame: active.sourceFrame, targetFrame: active.targetFrame });
+    else if (active.kind === 'audio' && audio && !audio.disabled && active.sourceOffset !== active.targetOffset) audio.onMove(active.targetOffset);
+  }
+  useEffect(() => { finishDrag(true); }, [sequence.id, sequence.baseTake.id, frame, locked, audio?.offsetSeconds, audio?.name, audio?.disabled, audio?.durationSeconds, zoom]);
+  useEffect(() => {
+    const cancel = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (dragRef.current) { event.preventDefault(); event.stopPropagation(); finishDrag(true); }
+      else if (moreDisclosure.current?.open && !document.querySelector('[aria-modal="true"]')) { moreDisclosure.current.open = false; moreDisclosure.current.querySelector('summary')?.focus(); }
+    };
+    document.addEventListener('keydown', cancel, true);
+    return () => document.removeEventListener('keydown', cancel, true);
+  });
+  useEffect(() => {
+    const closeMore = (event: PointerEvent) => {
+      if (event.isPrimary && !dragRef.current) { cancelledPointer.current = null; suppressClick.current = false; }
+      if (moreDisclosure.current?.open && !moreDisclosure.current.contains(event.target as Node)) moreDisclosure.current.open = false;
+    };
+    const releaseCancelled = (event: PointerEvent) => { if (cancelledPointer.current === event.pointerId) { cancelledPointer.current = null; window.setTimeout(() => { suppressClick.current = false; }, 0); } };
+    document.addEventListener('pointerdown', closeMore, true);
+    document.addEventListener('pointerup', releaseCancelled, true);
+    document.addEventListener('pointercancel', releaseCancelled, true);
+    return () => { document.removeEventListener('pointerdown', closeMore, true); document.removeEventListener('pointerup', releaseCancelled, true); document.removeEventListener('pointercancel', releaseCancelled, true); const active = dragRef.current; if (active?.element.hasPointerCapture(active.pointerId)) active.element.releasePointerCapture(active.pointerId); };
+  }, []);
+  function beginKeyDrag(event: ReactPointerEvent<HTMLButtonElement>, rowId: string, scope: KeyframeTransferScope, sourceFrame: number) {
+    beginDrag(event, { kind: 'key', rowId, scope, sourceFrame, targetFrame: sourceFrame });
+  }
+  function beginDrag(event: ReactPointerEvent<HTMLButtonElement>, payload: Omit<KeyDrag, keyof DragBase> | Omit<AudioDrag, keyof DragBase>) {
+    if (event.button !== 0 || !event.isPrimary || locked || dragRef.current || payload.kind === 'audio' && audio?.disabled) return;
+    const lane = event.currentTarget.closest('.kf-lane-track');
+    if (!lane) return;
+    event.stopPropagation();
+    const active = { ...payload, pointerId: event.pointerId, element: event.currentTarget, startX: event.clientX, laneWidth: lane.getBoundingClientRect().width, moved: false } as Drag;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = active;
+    setDrag(active);
+  }
+  function moveDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    const active = dragRef.current;
+    if (!active || active.pointerId !== event.pointerId) return;
+    const delta = event.clientX - active.startX;
+    if (!active.moved && Math.abs(delta) < 4) return;
+    event.preventDefault();
+    const shift = delta / Math.max(active.laneWidth, 1) * duration;
+    if (active.kind === 'key') active.targetFrame = Math.max(0, Math.min(end, Math.round((frameTime(active.sourceFrame, duration) + shift) * 30)));
+    else { const bound = Math.max(0, Math.ceil(duration * 30) - 1) / 30; active.targetOffset = Math.max(-bound, Math.min(bound, Math.round((active.sourceOffset + shift) * 30) / 30)); }
+    active.moved = true;
+    setDrag({ ...active });
+  }
+  function seekLane(event: React.MouseEvent<HTMLDivElement>) {
+    if (playing || suppressClick.current || event.target !== event.currentTarget) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    onFrame(Math.max(0, Math.min(end, Math.round((event.clientX - rect.left) / rect.width * duration * 30))));
+  }
+  function toggleGroup(id: string) { finishDrag(true); setExpandedGroups(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; }); }
+  function renderRow(id: string, label: string, rowFrames: number[], scope: KeyframeTransferScope, options?: { selected?: boolean; child?: boolean; group?: boolean }) {
+    return <div key={id} className={`kf-lane ${options?.selected ? 'selected' : ''} ${options?.child ? 'kf-joint-lane' : ''}`} data-track-id={id} aria-label={`${label}轨道`}>
+      <div className="kf-lane-label">{options?.group ? <button className="kf-group-toggle" aria-label={`${expandedGroups.has(id) ? '收起' : '展开'}${label}轨道`} aria-expanded={expandedGroups.has(id)} onClick={() => toggleGroup(id)}><ChevronRight size={12} />{label}</button> : <span>{label}</span>}</div>
+      <div className="kf-lane-track" data-frame-max={end} onClick={seekLane}>
+        {rowFrames.map(keyFrame => { const moving = drag?.kind === 'key' && drag.rowId === id && drag.sourceFrame === keyFrame; const shownFrame = moving ? drag.targetFrame : keyFrame; return <button key={keyFrame} className={`kf-lane-key ${keyFrame === frame ? 'selected' : ''} ${moving && drag.moved ? 'dragging' : ''}`} data-frame={keyFrame} aria-label={`${label}第 ${keyFrame} 帧关键帧`} title={`${label} · 第 ${keyFrame} 帧 · 拖动移动`} style={{ left: `${frameTime(shownFrame, duration) / duration * 100}%` }} disabled={playing}
+          onPointerDown={event => beginKeyDrag(event, id, scope, keyFrame)} onPointerMove={moveDrag} onPointerUp={event => { if (event.pointerId === dragRef.current?.pointerId) finishDrag(); }} onPointerCancel={() => finishDrag(true)} onLostPointerCapture={() => finishDrag(true)} onClick={event => { event.stopPropagation(); if (!suppressClick.current && !dragRef.current) onFrame(keyFrame); }}><Diamond size={12} fill="currentColor" />{moving && drag.moved && <span className="kf-drag-time">{shownFrame} 帧</span>}</button>; })}
+        <span className="kf-row-playhead" style={{ left: `${frameTime(frame, duration) / duration * 100}%` }} aria-hidden="true" />
+      </div>
+    </div>;
+  }
+  const audioOffset = drag?.kind === 'audio' ? drag.targetOffset : audio?.offsetSeconds ?? 0;
+  const tickStep = duration / zoom <= 8 ? 1 : duration / zoom <= 24 ? 2 : 5;
+  const ticks = Array.from({ length: Math.floor(duration / tickStep) + 1 }, (_, i) => i * tickStep).filter(time => time < duration);
+  const wave = useMemo(() => audio?.waveform.filter(Number.isFinite).slice(0, 160) ?? [], [audio?.waveform]);
+  return <section className={`kf-timeline ${expanded ? '' : 'kf-collapsed'}`} aria-label="手动关键帧时间线">
+    <div className="kf-timeline-toolbar">
+      <div className="kf-timeline-transport">{props.transport}</div>
+      <div className="kf-frame-controls"><button className="icon-button" aria-label="上一帧" disabled={frame === 0 || playing} onClick={() => onFrame(frame - 1)}><ChevronLeft size={15} /></button><label>帧<input aria-label="当前帧" type="number" min={0} max={end} step={1} value={frame} disabled={playing} onChange={event => { if (!event.target.value.trim()) return; const next = Number(event.target.value); if (Number.isFinite(next)) onFrame(Math.max(0, Math.min(end, Math.round(next)))); }} /></label><button className="icon-button" aria-label="下一帧" disabled={frame === end || playing} onClick={() => onFrame(frame + 1)}><ChevronRight size={15} /></button></div>
+      <button className="button primary kf-record" aria-label="K 完整姿态" title="在当前帧记录完整姿态" disabled={locked} onClick={props.onWritePose}><Diamond size={14} fill={keyed ? 'currentColor' : 'none'} />{keyed ? '更新关键帧' : '添加关键帧'}</button>
+      <button className="kf-collapse-button" aria-label={expanded ? '收起时间线' : '展开时间线'} aria-expanded={expanded} title={expanded ? '收起时间线' : '展开时间线'} onClick={() => { finishDrag(true); setExpanded(!expanded); }}>{expanded ? <ChevronDown size={17} /> : <ChevronUp size={17} />}</button>
+      <details ref={moreDisclosure} className="kf-more" aria-label="更多编辑操作"><summary title="更多编辑操作">更多编辑操作</summary><div className="kf-more-popover">
+    <div className="kf-timeline-controls"><label className="kf-filter-field"><span>操作范围</span><select aria-label="关键帧轨道筛选" value={filter} onChange={event => setFilter(event.target.value as typeof filter)}><option value="all">全部轨道</option><option value="joint">选中关节</option><option value="root">Root 位移</option></select></label><div className="kf-filter-status" aria-label="筛选轨道状态"><strong>{trackName}</strong><span>{trackStatus}</span></div><KeyNavigation frames={frames} frame={frame} playing={playing} onFrame={onFrame} timeline /></div>
+<label className="kf-time-field">秒<input aria-label="当前时间（秒）" type="number" min={0} max={duration} step={1 / 30} value={Number(frameTime(frame, duration).toFixed(6))} disabled={playing} onChange={event => { if (!event.target.value.trim()) return; const next = Number(event.target.value); if (Number.isFinite(next)) props.onTime(Math.max(0, Math.min(duration, next))); }} /></label>
     {props.playbackOptions}
     <details className="kf-disclosure kf-key-details"><summary>关键帧明细</summary>{frames.length ? <div className="kf-key-list" role="list" aria-label="关键帧列表">{frames.map(keyFrame => {
       const tracks = rotationTracks.filter(([, keys]) => keys!.some(key => key.frame === keyFrame)).length, root = sequence.root.some(key => key.frame === keyFrame);
       const trackLabel = filter === 'joint' && selectedJoint ? `${STAGE_JOINT_LABELS[selectedJoint]}旋转` : filter === 'root' ? 'Root 位移' : `${tracks ? `${tracks} 旋转` : ''}${tracks && root ? ' + ' : ''}${root ? 'Root' : ''}`;
       return <button key={keyFrame} role="listitem" className={keyFrame === frame ? 'selected' : ''} aria-label={`第 ${keyFrame} 帧关键帧`} disabled={playing} onClick={() => onFrame(keyFrame)}><Diamond size={12} /><strong>{keyFrame} <small>帧</small></strong><span>{frameTime(keyFrame, duration).toFixed(3)} 秒</span><small>{trackLabel}</small></button>;
     })}</div> : <div className="kf-empty">{empty}</div>}</details>
-    <details className="kf-disclosure kf-more-actions">
-      <summary>更多编辑操作</summary>
+    <div className="kf-more-actions">
       <div className="kf-disclosure-content kf-advanced-actions">
         <button className="button secondary compact" disabled={!editable || locked} onClick={props.onWriteJoint}><Diamond size={13} />K 当前关节</button>
         <button className="button secondary compact" disabled={locked} onClick={props.onWriteRoot}><Diamond size={13} />K 位移</button>
@@ -116,7 +218,7 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
           <span className="kf-clipboard-note">内存暂存 · 切换场景或刷新后清空</span>
         </div>
       </details>
-    </details>
+    </div>
     <details className="kf-disclosure kf-transfer-panel" aria-label="关键帧移动与复制">
       <summary>移动与复制关键帧</summary>
       <div className="kf-disclosure-content">
@@ -127,5 +229,19 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
       </div>
     </details>
     <details className="kf-shortcuts"><summary>键盘快捷键</summary><div id="editor-shortcuts-help"><p>先聚焦舞台。输入框与按钮保留原有键盘操作。</p><dl><div><dt>← / →</dt><dd>上一帧 / 下一帧</dd></div><div><dt>空格</dt><dd>播放 / 暂停</dd></div><div><dt>K / Delete</dt><dd>记录 / 删除当前关节；移动工具作用于 Root，IK 记录完整姿态</dd></div><div><dt>Ctrl / ⌘ + Z</dt><dd>撤销；加 Shift 重做</dd></div></dl><p>播放时只响应空格；镜像、观看和对话框中不编辑。离开草稿需要确认。</p></div></details>
+      </div></details>
+    </div>
+    {expanded && <div className="kf-lanes-viewport" aria-label="分轨时间线"><div className="kf-lanes" style={{ width: `calc(100% * ${zoom})` }}>
+      <div className="kf-ruler-row"><div className="kf-lane-label kf-zoom-controls"><button aria-label="缩小时间线" disabled={zoom === 1} onClick={() => setZoom(value => Math.max(1, value / 2))}><Minus size={12} /></button><span>{zoom}×</span><button aria-label="放大时间线" disabled={zoom === 8} onClick={() => setZoom(value => Math.min(8, value * 2))}><Plus size={12} /></button></div><div className="kf-ruler"><div className="kf-ruler-ticks" aria-hidden="true">{ticks.map(time => <span key={time} style={{ left: `${time / duration * 100}%` }}>{time}s</span>)}<span className="kf-end-tick" style={{ left: '100%' }}>{duration.toFixed(duration % 1 ? 2 : 0)}s</span></div><input aria-label="关键帧时间线进度" type="range" min={0} max={end} step={1} value={frame} disabled={playing} onChange={event => onFrame(Number(event.target.value))} /><span className="kf-ruler-playhead" style={{ left: `${frameTime(frame, duration) / duration * 100}%` }} aria-hidden="true" /></div></div>
+      <div className="kf-lane kf-audio-lane" data-track-id="audio" aria-label="音乐轨道"><div className="kf-lane-label"><Music2 size={12} /><span>音乐</span></div><div className="kf-lane-track kf-audio-content" data-frame-max={end} onClick={seekLane}>
+        {audio && audio.durationSeconds > 0 ? <button className={`kf-audio-clip ${drag?.kind === 'audio' && drag.moved ? 'dragging' : ''}`} aria-label="移动音频片段" title={`${audio.name} · 拖动对齐音乐`} disabled={locked || audio.disabled} data-offset-seconds={audioOffset} data-duration-seconds={audio.durationSeconds} style={{ left: `${audioOffset / duration * 100}%`, width: `${audio.durationSeconds / duration * 100}%` }} onPointerDown={event => beginDrag(event, { kind: 'audio', sourceOffset: audio.offsetSeconds, targetOffset: audio.offsetSeconds })} onPointerMove={moveDrag} onPointerUp={event => { if (event.pointerId === dragRef.current?.pointerId) finishDrag(); }} onPointerCancel={() => finishDrag(true)} onLostPointerCapture={() => finishDrag(true)} onClick={event => event.stopPropagation()}>
+          <svg className="kf-waveform" viewBox={`0 0 ${Math.max(wave.length, 1)} 24`} preserveAspectRatio="none" aria-hidden="true">{wave.map((value, index) => { const amplitude = Math.max(.5, Math.min(1, Math.abs(value)) * 11); return <line key={index} x1={index + .5} x2={index + .5} y1={12 - amplitude} y2={12 + amplitude} />; })}</svg><span className="kf-audio-name" style={{ left: `${Math.max(0, -audioOffset) / audio.durationSeconds * 100}%` }}>{drag?.kind === 'audio' && drag.moved ? `${audioOffset > 0 ? '+' : ''}${audioOffset.toFixed(3)} s` : audio.name}</span>
+        </button> : <span className="kf-no-audio">未关联音乐</span>}
+        <span className="kf-row-playhead" style={{ left: `${frameTime(frame, duration) / duration * 100}%` }} aria-hidden="true" />
+      </div></div>
+      {renderRow('root', '整体位移', sequence.root.map(key => key.frame), { kind: 'root' })}
+      {groups.map(group => { const groupFrames = [...new Set(group.joints.flatMap(joint => (sequence.rotations[joint] ?? []).map(key => key.frame)))].sort((a, b) => a - b); return <div key={group.id} className="kf-track-group">{renderRow(group.id, group.label, groupFrames, { kind: 'joints', joints: group.joints }, { selected: selectedGroup?.id === group.id, group: true })}{expandedGroups.has(group.id) && group.joints.map(joint => renderRow(joint, STAGE_JOINT_LABELS[joint], (sequence.rotations[joint] ?? []).map(key => key.frame), { kind: 'joint', joint }, { selected: selectedJoint === joint, child: true }))}</div>; })}
+    </div></div>}
+    {props.dirty && <div className="kf-draft-note" role="status">姿态草稿 · 尚未写入关键帧<button disabled={locked} onClick={props.onDiscard}>撤回草稿</button></div>}
   </section>;
 }

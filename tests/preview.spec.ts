@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { inflateSync } from 'node:zlib';
 import { expect, test, type Page } from '@playwright/test';
+import { clickRevealed } from './helpers';
 
 function waveFixture(duration = 20): Buffer {
   const sampleRate = 8000, samples = duration * sampleRate;
@@ -99,7 +100,7 @@ test('renders a nonblank 3D pose and advances audio time during playback', async
 
 test('previews a replacement, adopts only the selected octet, and supports undo/redo', async ({ page }) => {
   await ready(page);
-  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
   const before = await timelineLabels(page);
   await page.getByRole('listitem', { name: /^第2个八拍/ }).click();
   await expect(page.getByRole('slider', { name: '播放进度' })).toHaveValue('4');
@@ -131,7 +132,7 @@ test('previews a replacement, adopts only the selected octet, and supports undo/
 
 test('explains when no simpler action exists and offers a simpler complex action', async ({ page }) => {
   await ready(page);
-  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
   await page.getByRole('listitem', { name: /^第1个八拍/ }).click();
   const original = await timelineLabels(page);
   await page.getByRole('button', { name: '试试更简单' }).click();
@@ -145,10 +146,10 @@ test('explains when no simpler action exists and offers a simpler complex action
 
 test('uploads original fixture audio and restores saved project and identical audio bytes', async ({ page }) => {
   await ready(page);
-  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
   const wave = waveFixture();
   const expectedHash = createHash('sha256').update(wave).digest('hex');
-  await page.getByRole('button', { name: '导入音乐', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '导入音乐', exact: true, includeHidden: true }));
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('作品名称').fill('保存恢复测试组合');
   await dialog.getByLabel('上传音乐文件').setInputFiles({ name: 'original-fixture.wav', mimeType: 'audio/wav', buffer: wave });
@@ -184,7 +185,7 @@ test('uploads original fixture audio and restores saved project and identical au
 
 test('rejects invalid count ranges and clears the old take when CountMap changes', async ({ page }) => {
   await ready(page);
-  await page.getByRole('button', { name: '八拍编排', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
   await page.getByRole('button', { name: '调整', exact: true }).click();
   const dialog = page.getByRole('dialog'), confirm = dialog.getByRole('button', { name: '确认数拍，进入工作台' });
   await dialog.getByLabel('选取几个完整八拍').fill('3');
@@ -221,7 +222,7 @@ for (const width of [390, 320]) {
     const body = await overflow();
     expect(body.scroll).toBeLessThanOrEqual(body.width);
     await expect(page.getByRole('img', { name: '人体编舞动作预览' })).toBeVisible();
-    await page.getByRole('button', { name: '导入音乐', exact: true }).click();
+    await clickRevealed(page, page.getByRole('button', { name: '导入音乐', exact: true, includeHidden: true }));
     await expect(page.getByRole('dialog')).toBeVisible();
     const modal = await overflow();
     expect(modal.scroll).toBeLessThanOrEqual(modal.width);

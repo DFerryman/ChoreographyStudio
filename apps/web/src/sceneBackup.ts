@@ -207,14 +207,20 @@ function validateProject(value: unknown, context: ValidationContext): SceneProje
   const audioDuration = finite(object.audioDuration, '原音频时长');
   if (audioDuration < 16 || audioDuration > 600) fail('原音频必须是 16 秒至 10 分钟。');
   const history: SceneSnapshot[] = array(object.history, 1, SCENE_BACKUP_LIMITS.history, '历史').map(value => {
-    const snapshot = record(value, ['title', 'countMap', 'plan', 'take'], ['manual'], '历史条目', context);
+    const snapshot = record(value, ['title', 'countMap', 'plan', 'take'], ['manual', 'audioOffsetSeconds'], '历史条目', context);
     const countMap = validateCountMap(snapshot.countMap, audioDuration, context);
+    let audioOffsetSeconds: number | undefined;
+    if (own(snapshot, 'audioOffsetSeconds')) {
+      audioOffsetSeconds = finite(snapshot.audioOffsetSeconds, '音乐轨偏移');
+      if (Math.abs(audioOffsetSeconds) >= countMap.durationSeconds) fail('音乐轨偏移必须保留场景内的选段。');
+      if (Math.abs(audioOffsetSeconds * 30 - Math.round(audioOffsetSeconds * 30)) > 1e-9) fail('音乐轨偏移必须对齐 30 fps 整帧。');
+    }
     const plan = validatePlan(snapshot.plan, countMap, context);
     const take = snapshot.take === null ? null : validateTake(snapshot.take, countMap, context);
     if (plan && take && plan.id !== take.planId) fail('动作与编排 ID 不一致。');
     if (!take && snapshot.manual != null) fail('手 K 序列缺少权威动作。');
     const manual = snapshot.manual === undefined ? undefined : validateManual(snapshot.manual, countMap, take!, context);
-    return { title: text(snapshot.title, '作品名称'), countMap, plan, take, ...(manual ? { manual } : {}) };
+    return { title: text(snapshot.title, '作品名称'), countMap, plan, take, ...(manual ? { manual } : {}), ...(audioOffsetSeconds !== undefined ? { audioOffsetSeconds } : {}) };
   });
   const revision = integer(object.revision, 1, Number.MAX_SAFE_INTEGER, '作品版本');
   const teacherCheckedRevision = object.teacherCheckedRevision === null ? null : integer(object.teacherCheckedRevision, 1, revision, '试看版本');
