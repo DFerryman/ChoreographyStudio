@@ -45,7 +45,9 @@ async function backup(page: Page): Promise<Backup> {
   await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await downloading).path();
   expect(path).toBeTruthy();
-  return JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  const document = JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
+  return document;
 }
 
 const projectHash = (document: Backup) => createHash('sha256').update(JSON.stringify(document.scene.project)).digest('hex');
@@ -57,7 +59,12 @@ function sameCamera(actual: Camera, expected: Camera) {
     expect(value).toBeCloseTo([...expected.position, ...expected.target, expected.zoom ?? 1][i], 5);
   });
 }
-async function coordinateText(page: Page) { await reveal(page, page.getByLabel('相机世界坐标')); return page.getByLabel('相机世界坐标').innerText(); }
+async function coordinateText(page: Page) {
+  await reveal(page, page.getByLabel('相机世界坐标'));
+  const text = await page.getByLabel('相机世界坐标').innerText();
+  await closeDisclosures(page, '.scene-extras');
+  return text;
+}
 async function coordinateValues(page: Page) { return (await coordinateText(page)).match(/-?\d+\.\d+/g)?.map(Number) ?? []; }
 async function waitCamera(page: Page, camera: Camera) {
   await expect.poll(() => coordinateValues(page)).toEqual(camera.position.map(value => Number(value.toFixed(2))));

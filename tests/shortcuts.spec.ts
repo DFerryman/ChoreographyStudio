@@ -1,7 +1,7 @@
 import { editStageValue, expectStageValue, selectStageJoint } from './stageInteractions';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed, reveal } from './helpers';
+import { clickRevealed, closeDisclosures, reveal } from './helpers';
 
 type Snapshot = {
   countMap: { durationSeconds: number; sourceOffsetSeconds: number };
@@ -67,7 +67,9 @@ async function backup(page: Page): Promise<Backup> {
   await clickRevealed(page, download);
   const path = await (await downloading).path();
   expect(path).toBeTruthy();
-  return JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  const document = JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
+  return document;
 }
 
 async function stageFocus(page: Page) {

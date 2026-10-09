@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { Vector3 } from 'three';
 import { evaluatePose, sampleTake, type JointName, type Vec3 } from '../packages/core/src';
 import { isJointRotationWithinLimits } from '../packages/core/src/jointConstraints';
-import { clickRevealed, reveal } from './helpers';
+import { clickRevealed, closeDisclosures, reveal } from './helpers';
 import { backup, current, diagnostics, draft, frame, hiddenButton, jointPosition, numeric, openFixture, openRealism, projection, ready, save, screenshot, select } from './realismHelpers';
 
 const reports = new WeakMap<Page, ReturnType<typeof diagnostics>>();
@@ -105,6 +105,7 @@ test('@realism a foot contact survives Root editing, undo/redo, local saving and
   await clickRevealed(page, hiddenButton(page, '下载完整场景包'));
   const file = await (await download).path(); expect(file).toBeTruthy();
   const bytes = await readFile(file!);
+  await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
   await page.getByRole('button', { name: '场景', exact: true }).click();
   await page.getByRole('dialog', { name: '本机场景', exact: true }).getByRole('button', { name: '导入场景备份', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '导入场景备份', exact: true });

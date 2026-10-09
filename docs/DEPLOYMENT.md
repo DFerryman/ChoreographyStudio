@@ -12,6 +12,10 @@
 
 旧功能相关13场景经首12通过／1失败和仅空白选择测试helper纠正后focused1通过完成覆盖；原精度／动作断言未放宽，运行源与dist冻结复用，不记首13全绿。root接受新增6轮的桌面／手机／展开关节3图。准备提交最终运行版本并推送main，再实际部署和有界公网核验。
 
+实际运行[source b0599e2](https://github.com/DFerryman/ChoreographyStudio/commit/b0599e2d8b84b5ba872a832517f2013a69a55b4b)／tree `97bfc0d702c7b5e9f76494d9775cfe5b92730fdb` 已main，唯一运行上传03:17:51.255265–03:17:59.191705Z，4新／19复用，Cloudflare version18 `3709225d-3e2e-43b3-ab76-0513720c75bb`／100%，首次deployment `11e8ff00-1f4a-45a1-a990-ebc9b007a999`／03:17:57.556317Z。native读回运行SHA／tree、原Worker绑定和限频配置相符。有界标准curl HTTP25（23静态SHA＋两只读API）通过；首urllib403传输诊断和复用根页probe均另存，不隐去失败或把初始诊断算成功，细节见验证记录。
+
+初始对应CI37878546326／job113652628358主动取消：450基础／Worker类型通过，100浏览器仅2实际通过、首AI已失败，没有全量汇总。音乐测试定位和备份后菜单关闭仅作测试修正，音乐focused1／mockAI6通过，将推送对应新source CI。运行94文件／dist26保持，后续测试／文档提交复用这一已发布版本，不作另一次运行上传；公网新6和最后完整CI继续待验。
+
 ## v17 · 用户所选 06 人物（已上线，准确源码CI通过）
 
 Quaternius Superhero Male默认人物及display-2来源形体修正已完成本地验收；仅换默认人物，不加模型切换UI，不推进七组后续功能。421／421基础（22文件、15.36秒）、前端类型／Vite构建通过；Worker源及配置未变，实际类型检查EXIT0复用，首默认日志路径ENOENT与第二继承代理warning留档。主JS `index-CBtn1tpp.js`1125855B／SHA256 `2d5eb17e74847f1bf0dc81199c2d3ac6e5a48533d3f36d8890b07027a4c714fd`；CSS63251B／SHA `ba41e19f29da5255caa74edd5523fd67e98f12ef2038e7b1d5506da08463b375`。public模型README21099B／SHA `14a040b502495cbd844209ec056681a9da82feeb7cde18035215d068b5dd5202`及六新来源资产冻结，不随最后Markdown结果回填改变。

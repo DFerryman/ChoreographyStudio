@@ -18,6 +18,12 @@
 
 旧编辑相关13项已由首批 **12／13（5.4分钟）** 加必要修正后的 **focused1／1（21.4秒）** 覆盖，不记首13全通过。唯一失败为测试用旧右上“空白”坐标清除选择时误点新浮层相机工具；共享helper改为先确认实际可见canvas命中，再真实点击空白候选点，未force、未写DOM选择或改运行源，原动作／5微米／历史／原音乐断言保持。覆盖320／390／768／1440布局、desktop／mobile稀疏K／SLERP插值、各轨删除与空操作、作用域导航、草稿写／放弃／取消、碰撞复制／移动、Undo／保存／重开。此前default网络隔离导致本地Vite不可见、0用例启动退出另据保留，未计业务失败；授权网络环境复用固定Vite成功。6项layout／timeline含内联error／warning／API0断言；其余旧回归未把所有warning落JSON，不能虚称13份零warning文件。root另亲审最终展开关节图，累计该新6轮3图接受。运行94文件／dist26文件前后SHA保持，真实AI0；完整准确源码CI与发布继续待实际回执。
 
+运行源码 [b0599e2](https://github.com/DFerryman/ChoreographyStudio/commit/b0599e2d8b84b5ba872a832517f2013a69a55b4b)／tree `97bfc0d702c7b5e9f76494d9775cfe5b92730fdb` 已推送main并以remote读回核实。Wrangler实际部署03:17:51.255265–03:17:59.191705Z成功，4新／19复用静态资产，Cloudflare version18 `3709225d-3e2e-43b3-ab76-0513720c75bb` 于03:17:56.952002Z创建，首次deployment `11e8ff00-1f4a-45a1-a990-ebc9b007a999` 于03:17:57.556317Z创建、100%；native版本／部署读回绑定上述运行SHA／tree。Worker绑定、限频和无D1写入保持。标准curl有界HTTP25检查（23静态SHA／bytes＋health／capabilities两GET）于03:20:48–03:23:39.091803Z通过，根页既有probe复用，后续脚本只增加24请求；首urllib传输诊断因403退出，23静态请求已提交但单项结果未保存，业务API0，不能记成成功HTTP或运行资产失败。随后标准curl200和最终SHA核验结果分别保留，无重复公开轮询。
+
+初始准确 [CI37878546326](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37878546326)／job113652628358／attempt1／main push被主动取消，最终03:19:55Z updated／job03:19:54Z结束，不能记完整100通过。其基础450／24文件和Worker类型实际通过，browser100已开始但仅2项accessibility实际通过；03:19:46.1907409Z已发生首AI用例失败，取消后没有完整browser汇总。原始唯一job日志55156B／SHA256 `c90e03089f11a982e5b305603be8acc858b3d3e184f28fb8532df8c9f202868d`保留。取消原因原先是本地中止32批发现音乐名定位遗漏；该批实际2通过／1音乐失败，第4项被中止，不算32全通过。音乐测试兼容无take时编排音乐卡片和手动时间线音频片段后，唯一focused1／1（7秒）通过，所有原CountMap／音乐字节断言保持，首次anchored grep收集0另存。
+
+AI失败随后在本地mock首项真实0／1（61.574秒）复现：备份helper未收起新顶栏菜单，挡住候选预览按钮。仅修正测试读回备份后原生键盘关闭菜单，并统一独立helper同类副作用；未force、未改动作断言或运行源。最终mock AI **6／6** 于03:25:57.715Z开始、73.801秒通过，6份实际errors／warnings0，7次POST全部fixture fulfill、真实AI／付费0；429／502各一条是明确预期mockHTTP错误，不能称所有expectedHTTP0。将推送这些测试修正以启动对应源码的新CI，不手动rerun，不重复上传未变运行产物；公网新6与新CI结果另据实际记录。
+
 ## Version 17 · 用户选定 06 人物（已上线，准确源码CI通过）
 
 选型证据为八候选各三实际GLB／glTF视图，共24个渲染视图及总览；05最终名“写实柔和”。用户明确选定06 Quaternius Superhero Male力量型。生产仅默认这一CC0标准免费包人体，不新增切换UI；原65骨／8483顶点／14318三角形／四权重、原几何／TRS／inverse bind保存。原25作者控制、K／Root／精确时刻／CountMap／历史／limits／IK／脚锁／步伐契约保持，显式异常作者K最高优先。

@@ -104,7 +104,9 @@ async function openFixture(page: Page, legacyViolations = false) {
 async function backup(page: Page): Promise<Backup> {
   const pending = page.waitForEvent('download'); await clickRevealed(page, hiddenButton(page, '下载项目备份'));
   const path = await (await pending).path(); expect(path).toBeTruthy();
-  return JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  const document = JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
+  return document;
 }
 async function numeric(page: Page, label: string, value: number) {
   const input = page.getByRole('spinbutton', { name: label, exact: true }); await input.fill(String(value)); await input.press('Tab');
@@ -128,7 +130,9 @@ async function position(page: Page, joint: Joint): Promise<Vec3> {
   await expect(label.locator('strong')).toContainText('Y');
   // Pose evaluation reports the newly selected landmark on its next frame.
   await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-  return Array.from((await label.locator('strong').innerText()).matchAll(/[XYZ]\s*(-?\d+(?:\.\d+)?)/g), match => Number(match[1])) as Vec3;
+  const position = Array.from((await label.locator('strong').innerText()).matchAll(/[XYZ]\s*(-?\d+(?:\.\d+)?)/g), match => Number(match[1])) as Vec3;
+  await closeDisclosures(page, '.scene-extras');
+  return position;
 }
 async function projection(page: Page, state: Camera) {
   await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more');

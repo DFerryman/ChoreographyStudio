@@ -64,7 +64,9 @@ async function backup(page: Page): Promise<Backup> {
   await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await downloading).path();
   expect(path).toBeTruthy();
-  return JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  const document = JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
+  return document;
 }
 async function save(page: Page) {
   await page.getByRole('button', { name: '保存', exact: true }).click();
@@ -187,6 +189,7 @@ async function expectNumber(page: Page, label: string, value: number, tolerance 
 async function worldPosition(page: Page): Promise<number[]> {
   await reveal(page, page.getByLabel('选中关节世界坐标', { exact: true }));
   const text = await page.getByLabel('选中关节世界坐标', { exact: true }).locator('strong').innerText();
+  await closeDisclosures(page, '.scene-extras');
   return Array.from(text.matchAll(/[XYZ]\s*(-?\d+(?:\.\d+)?)/g), match => Number(match[1]));
 }
 async function expectWorld(page: Page, expected: Vec3) {

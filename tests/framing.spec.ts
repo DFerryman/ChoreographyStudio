@@ -121,7 +121,9 @@ async function backup(page: Page): Promise<Backup> {
   const pending = page.waitForEvent('download');
   await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await pending).path(); expect(path).toBeTruthy();
-  return JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  const document = JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
+  return document;
 }
 async function audioHash(page: Page) {
   return page.locator('audio').evaluate(async (audio: HTMLAudioElement) => {
@@ -139,9 +141,15 @@ async function joint(page: Page, value: Joint) {
   await selectStageJoint(page, value as Parameters<typeof selectStageJoint>[1]);
   await expect(page.getByLabel('选中关节世界坐标').locator('strong')).toContainText('Y');
 }
-async function cameraText(page: Page) { await reveal(page, page.getByLabel('相机世界坐标')); return page.getByLabel('相机世界坐标').innerText(); }
+async function cameraText(page: Page) {
+  await reveal(page, page.getByLabel('相机世界坐标'));
+  const text = await page.getByLabel('相机世界坐标').innerText();
+  await closeDisclosures(page, '.scene-extras');
+  return text;
+}
 async function cameraAction(page: Page, kind: 'whole' | 'joint', expectChange = true) {
   const previous = await cameraText(page);
+  await closeDisclosures(page, '.studio-more, .scene-extras, .kf-more');
   await clickRevealed(page, kind === 'whole' ? whole(page) : focus(page));
   await expect(page.locator('.viewer-muted')).toHaveText('自由视角');
   if (expectChange) await expect.poll(() => cameraText(page)).not.toBe(previous);

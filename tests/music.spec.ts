@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed } from './helpers';
+import { clickRevealed, closeDisclosures } from './helpers';
 
 type Diagnostics = { errors: string[]; warnings: string[]; apiRequests: string[] };
 type DecodeRequest = { ready: boolean; finished: boolean; release: (success: boolean) => void };
@@ -113,12 +113,13 @@ async function confirmAndVerify(page: Page, name: string, expectedHash: string, 
   await expect(confirm(page)).toBeEnabled();
   await confirm(page).click();
   await expect(musicDialog(page)).toHaveCount(0);
-  await expect(page.locator('.kf-audio-name')).toHaveText(name);
+  await expect(page.locator('.kf-audio-name, .music-file strong').filter({ visible: true })).toHaveText(name);
   const downloading = page.waitForEvent('download');
   await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await downloading).path();
   expect(path).toBeTruthy();
   const exported = JSON.parse(await readFile(path!, 'utf8'));
+  await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
   expect(exported.scene.audioName).toBe(name);
   expect(exported.scene.project.audioDuration).toBe(duration);
   await page.getByRole('button', { name: '保存', exact: true }).click();

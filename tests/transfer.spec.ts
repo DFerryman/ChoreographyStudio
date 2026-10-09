@@ -105,7 +105,9 @@ async function backup(page: Page): Promise<Backup> {
   const pending = page.waitForEvent('download');
   await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await pending).path(); expect(path).toBeTruthy();
-  return JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  const document = JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
+  return document;
 }
 async function numeric(page: Page, label: string, value: number) {
   await editStageValue(page, label, value);

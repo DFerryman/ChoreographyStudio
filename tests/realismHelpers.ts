@@ -74,7 +74,9 @@ export async function openFixture(page: Page, floating = false, mutate?: (source
 export async function backup(page: Page): Promise<Backup> {
   const pending = page.waitForEvent('download'); await clickRevealed(page, hiddenButton(page, '下载项目备份'));
   const path = await (await pending).path(); expect(path).toBeTruthy();
-  return JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  const document = JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
+  return document;
 }
 export async function numeric(page: Page, label: string, value: number) {
   await editStageValue(page, label, value);
@@ -85,7 +87,9 @@ export async function jointPosition(page: Page): Promise<Vec3> {
   const label = page.getByLabel('选中关节世界坐标', { exact: true });
   await reveal(page, label);
   await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-  return Array.from((await label.locator('strong').innerText()).matchAll(/[XYZ]\s*(-?\d+(?:\.\d+)?)/g), match => Number(match[1])) as Vec3;
+  const position = Array.from((await label.locator('strong').innerText()).matchAll(/[XYZ]\s*(-?\d+(?:\.\d+)?)/g), match => Number(match[1])) as Vec3;
+  await closeDisclosures(page, '.scene-extras');
+  return position;
 }
 export async function save(page: Page) {
   await page.getByRole('button', { name: '保存', exact: true }).click(); await expect(page.locator('.save-state')).toHaveText('已保存到本机');

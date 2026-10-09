@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed } from './helpers';
+import { clickRevealed, closeDisclosures } from './helpers';
 
 // Independent legacy-compatible scene: a non-uniform base, moving Root and
 // Head arc expose accidental rebaking or data loss during local backup import.
@@ -103,7 +103,9 @@ async function backup(page: Page): Promise<Backup> {
   const pending = page.waitForEvent('download');
   await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await pending).path(); expect(path).toBeTruthy();
-  return JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  const document = JSON.parse(await readFile(path!, 'utf8')) as Backup;
+  await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
+  return document;
 }
 async function numeric(page: Page, label: string, value: number) {
   await editStageValue(page, label, value);
@@ -137,7 +139,9 @@ async function bundle(page: Page) {
   const downloaded = await pending, path = await downloaded.path();
   expect(downloaded.suggestedFilename()).toMatch(/\.choreo$/);
   expect(path).toBeTruthy();
-  return readFile(path!);
+  const bytes = await readFile(path!);
+  await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
+  return bytes;
 }
 async function openImport(page: Page) {
   await page.getByRole('button', { name: '场景', exact: true }).click();
@@ -367,6 +371,8 @@ test('@backup mobile export/import preserves draft cancellation and current scen
   await guard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
   const path = await (await pending).path(); expect(path).toBeTruthy();
   const bytes = await readFile(path!); expect(rawBundle(bytes).audio).toEqual(source.wave);
+  await expect(guard(page)).toHaveCount(0);
+  await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
   await numeric(page, 'Root X 位移（米）', 2);
   await openImport(page); await chooseBackup(page, bytes);
   await expect(importConfirm(page)).toBeEnabled();
