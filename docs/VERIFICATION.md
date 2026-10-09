@@ -1,5 +1,29 @@
 # 预览验证记录
 
+## Version 21 · 摄像机轨道同源 CI 与公网分批验收完成
+
+已发布并验证的运行源码为 [29d56d23](https://github.com/DFerryman/ChoreographyStudio/commit/29d56d23a22c5a55c6da8a263d01515e10fc6323)，tree `07def2ca48c8cc594a7e83dd21b8526b4dd2f983`。Camera采用独立精确秒轨道，显式编辑、查看手势、取消、历史和原生场景回环完成本轮验收；摄像机bake仍仅为需求，未实现。下方提交前状态、开发失败和AF历史正文按原字节保留；其当时待发布状态由本段实际收据更新。
+
+| 本轮实际证据 | 结果与范围 |
+| --- | --- |
+| 本地最终 | Camera batch9 4／4，171594.342ms，84 source实际bytecopy不变；旧3为3／3，74228.848ms，89 source不变。最终foundation619／32 files、34.26s；TypeScript／Vite1952模块580ms和Worker类型EXIT0。原本地回执与审图见下段 |
+| 准确 main push CI | [37933375186](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37933375186)／job113829312682／attempt1，12:56:35–13:10:31Z success；619／619、32唯一文件行合计619，29.67s；Vite1952模块614ms、Worker通过 |
+| CI实际离线与浏览器 | Python3.12.15／NumPy2.3.5／SciPy1.17.0；fit核对17碰撞体、8483中性点全覆盖，6offline通过。10 browser文件、IDs1..46各一次：45实际通过，缺失private point附件case22 skip1，12.5m、failed／flaky0；Camera IDs4..7通过。CI是portable fixture；真实公开项目回环由本地及公网另行证明 |
+| 原生 Cloudflare | version25 `d51b3db7-2757-4e64-b5db-9a97c7d82721`／tag v21-camera-track，12:57:45.175978Z；deployment `2e98bb48-df0e-4def-a06d-3fdf2e392de6`，12:58:57.455112Z，单一100%。source／tree注释与5绑定、AI2／60、API20／60、SPA／API-first／headers实际读回一致 |
+| 正常TLS HTTP | 原有界5／5，13:00:09.204091–13:00:13.958433Z，verify0／retry0；root、HTML引用mainJS／CSS bytes／SHA精确匹配dist，health／capabilities两只读GET成功；未追加HTTP |
+| 首批公网原结果 | 5通过／1失败；13:00:11.012Z，200113.757ms。camera第4例应用／原源／原音乐断言及console／API／TLS／model均通过，旧scratch failedRequests将旧audio blob正常取消记为失败；原失败仍保留 |
+| 唯一受影响focused复验 | 原camera第4例1／1，EXIT0；13:16:08.102Z，77635.108ms。仅scratch观察分类修正，原测试断言与生产代码不变；rawFailedRequests1、expectedMediaCancellations1、未知failedRequests0 |
+| 公网合并结论 | 取首批5个真正通过流程＋focused1个通过流程：6个独立流程、2批、7次尝试。不是单批6／6；原首批failed1不改写。selected流程errors／warnings／pageErrors／API及未知failedRequests0，正常TLS／secureContext=true |
+| 最终冻结与审图 | 194文件：runtime81／dist26／tests69／offline16／delivery2；发布后added／removed／changed／invalidGit0，168源码Git blobs与29d56d23逐字节相同，inventory `d8ebf7910998524fd289d1ede533e6c774eb302303f83e3f0f1a198270d751da`。Root亲审首批6图及focused1图accepted；图不将首批failure变成pass |
+
+七次实际attempt共17个document响应200、17次GLB读取；合并选取的六个通过流程为14个document／14次GLB读取。所有实际模型200／glTF／480376B，SHA `6570b23a63a0a5b87ad3fa5f8d7a24536c8e7fc3ceb03d28893cb48966cc6527`与冻结模型一致；ignoreHTTPSErrors=false。浏览器业务API0；有界HTTP包含上述两只读GET；真实Workers AI／付费推理／D1写入／新增图片上传0。
+
+focused实际取消是同文档、同audio元素的旧src：先前归属可见，detach比GET／media／同源blob／ERR_ABORTED早11ms，19ms后同元素安装不同src；2s关联范围内，实际beforeunload分类0。旧首批trace与raw失败完整保留；未知请求、console／pageErrors／API／TLS仍严格失败。证据观察DOM src归属／替换，不证明pause／load／revoke每句调用；audioAuditErrors为空仅针对最终当前文档flush，未泛称旧文档传输错误全部汇总。
+
+真实公开complex-street-dance项目26710050B／5040 poses及原WAV7200044B在本地和公网完整回环，源SHA `e5f3d969c550fa6d401706b08cbe8beafb80a9346e1029e4d2c7a10a906afad5`；它不是缺失私人附件，音乐不上传服务器。两份spec只替换Playwright import，逆变换与Git原断言逐字节一致，三个helper原样。桌面部分author／body取景的脚部可能被既有timeline或download notice遮挡，不承诺所有取景全身无遮挡。
+
+首批report1312555B／SHA `a01d22f2cbfa970d1a6598160d34b029ddbe7e984c2e26524d3a5998f7d329bd`；focused report257993B／SHA `8bbdd27f60acb03b6671e8d12aad62100fa0781a84c48aa394d73e60ead87304`；CI原log98795B／SHA `152d77fcf0b1a4c9e00ed074a6f1d1eb366a11576374619aea13e09c7ccc0f96`。汇总为 `work/camera-release/public-final-evidence-index.json`、`public-combined-final-audit.json`、`public-copy-review.json`和`ci-29d56d23/final-index.json`。首长期CI watch因凭据401退出为工具观察，独立新进程poll与原log下载随后成功；没有workflow rerun。后续docs-only提交／同UUID注释更新不代表新增runtime上传或新的浏览器验收。
+
 ## Version 21 · 精确秒摄像机轨道（本地验证完成，发布待实际回执）
 
 本轮新增独立摄像机轨道：显式选中 Camera 后记录精确秒 position／target／zoom，与项目历史及场景备份一起保存；查看手势、取景、seek／播放、数值编辑、拖动／改时／删除和取消分别验证。原作者关节／Root K、采样动作与原音乐字节保持。摄像机 bake 仅记录未来需求，本轮没有实现。

@@ -1,6 +1,6 @@
 # 实现状态
 
-## Camera Track（已实现，本地验收完成；源码发布待完成）
+## Camera Track（已上线，准确源码CI通过）
 
 本轮完成两阶段制作的第一阶段镜头编辑，继续优先快速编舞与操作效率。独立“镜头（Camera）”轨道保存位置、目标和可选缩放，以精确秒值选取、直接操作／数值编辑、自动记录、拖K时间、删除和一次撤销；不把相机写入Root、关节或manual.pointEdits，不重新烘焙舞蹈。
 
@@ -11,12 +11,16 @@
 | 新镜头浏览器 | 独立final9批4／4，12:41:05.467Z开始、171.594342秒，EXIT0且skip／unexpected／flaky0；四份errors／warnings／expected HTTP／API均0，84源码及最终spec运行前后逐字节相同。 |
 | 旧动作与观看回归 | 独立3／3，12:46:54.243Z开始、74.228848秒，EXIT0且skip／unexpected／flaky0；89源码SHA相同。两个point用例errors／warnings／expected HTTP／API均0，旧camera例只errors／warnings0。 |
 | 真实作品与图审阅 | 26,710,050字节原包、5,040原姿态、7,200,044字节原音乐严格核对；相机编辑／保存重开／导出重导保留Take／baseTake／manual、原网格与音频。Root亲审4张实际桌面／390px和原音乐恢复图接受；不保证任意取景下全身均不被浮动Timeline遮住。 |
-| 准确源码与发布 | 新源码CI、GitHub main、Cloudflare版本／部署与公网验收仍待实际结果，不能把本地通过记为已发布。 |
+| 准确源码与发布 | main29d56d23／tree07def2ca，CI37933375186／job113829312682／attempt1实际success：619基础32文件、离线fitcheck＋6测试、类型构建／Worker，45浏览器通过10文件，私有case22跳过1。Cloudflare native25／100%及正常TLS HTTP5／5已核对。 |
 | 高精度烘焙 | 仅需求与规划，未实现。编舞完成后按舞蹈／镜头Timeline计算更高精度碰撞、动作、骨骼和蒙皮，以无抖动为未来验收目标，输出可播放不可编辑视频并保留可编辑原项目。 |
 
 最终基础日志SHA256：`4e967e53f8689f2ba0dc2435903bf760c77f08428b9552c12e8250e71e4837bb`；Worker日志：`cc927123b7329142ee2e78d036f6febc4298b10f78b7f5571bda7706c983a40e`。新4报告：`7d6c09ee943f26180e17136985c94d8beb75c240e8533f506d3bf78e6124f6fe`；旧3报告：`85668d5c113aa3a5274e74ef788798aa0a963220d4ef6bee63055f48a9b7fd0b`。此前各批失败／修复保留在[验证](VERIFICATION.md)，以上最终批不冒充首轮通过；[部署](DEPLOYMENT.md)按真实发布另行记录。
 
 人物经常替换时继续使用v20保留的通用离线算法和独立模型适配配置，从新几何重算并校验模型／骨架／版本。当前17凸包仅保护实时编辑，不能代替完整蒙皮碰撞或第二阶段精度、稳定性的验收。下方所有历史正文与既有证据保留。
+
+[运行源码29d56d23](https://github.com/DFerryman/ChoreographyStudio/commit/29d56d23a22c5a55c6da8a263d01515e10fc6323)／tree `07def2ca48c8cc594a7e83dd21b8526b4dd2f983`已进入main。准确[CI37933375186](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37933375186)／job113829312682／attempt1于2026-10-09 12:56:35–13:10:31 UTC实际success：619／619基础32文件、离线拟合--check及6个Python测试、前端类型／构建、Worker类型，以及45个实际浏览器通过（10文件）；私有case22跳过1不计通过。CI镜头4例使用可公开提交的便携fixture，真实5,040姿态包由本地与公网单独验证。 Cloudflare native25 `d51b3db7-2757-4e64-b5db-9a97c7d82721`于12:57:45.175978Z创建，`2e98bb48-df0e-4def-a06d-3fdf2e392de6`于12:58:57.455112Z部署100%，原生记录绑定上述准确源码／tree；正常TLS HTTP5／5，静态字节严格相同。
+
+公网首批于13:00:11.012Z开始、200.113757秒，实际5／6，原report与失败保留。第4例功能和原动作／音频断言已完成，scratch网络审计把已归属旧owned媒体的正常源切换ERR_ABORTED列为失败；后续仅修改scratch审计，按已观察的同源blob／HTMLAudio元素、原URL、实际src离开或同URL主文档跳转及2秒内转换证据识别取消，保留原始事件，未知错误仍严格失败。仅对原第4例做一次focused补验：13:16:08.102Z开始、77.635108秒，实际EXIT0／1／1通过；原始failed request1保留并严格归属为expected owned媒体取消1，unexpected failed0，errors／warnings／pageerror／API／audioAuditErrors均0，3主文档200及3GLB正确。复用首批另外5个通过用例，最终6个独立流程跨两批、7次实际尝试覆盖；不能称首批6／6或第二次整6。 Root已亲审首批6张与focused1张共7张实际公网图并接受，但图接受不改变首批5／6结论；桌面部分取景脚部仍可能被既有Timeline遮挡。生产source／dist／原验收tests保持冻结，未新增整6公网批次。
 
 ## v20 · 人物混合碰撞体（实施、验证中）
 

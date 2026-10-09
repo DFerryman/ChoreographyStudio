@@ -1,6 +1,6 @@
 # 八拍 · Choreo Studio
 
-## Camera Track 与两阶段制作（镜头编辑已实现，本地验收完成）
+## Camera Track 与两阶段制作（镜头编辑已上线验证，准确源码CI通过）
 
 当前第一阶段优先快速编舞与操作响应，允许实用的简化计算／碰撞代理。Timeline已加入独立“镜头（Camera）”轨道：精确选秒后直接调整镜头位置、目标或缩放，完成实际变化时自动记录，只形成一次撤销；镜头K可直接拖时间或删除。普通观看、取景与导航继续作为观看设置，显式选择镜头轨道后才自动写镜头K。相机独立随历史、本机保存及完整备份保留，不改Root、25关节、Take／baseTake／manual、源时刻或原音乐，旧作品兼容。
 
@@ -8,7 +8,9 @@
 
 本地完整检查619／619（32文件，34.26秒）、前端类型与Vite构建（1952模块，580ms）及Worker类型通过。新Camera浏览器4／4（2026-10-09T12:41:05.467Z开始，171.594342秒）与旧动作／观看回归3／3（12:46:54.243Z开始，74.228848秒）是两个独立批次，均无失败、跳过或flaky。 新4例的errors／warnings／expected HTTP／API均为0；旧3例中两个point用例这四项均为0，旧camera用例只记录errors／warnings为0，不扩大到未记录的API字段。
 
-真实26,710,050字节舞蹈包的5,040原姿态与7,200,044字节原音乐严格往返保持。新4例运行前后84源码与最终spec逐字节一致；旧3例89源码SHA一致。Root另行亲审4张实际桌面／390px及原音乐恢复图并接受，图片接受与数值／音频无损断言分别计；既有浮动时间线仍可能遮住特定取景的脚部。 准确新源码CI、GitHub main、Cloudflare版本／部署与公网验收仍待实际完成；以下旧版本证据不替代本轮发布。 实际证据见[验证](docs/VERIFICATION.md)与[部署](docs/DEPLOYMENT.md)。
+真实26,710,050字节舞蹈包的5,040原姿态与7,200,044字节原音乐严格往返保持。新4例运行前后84源码与最终spec逐字节一致；旧3例89源码SHA一致。Root另行亲审4张实际桌面／390px及原音乐恢复图并接受，图片接受与数值／音频无损断言分别计；既有浮动时间线仍可能遮住特定取景的脚部。 [运行源码29d56d23](https://github.com/DFerryman/ChoreographyStudio/commit/29d56d23a22c5a55c6da8a263d01515e10fc6323)／tree `07def2ca48c8cc594a7e83dd21b8526b4dd2f983`已进入main。准确[CI37933375186](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37933375186)／job113829312682／attempt1于2026-10-09 12:56:35–13:10:31 UTC实际success：619／619基础32文件、离线拟合--check及6个Python测试、前端类型／构建、Worker类型，以及45个实际浏览器通过（10文件）；私有case22跳过1不计通过。CI镜头4例使用可公开提交的便携fixture，真实5,040姿态包由本地与公网单独验证。 Cloudflare native25 `d51b3db7-2757-4e64-b5db-9a97c7d82721`于12:57:45.175978Z创建，`2e98bb48-df0e-4def-a06d-3fdf2e392de6`于12:58:57.455112Z部署100%，原生记录绑定上述准确源码／tree；正常TLS HTTP5／5，静态字节严格相同。
+
+公网首批于13:00:11.012Z开始、200.113757秒，实际5／6，原report与失败保留。第4例功能和原动作／音频断言已完成，scratch网络审计把已归属旧owned媒体的正常源切换ERR_ABORTED列为失败；后续仅修改scratch审计，按已观察的同源blob／HTMLAudio元素、原URL、实际src离开或同URL主文档跳转及2秒内转换证据识别取消，保留原始事件，未知错误仍严格失败。仅对原第4例做一次focused补验：13:16:08.102Z开始、77.635108秒，实际EXIT0／1／1通过；原始failed request1保留并严格归属为expected owned媒体取消1，unexpected failed0，errors／warnings／pageerror／API／audioAuditErrors均0，3主文档200及3GLB正确。复用首批另外5个通过用例，最终6个独立流程跨两批、7次实际尝试覆盖；不能称首批6／6或第二次整6。 Root已亲审首批6张与focused1张共7张实际公网图并接受，但图接受不改变首批5／6结论；桌面部分取景脚部仍可能被既有Timeline遮挡。生产source／dist／原验收tests保持冻结，未新增整6公网批次。 实际证据见[验证](docs/VERIFICATION.md)与[部署](docs/DEPLOYMENT.md)。
 
 ## v20 · 分部位混合碰撞体（实现与验证中）
 

@@ -1,5 +1,27 @@
 # Cloudflare 预览部署
 
+## v21 · 摄像机轨道已发布，准确 CI 与分批公网验收完成
+
+[打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。运行源码 [29d56d23](https://github.com/DFerryman/ChoreographyStudio/commit/29d56d23a22c5a55c6da8a263d01515e10fc6323)／tree `07def2ca48c8cc594a7e83dd21b8526b4dd2f983`，冻结inventory `d8ebf7910998524fd289d1ede533e6c774eb302303f83e3f0f1a198270d751da`。Camera独立精确秒轨道／历史／原场景回环已验证；未来bake只为需求。下方提交前和AF正文全部原字节保留。
+
+| 实际发布项 | 同源原生收据 |
+| --- | --- |
+| Cloudflare version | 25／`d51b3db7-2757-4e64-b5db-9a97c7d82721`／v21-camera-track／2026-10-09T12:57:45.175978Z，upload EXIT0 |
+| 100%部署 | `2e98bb48-df0e-4def-a06d-3fdf2e392de6`／12:58:57.455112Z，deploy EXIT0，单一新version100%；两边source／tree正确 |
+| 配置实际审计 | AI、ASSETS、RELEASE_STAGE、AI_RATE_LIMITER、API_RATE_LIMITER；AI2／60s与API20／60s及原namespace；SPA fallback、/api/* worker-first、三安全headers符合冻结配置 |
+| 本地与准确CI | 最终Camera4／4、旧3／3、619基础／32 files、前端及Worker通过；main push run37933375186／job113829312682／attempt1 success，6offline／fit检查、619实际文件行、build／Worker通过；browser10files、45实际pass＋private附件case22 skip1，12.5m |
+| 有界HTTP | 已执行原5／5，13:00:09.204091–13:00:13.958433Z，normal TLS verify0／retry0；root/mainJS/CSS逐bytes／SHA与dist相同，health/capabilities只读GET；不新增请求 |
+| 首批公网 | 原5／6通过，13:00:11.012Z／200113.757ms；第4camera例仅旧scratch将旧audio media取消记为failed，原report不改写 |
+| 受影响focused | 第4camera例单独1／1、EXIT0，13:16:08.102Z／77635.108ms；生产与原断言不变；实际raw media cancel1、expected1、unknown0 |
+| 合并验收口径 | 首批5个真正pass＋focused1 pass＝6个独立流程／2批／7尝试；不是单批6／6。正常TLS、模型SHA、应用诊断／API均核对；Root亲审首批6图＋focused1图accepted，审图不改变原failure |
+| 发布后同源核对 | runtime81／dist26／tests69／offline16／delivery2，194文件完整freeze不变、168Git源码blob精确、added／removed／changed／invalidGit0 |
+
+实际7次attempt共17document200／17模型读，合并6个通过流程14document／14模型读；所有GLB480376B／SHA `6570b23a63a0a5b87ad3fa5f8d7a24536c8e7fc3ceb03d28893cb48966cc6527`。首批report SHA `a01d22f2cbfa970d1a6598160d34b029ddbe7e984c2e26524d3a5998f7d329bd`，focused SHA `8bbdd27f60acb03b6671e8d12aad62100fa0781a84c48aa394d73e60ead87304`；CI原log SHA `152d77fcf0b1a4c9e00ed074a6f1d1eb366a11576374619aea13e09c7ccc0f96`。证据索引 `work/camera-release/public-final-evidence-index.json`，详细范围见 [VERIFICATION.md](VERIFICATION.md)。
+
+scratch修正仅观察同文档／同audio元素先前旧src归属、精确同源GET/media/ERR_ABORTED及2s内不同src替换；本次detach -11ms／replacement +19ms，beforeunload分类0，raw失败完整保留，未知请求与console／API／TLS仍严格失败。它没有生产runtime修复，也不证明逐句cleanup调用或旧文档传输错误全汇总。首watch401仅工具认证失败，后fresh native poll和官方原日志成功，无workflow rerun。
+
+真实公开动作5040 poses／原WAV7200044B由local／public回环证明；CI使用portable fixture，不宣称真实包CI回环。浏览器业务API0，HTTP两只读API另计；AI／付费推理／D1写入／新增图像上传0。音乐留在浏览器；桌面部分取景脚部可能被已有浮动timeline／下载notice遮挡，不作全取景无遮挡承诺。后续仅docs-only提交与既有UUID注释／100%更新，不新增upload、browser或CI运行。
+
 ## v21 · 精确秒摄像机轨道（本地检查完成，尚待发布）
 
 本轮Camera轨道及历史／场景备份回环已完成本地验收。新main source／tree尚待Root提交／push；准确CI、新Cloudflare version／单一100% deployment、正常TLS有界HTTP与唯一公网批次均尚待实际回执。当前入口 [工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/) 的已发布证据仍对应下方AF v20源码，不能作为本轮Camera通过记录。
