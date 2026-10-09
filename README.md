@@ -12,6 +12,21 @@
 
 ## v18 · 极简场景编辑与多轨时间线（已实现，发布验收中）
 
+## v18 · 极简场景、多轨时间线与可导入舞蹈包（已上线验证）
+
+[打开应用](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。以场景内摆姿 → 选择时间 → 添加／更新K为主；Timeline覆盖底部并可收起，音乐、Root、身体组与关节分轨编辑、拖动和撤销，次要操作按需打开。缩放滑杆、全段／逐帧与Ctrl滚轮调整帧间距；空白拖动平移，K和音乐拖到边缘自动滚动。暗色时间线与清晰轨头保持紧凑。
+
+独立场景包已包含动作和原创参考节奏，可二次修改；不含表演原曲，不声称某首流行歌的原版编舞：
+
+- [复杂街舞37.5秒](https://choreo-scene-packs.danuberiverferryman.workers.dev/complex-street-dance.choreo)：完整真人动捕，包含转身、倒置与地板技巧。
+- [完整单人Salsa56.25秒](https://choreo-scene-packs.danuberiverferryman.workers.dev/salsa-dance.choreo)：保留完整真人舞段。
+
+下载后在“场景 → 导入场景备份 → 作为新场景导入”。[导入编辑指南](https://choreo-scene-packs.danuberiverferryman.workers.dev/dance-package-guide.txt)与[来源许可／质量记录](https://choreo-scene-packs.danuberiverferryman.workers.dev/source-and-license.json)随包提供；局部K与密集基底的编辑语义见[场景包说明](docs/SCENE_PACKS.md)。
+
+运行[sourceac92f74](https://github.com/DFerryman/ChoreographyStudio/commit/ac92f743db9a144b9b6527ba1e465b82f87d2a9d)已push main，Cloudflare `e4784790-54c6-4716-a4a0-f8259567d381`（native22／产品v18）100%；准确[CI37899685795](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37899685795)实际480／480基础＋104／104浏览器通过，公网7／7已验证。 完整证据与历史见[验证](docs/VERIFICATION.md)和[部署](docs/DEPLOYMENT.md)。生成舞蹈包独立下载，未加入应用内置数据或代码仓库。
+
+## v18 · 极简场景编辑与多轨时间线（已实现，发布验收中） · 前期记录（历史）
+
 2026-10-09 用户进一步明确：主要在场景内操作人物，选择时间点后显式添加或更新 K；主要编辑场景应尽可能大，Timeline／Track 可以覆盖在场景上。常驻界面只突出舞台操作、播放／定位与添加／更新关键帧，删除无用模块和信息，场景管理与必要的次要操作按需打开，不恢复逐轴姿态面板。
 
 工作台已改为视口大小的场景，紧凑时间线覆盖底部，可收起、缩放与横向滚动；正文面板与重复信息移除，次要操作集中按需打开。音乐波形、整体位移、身体、左右臂和左右腿分别成轨，身体组可展开关节；拖组 K 一起转移该组在同帧的键，展开后可逐关节拖动。点选时刻只定位，主按钮按当前帧显示添加或更新关键帧。
@@ -21,6 +36,10 @@
 最新完整本地 **450／450 基础检查（24 文件）**与前端类型／构建通过，基础用时 9.44 秒，记录于 2026-10-09 11:00:21（UTC+8）；未改 Worker 类型及先前 Wrangler dry run 已通过。固定运行代码的最终新增浏览器 **6／6** 于 11:02:25（UTC+8）开始、96.267 秒通过，六份 errors／warnings／API 诊断均为 0；桌面／390px 两张最终图已亲审，场景、浮层和全身可见性接受。
 
 Root 的 0.134mm 偏差初被归为测试投影，严格复核与实测随后确认：拖动时草稿条改变浮层高度，运行投影随之移动；已修为拖动期间冻结投影，最终按原五位小数精度、逐组件准确写 K 及投影稳定断言通过。保留首两轮 3／6、弱精度聚焦与严格失败，最终 6／6 不冒充首轮。相关旧流程、准确源码 CI、GitHub main 和 Cloudflare 发布仍待实际结果，完成后按要求 push main、同步 Cloudflare并回填[验证](docs/VERIFICATION.md)与[部署](docs/DEPLOYMENT.md)。以下历史不替代 v18 证据。
+
+最新发布核验：运行 main `b0599e2d8b84b5ba872a832517f2013a69a55b4b`／tree `97bfc0d702c7b5e9f76494d9775cfe5b92730fdb` 已部署 Cloudflare version18 `3709225d-3e2e-43b3-ab76-0513720c75bb`／100%，初始 deployment `11e8ff00-1f4a-45a1-a990-ebc9b007a999`。测试操作修正 main `cdc3723a53e65ce465d7a06ee748b347e7ceaf07`／tree `98a001fb1613f67ee7b9bff34f0a4e0a6e4a0243` 已远端读回，运行94文件／dist26与已部署版本逐项SHA相同。有界HTTP25已通过；公网初批6因执行环境CA信任失败、未进入应用，保留0／6。仅在任务临时profile配置现有CA的正常信任，TLS验证保持，未改HOME；单document GET返回200／TLS1.3／secure，随后唯一最终公网6于03:51:37.827Z开始、92.813秒全部通过，六份实际error／warning／API诊断0。root亲审该轮桌面1440／手机390／展开关节三图接受。准确CI37880557802／job113659036357／attempt1仍待完整100浏览器结束；此前取消CI、音乐／AI／相机浮层测试修正和所有失败保留，不提前宣称100通过。真实Workers AI／付费／D1写入0。
+
+最新新增交付要求：用户撤回内置模板，要求直接可导入、稍复杂的成熟舞蹈场景包以观察效果上限，并支持Timeline／Track与二次修改。仅制作独立 `.choreo` 下载文件，不修改内置库或运行代码。使用合法CMU真人动捕：85_12复杂街舞转身与地板技巧37.5秒，61_08完整Salsa单人舞段56.25秒，附原创参考节拍；不声称是某流行歌曲原版或原曲同步。来源／实际帧率／短窗异常修补／固定骨架重定向／接地残差与4096作者K限制均需据实记录，完整高频基底优先保真，未经验证的包不记交付。包与音频等生成文件不进入公共代码仓库；待实际导入、播放、修改和真实人物视觉核验后提供下载附件。
 
 ## v17 · 用户选定 06 人物（已上线，准确源码CI通过）
 
