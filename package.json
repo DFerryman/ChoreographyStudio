@@ -11,7 +11,9 @@
     "deploy": "npm run build && wrangler deploy",
     "check": "npm run test && npm run build",
     "typecheck:worker": "wrangler types && tsc --noEmit -p tsconfig.worker.json",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "avatar:fit": "python infra/avatar_collision_fit.py",
+    "avatar:fit:test": "python infra/avatar_collision_fit_test.py"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.21.0",

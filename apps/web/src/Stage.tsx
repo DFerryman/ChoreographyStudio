@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { EDITABLE_JOINT_NAMES, JOINT_NAMES, RIG_DEFINITIONS, ROOT_TRANSLATION_LIMITS, sampleTake, type BakedTake, type JointName, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
 import { fitPerspectiveBounds } from './cameraFraming';
-import { constrainJointRotation } from '../../../packages/core/src';
+import { constrainJointRotation, getBodyCollisions } from '../../../packages/core/src';
 import { disposeHumanoid, loadHumanoid, updateHumanoid } from './Humanoid';
 import { getPoseGuidance } from './poseGuidance';
 import './Stage.css';
@@ -52,13 +52,14 @@ type StageProps = {
   playing?: boolean;
   transformTool?: StageTransformTool;
   ikTarget?: Vec3 | null;
+  collisionFeedback?: string | null;
   onSelectJoint?: (joint: JointName | null) => void;
   onCameraChange?: (camera: StageCamera) => void;
   onCameraInteraction?: () => void;
   onJointPositionChange?: (position: Vec3 | null) => void;
-  onJointRotationChange?: (joint: JointName, rotation: Quat, phase: 'start' | 'change' | 'end') => void;
-  onRootPositionChange?: (position: Vec3, phase: 'start' | 'change' | 'end') => void;
-  onIKTargetChange?: (effector: StageIKEffector, target: Vec3, phase: 'start' | 'change' | 'end') => void;
+  onJointRotationChange?: (joint: JointName, rotation: Quat, phase: 'start' | 'change' | 'end') => Pose | void;
+  onRootPositionChange?: (position: Vec3, phase: 'start' | 'change' | 'end') => Pose | void;
+  onIKTargetChange?: (effector: StageIKEffector, target: Vec3, phase: 'start' | 'change' | 'end') => Pose | void;
   /** Roll back the active gesture on Escape, pointer cancellation or focus loss. */
   onTransformCancel?: () => void;
 };
@@ -203,7 +204,11 @@ export function Stage(props: StageProps) {
   selectionRef.current = selection;
   const feedbackPose = useMemo(() => !playing && poseOverride ? poseOverride : take ? sampleTake(take, time) : null, [playing, poseOverride, take, time]);
   const poseGuidance = useMemo(() => getPoseGuidance(feedbackPose), [feedbackPose]);
+  const capsuleCollisions = useMemo(() => humanLoaded && feedbackPose ? getBodyCollisions(feedbackPose) : null, [feedbackPose, humanLoaded]);
+  const hasCapsuleCollisions = !!capsuleCollisions && (capsuleCollisions.selfCollisions.length > 0 || capsuleCollisions.floorPenetrations.length > 0);
   const guidanceWarning = <>
+    {props.collisionFeedback && <span className="stage3d-author-warning" role="status" aria-label="身体碰撞编辑保护">{props.collisionFeedback}</span>}
+    {hasCapsuleCollisions && <span className="stage3d-author-warning" role="status" aria-label="身体碰撞提示" title="身体近似碰撞体存在重叠，已有动作保持原值，可调整相关部位检查接触。">身体接触需检查 {capsuleCollisions!.selfCollisions.length} · 穿地 {capsuleCollisions!.floorPenetrations.length}</span>}
     {poseGuidance.outsideSuggestedRange.length > 0 && <span className="stage3d-author-warning" role="status" aria-label="全身关节建议范围" title={poseGuidance.outsideSuggestedRange.map(joint => STAGE_JOINT_LABELS[joint]).join('、')}>超出标准人体建议 · {poseGuidance.outsideSuggestedRange.length} 处 · 保留老师姿态</span>}
     {poseGuidance.shoulderCoupling.length > 0 && <span className="stage3d-author-warning" role="status" aria-label="肩部配合提示" title="大幅举臂请配合肩部，关键帧按老师原姿态保留。">举臂需检查肩部配合</span>}
   </>;
@@ -477,7 +482,7 @@ export function Stage(props: StageProps) {
 
     function canEdit() {
       const state = current.current;
-      return !!state.editMode && !state.playing && !state.mirror && !cameraGesture && blockedTransformPointers.size === 0;
+      return !!rig.humanSurface && !!state.editMode && !state.playing && !state.mirror && !cameraGesture && blockedTransformPointers.size === 0;
     }
 
     function canRotate() {
@@ -499,9 +504,12 @@ export function Stage(props: StageProps) {
     }
 
     function publishTransform(gesture: NonNullable<typeof transformGesture>, phase: 'start' | 'change' | 'end') {
-      if (gesture.kind === 'ik') current.current.onIKTargetChange?.(gesture.effector, [...gesture.value] as Vec3, phase);
-      else if (gesture.kind === 'root') current.current.onRootPositionChange?.([...gesture.value] as Vec3, phase);
-      else current.current.onJointRotationChange?.(gesture.joint, [...gesture.value] as Quat, phase);
+      const accepted = gesture.kind === 'ik' ? current.current.onIKTargetChange?.(gesture.effector, [...gesture.value] as Vec3, phase)
+        : gesture.kind === 'root' ? current.current.onRootPositionChange?.([...gesture.value] as Vec3, phase)
+          : current.current.onJointRotationChange?.(gesture.joint, [...gesture.value] as Quat, phase);
+      // Native controls move a bone before React renders. Put the accepted
+      // collision-safe pose back synchronously, including linked IK changes.
+      if (phase === 'change' && accepted) applyPose(rig, accepted);
     }
 
     function finishTransform(rollback = false) {
@@ -1127,7 +1135,7 @@ export function Stage(props: StageProps) {
           {playing ? '播放期间不可编辑' : mirror ? '关闭镜像后编辑' : transformTool === 'select' ? '点身体部位选择' : transformTool === 'translate' ? <>整体移动<span>{transformAxis ? `${transformAxis}轴` : '拖箭头调整位置'}</span></> : transformTool === 'ik' ? !getIKEffector(selection) ? '点手或脚，再拖箭头摆姿' : <>手脚协调<span>{transformAxis ? `${transformAxis}轴` : '拖箭头摆姿'}</span>{ikResidual !== null && ikResidual > 0.015 && <span className="stage3d-ik-residual" role="status">目标差 {(ikResidual * 100).toFixed(1)} cm</span>}</> : !selection ? '点身体部位，再拖彩色环摆姿' : <>旋转<span>{transformAxis ? `${transformAxis}轴` : '拖彩色环摆姿'}</span></>}
           {guidanceWarning}
         </div>}
-        {!editMode && (poseGuidance.outsideSuggestedRange.length > 0 || poseGuidance.shoulderCoupling.length > 0) && <div className="stage3d-edit-indicator" aria-label="姿态建议提示">{guidanceWarning}</div>}
+        {!editMode && (hasCapsuleCollisions || props.collisionFeedback || poseGuidance.outsideSuggestedRange.length > 0 || poseGuidance.shoulderCoupling.length > 0) && <div className="stage3d-edit-indicator" aria-label="姿态建议提示">{guidanceWarning}</div>}
         <span className="stage3d-selection-announcement" aria-live="polite">{selection ? `已选中${STAGE_JOINT_LABELS[selection]}` : '未选中关节'}</span>
       </>}
     </div>

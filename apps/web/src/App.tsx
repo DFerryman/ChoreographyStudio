@@ -10,7 +10,7 @@ import { encodeSceneBackup, encodeSceneJsonBackup, decodeSceneBackup } from './s
 import type { SceneSnapshot as Snapshot, SceneProject as Session } from './sceneProject';
 import { useModalFocus } from './useModalFocus';
 import { useEditorShortcuts } from './useEditorShortcuts';
-import { addFootLock, analyzePose, applyFootLocks, buildAICandidate, captureFootLock, getKeyframeProtection, removeFootLock, simulatePhysicsTake, solveLimbIK, STANDARD_HUMAN_PROFILE, type FootLockProtection, type IKEffector, type LockedFoot } from '../../../packages/core/src';
+import { addFootLock, analyzePose, applyFootLocks, buildAICandidate, canonicalEditRotation, captureFootLock, constrainBodyCollisions, evaluatePose, getKeyframeProtection, removeFootLock, simulatePhysicsTake, solveLimbIK, STANDARD_HUMAN_PROFILE, type FootLockProtection, type IKEffector, type LockedFoot } from '../../../packages/core/src';
 import { getIKEffector } from './Stage';
 import AIPanel from './AIPanel';
 import { requestAIArrangement } from './aiClient';
@@ -111,6 +111,7 @@ export default function App() {
   const [editorMode, setEditorMode] = useState<'arrange' | 'keyframes'>('keyframes');
   const [transformTool, setTransformTool] = useState<StageTransformTool>('rotate');
   const [poseDraft, setPoseDraft] = useState<Pose | null>(null);
+  const [collisionFeedback, setCollisionFeedback] = useState<string | null>(null);
   const [queuedPoseAction, setQueuedPoseAction] = useState<PoseAction | AssistAction | null>(null);
   const [pendingResetAction, setPendingResetAction] = useState<ResetAction | null>(null);
   const [candidate, setCandidate] = useState<Candidate | null>(null);
@@ -418,7 +419,7 @@ export default function App() {
     setPendingTransfer(null);
     setCandidate(null); setPreviewCandidate(false); setPage('studio'); setEditorMode(viewer.editorMode ?? 'arrange');
     setTransformTool(viewer.transformTool ?? (viewer.editorMode === 'keyframes' ? 'rotate' : 'select'));
-    poseDraftRef.current = null; setPoseDraft(null); poseDraftBaseline.current = null;
+    poseDraftRef.current = null; setPoseDraft(null); poseDraftBaseline.current = null; setCollisionFeedback(null);
     draftRotationIntents.current.clear(); draftRootIntent.current = false;
     sceneChangeVersion.current += 1; setSaveStatus(saved ? 'saved' : 'dirty');
   }
@@ -700,7 +701,7 @@ export default function App() {
   }
   function clearPoseDraft(restoreStatus = false) {
     const baseline = poseDraftBaseline.current;
-    poseDraftRef.current = null; setPoseDraft(null); poseDraftBaseline.current = null;
+    poseDraftRef.current = null; setPoseDraft(null); poseDraftBaseline.current = null; setCollisionFeedback(null);
     draftRotationIntents.current.clear(); draftRootIntent.current = false;
     setIKTarget(null); setIKResidual(null);
     if (restoreStatus && baseline && baseline.version === sceneChangeVersion.current) setSaveStatus(baseline.status);
@@ -721,12 +722,26 @@ export default function App() {
     }
     if (rootsDiffer(copied.root, previous.root)) draftRootIntent.current = rootsDiffer(copied.root, reference.root);
     if (manualSequence?.footLocks?.length) copied = applyFootLocks(copied, manualSequence.footLocks, time * 30, active.countMap.durationSeconds, authorProtection(manualSequence, time * 30, draftRotationIntents.current, draftRootIntent.current)).pose;
-    if (!posesDiffer(copied, reference)) { clearPoseDraft(true); return false; }
+    // Linked IK/contact output uses the exact unit tuple the point writer will
+    // store. Retained source channels are never normalized here.
+    for (const joint of JOINT_NAMES) if (rotationsDiffer(copied.joints[joint], previous.joints[joint])) copied.joints[joint] = canonicalEditRotation(copied.joints[joint]);
+    // Only new stage gestures enter this guard. Stored/imported points and
+    // explicit numeric author edits retain their original channels exactly.
+    const collision = constrainBodyCollisions(previous, copied);
+    copied = collision.pose;
+    const collisionMessage = !collision.limited ? null : collision.limitReason === 'joint-limit' ? '已达到关节建议边界' : collision.limitReason === 'sweep-budget' ? '移动幅度过大，请分段调整' : collision.blockingCollisions.floorPenetrations.length ? '已阻止穿地' : '已阻止身体穿插';
+    setCollisionFeedback(collisionMessage);
+    // Foot-lock outputs are linked changes, not new author protection. Keep
+    // only the direct gesture intents; recordPointChanges captures all results.
+    for (const joint of draftRotationIntents.current) if (!rotationsDiffer(copied.joints[joint], reference.joints[joint])) draftRotationIntents.current.delete(joint);
+    if (!rootsDiffer(copied.root, reference.root)) draftRootIntent.current = false;
+    if (!posesDiffer(copied, reference)) { clearPoseDraft(true); setCollisionFeedback(collisionMessage); return false; }
     if (!poseDraftRef.current) poseDraftBaseline.current = { status: saveStatus === 'saving' ? 'dirty' : saveStatus, version: sceneChangeVersion.current };
     poseDraftRef.current = copied; setPoseDraft(copied); setSaveStatus('dirty'); return true;
   }
   function beginPointGesture() {
     if (!active.take || !manualSequence || !manualEditing || playing || mirror || modalOpen || busy) return false;
+    if (!pointGesture.current) setCollisionFeedback(null);
     pointGesture.current ??= { sceneId: currentScene.id, revision: session.revision, time, snapshot: active, sequence: manualSequence, before: clonePose(sampleTake(active.take, time)) };
     return true;
   }
@@ -755,6 +770,7 @@ export default function App() {
     if (!pointGesture.current && !beginPointGesture()) return;
     const next = clonePose(poseDraftRef.current ?? pointGesture.current!.before);
     next.joints[joint] = [...rotation]; updatePoseDraft(next);
+    return poseDraftRef.current ?? pointGesture.current!.before;
   }
   function handleRootPosition(position: Vec3, phase: 'start' | 'change' | 'end') {
     if (phase === 'start') { beginPointGesture(); return; }
@@ -762,6 +778,7 @@ export default function App() {
     if (!pointGesture.current && !beginPointGesture()) return;
     const next = clonePose(poseDraftRef.current ?? pointGesture.current!.before);
     next.root = [...position]; updatePoseDraft(next);
+    return poseDraftRef.current ?? pointGesture.current!.before;
   }
   function handleIKTarget(effector: IKEffector, target: Vec3, phase: 'start' | 'change' | 'end') {
     if (phase === 'start') { beginPointGesture(); return; }
@@ -770,7 +787,11 @@ export default function App() {
     try {
       const source = poseDraftRef.current ?? pointGesture.current!.before;
       const result = solveLimbIK(source, effector, target);
-      updatePoseDraft(result.pose); setIKTarget([...target]); setIKResidual(result.residual);
+      updatePoseDraft(result.pose);
+      const accepted = poseDraftRef.current ?? pointGesture.current!.before;
+      const endpoint = evaluatePose(accepted)[effector].position;
+      setIKTarget([...target]); setIKResidual(Math.hypot(...endpoint.map((value, axis) => value - target[axis])));
+      return accepted;
       } catch (error) { setNotice(errorMessage(error)); cancelPointGesture(); }
   }
   function changeMotionPointValue(exactTime: number, point: JointName | 'root', value: Vec3 | Quat) {
@@ -1037,7 +1058,7 @@ export default function App() {
         <div className={editorMode === 'keyframes' ? 'studio-grid manual-workspace' : 'studio-grid'}>
           <section className="viewer-panel" aria-label="3D动作预览">
             <div className="viewer-toolbar"><span className="viewer-title">{previewAssist ? '辅助预览' : previewCandidate ? '替换预览' : '舞台'}<span className="muted-divider">/</span><span className="viewer-muted">{view === 'free' ? '自由视角' : '3D'}</span></span><div className="camera-toolbar"><div className="segmented" aria-label="观看视角">{([['front', '正面'], ['back', '背面']] as const).map(([preset, label]) => <button key={preset} className={view === preset ? 'selected' : ''} aria-pressed={view === preset} onClick={() => chooseView(preset)}>{label}</button>)}</div><button className="icon-button" aria-label="全身取景" disabled={!displayedTake || !ready || !!busy} title="全身取景" onClick={() => focusCamera('actor')}><Scan size={16} /></button><details className="editor-disclosure camera-options"><summary aria-label="相机选项" title="相机选项"><SlidersHorizontal size={16} /></summary><div className="disclosure-content"><div className="segmented">{([['left', '左侧'], ['right', '右侧'], ['top', '顶视']] as const).map(([preset, label]) => <button key={preset} aria-pressed={view === preset} onClick={() => chooseView(preset)}>{label}</button>)}</div><button className="button secondary compact" aria-label="复位相机" onClick={() => chooseView('front')}><RotateCcw size={14} />复位相机</button><button className="button secondary compact" disabled={!displayedTake || !selectedJoint || !ready || !!busy} onClick={() => focusCamera('joint')}><Focus size={14} />聚焦关节</button><span>仅改变观看，不修改动作</span></div></details></div></div>
-            <div className="stage-wrap"><Stage bottomOverlayInset={editorMode === 'keyframes' ? timelineInset : 0} take={displayedTake} time={time} view={view} mirror={mirror} cameraState={camera ?? undefined} cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} cameraFocus={cameraFocus ?? undefined} onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction} selectedJoint={selectedJoint} onSelectJoint={chooseJoint} onJointPositionChange={handleJointPosition} poseOverride={manualEditing ? poseDraft : null} editMode={manualEditing && !modalOpen && !busy && !sceneActionBusy && saveStatus !== 'saving'} transformTool={activeTransformTool} playing={playing} onJointRotationChange={handleJointRotation} onRootPositionChange={handleRootPosition} ikTarget={ikTarget} onIKTargetChange={handleIKTarget} onTransformCancel={cancelPointGesture} />{!active.take && <div className="empty-overlay"><Sparkles size={24} /><strong>音乐准备好了</strong><p>生成模板初稿，开始查看你的组合。</p></div>}{editorMode === 'keyframes' && manualSequence && <div ref={timelineOverlayRef} className="timeline-overlay">{manualTimeline}</div>}</div>
+            <div className="stage-wrap"><Stage bottomOverlayInset={editorMode === 'keyframes' ? timelineInset : 0} take={displayedTake} time={time} view={view} mirror={mirror} cameraState={camera ?? undefined} cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} cameraFocus={cameraFocus ?? undefined} onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction} selectedJoint={selectedJoint} onSelectJoint={chooseJoint} onJointPositionChange={handleJointPosition} poseOverride={manualEditing ? poseDraft : null} collisionFeedback={collisionFeedback} editMode={manualEditing && !modalOpen && !busy && !sceneActionBusy && saveStatus !== 'saving'} transformTool={activeTransformTool} playing={playing} onJointRotationChange={handleJointRotation} onRootPositionChange={handleRootPosition} ikTarget={ikTarget} onIKTargetChange={handleIKTarget} onTransformCancel={cancelPointGesture} />{!active.take && <div className="empty-overlay"><Sparkles size={24} /><strong>音乐准备好了</strong><p>生成模板初稿，开始查看你的组合。</p></div>}{editorMode === 'keyframes' && manualSequence && <div ref={timelineOverlayRef} className="timeline-overlay">{manualTimeline}</div>}</div>
             <div className="stage-edit-tools">
               <div className="stage-tool-buttons" role="group" aria-label="舞台编辑工具">
                 <button aria-label="选择工具" aria-pressed={activeTransformTool === 'select'} className={activeTransformTool === 'select' ? 'selected' : ''} onClick={() => chooseTransformTool('select')} title="选择关节与移动相机；收起操作手柄"><MousePointer2 size={15} />选择</button>

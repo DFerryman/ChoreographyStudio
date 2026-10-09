@@ -95,7 +95,7 @@ function normalize(rotation: Quat): Quat {
 }
 
 /** Canonicalize only a new edit, so saving its displayed draft is bit-exact. */
-function canonicalEditRotation(rotation: Quat): Quat {
+export function canonicalEditRotation(rotation: Quat): Quat {
   const robust = normalize(rotation), length = Math.hypot(...rotation);
   const result = Number.isFinite(length) ? rotation.map(value => value / length) as Quat : robust;
   if (Math.hypot(...result) === 1) return result;

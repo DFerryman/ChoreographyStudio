@@ -7,6 +7,7 @@ import { evaluatePose } from '../../../packages/core/src/humanoid';
 import { footLockWeight } from '../../../packages/core/src/footLocks';
 import type { Pose } from '../../../packages/core/src/motion-types';
 import { getPoseGuidance } from './poseGuidance';
+import { getBodyCollisions, getPoseColliders, initializeBodyCollisionBackend, isBodyCollisionBackendReady } from '../../../packages/core/src';
 import { STAGE_JOINT_LABELS } from './Stage';
 import './RealismPanel.css';
 import type { StepAssistanceReport } from '../../../packages/core/src';
@@ -52,6 +53,15 @@ export function StepAssistanceSummary({ report, label = '自动步伐状态' }: 
 /** Optional context tools; physical configuration is supplied by the built-in profile. */
 export function RealismPanel(props: RealismPanelProps) {
   const [open, setOpen] = useState(false);
+  const [collisionReady, setCollisionReady] = useState(isBodyCollisionBackendReady);
+  const [collisionError, setCollisionError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    setCollisionError(null);
+    void initializeBodyCollisionBackend().then(() => { if (active) setCollisionReady(true); }).catch(error => { if (active) setCollisionError(error instanceof Error ? error.message : '身体碰撞检查无法加载。'); });
+    return () => { active = false; };
+  }, [open]);
   const [foot, setFoot] = useState<'LeftFoot' | 'RightFoot'>('LeftFoot');
   const end = lastFrame(props.duration);
   const [endFrame, setEndFrame] = useState(end);
@@ -63,6 +73,8 @@ export function RealismPanel(props: RealismPanelProps) {
     catch (error) { return { diagnostics: null, error: error instanceof Error ? error.message : '当前姿态无法分析。' }; }
   }, [open, props.pose, props.motionState]);
   const diagnostics = analysis.diagnostics;
+  const capsuleCollisions = useMemo(() => open && collisionReady ? getBodyCollisions(props.pose) : null, [open, props.pose, collisionReady]);
+  const capsuleLabels = useMemo(() => open && collisionReady ? new Map(getPoseColliders(props.pose).map(capsule => [capsule.id, STAGE_JOINT_LABELS[capsule.definition.proximal]])) : new Map<string, string>(), [open, props.pose, collisionReady]);
   const lockResiduals = useMemo(() => {
     if (!open || analysis.error || !props.sequence.footLocks?.length) return [];
     const world = evaluatePose(props.pose);
@@ -94,13 +106,18 @@ export function RealismPanel(props: RealismPanelProps) {
       {poseGuidance.outsideSuggestedRange.length > 0 && <p className="realism-warning" aria-label="全身关节超限部位">超出建议：{poseGuidance.outsideSuggestedRange.map(joint => STAGE_JOINT_LABELS[joint]).join('、')}。按老师原姿态保留，请检查这些部位的动作幅度。</p>}
       {poseGuidance.shoulderCoupling.length > 0 && <p className="realism-warning" aria-label="肩部配合检查">大幅举臂请配合{poseGuidance.shoulderCoupling.map(side => side === 'Left' ? '左侧' : '右侧').join('、')}肩部，关键帧按老师原姿态保留。</p>}
       <p className="realism-note">还需结合肩部配合、身体接触与动态支撑检查动作可行性。</p>
+      {collisionError && <p className="realism-warning" role="alert">{collisionError}</p>}
+      {capsuleCollisions && <div className="realism-diagnostics" aria-label="身体碰撞诊断">
+        <p className={capsuleCollisions.selfCollisions.length || capsuleCollisions.floorPenetrations.length ? 'realism-warning' : 'realism-note'}>身体碰撞体：代理重叠 {capsuleCollisions.selfCollisions.length} 处 · 穿地 {capsuleCollisions.floorPenetrations.length} 处</p>
+        {capsuleCollisions.selfCollisions.map(pair => <p key={pair.segments.join(':')} className="realism-warning">{pair.segments.map(id => capsuleLabels.get(id) ?? '身体').join(' / ')} · {(pair.depthMeters * 100).toFixed(1)} cm</p>)}
+        <p className="realism-note">拖动和 IK 阻止新增穿插；已有动作和数值编辑保持作者原值。这是身体近似检查。</p>
+      </div>}
       {props.ikResidual != null && <p className={props.ikResidual > .01 ? 'realism-warning' : 'realism-note'} aria-label="IK 目标残差">IK 目标残差 {(props.ikResidual * 100).toFixed(1)} cm</p>}
       {analysis.error && <p role="alert" className="realism-warning">{analysis.error}</p>}
       {diagnostics && <div className="realism-diagnostics" aria-label="人体接触与支撑诊断">
         <div><span>脚底高度</span><span aria-label="脚底离地高度">左 {(diagnostics.feet.Left.minimumHeightMeters * 100).toFixed(1)} / 右 {(diagnostics.feet.Right.minimumHeightMeters * 100).toFixed(1)} cm</span></div>
         <div><span>质心</span><span aria-label="人体质心">{diagnostics.centerOfMass.map(value => value.toFixed(2)).join(' · ')} m</span></div>
         <p className={diagnostics.balance === 'outside-support' ? 'realism-warning' : 'realism-note'} role="status">{diagnostics.balance === 'supported' ? '准静态质心位于支撑面内。' : diagnostics.balance === 'outside-support' ? '准静态支撑提示：质心投影位于支撑面外。' : diagnostics.balance === 'dynamic-unassessed' ? '动态动作：不使用站姿平衡判据。' : '飞行或无足接触：不使用站姿平衡判据。'}</p>
-        {(diagnostics.floorPenetrations.length > 0 || diagnostics.selfCollisions.length > 0) && <p className="realism-warning" role="status">接触代理提示：穿地 {diagnostics.floorPenetrations.length} 处 · 身体穿插 {diagnostics.selfCollisions.length} 处</p>}
       </div>}
       <div className="realism-lock-fields">
         <label>支撑脚<select aria-label="脚锁部位" value={foot} disabled={unavailable} onChange={event => setFoot(event.target.value as typeof foot)}><option value="LeftFoot">左脚</option><option value="RightFoot">右脚</option></select></label>

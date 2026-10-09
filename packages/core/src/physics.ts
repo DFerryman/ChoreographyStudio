@@ -5,6 +5,8 @@ import { clonePose, evaluatePose } from './humanoid';
 import { constrainJointRotation } from './jointConstraints';
 import { JOINT_NAMES, type BakedTake, type Pose, type Quat, type Vec3 } from './motion-types';
 import { sampleTake } from './index';
+import { finiteSegmentDistance } from './capsuleCollision';
+import { loadRapierBackend as loadRapier } from './rapierBackend';
 
 export type MotionState = 'quasi-static' | 'dynamic' | 'airborne';
 export interface EvaluatedSegment {
@@ -85,14 +87,7 @@ function principalAxes(tensor: number[][]): { principalInertia: Vec3; inertiaFra
 }
 
 function segmentDistance(a: EvaluatedSegment, b: EvaluatedSegment): number {
-  const p = vector(a.proximal), q = vector(b.proximal), u = vector(a.distal).sub(p), v = vector(b.distal).sub(q), w = p.clone().sub(q);
-  const aa = u.dot(u), bb = u.dot(v), cc = v.dot(v), dd = u.dot(w), ee = v.dot(w);
-  if (aa < 1e-12 && cc < 1e-12) return p.distanceTo(q);
-  let s = aa > 1e-12 ? clamp((bb * ee - cc * dd) / Math.max(1e-12, aa * cc - bb * bb), 0, 1) : 0;
-  let t = cc > 1e-12 ? clamp((bb * s + ee) / cc, 0, 1) : 0;
-  if (aa > 1e-12) s = clamp((bb * t - dd) / aa, 0, 1);
-  if (cc > 1e-12) t = clamp((bb * s + ee) / cc, 0, 1);
-  return p.addScaledVector(u, s).distanceTo(q.addScaledVector(v, t));
+  return finiteSegmentDistance(a.proximal, a.distal, b.proximal, b.distal);
 }
 function related(a: HumanSegment, b: HumanSegment): boolean {
   if ((a.id === 'thorax' && b.family === 'head') || (b.id === 'thorax' && a.family === 'head')) return true;
@@ -163,11 +158,6 @@ export interface PhysicsTakeResult {
   maxLandingSpeedMps: number;
 }
 type BodyState = { position: Vec3; rotation: Quat; grounded: boolean };
-let rapierInitialization: Promise<typeof import('@dimforge/rapier3d-compat')> | undefined;
-async function loadRapier() {
-  if (!rapierInitialization) rapierInitialization = import('@dimforge/rapier3d-compat').then(async module => { await module.init(); return module; }).catch(error => { rapierInitialization = undefined; throw error; });
-  return rapierInitialization;
-}
 function abort(signal?: AbortSignal) { if (signal?.aborted) throw new DOMException('物理预览已取消。', 'AbortError'); }
 function validate(take: BakedTake): number[] {
   const { durationSeconds: duration, times, poses } = take;

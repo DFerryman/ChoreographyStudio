@@ -59,8 +59,12 @@ async function portableScene(page: Page) {
     source.take.times = [0, .70391, .70612, 2.50391, 4, 8, 12, 16];
     source.take.poses = source.take.times.map(time => ({
       root: [time / 80, 1.05 + time / 500, time ? -time / 150 : 0],
+      // Leave room beside the thighs for these ordinary editing regressions.
+      // The source avatar's arms-down convex proxies already overlap the hands;
+      // new collision-specific tests exercise existing and new contacts.
       joints: Object.fromEntries(JOINT_NAMES.map((joint, index) => [joint,
-        rotationFromDegrees([0, joint === 'LeftForeArm' ? 0 : index / 120 * time, joint === 'LeftForeArm' ? 0 : index / 240 * time]),
+        rotationFromDegrees([0, joint === 'LeftForeArm' ? 0 : index / 120 * time,
+          (joint === 'LeftUpperArm' ? 20 : joint === 'RightUpperArm' ? -20 : 0) + (joint === 'LeftForeArm' ? 0 : index / 240 * time)]),
       ])) as BakedTake['poses'][number]['joints'],
     }));
   });

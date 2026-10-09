@@ -1,0 +1,4 @@
+# Offline only; current collision profile was generated with Python 3.12.14.
+# NumPy and SciPy use BSD-3-Clause; see docs/AVATAR_FIT_DEPENDENCIES.md.
+numpy==2.3.5
+scipy==1.17.0

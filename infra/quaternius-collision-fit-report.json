@@ -1,0 +1,784 @@
+{
+  "schema": "avatar-collision-fit-report-1",
+  "profileId": "quaternius-mixed-collision-1",
+  "version": 1,
+  "algorithmVersion": "local-convex-and-primitive-fit-2",
+  "canonicalRig": "neutral-rig-2",
+  "sourceGeometrySha256": "28277b1614a4d61330b28d28992b97d1456eec7951b56590e69ce880feb73f90",
+  "glbSha256": "6570b23a63a0a5b87ad3fa5f8d7a24536c8e7fc3ceb03d28893cb48966cc6527",
+  "rigSha256": "882e122c2d497ea7c23ce073eefe3ddc3d09b6992f814a586b5b9ca658b7e68b",
+  "vertexCount": 8483,
+  "colliderCount": 17,
+  "capsuleCount": 0,
+  "boxCount": 0,
+  "convexCount": 17,
+  "convexVertices": 1846,
+  "convexTriangles": 3624,
+  "offlineDependencies": {
+    "numpy": "2.3.5",
+    "scipy": "1.17.0"
+  },
+  "fit": {
+    "geometryQuantizationDecimals": 9,
+    "rotationNormalization": "Quantize components, normalize with ordered scalar arithmetic, and canonicalize quaternion sign.",
+    "boxAxisTrimQuantile": 0.005,
+    "capsuleRadialQuantile": 0.95,
+    "marginMeters": 0.0005
+  },
+  "neutralSurfaceUnion": {
+    "coveredVertices": 8483,
+    "coverageFraction": 1.0,
+    "maximumOutsideMeters": 0.0
+  },
+  "regions": [
+    {
+      "id": "pelvis",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 248,
+      "stableFitVertices": 248,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 248,
+      "coverageFraction": 1.0,
+      "hullVertices": 101,
+      "hullTriangles": 198,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "abdomen",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 140,
+      "stableFitVertices": 140,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 140,
+      "coverageFraction": 1.0,
+      "hullVertices": 95,
+      "hullTriangles": 186,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "thorax",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 663,
+      "stableFitVertices": 663,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 663,
+      "coverageFraction": 1.0,
+      "hullVertices": 158,
+      "hullTriangles": 312,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "neck",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 177,
+      "stableFitVertices": 177,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 177,
+      "coverageFraction": 1.0,
+      "hullVertices": 47,
+      "hullTriangles": 90,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "head",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 2577,
+      "stableFitVertices": 2577,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 2577,
+      "coverageFraction": 1.0,
+      "hullVertices": 305,
+      "hullTriangles": 606,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "Left-upper-arm",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 157,
+      "stableFitVertices": 157,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 157,
+      "coverageFraction": 1.0,
+      "hullVertices": 76,
+      "hullTriangles": 148,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "Left-forearm",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 193,
+      "stableFitVertices": 193,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 193,
+      "coverageFraction": 1.0,
+      "hullVertices": 86,
+      "hullTriangles": 168,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "Left-hand",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 1071,
+      "stableFitVertices": 1071,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 1071,
+      "coverageFraction": 1.0,
+      "hullVertices": 135,
+      "hullTriangles": 266,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "Left-thigh",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 222,
+      "stableFitVertices": 222,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 222,
+      "coverageFraction": 1.0,
+      "hullVertices": 123,
+      "hullTriangles": 242,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "Left-shank",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 296,
+      "stableFitVertices": 296,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 296,
+      "coverageFraction": 1.0,
+      "hullVertices": 68,
+      "hullTriangles": 132,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "Left-foot",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 400,
+      "stableFitVertices": 400,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 400,
+      "coverageFraction": 1.0,
+      "hullVertices": 82,
+      "hullTriangles": 160,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "Right-upper-arm",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 157,
+      "stableFitVertices": 157,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 157,
+      "coverageFraction": 1.0,
+      "hullVertices": 76,
+      "hullTriangles": 148,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "Right-forearm",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 193,
+      "stableFitVertices": 193,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 193,
+      "coverageFraction": 1.0,
+      "hullVertices": 86,
+      "hullTriangles": 168,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "Right-hand",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 1071,
+      "stableFitVertices": 1071,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 1071,
+      "coverageFraction": 1.0,
+      "hullVertices": 135,
+      "hullTriangles": 266,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "Right-thigh",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 222,
+      "stableFitVertices": 222,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 222,
+      "coverageFraction": 1.0,
+      "hullVertices": 123,
+      "hullTriangles": 242,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "Right-shank",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 296,
+      "stableFitVertices": 296,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 296,
+      "coverageFraction": 1.0,
+      "hullVertices": 68,
+      "hullTriangles": 132,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    },
+    {
+      "id": "Right-foot",
+      "shape": "convex",
+      "parts": 1,
+      "orientation": "bone",
+      "assignedVertices": 400,
+      "stableFitVertices": 400,
+      "minimumDominantGroupWeight": 0.0,
+      "coveredAssignedVertices": 400,
+      "coverageFraction": 1.0,
+      "hullVertices": 82,
+      "hullTriangles": 160,
+      "maximumOutsideMeters": 0.0,
+      "p95OutsideMeters": 0.0
+    }
+  ],
+  "limitations": [
+    "Coverage counts neutral displayed vertices, not triangle interiors or every pose.",
+    "Rigid proxies approximate blended skin and nonconvex finger/face silhouettes.",
+    "Primitive options can trim fit outliers; the default full convex profile includes every region point.",
+    "Stored poses, author keys, source assets, mass and inertia are unchanged."
+  ],
+  "independentNeutralSourceAudit": {
+    "method": "Independent SciPy half-space feasibility against full source neutral-region convex hulls after the same 9-decimal coordinate quantization; containment uses 10nm tolerance and vertex gaps are sampled, not mesh triangle distances.",
+    "testedNonAdjacentPairs": 119,
+    "overlaps": [
+      {
+        "regions": [
+          "Left-hand",
+          "Left-thigh"
+        ],
+        "sourceConvexIntersection": true,
+        "minimumSampledVertexGapMeters": 0.003746821,
+        "verticesInsideOtherHull": [
+          297,
+          12
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.044762109,
+          0.030368814
+        ]
+      },
+      {
+        "regions": [
+          "Right-hand",
+          "Right-thigh"
+        ],
+        "sourceConvexIntersection": true,
+        "minimumSampledVertexGapMeters": 0.003746927,
+        "verticesInsideOtherHull": [
+          297,
+          12
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.044761973,
+          0.030368791
+        ]
+      }
+    ],
+    "selectedClearPairs": [
+      {
+        "regions": [
+          "pelvis",
+          "Left-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.014789834,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "pelvis",
+          "Right-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.01478979,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "abdomen",
+          "Left-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.01907494,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "abdomen",
+          "Right-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.019074931,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "thorax",
+          "Left-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.044124161,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "thorax",
+          "Right-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.044124276,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "neck",
+          "Left-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.379913126,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "neck",
+          "Right-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.379912999,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "head",
+          "Left-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.441482892,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "head",
+          "Right-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.441482889,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Left-upper-arm",
+          "Right-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.268648696,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Left-forearm",
+          "Left-thigh"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.00768538,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Left-forearm",
+          "Left-shank"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.376101694,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Left-forearm",
+          "Left-foot"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.815402791,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Left-forearm",
+          "Right-upper-arm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.268648564,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Left-forearm",
+          "Right-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.253084585,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Left-forearm",
+          "Right-hand"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.331839241,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Left-forearm",
+          "Right-thigh"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.186278187,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Left-forearm",
+          "Right-shank"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.462038547,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Left-forearm",
+          "Right-foot"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.855448491,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Left-hand",
+          "Right-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.33183902,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Left-thigh",
+          "Right-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.186278172,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Left-thigh",
+          "Right-thigh"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.012920982,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Left-shank",
+          "Right-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.46203845,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Left-foot",
+          "Right-forearm"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.855448525,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Right-forearm",
+          "Right-thigh"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.007685409,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Right-forearm",
+          "Right-shank"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.376101637,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "regions": [
+          "Right-forearm",
+          "Right-foot"
+        ],
+        "sourceConvexIntersection": false,
+        "minimumSampledVertexGapMeters": 0.815402662,
+        "verticesInsideOtherHull": [
+          0,
+          0
+        ],
+        "maximumInsidePlaneDepthMeters": [
+          0.0,
+          0.0
+        ]
+      }
+    ]
+  }
+}

@@ -5,6 +5,9 @@ import { MHRPoseCorrectives } from './MHRCorrectives';
 import { readMHRCorrectives } from './MHRTransport';
 import { createMHRRigController, validateMHRRigDescription, type MHRRigDescription } from './MHRRig';
 import { createQuaterniusRigController, validateQuaterniusRigDescription, validateQuaterniusRuntimeCalibration, type QuaterniusRigDescription } from './QuaterniusRig';
+import { AVATAR_COLLISION_PROFILE } from '../../../packages/core/src/avatarCapsules.generated';
+import { validateAvatarCollisionSource } from './avatarCollisionSource';
+import { initializeBodyCollisionBackend } from '../../../packages/core/src';
 
 // Versioned URLs leave assets available to editors opened before this update.
 export const HUMANOID_ASSET_URL = '/models/neutral-quaternius-v1.glb';
@@ -196,6 +199,11 @@ export async function loadHumanoid(joints: ReadonlyMap<JointName, THREE.Bone>, s
     readAsset(HUMANOID_ASSET_URL, 2 * 1024 * 1024, signal),
     readAsset(HUMANOID_RIG_ASSET_URL, 512 * 1024, signal),
   ]);
+  await Promise.all([
+    validateAvatarCollisionSource(data, descriptionBytes, AVATAR_COLLISION_PROFILE),
+    initializeBodyCollisionBackend(),
+  ]);
+  signal.throwIfAborted();
   const description: QuaterniusRigDescription = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(descriptionBytes));
   validateQuaterniusRigDescription(description);
   validateQuaterniusRuntimeCalibration(description);

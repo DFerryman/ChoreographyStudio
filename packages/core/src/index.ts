@@ -15,6 +15,9 @@ export * from './ik';
 export * from './footLocks';
 export * from './humanProfile';
 export * from './physics';
+export * from './capsuleCollision';
+export * from './rapierBackend';
+export { AVATAR_COLLISION_PROFILE } from './avatarCapsules.generated';
 export * from './aiChoreography';
 export * from './stepAssistance';
 
