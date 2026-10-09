@@ -94,6 +94,31 @@ function normalize(rotation: Quat): Quat {
   return scaled.map(value => value / length) as Quat;
 }
 
+/** Canonicalize only a new edit, so saving its displayed draft is bit-exact. */
+function canonicalEditRotation(rotation: Quat): Quat {
+  const robust = normalize(rotation), length = Math.hypot(...rotation);
+  const result = Number.isFinite(length) ? rotation.map(value => value / length) as Quat : robust;
+  if (Math.hypot(...result) === 1) return result;
+  // Repeated division can cycle between adjacent floats. Adjust one component
+  // by one representable step instead; this only settles floating-point rounding.
+  // A jump across 1 moves to the next largest nonzero component, whose smaller
+  // step can resolve a skipped value. It does not change the editing envelopes.
+  const order = [0, 1, 2, 3].filter(axis => result[axis] !== 0).sort((a, b) => Math.abs(result[b]) - Math.abs(result[a]));
+  const bits = new DataView(new ArrayBuffer(8));
+  let rank = 0;
+  for (let step = 0; step <= 64; step++) {
+    const norm = Math.hypot(...result);
+    if (norm === 1) return result;
+    if (step === 64) break;
+    const axis = order[rank], sign = Math.sign(result[axis]);
+    bits.setFloat64(0, Math.abs(result[axis]));
+    bits.setBigUint64(0, bits.getBigUint64(0) + (norm > 1 ? -1n : 1n));
+    result[axis] = sign * bits.getFloat64(0);
+    if ((norm - 1) * (Math.hypot(...result) - 1) < 0) rank = (rank + 1) % order.length;
+  }
+  throw new Error('局部旋转未能规范化为稳定的单位四元数。');
+}
+
 function withinEuler(degrees: Vec3, limits: JointRotationLimits): boolean {
   return degrees.every((angle, axis) => inside(angle, limits[axis]));
 }
@@ -174,10 +199,10 @@ export function isJointRotationWithinLimits(joint: JointName, rotation: Quat): b
  * numeric and physical envelopes even after K normalization.
  */
 export function constrainJointRotation(joint: JointName, rotation: Quat): Quat {
-  const settings = profile(joint), normalized = normalize(rotation);
+  const settings = profile(joint), normalized = canonicalEditRotation(rotation);
   if (withinAfterNormalization(normalized, settings)) return normalized;
   const degrees = rotationToDegrees(normalized).map((value, axis) => clamp(value, ...settings.limits[axis])) as Vec3;
-  const bounded = normalize(rotationFromDegrees(degrees));
+  const bounded = canonicalEditRotation(rotationFromDegrees(degrees));
   if (withinAfterNormalization(bounded, settings)) return bounded;
   let low = 0, high = 1;
   for (let iteration = 0; iteration < 60; iteration++) {
@@ -189,7 +214,7 @@ export function constrainJointRotation(joint: JointName, rotation: Quat): Quat {
   // during a K write. Move a tiny distance inward and verify the returned unit
   // quaternion with the public predicate's normalization; keep the limits strict.
   for (let inset = 1e-12; ; inset *= 2) {
-    const projected = normalize(fromNeutral(bounded, Math.max(0, low - inset)));
+    const projected = canonicalEditRotation(fromNeutral(bounded, Math.max(0, low - inset)));
     if (withinAfterNormalization(projected, settings)) return projected;
   }
 }

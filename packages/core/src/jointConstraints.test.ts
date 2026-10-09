@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   EDITABLE_JOINT_NAMES, JOINT_NAMES, constrainJointRotation, constrainJointRotationDegrees,
-  bakePlan, createNeutralTake, makeCountMap, makeKeyframeSequence, makePlan, upsertRotationKeyframe,
+  bakePlan, bakeKeyframeSequence, createNeutralTake, makeCountMap, makeKeyframeSequence, makePlan,
+  sampleTake, setPoseKeyframe, upsertRotationKeyframe,
   getJointRotationLimits, isJointRotationWithinLimits, jointRotationToDegrees,
   rotationFromDegrees, rotationToDegrees, type JointName, type Quat, type Vec3,
 } from './index';
@@ -156,6 +157,42 @@ describe('joint editing envelopes for the original preview rig', () => {
     const repeated = constrainJointRotation(joint, saved);
     expect(isJointRotationWithinLimits(joint, repeated)).toBe(true);
     repeated.forEach((value, axis) => expect(Math.abs(value - output[axis])).toBeLessThan(1e-14));
+  });
+
+  it.each<[JointName, Quat]>([
+    ['LeftLowerLeg', rotationFromDegrees([170, 0, 0])],
+    ['LeftLowerLeg', [0.9537169507482269, 0, 0, 0.30070579950427345]],
+    ['LeftForeArm', [-0.25650200097871706, 0.0739787608261766, 0.0855164154116003, 0.9599066668878221]],
+    ['RightLowerLeg', rotationFromDegrees([90, 4, 3])],
+    ['Hips', [-0.5632561118007073, -0.6312149622607962, -0.4474102475434128, -0.290059122129253]],
+    ['Hips', [1e308, 1e308, 1e308, 1e308]],
+  ])('%s newly edited draft remains component-exact through feedback re-entry, both K writes and bake', (joint, input) => {
+    // The knee sample is the actual failing browser draft; the elbow sample
+    // produced a two-state direct-hypot normalization cycle. Existing source
+    // poses are never canonicalized by this new-edit projection.
+    const map = makeCountMap({ bpm: 120, musicBeatsPerDanceCount: 1, firstCountSourceSeconds: 0, octetCount: 8, audioDurationSeconds: 40 });
+    const sequence = makeKeyframeSequence(createNeutralTake(bakePlan(makePlan(map), map)));
+    const original = JSON.stringify(sequence), before = [...input];
+    const draft = constrainJointRotation(joint, input);
+    expect(input).toEqual(before);
+    expect(isJointRotationWithinLimits(joint, draft)).toBe(true);
+    const pose = sampleTake(sequence.baseTake, 0);
+    pose.joints[joint] = [...draft];
+    const single = upsertRotationKeyframe(sequence, joint, 0, draft);
+    const full = setPoseKeyframe(sequence, 0, pose);
+    for (const keyed of [single, full]) {
+      expect(keyed.rotations[joint]![0].rotation).toEqual(draft);
+      expect(bakeKeyframeSequence(keyed).poses[0].joints[joint]).toEqual(draft);
+      expect(keyed.baseTake).toEqual(sequence.baseTake);
+    }
+    expect(Math.hypot(...draft)).toBe(1);
+    let feedback = draft;
+    for (let iteration = 0; iteration < 5; iteration++) {
+      feedback = constrainJointRotation(joint, feedback);
+      expect(feedback).toEqual(draft);
+      expect(isJointRotationWithinLimits(joint, feedback)).toBe(true);
+    }
+    expect(JSON.stringify(sequence)).toBe(original);
   });
 
   it('limits compounded shoulder axial twist instead of only clamping three independent Euler sliders', () => {
