@@ -1,10 +1,12 @@
 # Third-party software notices
 
-## v17 · 用户选定的 Quaternius 默认人物（本地验证完成）
+## v17 · 用户选定的 Quaternius 默认人物（已上线，准确源码CI通过）
 
 默认人物为用户明确选择的 **06 Quaternius Superhero Male 力量型**，来源官方Universal Base Characters标准免费包，CC0；无付费购买、不将其它候选一起发布。源65骨／几何／TRS／inverse bind／四权重保持原始值，运行时独立克隆inverse binds做display-2统一body G及固定肢段／脚底校准，原始GLB权重在实际Loader中恢复bitexact。来源、完整许可、六资产SHA及独立可复现检查见[人物资产](apps/web/public/models/README.md)；其21099B/SHA14a040b5正文已冻结，不写发布结果。
 
-选型01–03 MPFB为CC0；04–05 MB-Lab生成三维资产AGPL-3.0、二维截图例外不等于三维资产可无条件上线（05最终名“写实柔和”）；06–07 Quaternius标准免费包CC0；08 Mannequiny为CC-BY-4.0需署名。实际编辑／蒙皮本地验收已完成，远端CI／发布仍待回执；来源许可不替代真实舞蹈动作、教师或设备门槛。原MHR及此前声明全文保留为历史。
+选型01–03 MPFB为CC0；04–05 MB-Lab生成三维资产AGPL-3.0、二维截图例外不等于三维资产可无条件上线（05最终名“写实柔和”）；06–07 Quaternius标准免费包CC0；08 Mannequiny为CC-BY-4.0需署名。实际编辑／蒙皮本地验收已完成，准确源码CI／运行发布已实际核验，最后文档关联与Notion按最终回执完成；来源许可不替代真实舞蹈动作、教师或设备门槛。原MHR及此前声明全文保留为历史。
+
+运行源码[ee376928](https://github.com/DFerryman/ChoreographyStudio/commit/ee376928f200e87e4eb48bbfec00fa60741fd12a)／tree `89c828c7b2770fd416a04c87dfe0fc04872dd7f2`已推送main；其准确[CI37871363910](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37871363910)／job113629975482／attempt1／main push于2026-10-09T02:10:06Z实际success：421／421基础（22文件）＋94／94浏览器（23文件），94逐例通过、失败／未通过0，未手动重跑。Cloudflare v17 `18dd4982-503a-4dfc-936c-6cffa7157b46`／100%，首次deployment `22f6f251-3b75-4495-800a-c8a3792e449a`；一次HTTP25和唯一公网8首轮通过，7份实际API／error／warning／expectedHTTP诊断0。root再亲审同轮23图中的6实际公网图，合本地13图接受形体／蒙皮。最后纯Markdown提交将通过同版部署注释关联最终main／tree与metadata，再同步五份Notion；不再上传运行资产或重测公网，真实Workers AI／付费／D1／新图片上传0。
 
 ## v16 flat-ground step assistance · deployed and exact-source CI verified
 

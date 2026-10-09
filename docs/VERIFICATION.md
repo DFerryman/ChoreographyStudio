@@ -1,6 +1,6 @@
 # 预览验证记录
 
-## Version 17 · 用户选定 06 人物（本地验证完成，准备发布）
+## Version 17 · 用户选定 06 人物（已上线，准确源码CI通过）
 
 选型证据为八候选各三实际GLB／glTF视图，共24个渲染视图及总览；05最终名“写实柔和”。用户明确选定06 Quaternius Superhero Male力量型。生产仅默认这一CC0标准免费包人体，不新增切换UI；原65骨／8483顶点／14318三角形／四权重、原几何／TRS／inverse bind保存。原25作者控制、K／Root／精确时刻／CountMap／历史／limits／IK／脚锁／步伐契约保持，显式异常作者K最高优先。
 
@@ -14,7 +14,13 @@
 
 **失败保留。** 初始native偏移脚锚／pivot拒绝；display-1虽数学2微米通过，actual150°／170°胸肩水平平台／宽颈被root/browser拒绝；首完整15的14／15权重hash因GLTFLoader归一化失败，后恢复原bits；v2完整／focused的真实工具及IK轴测试纠正保留，不降低断言。source重现首跳过nativeRef步骤导致同内容JSON keyorder字节不同，正确四步重现后通过，未改生产；Worker首ENOENT和启动／connectivity退出均留档。MHR原source fixture／2微米／3%断言移入明确历史核验，未以新阈值删去旧证据。170°与异常膝压力K、悬空Root不是通常可做舞步／着地证明。
 
-此刻准确源码CI、main／Cloudflare、公网及Notion仍待实际结果，不预填成功数字或版本。真实Workers AI／付费生成0，后续七组功能暂停，M0–M3不关闭；Notion最终仅文本插入和读回，原文／引用／历史／原4图保持，不上传新图。以下v16及之前全文保留。
+准确源码CI、运行main／Cloudflare与有界公网已真实核验；最后仅文档提交经同版注释关联，最终main／tree／deployment由独立回执与Notion实际metadata记录，不偷换准确CI的runtime源身份。真实Workers AI／付费生成0，后续七组功能暂停，M0–M3不关闭；Notion最终仅文本插入和读回，原文／引用／历史／原4图保持，不上传新图。以下v16及之前全文保留。
+
+运行源码[ee376928](https://github.com/DFerryman/ChoreographyStudio/commit/ee376928f200e87e4eb48bbfec00fa60741fd12a)／tree `89c828c7b2770fd416a04c87dfe0fc04872dd7f2`已推送main；其准确[CI37871363910](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37871363910)／job113629975482／attempt1／main push于2026-10-09T02:10:06Z实际success：421／421基础（22文件）＋94／94浏览器（23文件），94逐例通过、失败／未通过0，未手动重跑。Cloudflare v17 `18dd4982-503a-4dfc-936c-6cffa7157b46`／100%，首次deployment `22f6f251-3b75-4495-800a-c8a3792e449a`；一次HTTP25和唯一公网8首轮通过，7份实际API／error／warning／expectedHTTP诊断0。root再亲审同轮23图中的6实际公网图，合本地13图接受形体／蒙皮。最后纯Markdown提交将通过同版部署注释关联最终main／tree与metadata，再同步五份Notion；不再上传运行资产或重测公网，真实Workers AI／付费／D1／新图片上传0。
+
+实际Wrangler4.147.0唯一运行部署窗口01:46:35.365602–01:46:42.466173Z，version创建01:46:40.670588Z、首deployment创建01:46:41.132648Z，8新／15复用资产，bindings／settings不变。HTTP25（23静态SHA＋health／cap两GET）于01:48:03.064771–01:48:06.177276Z；首收据deployment参数手误由native读回更正，25检查原样保留、0补请求，不改成从未出错。公网8于01:49:39.159Z开始、110.911739秒，23实际App图、7实际诊断全0及第8严格late-bind；没有新增第8JSON或第二公网轮。
+
+准确CI job从01:46:07至02:10:06Z共1439秒，browser终行02:10:05.0576071Z为94 passed（23.0m），runupdated02:10:07Z，首次观察02:10:42.411600Z。唯一完整原始log72182B／SHA256 `a0da8492b6c0573b5bdba0783bb3a8e53effbdf69624c1548272b77a1fcd5e2a`；准确CI收据SHA `99f24dc257ea8d8caa0c6618584ae02afc8d910499ebc2f8e9e60cb0210ea590`。准确CI仍绑定ee376928／tree89c828c7，之后纯Markdown head不冒充该CI head；冻结runtime、26dist文件和publicREADME继续复用。
 
 ## Version 16 · 平地自动迈步（已上线，准确源码CI通过）
 

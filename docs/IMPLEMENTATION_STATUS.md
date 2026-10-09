@@ -1,12 +1,14 @@
 # 实现状态
 
-## v17 · 06 默认人物（本地验证完成，准备发布）
+## v17 · 06 默认人物（已上线，准确源码CI通过）
 
 用户所选CC0 Quaternius Superhero Male默认人物已完成接入；原65骨／四权重和来源数据保留，继续25作者控制。display-2共同body G保持完整胸／颈／头；物理21映射框架仍匹配原canonical FK，肢段和82mm脚底固定校准。实际GLTFLoader归一化后从原GLB恢复四权重bits；raw源与运行绑定克隆明确分开，不称仅全局缩放或身材完全未变。
 
 本地实际421／421基础、22文件，前端类型／构建与未变Worker类型通过。CPU15×8483全点最大0.237187微米；相关15浏览器场景经整体14与纠正工具／IK轴后focused1通过覆盖，77文件hash稳定、原权重真实加载bitexact。38实际App图中根代理亲审13张，实际旋转／K／插帧／播放及IK、桌面／手机形体与蒙皮接受。初版21frame数学过却胸肩平台／宽颈视觉拒绝、权重hash失败及测试纠正完整留档。
 
-原K／Root／精确时刻／CountMap／历史／IK／脚锁／步伐契约和显式作者最高优先保持，无模型切换按钮。七组后续功能暂停、M0–M3未关闭。准确CI／main／Cloudflare／线上及Notion仍待实际回填；真实Workers AI／付费0。下方v16及以前全文保留。
+原K／Root／精确时刻／CountMap／历史／IK／脚锁／步伐契约和显式作者最高优先保持，无模型切换按钮。七组后续功能暂停、M0–M3未关闭。准确源码CI／运行main／Cloudflare／线上已验证，最后文档关联与Notion按最终metadata完成；真实Workers AI／付费0。下方v16及以前全文保留。
+
+运行源码[ee376928](https://github.com/DFerryman/ChoreographyStudio/commit/ee376928f200e87e4eb48bbfec00fa60741fd12a)／tree `89c828c7b2770fd416a04c87dfe0fc04872dd7f2`已推送main；其准确[CI37871363910](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37871363910)／job113629975482／attempt1／main push于2026-10-09T02:10:06Z实际success：421／421基础（22文件）＋94／94浏览器（23文件），94逐例通过、失败／未通过0，未手动重跑。Cloudflare v17 `18dd4982-503a-4dfc-936c-6cffa7157b46`／100%，首次deployment `22f6f251-3b75-4495-800a-c8a3792e449a`；一次HTTP25和唯一公网8首轮通过，7份实际API／error／warning／expectedHTTP诊断0。root再亲审同轮23图中的6实际公网图，合本地13图接受形体／蒙皮。最后纯Markdown提交将通过同版部署注释关联最终main／tree与metadata，再同步五份Notion；不再上传运行资产或重测公网，真实Workers AI／付费／D1／新图片上传0。
 
 ## v16 · 平地自动迈步（已上线，准确源码CI通过）
 

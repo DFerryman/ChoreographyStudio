@@ -1,10 +1,12 @@
 # 经典手动编辑器的当前范围
 
-## v17 · 06 默认人物（本地编辑蒙皮已验，准备发布）
+## v17 · 06 默认人物（已上线，实际编辑蒙皮与CI通过）
 
 默认显示改为用户选择的CC0 Quaternius Superhero Male，原65骨与四权重、25作者控制；不增加人物切换按钮或恢复关节／姿态参数面板。舞台直接摆姿、相邻时间轴写K与少量必要入口继续保留。新显示用统一来源body G修正胸颈头型，物理骨架与既有编辑／IK／脚锁一致；保留显式K、Root／时刻、现有动作与历史权威。
 
-开发方已实际旋转、写K、插帧播放和手脚IK并检查桌面／手机图；38实际App截图中根代理亲审13张，含最终联动草稿／K两图，接受自然形体与连续蒙皮。相关15场景是整体14＋修正操作后focused1通过，不是首轮全通过；本地421及类型／构建／Worker类型已通过。首稿平台／宽颈和原权重问题的拒绝／修正留档。远端CI／main／Cloudflare与Notion仍待实际发布记录，后续七组功能暂停、真实Workers AI不调用。下方历史全文保持。
+开发方已实际旋转、写K、插帧播放和手脚IK并检查桌面／手机图；38实际App截图中根代理亲审13张，含最终联动草稿／K两图，接受自然形体与连续蒙皮。相关15场景是整体14＋修正操作后focused1通过，不是首轮全通过；本地421及类型／构建／Worker类型已通过。首稿平台／宽颈和原权重问题的拒绝／修正留档。准确源码CI／运行main／Cloudflare／线上已验证，最后文档关联与Notion按实际metadata完成，后续七组功能暂停、真实Workers AI不调用。下方历史全文保持。
+
+运行源码[ee376928](https://github.com/DFerryman/ChoreographyStudio/commit/ee376928f200e87e4eb48bbfec00fa60741fd12a)／tree `89c828c7b2770fd416a04c87dfe0fc04872dd7f2`已推送main；其准确[CI37871363910](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37871363910)／job113629975482／attempt1／main push于2026-10-09T02:10:06Z实际success：421／421基础（22文件）＋94／94浏览器（23文件），94逐例通过、失败／未通过0，未手动重跑。Cloudflare v17 `18dd4982-503a-4dfc-936c-6cffa7157b46`／100%，首次deployment `22f6f251-3b75-4495-800a-c8a3792e449a`；一次HTTP25和唯一公网8首轮通过，7份实际API／error／warning／expectedHTTP诊断0。root再亲审同轮23图中的6实际公网图，合本地13图接受形体／蒙皮。最后纯Markdown提交将通过同版部署注释关联最终main／tree与metadata，再同步五份Notion；不再上传运行资产或重测公网，真实Workers AI／付费／D1／新图片上传0。
 
 ## v16 · 整体移动后的自动迈步（已上线，准确源码CI通过）
 

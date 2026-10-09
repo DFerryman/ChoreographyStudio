@@ -1,10 +1,12 @@
 # P1 手动关键帧规则
 
-## v17 · 所选人物接入（本地验证完成，准备发布）
+## v17 · 所选人物接入（已上线，准确源码CI通过）
 
 Quaternius Superhero Male的65内部骨和display-2固定显示绑定不扩充作者25控制，不修改稀疏K／Take／baseTake／Root／精确时刻／CountMap／序列／历史或脚锁。21物理映射骨仍对齐原canonical FK，统一body G保留胸颈头型，四权重在Loader中恢复原bits；显示枢轴与肢长校准不冒充完全原生FK。作者显式K即使超限仍最高优先，辅助适应并提示，不能为通过皮肤或物理检查裁剪作品。
 
-实际旋转草稿→显式K→插值／播放和IK本地流程已验证；相关15按完整14＋纠正操作后单项通过覆盖，77文件hash一致。根代理亲审13实际App图包含最终联动草稿和K；421基础／类型／构建／Worker通过，独立CPU15×8483来源对照最大0.237187微米。失败与修正历史保留，170°／异常膝K仅作作者压力契约而非普通可执行舞步。无模型选择UI；远端CI／main／CF／Notion待实际回填，后续七组暂停。下方全部旧规则保留。
+实际旋转草稿→显式K→插值／播放和IK本地流程已验证；相关15按完整14＋纠正操作后单项通过覆盖，77文件hash一致。根代理亲审13实际App图包含最终联动草稿和K；421基础／类型／构建／Worker通过，独立CPU15×8483来源对照最大0.237187微米。失败与修正历史保留，170°／异常膝K仅作作者压力契约而非普通可执行舞步。无模型选择UI；准确CI／运行main／CF／线上已验，最后文档关联与Notion按真实metadata完成，后续七组暂停。下方全部旧规则保留。
+
+运行源码[ee376928](https://github.com/DFerryman/ChoreographyStudio/commit/ee376928f200e87e4eb48bbfec00fa60741fd12a)／tree `89c828c7b2770fd416a04c87dfe0fc04872dd7f2`已推送main；其准确[CI37871363910](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37871363910)／job113629975482／attempt1／main push于2026-10-09T02:10:06Z实际success：421／421基础（22文件）＋94／94浏览器（23文件），94逐例通过、失败／未通过0，未手动重跑。Cloudflare v17 `18dd4982-503a-4dfc-936c-6cffa7157b46`／100%，首次deployment `22f6f251-3b75-4495-800a-c8a3792e449a`；一次HTTP25和唯一公网8首轮通过，7份实际API／error／warning／expectedHTTP诊断0。root再亲审同轮23图中的6实际公网图，合本地13图接受形体／蒙皮。最后纯Markdown提交将通过同版部署注释关联最终main／tree与metadata，再同步五份Notion；不再上传运行资产或重测公网，真实Workers AI／付费／D1／新图片上传0。
 
 ## v16 · 派生步伐与作者 K（已上线，准确源码CI通过）
 

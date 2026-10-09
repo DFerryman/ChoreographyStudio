@@ -1,12 +1,14 @@
 # 八拍 · Choreo Studio
 
-## v17 · 用户选定 06 人物（本地验证完成，准备发布）
+## v17 · 用户选定 06 人物（已上线，准确源码CI通过）
 
 用户从八个真实候选的24视图中选择 **06 Quaternius Superhero Male 力量型**；05最终名“写实柔和”。默认人物已接入CC0标准免费包、原生65骨与原四权重，继续使用25作者控制，不新增模型选择按钮或精细面板。源数据保持原值；运行显示用统一body G保留完整胸颈头型，并把物理骨架固定标定到原canonical FK；这不等于完全原生FK或所有显示比例不变。
 
 **本地已验证：421基础（22文件）、前端类型／构建、Worker类型；CPU15姿态×8483全点误差最大0.237187微米；相关浏览器15场景经整体14通过与必要修正后单项通过覆盖。** 77文件前后hash稳定、实际Loader原权重bitexact；38张实际App图中根代理亲审13张，包含真实旋转草稿、写K、插帧播放、手脚IK、桌面和手机，形体／蒙皮接受。首稿数学通过但胸肩平台／宽颈被拒绝，权重恢复和测试动作修正历史均保留，不谎称首轮15全过。
 
-作者K最高优先、原动画／Root／时刻／历史和脚锁／步伐契约保持。后续七组功能暂停；真实Workers AI／付费调用0。准确源码CI、main／Cloudflare及五份Notion尚待实际发布回填，见[验证](docs/VERIFICATION.md)、[部署](docs/DEPLOYMENT.md)；下方v16及以前为完整历史。
+作者K最高优先、原动画／Root／时刻／历史和脚锁／步伐契约保持。后续七组功能暂停；真实Workers AI／付费调用0。准确源码CI、运行main／Cloudflare与有界线上已验证；最后文档提交关联及五份Notion按真实最终metadata回填，见[验证](docs/VERIFICATION.md)、[部署](docs/DEPLOYMENT.md)；下方v16及以前为完整历史。
+
+运行源码[ee376928](https://github.com/DFerryman/ChoreographyStudio/commit/ee376928f200e87e4eb48bbfec00fa60741fd12a)／tree `89c828c7b2770fd416a04c87dfe0fc04872dd7f2`已推送main；其准确[CI37871363910](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37871363910)／job113629975482／attempt1／main push于2026-10-09T02:10:06Z实际success：421／421基础（22文件）＋94／94浏览器（23文件），94逐例通过、失败／未通过0，未手动重跑。Cloudflare v17 `18dd4982-503a-4dfc-936c-6cffa7157b46`／100%，首次deployment `22f6f251-3b75-4495-800a-c8a3792e449a`；一次HTTP25和唯一公网8首轮通过，7份实际API／error／warning／expectedHTTP诊断0。root再亲审同轮23图中的6实际公网图，合本地13图接受形体／蒙皮。最后纯Markdown提交将通过同版部署注释关联最终main／tree与metadata，再同步五份Notion；不再上传运行资产或重测公网，真实Workers AI／付费／D1／新图片上传0。
 
 ## v16 · 平地自动迈步（已上线，准确源码CI通过）
 

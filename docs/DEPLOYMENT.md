@@ -1,12 +1,18 @@
 # Cloudflare 预览部署
 
-## v17 · 用户所选 06 人物（本地完成，远端发布待验）
+## v17 · 用户所选 06 人物（已上线，准确源码CI通过）
 
 Quaternius Superhero Male默认人物及display-2来源形体修正已完成本地验收；仅换默认人物，不加模型切换UI，不推进七组后续功能。421／421基础（22文件、15.36秒）、前端类型／Vite构建通过；Worker源及配置未变，实际类型检查EXIT0复用，首默认日志路径ENOENT与第二继承代理warning留档。主JS `index-CBtn1tpp.js`1125855B／SHA256 `2d5eb17e74847f1bf0dc81199c2d3ac6e5a48533d3f36d8890b07027a4c714fd`；CSS63251B／SHA `ba41e19f29da5255caa74edd5523fd67e98f12ef2038e7b1d5506da08463b375`。public模型README21099B／SHA `14a040b502495cbd844209ec056681a9da82feeb7cde18035215d068b5dd5202`及六新来源资产冻结，不随最后Markdown结果回填改变。
 
 相关浏览器15场景按完整14＋纠正操作后focused1覆盖，运行资产不变、77文件hash前后稳定；根代理从38实际App图亲审13张接受蒙皮／形体。CPU15×8483全点及实际锁／步阈值通过；首数学通过但形体拒绝、14／15原权重失败和测试动作修正保留。
 
-当前尚未宣称准确源码CI、main、Cloudflare、公网或Notion完成。后续以真实source／tree、CI、一次运行部署和有界线上回执对应，再更新五份Notion正文、保留原引用／历史／四图片，不上传新图。真实Workers AI／付费请求0。下方v16及更早部署全文为历史。
+准确源码CI、运行main／Cloudflare与一次有界公网已核验。最终仅文档main提交将同版注释关联，再以真实metadata更新五份Notion正文，保留原引用／历史／四图片，不上传新图。真实Workers AI／付费请求0。下方v16及更早部署全文为历史。
+
+运行源码[ee376928](https://github.com/DFerryman/ChoreographyStudio/commit/ee376928f200e87e4eb48bbfec00fa60741fd12a)／tree `89c828c7b2770fd416a04c87dfe0fc04872dd7f2`已推送main；其准确[CI37871363910](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37871363910)／job113629975482／attempt1／main push于2026-10-09T02:10:06Z实际success：421／421基础（22文件）＋94／94浏览器（23文件），94逐例通过、失败／未通过0，未手动重跑。Cloudflare v17 `18dd4982-503a-4dfc-936c-6cffa7157b46`／100%，首次deployment `22f6f251-3b75-4495-800a-c8a3792e449a`；一次HTTP25和唯一公网8首轮通过，7份实际API／error／warning／expectedHTTP诊断0。root再亲审同轮23图中的6实际公网图，合本地13图接受形体／蒙皮。最后纯Markdown提交将通过同版部署注释关联最终main／tree与metadata，再同步五份Notion；不再上传运行资产或重测公网，真实Workers AI／付费／D1／新图片上传0。
+
+实际Wrangler4.147.0唯一运行部署窗口01:46:35.365602–01:46:42.466173Z，version创建01:46:40.670588Z、首deployment创建01:46:41.132648Z，8新／15复用资产，bindings／settings不变。HTTP25（23静态SHA＋health／cap两GET）于01:48:03.064771–01:48:06.177276Z；首收据deployment参数手误由native读回更正，25检查原样保留、0补请求，不改成从未出错。公网8于01:49:39.159Z开始、110.911739秒，23实际App图、7实际诊断全0及第8严格late-bind；没有新增第8JSON或第二公网轮。
+
+准确CI job从01:46:07至02:10:06Z共1439秒，browser终行02:10:05.0576071Z为94 passed（23.0m），runupdated02:10:07Z，首次观察02:10:42.411600Z。唯一完整原始log72182B／SHA256 `a0da8492b6c0573b5bdba0783bb3a8e53effbdf69624c1548272b77a1fcd5e2a`；准确CI收据SHA `99f24dc257ea8d8caa0c6618584ae02afc8d910499ebc2f8e9e60cb0210ea590`。准确CI仍绑定ee376928／tree89c828c7，之后纯Markdown head不冒充该CI head；冻结runtime、26dist文件和publicREADME继续复用。
 
 ## v16 · 平地自动迈步（已上线，准确源码CI通过）
 

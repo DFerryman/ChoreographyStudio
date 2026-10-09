@@ -1,10 +1,12 @@
 # 阶段路线
 
-## v17 · 默认人物本地完成，下一步只发布本轮
+## v17 · 默认人物已上线，后续功能仍暂停
 
 用户从八候选24真实视图中选择06 Quaternius Superhero Male；05最终名“写实柔和”。CC0／原生65骨和原四权重、25作者控制、统一body G完整头型与固定canonical物理骨架已完成本地编辑蒙皮验证；不新增模型选择按钮。421基础／前端类型构建／Worker类型与15相关浏览器分次覆盖通过，root亲审38图中的13实际App图接受形体；首数学通过但外观拒绝、权重及测试操作修正历史保留。
 
-当前下一步仅为准确CI、GitHub main、Cloudflare与有界线上核验，再同步五份Notion；这些尚未标记完成。七组后续工作继续暂停：肩带协调；自然受限过渡；时间轴拖K／曲线；复杂步伐与动态平衡；真实动作／重定向／教师和设备；教学MP4；账号／云同步。作者K、旧动作数据／时序／历史／脚锁保持最高权威，真实Workers AI0，测试数不关闭M0–M3。下方v16及此前路线、引用和门槛全文保留。
+准确源码CI、运行GitHub main／Cloudflare与有界线上已实际通过；最后仅文档main提交关联同版部署注释并按实际metadata同步五份Notion。七组后续工作继续暂停：肩带协调；自然受限过渡；时间轴拖K／曲线；复杂步伐与动态平衡；真实动作／重定向／教师和设备；教学MP4；账号／云同步。作者K、旧动作数据／时序／历史／脚锁保持最高权威，真实Workers AI0，测试数不关闭M0–M3。下方v16及此前路线、引用和门槛全文保留。
+
+运行源码[ee376928](https://github.com/DFerryman/ChoreographyStudio/commit/ee376928f200e87e4eb48bbfec00fa60741fd12a)／tree `89c828c7b2770fd416a04c87dfe0fc04872dd7f2`已推送main；其准确[CI37871363910](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37871363910)／job113629975482／attempt1／main push于2026-10-09T02:10:06Z实际success：421／421基础（22文件）＋94／94浏览器（23文件），94逐例通过、失败／未通过0，未手动重跑。Cloudflare v17 `18dd4982-503a-4dfc-936c-6cffa7157b46`／100%，首次deployment `22f6f251-3b75-4495-800a-c8a3792e449a`；一次HTTP25和唯一公网8首轮通过，7份实际API／error／warning／expectedHTTP诊断0。root再亲审同轮23图中的6实际公网图，合本地13图接受形体／蒙皮。最后纯Markdown提交将通过同版部署注释关联最终main／tree与metadata，再同步五份Notion；不再上传运行资产或重测公网，真实Workers AI／付费／D1／新图片上传0。
 
 ## v16 · 当前优先与剩余工作（已上线，准确源码CI通过）
 
