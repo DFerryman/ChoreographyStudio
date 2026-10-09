@@ -58,14 +58,14 @@
 .kf-zoom-controls > button { display: grid; place-items: center; min-width: 23px; height: 24px; padding: 0 4px; border: 1px solid transparent; border-radius: 3px; color: #b4c1d4; }
 .kf-zoom-controls > button.active { color: #c7dfff; border-color: #8eb7eb33; background: #7da8df16; }
 .kf-zoom-controls > button:hover:not(:disabled) { color: #eaf2ff; background: #ffffff0a; }
-.kf-zoom-controls > input[type='range'] { appearance: none; width: 65px; height: 24px; padding: 0; margin: 0 2px; background: transparent; cursor: ew-resize; }
+.kf-zoom-controls > input[type='range'] { appearance: none; width: 65px; height: 24px; padding: 0; margin: 0 2px; background: transparent; cursor: ew-resize; touch-action: none; }
 .kf-zoom-controls > input[type='range']::-webkit-slider-runnable-track { height: 3px; border-radius: 2px; background: #506078; }
 .kf-zoom-controls > input[type='range']::-moz-range-track { height: 3px; border-radius: 2px; background: #506078; }
 .kf-zoom-controls > input[type='range']::-webkit-slider-thumb { width: 9px; height: 9px; margin-top: -3px; appearance: none; border-radius: 50%; background: #d6e6fb; }
 .kf-zoom-controls > input[type='range']::-moz-range-thumb { width: 9px; height: 9px; border: 0; border-radius: 50%; background: #d6e6fb; }
 .kf-frame-spacing { display: flex; align-items: center; gap: 3px; white-space: nowrap; color: #8292a9; }
 .kf-frame-spacing input { width: 39px; height: 23px; padding: 0 3px; border: 1px solid #ffffff14; border-radius: 3px; color: #ced9e9; background: #1c222c; font-size: 9px; }
-.kf-lanes-viewport { max-height: 166px; overflow: auto; border: 1px solid #ffffff10; border-radius: 5px; background: #1c222c; scrollbar-width: thin; scrollbar-color: #53617a #1c222c; overscroll-behavior: contain; }
+.kf-lanes-viewport { max-height: 166px; overflow: auto; border: 1px solid #ffffff10; border-radius: 5px; background: #1c222c; scrollbar-width: thin; scrollbar-color: #53617a #1c222c; overscroll-behavior: contain; touch-action: pan-y; }
 .kf-lanes { min-width: 100%; }
 .kf-ruler-row, .kf-lane { display: grid; grid-template-columns: 91px minmax(0,1fr); }
 .kf-ruler-row { position: sticky; z-index: 7; top: 0; height: 23px; background: #242c39; }
@@ -96,7 +96,7 @@
 .kf-drag-time { position: absolute; z-index: 10; bottom: calc(100% + 3px); padding: 3px 5px; border-radius: 3px; color: #eef6ff; background: #37547d; font-size: 9px; white-space: nowrap; pointer-events: none; }
 .kf-row-playhead { position: absolute; z-index: 4; top: 0; bottom: -1px; width: 1px; background: #efb896; transform: translateX(-50%); pointer-events: none; }
 .kf-ruler { position: relative; min-width: 0; margin: 0; }
-.kf-ruler > input { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; margin: 0; appearance: none; background: transparent; cursor: ew-resize; }
+.kf-ruler > input { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; margin: 0; appearance: none; background: transparent; cursor: ew-resize; touch-action: none; }
 .kf-ruler > input::-webkit-slider-runnable-track { height: 23px; background: transparent; }
 .kf-ruler > input::-moz-range-track { height: 23px; background: transparent; }
 .kf-ruler > input::-webkit-slider-thumb { width: 1px; height: 23px; appearance: none; background: transparent; }

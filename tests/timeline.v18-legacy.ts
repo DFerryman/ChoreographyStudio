@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { Euler, Quaternion } from 'three';
 import { backup, current, diagnostics, draft, numeric, openFixture, save, screenshot, select } from './realismHelpers';
 import { expectStageValue } from './stageInteractions';
-import { closeDisclosures } from './helpers';
+import { clickRevealed, closeDisclosures, reveal } from './helpers';
 
 test.beforeEach(async ({ page }) => { await page.route('**/api/**', route => route.abort('blockedbyclient')); });
 
@@ -42,10 +42,13 @@ for (const width of [1440, 390]) {
     await page.locator('.project-title').scrollIntoViewIfNeeded();
     if (width === 1440) await expect(record).toBeInViewport();
     else {
-      for (const control of [record, cursor, timeline.getByRole('button', { name: '下一帧', exact: true })]) {
+      for (const control of [record, cursor]) {
         expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44);
       }
     }
+    const nextFrame = timeline.getByRole('button', { name: '下一帧', exact: true, includeHidden: true });
+    await expect(nextFrame).toBeHidden();
+    if (width === 390) { await reveal(page, nextFrame); expect((await nextFrame.boundingBox())!.height).toBeGreaterThanOrEqual(44); await closeDisclosures(page); }
     await select(page, 'LeftUpperArm');
     const snapshots: ReturnType<typeof current>[] = [];
     for (const [frame, angle, x] of [[0, 0, 0], [90, 60, .9], [240, 15, 1.2]]) {
@@ -117,7 +120,7 @@ for (const width of [1440, 390]) {
     await expect(draft(page)).toBeHidden();
     expect(current(await backup(page))).toEqual(take);
     await numeric(page, '关节 Z 旋转（度）', 75);
-    await timeline.getByRole('button', { name: '下一帧', exact: true }).click();
+    await clickRevealed(page, nextFrame);
     await expect(guard).toBeVisible();
     await guard.getByRole('button', { name: '写入完整姿态后继续', exact: true }).click();
     await expect(cursor).toHaveValue('91');
