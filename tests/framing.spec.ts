@@ -225,7 +225,9 @@ test('@framing whole-body framing brings a translated current pose into view wit
   const source = await openFixture(page);
   await expect(focus(page)).toBeDisabled();
   await clickRevealed(page, page.getByRole('button', { name: '手动 K帧', exact: true, includeHidden: true }));
+  await closeDisclosures(page, '.studio-more');
   await clickRevealed(page, page.getByRole('button', { name: '左侧', exact: true, includeHidden: true }));
+  await closeDisclosures(page, '.camera-options');
   await numeric(page, '当前帧', 75);
   await page.getByRole('button', { name: '保存', exact: true }).click();
   await expect(page.locator('.save-state')).toHaveText('已保存到本机');
@@ -287,7 +289,13 @@ test('@framing framing uses an unwritten pose without resolving it, and saved ca
   const source = await openFixture(page, true), original = await backup(page);
   await clickRevealed(page, page.getByRole('button', { name: '手动 K帧', exact: true, includeHidden: true }));
   await numeric(page, '当前帧', 75); await joint(page, 'LeftUpperArm');
-  await numeric(page, '关节 Z 旋转（度）', 60); await numeric(page, 'Root X 位移（米）', -5);
+  // The translated fixture is outside the current camera. Use the visible
+  // framing action before reaching its rotation and Root handles.
+  await cameraAction(page, 'whole');
+  await numeric(page, '关节 Z 旋转（度）', 60);
+  // Reach the established -5 m boundary through a real drag; a small overshoot
+  // lets the editor clamp there exactly instead of relying on ray rounding.
+  await numeric(page, 'Root X 位移（米）', -5.05);
   const pose = (await readStagePose(page)).pose;
   await expectStageValue(page, '关节 Z 旋转（度）', 60);
   expect(pose.root[0]).toBe(-5);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   EDITABLE_JOINT_NAMES, JOINT_NAMES, constrainJointRotation, constrainJointRotationDegrees,
+  bakePlan, createNeutralTake, makeCountMap, makeKeyframeSequence, makePlan, upsertRotationKeyframe,
   getJointRotationLimits, isJointRotationWithinLimits, jointRotationToDegrees,
   rotationFromDegrees, rotationToDegrees, type JointName, type Quat, type Vec3,
 } from './index';
@@ -101,6 +102,60 @@ describe('joint editing envelopes for the original preview rig', () => {
       expect(Math.abs(output[1])).toBeLessThan(Math.abs(degrees[1]));
       expect(Math.abs(output[2])).toBeLessThan(Math.abs(degrees[2]));
     }
+  });
+
+  it.each<{ joint: JointName; rotation: Quat; degrees: Vec3 }>([
+    { joint: 'LeftForeArm', rotation: [-0.11471704949084884, 0.1347731555209452, 0.13826411938458458, 0.9744532971866053], degrees: [-15.550536376768143, 13.352289516941134, 17.98276311397531] },
+    { joint: 'LeftForeArm', rotation: [-0.6371985943120906, 0.09301021804745838, 0.1314160047047678, 0.7536954852278849], degrees: [-80.170455171458, -1.562845885266747, 18.466195169788932] },
+    { joint: 'RightLowerLeg', rotation: [0.44781483995477656, 0.03169150429047378, -0.16916476562642843, 0.877405721284424], degrees: [53.153105940587736, -5.502913619086462, -19.07114494582632] },
+    { joint: 'RightLowerLeg', rotation: [0.7539744832572669, -0.20288241819830205, 0.01779175254430984, 0.6245355526504063], degrees: [103.01070013168298, -13.096129472449354, 19.689481728502475] },
+    { joint: 'RightLowerLeg', rotation: [0.8749011955379251, 0.2133239910590742, 0.0676285402983988, 0.42949639512112936], degrees: [130.71436865570578, 17.55254746684343, -19.303597879153585] },
+    { joint: 'RightLowerLeg', rotation: [0.39503215770294453, 0.061527684573436645, 0.20379252740970455, 0.8936624330157067], degrees: [45.027153996974995, 15.72254112872932, 19.141422249964414] },
+  ])('$joint coupled projection stays legal and idempotent through normalization and a real K write: $degrees', ({ joint, rotation, degrees }) => {
+    // These fixed inputs reproduced a projected result that crossed the
+    // secondary-swing boundary by rounding, including only after K normalization.
+    rotationToDegrees(rotation).forEach((value, axis) => expect(value).toBeCloseTo(degrees[axis], 10));
+    const map = makeCountMap({ bpm: 120, musicBeatsPerDanceCount: 1, firstCountSourceSeconds: 0, octetCount: 8, audioDurationSeconds: 40 });
+    const sequence = makeKeyframeSequence(createNeutralTake(bakePlan(makePlan(map), map)));
+    const original = JSON.stringify(sequence);
+    for (const input of [rotation, rotationFromDegrees(degrees)]) {
+      const before = [...input];
+      const projected = constrainJointRotation(joint, input);
+      expect(input).toEqual(before);
+      expect(Math.hypot(...projected)).toBeCloseTo(1, 12);
+      expect(isJointRotationWithinLimits(joint, projected)).toBe(true);
+      let repeated = projected;
+      for (let iteration = 0; iteration < 5; iteration++) {
+        repeated = repeated.map(value => value / Math.hypot(...repeated)) as Quat;
+        expect(isJointRotationWithinLimits(joint, repeated)).toBe(true);
+        repeated = constrainJointRotation(joint, repeated);
+        expect(isJointRotationWithinLimits(joint, repeated)).toBe(true);
+        repeated.forEach((value, axis) => expect(Math.abs(value - projected[axis])).toBeLessThan(1e-14));
+      }
+      const authored = upsertRotationKeyframe(sequence, joint, 60, projected);
+      const saved: Quat = JSON.parse(JSON.stringify(authored.rotations[joint]![0].rotation));
+      expect(isJointRotationWithinLimits(joint, saved)).toBe(true);
+      expect(authored.baseTake).toEqual(sequence.baseTake);
+      expect(authored.rotations[joint]).toHaveLength(1);
+      expect(JSON.stringify(sequence)).toBe(original);
+    }
+  });
+
+  it.each<[JointName, Quat]>([
+    ['LeftForeArm', [-0.055338420000625436, 0.03145958484521592, 0.014141525180751504, 0.5775695706197171]],
+    ['RightLowerLeg', [0.6030709372773353, -0.026258305727364924, -0.0525317680311531, 1.8963749961365775]],
+  ])('%s keeps an already legal boundary input legal after normalizing and saving it', (joint, input) => {
+    expect(isJointRotationWithinLimits(joint, input)).toBe(true);
+    const output = constrainJointRotation(joint, input);
+    sameOrientation(output, input);
+    expect(isJointRotationWithinLimits(joint, output)).toBe(true);
+    const map = makeCountMap({ bpm: 120, musicBeatsPerDanceCount: 1, firstCountSourceSeconds: 0, octetCount: 8, audioDurationSeconds: 40 });
+    const sequence = makeKeyframeSequence(createNeutralTake(bakePlan(makePlan(map), map)));
+    const saved = upsertRotationKeyframe(sequence, joint, 60, output).rotations[joint]![0].rotation;
+    expect(isJointRotationWithinLimits(joint, saved)).toBe(true);
+    const repeated = constrainJointRotation(joint, saved);
+    expect(isJointRotationWithinLimits(joint, repeated)).toBe(true);
+    repeated.forEach((value, axis) => expect(Math.abs(value - output[axis])).toBeLessThan(1e-14));
   });
 
   it('limits compounded shoulder axial twist instead of only clamping three independent Euler sliders', () => {

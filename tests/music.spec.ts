@@ -7,7 +7,7 @@ type Diagnostics = { errors: string[]; warnings: string[]; apiRequests: string[]
 type DecodeRequest = { ready: boolean; finished: boolean; release: (success: boolean) => void };
 type PlayRequest = DecodeRequest & { audio: HTMLMediaElement };
 declare global {
-  interface Window { musicRaceDecode: DecodeRequest[]; musicRacePlay: PlayRequest[] }
+  interface Window { musicRaceDecode: DecodeRequest[]; musicRacePlay: PlayRequest[]; musicRaceExpectedDigest: string | null }
 }
 const diagnostics = new WeakMap<Page, Diagnostics>();
 
@@ -27,8 +27,15 @@ test.beforeEach(async ({ page }) => {
   // barrier. No long timers, fake duration or production network are involved.
   await page.addInitScript(() => {
     window.musicRaceDecode = [];
+    window.musicRaceExpectedDigest = null;
     const original = AudioContext.prototype.decodeAudioData;
-    AudioContext.prototype.decodeAudioData = function (bytes: ArrayBuffer) {
+    AudioContext.prototype.decodeAudioData = async function (bytes: ArrayBuffer) {
+      // Only the exact upload armed by uploadHeld owns a race barrier. The
+      // timeline also decodes audio for its waveform; those independent jobs
+      // must neither consume an upload index nor remain artificially pending.
+      const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), byte => byte.toString(16).padStart(2, '0')).join('');
+      if (digest !== window.musicRaceExpectedDigest) return original.call(this, bytes);
+      window.musicRaceExpectedDigest = null;
       let release!: (success: boolean) => void;
       const gate = new Promise<boolean>(resolve => { release = resolve; });
       const request: DecodeRequest = { ready: false, finished: false, release };
@@ -74,6 +81,7 @@ async function openMusic(page: Page) {
   await expect(musicDialog(page)).toBeVisible();
 }
 async function uploadHeld(page: Page, name: string, bytes: Buffer, index = 0) {
+  await page.evaluate(digest => { window.musicRaceExpectedDigest = digest; }, hash(bytes));
   await musicDialog(page).getByLabel('上传音乐文件', { exact: true }).setInputFiles({ name, mimeType: 'audio/wav', buffer: bytes });
   await expect.poll(() => page.evaluate(i => window.musicRaceDecode[i]?.ready ?? false, index)).toBe(true);
   await expect(selectedFile(page)).toHaveText('正在解码音频…');

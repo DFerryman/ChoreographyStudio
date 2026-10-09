@@ -781,6 +781,7 @@ test('@controls-entry small screens expose transform tools and same-frame tool s
   const original = current(await backup(page));
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 844 });
+    await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more');
     const rotate = page.getByRole('button', { name: '旋转工具', exact: true });
     const move = page.getByRole('button', { name: '移动角色工具', exact: true });
     const select = page.getByRole('button', { name: '选择工具', exact: true });

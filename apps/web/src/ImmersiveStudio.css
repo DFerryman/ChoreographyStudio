@@ -51,7 +51,7 @@
   .minimal-studio .save-state { position: absolute; top: 58px; left: 10px; color: #a8b8ca; pointer-events: none; font-size: 9px; }
   .immersive-studio .stage-wrap { min-height: 550px; }
   .immersive-studio .stage-edit-tools { top: 28px; left: 8px; }
-  .immersive-studio .stage-tool-buttons > button { min-height: 40px; padding: 6px 8px; }
+  .immersive-studio .stage-tool-buttons > button { min-height: 44px; padding: 6px 8px; }
   .immersive-studio .stage-tool-buttons > button > svg { width: 14px; }
   .immersive-studio .viewer-toolbar { top: 80px; right: 8px; }
   .immersive-studio .camera-toolbar .segmented { display: none; }

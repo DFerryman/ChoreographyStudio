@@ -134,6 +134,14 @@ function within(rotation: Quat, settings: Profile): boolean {
   return true;
 }
 
+/** Check both the public predicate and the normalization used to save a K. */
+function withinAfterNormalization(rotation: Quat, settings: Profile): boolean {
+  if (!within(normalize(rotation), settings)) return false;
+  const length = Math.hypot(...rotation);
+  const saved = rotation.map(value => value / length) as Quat;
+  return within(normalize(saved), settings);
+}
+
 function fromNeutral(rotation: Quat, amount: number): Quat {
   const q = rotation[3] < 0 ? rotation.map(value => -value) as Quat : rotation;
   const angle = Math.acos(clamp(q[3], -1, 1));
@@ -159,23 +167,31 @@ export function isJointRotationWithinLimits(joint: JointName, rotation: Quat): b
 
 /**
  * Project a newly edited joint only. Existing takes/keys must retain their values.
- * Legal rotations retain their orientation and sign. A coupled violation moves
- * the Euler-bounded quaternion toward neutral along its shortest SLERP arc;
- * the resulting quaternion satisfies both the numeric and physical envelopes.
+ * Numerically stable legal rotations retain their orientation and sign. A
+ * coupled violation or a boundary unstable under normalization moves the
+ * Euler-bounded quaternion toward neutral along its shortest SLERP arc, which
+ * may select the equivalent quaternion sign. The result satisfies both the
+ * numeric and physical envelopes even after K normalization.
  */
 export function constrainJointRotation(joint: JointName, rotation: Quat): Quat {
   const settings = profile(joint), normalized = normalize(rotation);
-  if (within(normalized, settings)) return normalized;
+  if (withinAfterNormalization(normalized, settings)) return normalized;
   const degrees = rotationToDegrees(normalized).map((value, axis) => clamp(value, ...settings.limits[axis])) as Vec3;
-  const bounded = rotationFromDegrees(degrees);
-  if (within(bounded, settings)) return bounded;
+  const bounded = normalize(rotationFromDegrees(degrees));
+  if (withinAfterNormalization(bounded, settings)) return bounded;
   let low = 0, high = 1;
   for (let iteration = 0; iteration < 60; iteration++) {
     const middle = (low + high) / 2;
-    if (within(fromNeutral(bounded, middle), settings)) low = middle;
+    if (within(normalize(fromNeutral(bounded, middle)), settings)) low = middle;
     else high = middle;
   }
-  return fromNeutral(bounded, low);
+  // A boundary result can cross the same envelope after another normalization
+  // during a K write. Move a tiny distance inward and verify the returned unit
+  // quaternion with the public predicate's normalization; keep the limits strict.
+  for (let inset = 1e-12; ; inset *= 2) {
+    const projected = normalize(fromNeutral(bounded, Math.max(0, low - inset)));
+    if (withinAfterNormalization(projected, settings)) return projected;
+  }
 }
 
 /** Convenience for intrinsic XYZ numeric input; persists the returned quaternion. */

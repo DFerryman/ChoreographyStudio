@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { inflateSync } from 'node:zlib';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed } from './helpers';
+import { clickRevealed, closeDisclosures } from './helpers';
 
 function waveFixture(duration = 20): Buffer {
   const sampleRate = 8000, samples = duration * sampleRate;
@@ -186,7 +186,9 @@ test('uploads original fixture audio and restores saved project and identical au
 test('rejects invalid count ranges and clears the old take when CountMap changes', async ({ page }) => {
   await ready(page);
   await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
-  await page.getByRole('button', { name: '调整', exact: true }).click();
+  await closeDisclosures(page, '.studio-more');
+  // The compact studio exposes the same music/count settings through More.
+  await clickRevealed(page, page.getByRole('button', { name: '导入音乐', exact: true, includeHidden: true }));
   const dialog = page.getByRole('dialog'), confirm = dialog.getByRole('button', { name: '确认数拍，进入工作台' });
   await dialog.getByLabel('选取几个完整八拍').fill('3');
   await expect(confirm).toBeDisabled();

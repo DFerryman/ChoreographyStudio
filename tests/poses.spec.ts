@@ -245,6 +245,9 @@ test('@poses replacing a target draft supports cancel, discard and write-before-
   await guard(page).getByRole('button', { name: '放弃草稿，继续', exact: true }).click();
   await number(page, '关节 Z 旋转（度）', 45); await number(page, 'Root X 位移（米）', 2);
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
+  // Pasting the translated source moves its Root beyond the previous framing.
+  // Reframe the actual draft before locating its world-space move handle.
+  await page.getByRole('button', { name: '全身取景', exact: true }).click();
   await numeric(page, 'Root X 位移（米）', 1.4);
   await clickRevealed(page, paste(page, true));
   await guard(page).getByRole('button', { name: '写入完整姿态后继续', exact: true }).click();

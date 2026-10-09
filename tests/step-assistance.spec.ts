@@ -125,6 +125,9 @@ test('@steps sparse sideways movement previews without writes, adopts one layer 
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
   await visibleStance(page, previewTake, previewWitnesses[0]);
   await screenshot(page, info, 'steps-sideways-left-stance-preview.png');
+  // Reading the stage coordinates closes the floating scene tools; reopen
+  // the same candidate through its native disclosure before dismissing it.
+  await openRealism(page);
   await candidate(page).getByRole('button', { name: '关闭预览', exact: true }).click();
   await expect(candidate(page)).toHaveCount(0);
   expect((await backup(page)).scene.project).toEqual(original.scene.project);
@@ -251,6 +254,9 @@ test('@steps excessive speed and an existing foot-lock conflict show visible ski
     expect(report.issues.some(issue => issue.code === entry.code)).toBe(true);
     expect(report.segments.some(segment => segment.status === 'skipped')).toBe(true);
     await screenshot(page, info, `steps-unsupported-${entry.id}.png`);
+    // The backup menu is another floating tool; return to the candidate's
+    // native scene disclosure after reading the unchanged author project.
+    await openRealism(page);
     await panel.getByRole('button', { name: '关闭预览', exact: true }).click();
     await expect(panel).toHaveCount(0);
     expect((await backup(page)).scene.project).toEqual(original.scene.project);
