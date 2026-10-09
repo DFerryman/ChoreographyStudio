@@ -1,5 +1,107 @@
 # Neutral human display assets
 
+## v17 user-selected Quaternius default avatar
+
+The user compared eight actual three-view candidate cards, then explicitly chose
+candidate 06, **Quaternius Superhero Male**, as the only default avatar. Root
+reviewed all 24 actual rendered candidate views; candidate 05 is named 写实柔和.
+No avatar-switching UI is added. Static selection pictures are appearance
+comparison, while actual application editing/playback and release acceptance
+are recorded separately in [verification](../../../../docs/VERIFICATION.md)
+and [deployment](../../../../docs/DEPLOYMENT.md).
+
+The selected official **Universal Base Characters Standard** free pack is
+[CC0](CC0-1.0.txt), not the paid Source pack. Its actual filename is
+`Superhero_Male_FullBody`; Standard does not include the paid Regular/Teen
+families. The [official source](https://quaternius.com/packs/universalbasecharacters.html)
+and [download page](https://quaternius.itch.io/universal-base-characters),
+[exact package license](QUATERNIUS-SOURCE-LICENSE.txt),
+[provenance](QUATERNIUS-PROVENANCE.json) and
+[independent native source reference](quaternius-source-reference-v1.json)
+are preserved. CC0 legal text was obtained from the official SPDX license list
+mirror; the Creative Commons page remains its canonical license URL. The
+source audit preserves the Creative Commons fetch failure without bypassing it.
+
+The downloaded ZIP is 128968391 bytes, SHA-256
+`fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40`;
+official itch.io upload identifier 15861669. Source glTF is 30989 bytes,
+SHA-256 `e7fcea214ecf8855afbf910b50de6f9c7d1decfb71ca28bad8a4481452dafeb4`,
+and its binary is 720076 bytes,
+SHA-256 `459003f9745853ae562a85506a2b94dd56515c1f37728f9fa3d2ce1a3e4cd92f`.
+
+- `neutral-quaternius-v1.glb`: 480376 bytes, SHA-256
+  `6570b23a63a0a5b87ad3fa5f8d7a24536c8e7fc3ceb03d28893cb48966cc6527`.
+- `neutral-quaternius-v1.json`: 79998 bytes, SHA-256
+  `882e122c2d497ea7c23ce073eefe3ddc3d09b6992f814a586b5b9ca658b7e68b`.
+- `QUATERNIUS-SOURCE-LICENSE.txt`: 806 bytes, SHA-256
+  `0f4beaf0fe360a7732e58bbe3dbf60a2422367fbea60cb9ea4add968f383268e`.
+- `CC0-1.0.txt`: 7048 bytes, SHA-256
+  `a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499`.
+- `QUATERNIUS-PROVENANCE.json`: 4536 bytes, SHA-256
+  `e285e633f90581f70101902f26fefdd4fc48cc26129c3303d9d9ab47d929ccc0`.
+- `quaternius-source-reference-v1.json`: 46186 bytes, SHA-256
+  `4f11106922e5899aa35d2efab9b63e16b257f8c81ee0a643863b94e8bc6c2394`.
+
+The source has three mesh pieces, 8483 vertices, 14318 triangles, **65 native
+bones and four skin-weight slots**. Offline preparation concatenates source
+pieces into one SkinnedMesh, retaining positions, normals, joint slots,
+original weights, hierarchy/TRS and inverse bind matrices; indices change only
+by each piece's vertex offset. Native geometry is not welded, remeshed or
+reweighted. An independent source-ZIP check finds all raw data bit-exact and
+five native LBS poses match at all 8483 vertices with maximum 0m error
+(2 micrometers tolerance). This verifies the native merge, not runtime editing.
+
+The application captures original GLB skin-weight accessor values before
+GLTFLoader's automatic normalization, then restores those exact four-slot
+Float32 values to the loaded mesh. It does not substitute normalized weights,
+prune influences or regenerate weights. Raw source data and the loaded runtime
+weights are checked separately. The default avatar loads its GLB and descriptor;
+MHR corrective data below belong to the historical avatar.
+
+### Fixed canonical display with one coherent source body bind
+
+The descriptor retains raw source fields and adds an offline independent NumPy
+`quaternius-canonical-display-2` declaration. Runtime source/canonical math
+independently recomputes and validates that declaration. Raw native 65-bone TRS,
+inverse binds, geometry and weights stay exact in the source asset.
+
+All 21 mapped physical frames remain at existing canonical FK positions, with
+author world rotation applied over fixed neutral source orientation; canonical
+controls, authored motion/Root/times/history, limits, IK and foot-lock intent
+retain their contracts. Limb lengths and pivots are fixed calibrated values,
+not a claim of completely native FK or unchanged skeleton proportions.
+`spine_02` uses the fixed source-derived Spine/Chest blend fraction
+0.4440797710948548; original fingers/helpers follow their calibrated parents.
+
+Runtime skin bindings use independent clones of the raw inverse-bind array and
+matrices. Body root, pelvis, three spine bones, both clavicles, neck and the
+**complete head share one source-rest similarity transform G**: uniform scale
+1.0167145770612094, actor-local Y translation -1.0403313802775447 and Z translation
++0.06649314313096474. G aligns the native source sole to stage ground and the
+mean source upper-arm depth to the canonical upper-arm depth; it is not tuned
+from the failed platform's appearance. Body skin uses G times the raw source
+rest frames, preserving coherent torso/neck/head rest form across those bones.
+Head stretch/compression is removed; head factor is 1. Limb calibration and the
+fixed 82mm Foot/ball/leaf world-up plantar-depth corrections remain separate.
+Raw GLB inverse binds are never overwritten or shared runtime clones modified.
+
+Neutral arms use down 0 degrees rather than the selection picture's 20-degree
+pose; the user selected the body form. Selection display height 1.8m only aids
+comparison. The production profile is 1.85m, while world head-top height above
+the stage and the mesh maxY-minY surface span must be recorded separately.
+Mixed calf/foot skin weights mean visible sole and canonical proxy need actual
+contact review; 82mm is a fixed calibration target, not an all-vertices guarantee.
+
+The earlier display-1 body/neck/head calibration passed numerical checks but
+was rejected in actual arm150/170 images for a horizontal chest/shoulder
+platform and overwide neck. Its descriptor, figures and receipts remain rejected
+history. The display-2 candidate's neutral/150/coordinated130+20 three renders
+were visually reviewed before formal application QA; isolated candidate images
+do not replace actual handle editing, K, interpolation/playback or final tests.
+Source and runtime numerical/visual scopes remain separate. No real Workers AI,
+paid generation or asset purchase is needed. Complete MHR and earlier source,
+license and release descriptions below remain historical.
+
 ## v15 MHR native rig and corrective skin
 
 The v15 candidate uses Meta's **Momentum Human Rig (MHR)**, release **v1.0.1**,

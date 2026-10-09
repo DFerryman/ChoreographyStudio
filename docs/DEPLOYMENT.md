@@ -1,5 +1,13 @@
 # Cloudflare 预览部署
 
+## v17 · 用户所选 06 人物（本地完成，远端发布待验）
+
+Quaternius Superhero Male默认人物及display-2来源形体修正已完成本地验收；仅换默认人物，不加模型切换UI，不推进七组后续功能。421／421基础（22文件、15.36秒）、前端类型／Vite构建通过；Worker源及配置未变，实际类型检查EXIT0复用，首默认日志路径ENOENT与第二继承代理warning留档。主JS `index-CBtn1tpp.js`1125855B／SHA256 `2d5eb17e74847f1bf0dc81199c2d3ac6e5a48533d3f36d8890b07027a4c714fd`；CSS63251B／SHA `ba41e19f29da5255caa74edd5523fd67e98f12ef2038e7b1d5506da08463b375`。public模型README21099B／SHA `14a040b502495cbd844209ec056681a9da82feeb7cde18035215d068b5dd5202`及六新来源资产冻结，不随最后Markdown结果回填改变。
+
+相关浏览器15场景按完整14＋纠正操作后focused1覆盖，运行资产不变、77文件hash前后稳定；根代理从38实际App图亲审13张接受蒙皮／形体。CPU15×8483全点及实际锁／步阈值通过；首数学通过但形体拒绝、14／15原权重失败和测试动作修正保留。
+
+当前尚未宣称准确源码CI、main、Cloudflare、公网或Notion完成。后续以真实source／tree、CI、一次运行部署和有界线上回执对应，再更新五份Notion正文、保留原引用／历史／四图片，不上传新图。真实Workers AI／付费请求0。下方v16及更早部署全文为历史。
+
 ## v16 · 平地自动迈步（已上线，准确源码CI通过）
 
 运行改动是平地步伐派生层、同模块折叠预览／采用／关闭和可选备份字段，预检原精确时刻／整数点／fade。MHR数字资产／绑定不改，模型README仅纠正实际传输和未证实upload尺寸因果，Worker／限频／只读API范围不扩大，真实Workers AI／付费请求0。最终本地411、类型／构建、相关3及准确CI411＋92已通过，42相关hash稳定，根代理亲审4最终本地图／3公网图。主JS`index-jecJey3z.js`1127945字节／SHA256 `a3d82d25cf786cb65f19bb40feae17fd6e57287fd5f1fce97259a4f6421d99c6`，CSS63251字节／`ba41e19f29da5255caa74edd5523fd67e98f12ef2038e7b1d5506da08463b375`，不当设备性能证明。

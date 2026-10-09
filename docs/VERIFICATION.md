@@ -1,5 +1,21 @@
 # 预览验证记录
 
+## Version 17 · 用户选定 06 人物（本地验证完成，准备发布）
+
+选型证据为八候选各三实际GLB／glTF视图，共24个渲染视图及总览；05最终名“写实柔和”。用户明确选定06 Quaternius Superhero Male力量型。生产仅默认这一CC0标准免费包人体，不新增切换UI；原65骨／8483顶点／14318三角形／四权重、原几何／TRS／inverse bind保存。原25作者控制、K／Root／精确时刻／CountMap／历史／limits／IK／脚锁／步伐契约保持，显式异常作者K最高优先。
+
+**方案与来源范围。** display-2固定21物理骨对齐canonical FK，runtime独立克隆inverse-bind数组／矩阵，躯干root／pelvis／三脊柱／双锁骨／neck／完整Head共享来源G（S1.0167145770612094，actor-localY−1.0403313802775447，Z+.06649314313096474），Head factor1；四肢和Foot／ball／leaf82毫米校准另行保留。源raw数据未写，显示有固定枢轴／肢长变化，不宣称完全原生FK或全形体不变。GLTFLoader会归一化权重，现从有界原GLB accessor恢复原Float32 bits后再克隆。六资产可复现bitexact，source5原生姿态全8483点0米是原生合并范围，不混称运行显示。publicREADME21099B／SHA `14a040b502495cbd844209ec056681a9da82feeb7cde18035215d068b5dd5202`已冻结，不回填部署结果。
+
+**独立CPU实际验收。** 01:25:07.992–01:25:11.539Z／3.547秒，源码／来源hash前后相同；15×8483全点最大0.237187291微米，21独立canonical pivots最大8.9509e−16米，2微米原阈值保持。7双脚锁root移动的实际脚底最低6.042943毫米、相对皮肤漂移最大4.422363毫米；四向步各6步／122时刻、支撑误差最大3.086559毫米、最低真实脚底6.143789毫米，原5毫米／2°／−3毫米阈值未放宽。profile1.85米、头顶离舞台地面1.849999950714米、minY6.427074801毫米和实际mesh高度1.843572875913米区别记录；纯body3262点／纯head1802点相对来源G轮廓保持浮点误差，混合胸锁骨1025点宽−0.594783%、高+0.092224%。最大来源形体误差17.40094毫米出现在混合胸锁骨区域，不能称全身完全不变。CPU直接构造rawmesh，实际GLTFLoader加载另由浏览器核验。
+
+**本地完整检查。** `npm run check`实际421／421基础、22文件、15.36秒，前端类型／Vite构建通过；原有大chunk提示保留。主JS index-CBtn1tpp.js1125855B／SHA `2d5eb17e74847f1bf0dc81199c2d3ac6e5a48533d3f36d8890b07027a4c714fd`。未改Worker源／配置，实际类型检查EXIT0复用；首默认日志位置ENOENT仍为真实诊断，第二scratch日志仅继承代理warning。旧420数学／构建通过是被拒首形体阶段，不能作最终验收。
+
+**真实App相关15覆盖。** 完整15于01:27:19.181Z开始、276.838745秒，14通过／1失败；新增联动流程先因测试未切真实旋转工具且沿用前IK轴未清零而未完成，修正仅tests/quaternius-stage.spec.ts，focused1于01:34:50.985Z／27.816606秒通过；非首轮15全通过。最终77个选定文件hash前后exact，runtime／数字assets未改；实际加载原4权重SHA `d8fd81863a6c5e5926b450169febc992cace86ec98cd2cd0b36889444f2ef1a2` bitexact。浏览器oracle是15姿态×1563选点／21pivots、2微米，不冒充CPU全8483点；fixture1486599B／SHA `5548ffcf54261952f428d22fff5a955dcdfa1133ad214a2322a3f9bddee95ba6`。6份实际诊断errors／warnings／expectedHTTP／API均0。38张实际App图中root亲审13张，包含最终联动草稿／K两图及neutral、150°、环拖草稿、插值播放、neck/spine、手脚IK、desktop/mobile等，形体自然和皮肤连续性接受；候选3pilot图与此验收分开。
+
+**失败保留。** 初始native偏移脚锚／pivot拒绝；display-1虽数学2微米通过，actual150°／170°胸肩水平平台／宽颈被root/browser拒绝；首完整15的14／15权重hash因GLTFLoader归一化失败，后恢复原bits；v2完整／focused的真实工具及IK轴测试纠正保留，不降低断言。source重现首跳过nativeRef步骤导致同内容JSON keyorder字节不同，正确四步重现后通过，未改生产；Worker首ENOENT和启动／connectivity退出均留档。MHR原source fixture／2微米／3%断言移入明确历史核验，未以新阈值删去旧证据。170°与异常膝压力K、悬空Root不是通常可做舞步／着地证明。
+
+此刻准确源码CI、main／Cloudflare、公网及Notion仍待实际结果，不预填成功数字或版本。真实Workers AI／付费生成0，后续七组功能暂停，M0–M3不关闭；Notion最终仅文本插入和读回，原文／引用／历史／原4图保持，不上传新图。以下v16及之前全文保留。
+
 ## Version 16 · 平地自动迈步（已上线，准确源码CI通过）
 
 范围是作者Root路径的平地左右／前后交替步，保留稀疏K、baseTake、脚锁、上半身、区间外和CountMap；作者K优先、三帧淡出、Root XZ准确与派生Y≤4厘米。修正后受限IK／适用性预检覆盖整数帧和所有原作者Take精确时刻，包括fade，不round或按frame去重丢原knot；仍不宣称交叉步、转脚、跳跃、主动平衡或完整连续力学。

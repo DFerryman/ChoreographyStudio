@@ -1,0 +1,615 @@
+{
+  "status": "Independent source mathematical calibration input: display-2 coherent source torso/neck/head similarity; not a runtime capture or visual acceptance result",
+  "canonicalDefinitions": [
+    [
+      "Hips",
+      null,
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    [
+      "Spine",
+      "Hips",
+      [
+        0,
+        0.14,
+        0
+      ]
+    ],
+    [
+      "Chest",
+      "Spine",
+      [
+        0,
+        0.2,
+        0
+      ]
+    ],
+    [
+      "Neck",
+      "Chest",
+      [
+        0,
+        0.19,
+        0
+      ]
+    ],
+    [
+      "Head",
+      "Neck",
+      [
+        0,
+        0.08,
+        0
+      ]
+    ],
+    [
+      "LeftShoulder",
+      "Chest",
+      [
+        0.1,
+        0.095,
+        0
+      ]
+    ],
+    [
+      "LeftUpperArm",
+      "LeftShoulder",
+      [
+        0.11,
+        -0.03,
+        0
+      ]
+    ],
+    [
+      "LeftForeArm",
+      "LeftUpperArm",
+      [
+        0,
+        -0.285,
+        0
+      ]
+    ],
+    [
+      "LeftHand",
+      "LeftForeArm",
+      [
+        0,
+        -0.255,
+        0
+      ]
+    ],
+    [
+      "LeftHandTip",
+      "LeftHand",
+      [
+        0,
+        -0.115,
+        0
+      ]
+    ],
+    [
+      "LeftUpperLeg",
+      "Hips",
+      [
+        0.112,
+        -0.05,
+        0
+      ]
+    ],
+    [
+      "LeftLowerLeg",
+      "LeftUpperLeg",
+      [
+        0,
+        -0.46,
+        0
+      ]
+    ],
+    [
+      "LeftFoot",
+      "LeftLowerLeg",
+      [
+        0,
+        -0.45,
+        0
+      ]
+    ],
+    [
+      "LeftToe",
+      "LeftFoot",
+      [
+        0,
+        -0.035,
+        0.15
+      ]
+    ],
+    [
+      "LeftHeel",
+      "LeftFoot",
+      [
+        0,
+        -0.035,
+        -0.065
+      ]
+    ],
+    [
+      "RightShoulder",
+      "Chest",
+      [
+        -0.1,
+        0.095,
+        0
+      ]
+    ],
+    [
+      "RightUpperArm",
+      "RightShoulder",
+      [
+        -0.11,
+        -0.03,
+        0
+      ]
+    ],
+    [
+      "RightForeArm",
+      "RightUpperArm",
+      [
+        0,
+        -0.285,
+        0
+      ]
+    ],
+    [
+      "RightHand",
+      "RightForeArm",
+      [
+        0,
+        -0.255,
+        0
+      ]
+    ],
+    [
+      "RightHandTip",
+      "RightHand",
+      [
+        0,
+        -0.115,
+        0
+      ]
+    ],
+    [
+      "RightUpperLeg",
+      "Hips",
+      [
+        -0.112,
+        -0.05,
+        0
+      ]
+    ],
+    [
+      "RightLowerLeg",
+      "RightUpperLeg",
+      [
+        0,
+        -0.46,
+        0
+      ]
+    ],
+    [
+      "RightFoot",
+      "RightLowerLeg",
+      [
+        0,
+        -0.45,
+        0
+      ]
+    ],
+    [
+      "RightToe",
+      "RightFoot",
+      [
+        0,
+        -0.035,
+        0.15
+      ]
+    ],
+    [
+      "RightHeel",
+      "RightFoot",
+      [
+        0,
+        -0.035,
+        -0.065
+      ]
+    ]
+  ],
+  "primaryJointMapping": {
+    "pelvis": "Hips",
+    "spine_01": "Spine",
+    "spine_03": "Chest",
+    "neck_01": "Neck",
+    "Head": "Head",
+    "clavicle_l": "LeftShoulder",
+    "upperarm_l": "LeftUpperArm",
+    "lowerarm_l": "LeftForeArm",
+    "hand_l": "LeftHand",
+    "thigh_l": "LeftUpperLeg",
+    "calf_l": "LeftLowerLeg",
+    "foot_l": "LeftFoot",
+    "ball_l": "LeftToe",
+    "clavicle_r": "RightShoulder",
+    "upperarm_r": "RightUpperArm",
+    "lowerarm_r": "RightForeArm",
+    "hand_r": "RightHand",
+    "thigh_r": "RightUpperLeg",
+    "calf_r": "RightLowerLeg",
+    "foot_r": "RightFoot",
+    "ball_r": "RightToe"
+  },
+  "heightMeters": 1.85,
+  "sourceHeightMeters": 1.8195863831788301,
+  "sourceRootOffsetMeters": 1.05,
+  "sourceSoleOffsetMeters": 0.082,
+  "neutralUpperArmDegreesFromDown": 0,
+  "poses": [
+    {
+      "id": "neutral",
+      "root": [
+        0,
+        1.05,
+        0
+      ],
+      "rotations": {},
+      "stressNote": "Shape/author contract fixture, not evidence of attainable choreography"
+    },
+    {
+      "id": "arm80",
+      "root": [
+        0,
+        1.05,
+        0
+      ],
+      "rotations": {
+        "LeftUpperArm": [
+          0,
+          0,
+          80
+        ]
+      },
+      "stressNote": "Shape/author contract fixture, not evidence of attainable choreography"
+    },
+    {
+      "id": "raise150-no-clavicle",
+      "root": [
+        0,
+        1.05,
+        0
+      ],
+      "rotations": {
+        "LeftUpperArm": [
+          0,
+          0,
+          150
+        ]
+      },
+      "stressNote": "Shape/author contract fixture, not evidence of attainable choreography"
+    },
+    {
+      "id": "raise170-author-stress",
+      "root": [
+        0,
+        1.05,
+        0
+      ],
+      "rotations": {
+        "LeftUpperArm": [
+          0,
+          0,
+          170
+        ]
+      },
+      "stressNote": "Shape/author contract fixture, not evidence of attainable choreography"
+    },
+    {
+      "id": "raise130-clavicle20",
+      "root": [
+        0,
+        1.05,
+        0
+      ],
+      "rotations": {
+        "LeftShoulder": [
+          0,
+          0,
+          20
+        ],
+        "LeftUpperArm": [
+          0,
+          0,
+          130
+        ]
+      },
+      "stressNote": "Coordinated clavicle and upper-arm visual/bind stress; not evidence of attainable choreography"
+    },
+    {
+      "id": "raise120-elbow100",
+      "root": [
+        0,
+        1.05,
+        0
+      ],
+      "rotations": {
+        "LeftUpperArm": [
+          0,
+          0,
+          120
+        ],
+        "LeftForeArm": [
+          -100,
+          0,
+          0
+        ]
+      },
+      "stressNote": "Shape/author contract fixture, not evidence of attainable choreography"
+    },
+    {
+      "id": "wrists45-25",
+      "root": [
+        0,
+        1.05,
+        0
+      ],
+      "rotations": {
+        "LeftUpperArm": [
+          -40,
+          0,
+          70
+        ],
+        "RightUpperArm": [
+          -40,
+          0,
+          -70
+        ],
+        "LeftHand": [
+          45,
+          0,
+          0
+        ],
+        "RightHand": [
+          0,
+          0,
+          25
+        ]
+      },
+      "stressNote": "Shape/author contract fixture, not evidence of attainable choreography"
+    },
+    {
+      "id": "hip-side45",
+      "root": [
+        0,
+        1.05,
+        0
+      ],
+      "rotations": {
+        "LeftUpperLeg": [
+          0,
+          0,
+          45
+        ]
+      },
+      "stressNote": "Shape/author contract fixture, not evidence of attainable choreography"
+    },
+    {
+      "id": "knee110",
+      "root": [
+        0,
+        1.05,
+        0
+      ],
+      "rotations": {
+        "LeftLowerLeg": [
+          110,
+          0,
+          0
+        ]
+      },
+      "stressNote": "Shape/author contract fixture, not evidence of attainable choreography"
+    },
+    {
+      "id": "hips60-knee90",
+      "root": [
+        0,
+        1.05,
+        0
+      ],
+      "rotations": {
+        "LeftUpperLeg": [
+          -60,
+          0,
+          0
+        ],
+        "LeftLowerLeg": [
+          90,
+          0,
+          0
+        ]
+      },
+      "stressNote": "Shape/author contract fixture, not evidence of attainable choreography"
+    },
+    {
+      "id": "neck-spine",
+      "root": [
+        0,
+        1.05,
+        0
+      ],
+      "rotations": {
+        "Neck": [
+          -20,
+          30,
+          0
+        ],
+        "Spine": [
+          35,
+          25,
+          0
+        ]
+      },
+      "stressNote": "Shape/author contract fixture, not evidence of attainable choreography"
+    },
+    {
+      "id": "bilateral-major-joints",
+      "root": [
+        0,
+        1.05,
+        0
+      ],
+      "rotations": {
+        "LeftUpperArm": [
+          0,
+          0,
+          120
+        ],
+        "RightUpperArm": [
+          0,
+          0,
+          -120
+        ],
+        "LeftForeArm": [
+          -110,
+          0,
+          0
+        ],
+        "RightForeArm": [
+          -100,
+          0,
+          0
+        ],
+        "LeftHand": [
+          45,
+          0,
+          0
+        ],
+        "RightHand": [
+          -40,
+          0,
+          0
+        ],
+        "LeftUpperLeg": [
+          -30,
+          20,
+          20
+        ],
+        "RightUpperLeg": [
+          -40,
+          -20,
+          -20
+        ],
+        "LeftLowerLeg": [
+          110,
+          0,
+          0
+        ],
+        "RightLowerLeg": [
+          100,
+          0,
+          0
+        ],
+        "LeftFoot": [
+          15,
+          0,
+          10
+        ],
+        "RightFoot": [
+          20,
+          0,
+          -15
+        ]
+      },
+      "stressNote": "Shape/author contract fixture, not evidence of attainable choreography"
+    },
+    {
+      "id": "author-knee-minus100",
+      "root": [
+        0,
+        1.05,
+        0
+      ],
+      "rotations": {
+        "LeftLowerLeg": [
+          -100,
+          0,
+          0
+        ]
+      },
+      "stressNote": "Shape/author contract fixture, not evidence of attainable choreography"
+    },
+    {
+      "id": "root-yaw90",
+      "root": [
+        0,
+        1.05,
+        0
+      ],
+      "rotations": {
+        "Hips": [
+          0,
+          90,
+          0
+        ]
+      },
+      "stressNote": "Shape/author contract fixture, not evidence of attainable choreography"
+    },
+    {
+      "id": "outer-root-world-translation",
+      "root": [
+        0.6,
+        1.8,
+        -0.35
+      ],
+      "rotations": {
+        "Hips": [
+          0,
+          30,
+          0
+        ],
+        "LeftUpperArm": [
+          0,
+          0,
+          80
+        ]
+      },
+      "stressNote": "Authored airborne Root is not an automatic landing"
+    }
+  ],
+  "sourceBoundsMin": [
+    -0.9294325113296509,
+    -0.009509669616818428,
+    -0.16345079243183136
+  ],
+  "sourceBoundsMax": [
+    0.9294325113296509,
+    1.8100767135620117,
+    0.12803764641284943
+  ],
+  "displayRule": "21 native primary physical positions exactly canonical FK; source rotations down0 and fixed limb scales; source finger/helper offsets; one source-floor-normalized and upperarm-depth-aligned torso/neck/head restTarget similarity with no extra head fit; fixed foot82mm calibration",
+  "displayCalibrationSchema": "quaternius-canonical-display-2",
+  "sourceBodyJointNames": [
+    "root",
+    "pelvis",
+    "spine_01",
+    "spine_02",
+    "spine_03",
+    "clavicle_l",
+    "clavicle_r",
+    "neck_01",
+    "Head"
+  ],
+  "bodySimilarityAnchor": "source-sole-to-stage-ground",
+  "bodyDepthAnchor": "mean-source-upperarm-to-canonical-upperarm",
+  "headFitOriginSourceBone": null
+}

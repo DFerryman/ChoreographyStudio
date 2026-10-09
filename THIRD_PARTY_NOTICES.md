@@ -1,5 +1,11 @@
 # Third-party software notices
 
+## v17 · 用户选定的 Quaternius 默认人物（本地验证完成）
+
+默认人物为用户明确选择的 **06 Quaternius Superhero Male 力量型**，来源官方Universal Base Characters标准免费包，CC0；无付费购买、不将其它候选一起发布。源65骨／几何／TRS／inverse bind／四权重保持原始值，运行时独立克隆inverse binds做display-2统一body G及固定肢段／脚底校准，原始GLB权重在实际Loader中恢复bitexact。来源、完整许可、六资产SHA及独立可复现检查见[人物资产](apps/web/public/models/README.md)；其21099B/SHA14a040b5正文已冻结，不写发布结果。
+
+选型01–03 MPFB为CC0；04–05 MB-Lab生成三维资产AGPL-3.0、二维截图例外不等于三维资产可无条件上线（05最终名“写实柔和”）；06–07 Quaternius标准免费包CC0；08 Mannequiny为CC-BY-4.0需署名。实际编辑／蒙皮本地验收已完成，远端CI／发布仍待回执；来源许可不替代真实舞蹈动作、教师或设备门槛。原MHR及此前声明全文保留为历史。
+
 ## v16 flat-ground step assistance · deployed and exact-source CI verified
 
 The procedural step planner is original application code and uses the existing

@@ -1,5 +1,11 @@
 # Working in Choreo Studio
 
+## Version 17 · selected Quaternius avatar locally verified, release pending
+
+The user explicitly chose candidate 06 Quaternius Superhero Male after eight real three-view candidates (24 views; candidate05 写实柔和). The only default avatar now uses the official CC0 Standard source, 65 native bones/four original weight slots, and the unchanged 25 author controls. No model-switching UI or precision panels are added; the seven later feature groups remain paused. Raw geometry/TRS/inverse binds stay exact. Runtime clones use display-2: one source-floor/upperarm-depth similarity G for body/root/pelvis/spines/clavicles/neck/full Head; fixed canonical 21 physical frames, calibrated limbs and 82mm foot depth remain separate. Head compression is removed. Restore bounded raw GLB Float32 weights after GLTFLoader normalization, before cloning. Preserve all authored K/Root/times/CountMap/history, limits, IK/locks/steps and exceptional-author priority; do not claim complete native FK or untouched display proportions.
+
+Actual local check passed421/421 in22files plus frontend types/build; unchanged Worker typecheck passed with scratch logs. Independent CPU15×8483points is within2µm (maximum0.237187291µm), canonical21pivots align, physical5mm/2°/−3mm thresholds remain unchanged. Related browser15cases are covered by14 passes in the full run and one corrected focused pass; not a first15/15 claim. Final77file hashes match and runtime-loaded weights are source-bit-exact. The38actualApp images include13 root-personally-reviewed draft/K/playback/IK/desktop/mobile views accepted for skin/form. Preserve initial native-offset contact rejection, display-1 mathematical passes but chest/neck visual rejection, GLTFLoader14/15weight fail, and subsequent test-action corrections. GitHub main/accurate-source CI/Cloudflare/online/Notion remain pending at this checkpoint. Public modelREADME21099B/SHA14a040b502495cbd844209ec056681a9da82feeb7cde18035215d068b5dd5202 is frozen; never append release results there. Real Workers AI/paid inference0; final five Notion text inserts preserve full history/native refs/four images without upload. V16 and earlier below remain complete historical records.
+
 Read `README.md`, `docs/ROADMAP.md`, and `docs/IMPLEMENTATION_STATUS.md` before changing scope.
 
 ## Current stage

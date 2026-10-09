@@ -164,7 +164,7 @@ test('@model-natural real arm/neck/spine ring drafts, explicit K and interpolate
 
 // Vite module imports make this a local/CI runtime regression. Public browser
 // release checks select @model-natural and must not select this local-only tag.
-test('@natural-runtime-local actual updateHumanoid preserves author bones and rejects shoulder collapse in all-body poses', async ({ page }, info) => {
+test('@mhr-historical-local archived MHR source keeps its original 127-bone and corrective shape contract', async ({ page }, info) => {
   test.setTimeout(120_000);
   const report = diagnostics(page);
   await openPose(page, '实际形变计算', {});
@@ -189,7 +189,9 @@ test('@natural-runtime-local actual updateHumanoid preserves author bones and re
       (definition.parent ? joints.get(definition.parent) : root).add(bone);
     }
     root.updateMatrixWorld(true);
-    const surface = await humanoid.loadHumanoid(joints, new AbortController().signal);
+    // This is deliberately independent of the editor's selected display
+    // model. Keep the original MHR source parity and all its thresholds.
+    const surface = await humanoid.loadMHRHumanoid(joints, new AbortController().signal);
     root.add(surface);
     const indices = Array.from(surface.geometry.index.array as ArrayLike<number>);
     const vertices = surface.geometry.getAttribute('position').count;
@@ -247,7 +249,7 @@ test('@natural-runtime-local actual updateHumanoid preserves author bones and re
         const sourceMotionVectorErrorsMeters = nativeReference ? reference.chestVertexIds.map((vertex, index) => Math.hypot(...points[vertex].map((value, axis) => value - rest[vertex][axis] - nativeReference.officialCalibratedChestMotionVectorsMeters![index][axis]))) : [];
         return { id: pose.id, finite, degenerateFaces: actualArea.filter(value => value < 1e-12).length, shoulderFaces, collapsedShoulderFaces, collapsedShoulderFraction: collapsedShoulderFaces / shoulderFaces, collapsedShoulderFaceDetails, chestVertices, chestMotionP95Meters: chestMotion[Math.floor((chestMotion.length - 1) * .95)], sourceMotionVectorErrorsMeters, sourceMotionVectorMaximumErrorMeters: sourceMotionVectorErrorsMeters.length ? Math.max(...sourceMotionVectorErrorsMeters) : null, officialNativeSourceChestMotionP95Meters: nativeReference?.officialSourceChestMotionP95Meters ?? null };
       });
-      return { asset: humanoid.HUMANOID_ASSET_URL, canonicalJointCount: joints.size, nativeBoneCount: surface.skeleton.bones.length, vertices, triangles: faces.length, heightMeters, profile: { heightMeters: core.STANDARD_HUMAN_PROFILE.heightMeters, foot: core.STANDARD_HUMAN_PROFILE.foot }, neutralFeet, neutralSourcePointMaximumErrorMeters, evaluated };
+      return { asset: '/models/neutral-mhr-v1.glb', canonicalJointCount: joints.size, nativeBoneCount: surface.skeleton.bones.length, vertices, triangles: faces.length, heightMeters, profile: { heightMeters: core.STANDARD_HUMAN_PROFILE.heightMeters, foot: core.STANDARD_HUMAN_PROFILE.foot }, neutralFeet, neutralSourcePointMaximumErrorMeters, evaluated };
     } finally {
       humanoid.disposeHumanoid(surface); surface.geometry.dispose(); surface.skeleton.dispose();
       for (const material of Array.isArray(surface.material) ? surface.material : [surface.material]) material.dispose();
@@ -258,7 +260,7 @@ test('@natural-runtime-local actual updateHumanoid preserves author bones and re
     await mkdir(process.env.CHOREO_SCREENSHOT_DIR, { recursive: true });
     await writeFile(join(process.env.CHOREO_SCREENSHOT_DIR, 'natural-actual-runtime-shape.json'), JSON.stringify(result, null, 2));
   }
-  expect(result.asset).toBe(HUMANOID_ASSET_URL);
+  expect(result.asset).toBe('/models/neutral-mhr-v1.glb');
   expect(result.canonicalJointCount).toBe(25);
   expect(result.nativeBoneCount).toBe(127);
   expect(result.vertices).toBeGreaterThan(4000);

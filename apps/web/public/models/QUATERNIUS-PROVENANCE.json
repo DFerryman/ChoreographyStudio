@@ -1,0 +1,110 @@
+{
+  "schema": "quaternius-provenance-1",
+  "status": "native assets prepared; adapter/runtime verification separate",
+  "sourcePage": "https://quaternius.com/packs/universalbasecharacters.html",
+  "downloadPage": "https://quaternius.itch.io/universal-base-characters",
+  "sourcePackage": "Universal Base Characters[Standard].zip",
+  "uploadId": 15861669,
+  "archivedOn": "2026-10-09",
+  "sourceZipBytes": 128968391,
+  "sourceZipSha256": "fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40",
+  "sourceFiles": [
+    {
+      "name": "Superhero_Male_FullBody.gltf",
+      "bytes": 30989,
+      "sha256": "e7fcea214ecf8855afbf910b50de6f9c7d1decfb71ca28bad8a4481452dafeb4"
+    },
+    {
+      "name": "Superhero_Male_FullBody.bin",
+      "bytes": 720076,
+      "sha256": "459003f9745853ae562a85506a2b94dd56515c1f37728f9fa3d2ce1a3e4cd92f"
+    },
+    {
+      "name": "License_Standard.txt",
+      "bytes": 806,
+      "sha256": "0f4beaf0fe360a7732e58bbe3dbf60a2422367fbea60cb9ea4add968f383268e"
+    }
+  ],
+  "license": "CC0-1.0",
+  "licenseCanonicalUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "fullLegalcodeTextSource": "https://raw.githubusercontent.com/spdx/license-list-data/main/text/CC0-1.0.txt",
+  "output": {
+    "name": "neutral-quaternius-v1.glb",
+    "bytes": 480376,
+    "sha256": "6570b23a63a0a5b87ad3fa5f8d7a24536c8e7fc3ceb03d28893cb48966cc6527",
+    "vertices": 8483,
+    "triangles": 14318,
+    "joints": 65,
+    "sourceSurfaces": 3,
+    "mergedSkinnedMeshes": 1,
+    "maximumPositiveInfluences": 4,
+    "originalWeightSlotsRetained": 4,
+    "nativeHeightMeters": 1.8195863831788301
+  },
+  "descriptor": {
+    "name": "neutral-quaternius-v1.json",
+    "bytes": 79998,
+    "sha256": "882e122c2d497ea7c23ce073eefe3ddc3d09b6992f814a586b5b9ca658b7e68b"
+  },
+  "licenses": [
+    {
+      "name": "QUATERNIUS-SOURCE-LICENSE.txt",
+      "bytes": 806,
+      "sha256": "0f4beaf0fe360a7732e58bbe3dbf60a2422367fbea60cb9ea4add968f383268e"
+    },
+    {
+      "name": "CC0-1.0.txt",
+      "bytes": 7048,
+      "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+    }
+  ],
+  "preparation": [
+    "Concatenate original eyebrow, eye and body vertices in published mesh order.",
+    "Offset original triangles by surface vertex start; do not weld or remesh.",
+    "Retain original normals, 65-joint skin ordering, source hierarchy/TRS, inverse binds and all four weight slots.",
+    "No reweighting, influence pruning, weight normalization or geometry deformation.",
+    "Use one matte material; omit unused original UV/color/texture presentation attributes.",
+    "Display adapter handles uniform height/pose calibration without changing author data."
+  ],
+  "nativeFrameInverseBindMaximumResidual": 4.6681874765752696e-07,
+  "aiGenerationOrWorkersAIInferenceCalls": 0,
+  "paidPurchases": 0,
+  "independentSourceReference": {
+    "name": "quaternius-source-reference-v1.json",
+    "bytes": 46186,
+    "sha256": "4f11106922e5899aa35d2efab9b63e16b257f8c81ee0a643863b94e8bc6c2394",
+    "nativePoseCount": 5,
+    "allGeometryNormalsWeightsJointSlotsAndInverseBindsBitExact": true,
+    "allTriangleIndicesExactAfterSurfaceOffset": true,
+    "maximumSourceMergedSkinErrorMeters": 0.0,
+    "toleranceMeters": 2e-06,
+    "scope": "native asset merge only; canonical display adapter and actual browser editing separately verified"
+  },
+  "runtimeCalibration": {
+    "schema": "quaternius-canonical-display-2",
+    "canonicalRig": "neutral-rig-2",
+    "sourceRigUnchanged": true,
+    "displayMappedJoints": 21,
+    "armDownDegrees": 0,
+    "footSurfaceDepthMeters": 0.082,
+    "targetHeadTopWorldMeters": 1.85,
+    "neutralAuthorRootY": 1.05,
+    "method": "Offline independent NumPy reconstruction from raw source world frames and the fixed canonical author offsets, not runtime output capture",
+    "rawSourceGltfAndGlbInverseBindsUnchanged": true,
+    "shapeAdjustments": "One coherent source-floor-normalized torso/clavicle/neck/head similarity bind; no head stretch or compression; fixed foot/ball/leaf 82mm affine corrections on runtime clones only",
+    "sourceBodyJointNames": [
+      "root",
+      "pelvis",
+      "spine_01",
+      "spine_02",
+      "spine_03",
+      "clavicle_l",
+      "clavicle_r",
+      "neck_01",
+      "Head"
+    ],
+    "bodySimilarityAnchor": "source-sole-to-stage-ground",
+    "bodyDepthAnchor": "mean-source-upperarm-to-canonical-upperarm",
+    "scope": "Display calibration declared; actual editing, author-priority and contact verification remain separate."
+  }
+}

@@ -1,5 +1,7 @@
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import { HUMANOID_ASSET_URL } from '../apps/web/src/Humanoid';
 import { clickRevealed, reveal } from './helpers';
 import { backup, current, diagnostics, draft, numeric, openFixture, projection, save, screenshot, select } from './realismHelpers';
 import { expectStageValue, readStagePose } from './stageInteractions';
@@ -17,7 +19,12 @@ test('@model continuous neutral skin renders in desktop and mobile layouts and f
     await page.setViewportSize({ width, height: width === 1440 ? 1000 : 844 });
     await page.getByRole('button', { name: '全身取景', exact: true }).click();
     const view = await projection(page, await backup(page));
-    await info.attach(`neutral-human-canvas-${width}.png`, { body: await view.canvas.screenshot(), contentType: 'image/png' });
+    const name = `neutral-human-canvas-${width}.png`, bytes = await view.canvas.screenshot();
+    await info.attach(name, { body: bytes, contentType: 'image/png' });
+    if (process.env.CHOREO_SCREENSHOT_DIR) {
+      await mkdir(process.env.CHOREO_SCREENSHOT_DIR, { recursive: true });
+      await writeFile(join(process.env.CHOREO_SCREENSHOT_DIR, name), bytes);
+    }
     await screenshot(page, info, `neutral-human-layout-${width}.png`);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   }
@@ -36,8 +43,8 @@ test('@model a delayed asset binds to the current edited pose without changing i
   let hold = false;
   let release!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; });
-  const bytes = await readFile('apps/web/public/models/neutral-mhr-v1.glb');
-  await page.route('**/models/neutral-mhr-v1.glb', async route => {
+  const bytes = await readFile(`apps/web/public${HUMANOID_ASSET_URL}`);
+  await page.route(`**${HUMANOID_ASSET_URL}`, async route => {
     if (hold) await gate;
     await route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: bytes });
   });
