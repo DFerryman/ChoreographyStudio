@@ -1,5 +1,55 @@
 # 预览验证记录
 
+## Version 19 · 精确源点、局部自动记录与长期交互标准（已上线验证，准确源码 CI 通过）
+
+默认手动编辑无需 AI：选精确时间、在场景选部位，Timeline 自动展开／高亮／聚焦对应点，直接调整旋转、Root 或 IK，松手只记录实际变化及 IK／脚锁关联通道。一手势一条可撤销操作，空手势／选择不记历史，取消恢复手势前状态；移除完整姿态添加／更新快照按钮和 K 快捷键。Root、全部 25 个局部旋转、源点／计算点／作者 K／编辑前有效值可通过轨道查看。主场景与 Timeline 优先、次级入口按需折叠；用户要求将此流程作为未来功能标准，已写入 [EDITOR_INTERACTION_STANDARD.md](EDITOR_INTERACTION_STANDARD.md)、AGENTS 顶层及对应说明。
+
+局部修改使用精确秒值，不把非整数帧源点吸附到 30 fps。首次有效修改冻结已保存的权威 Take；原采样时刻未改通道直接保持原值，稀疏 K 新支点使用规范求值，避免重烘焙／二次 NLERP 改掉无关数据。12 个历史快照含名称、时刻和轨道，并随本机保存、重开、完整包恢复。编码为 `compact-scene-1` 共享／差量，JSON 备份 `choreo-scene-backup-2`、完整头 `choreo-scene-bundle-2`；容器魔数仍 `CHOREO-BUNDLE-1`，兼容旧包，不重采样、不降精度、不丢音乐／历史。
+
+**真实源数据范围。** 输入 26,710,050 B／原头 19,509,986 B。最新冻结权威数据回环：11 个精确非整数帧 Head 点、12 条历史后导出 **20,274,781 B／头 13,074,717 B**；重导项目、冻结原 Take、所有其它已有 Root／关节值及 7,200,044 B 原音频严格相等。独立 Chromium 私有作品单项 1／1（3.7 分钟）核对全部 5,040 原有效姿态、Delete 恢复、Undo 和完整包重导；该附件不进公开 repo，CI 因私有 fixture 不在 runner 跳过这一项，不能把跳过算通过。初 20,271,635 B Node 同引擎证明及其后真实 Chest 跨引擎失败是不同阶段，以下保留。
+
+| 本轮实际证据 | 结果与范围 |
+| --- | --- |
+| 最终核心 | 81／81 与类型检查通过；严格旧值／新支点回归，原 validator 未放宽 |
+| 本地完整基础阶段 | 542／542、27 文件、80.82 秒，bounded 2 workers；该批前端出现两处 Set 类型收窄错误，后仅加类型断言、前端类型／生产构建复核通过；最后新增新支点回归由准确 CI 的 543 项覆盖 |
+| 本地当前浏览器 | 38 个独立场景都有实际通过证据，来自多批和 focused 补齐，不能称一次全量 38／38 |
+| 精确点／真实作品 | portable 3 项通过＋私有真实作品 1 项通过 |
+| Timeline 缩放 | clean 批 3 通过／1 新支点导出拒绝，修复后 focused edge 1／1（45.2 秒）；桌面／390／320、48px 帧距、精确末段、拖源键／碰撞、音频、锚定／平移、自动边滚、Undo／resize |
+| 快捷键 | clean 8／9＋仅测试清除选择修正后 focused 1／1；Root 选择即使 selectedJoint 为空也有效，原动作／镜像／重复键断言保持 |
+| Preview／场景 | 10／10、6.5 分钟；每项直接断言 pageerror／console-error 为空，成功 list attachments 未单独落 warning JSON，不声称 10 份零 warning 文件 |
+| 完整备份 | 3／3、262.555013 秒；3 份实际 JSON 的 errors／warnings／API 全为空，原音乐／旧 JSON／坏包／quota／手机保护保持 |
+| 音乐与默认人物 | music 7／7、1.4 分钟＋native 1 实际通过；音乐每项直接断言 errors／warnings／API 空，未落 7 份独立成功 JSON |
+| Worker／构建 | Worker 类型、前端类型／生产构建及官方 Wrangler dry-run 通过；继承代理和既有大 chunk 提示保留，不作设备帧率结论 |
+
+旧显式全姿态写 K／草稿／剪贴板 UI 测试原文保留为 `*.v18-legacy.ts`，按 [tests/README.md](../tests/README.md) 不参与当前发现；不能声称旧 86 个流程已通过。底层稀疏 K、作者优先、约束、IK、锁、步伐和蒙皮数学继续由基础测试覆盖。Root 亲审本轮新增 dense320、edge-autoscroll、backup-mobile 三张实际图接受；备份图有真实 toast，不宣称全部图无浮层。
+
+**首次失败与修复保留。** 初 desktop fixture 的 quaternion 规范化差异、随后前臂 X＋25 为限位内空操作，均通过修正实际 fixture／负向弯曲测试解决；没有给空手势虚记历史。首五个并发浏览器出现真实 media readyState 0／1，保留严格 ≥2，并用普通原生标题点击激活同一暂停媒体，不伪造 readiness。首 full point 批终端原始四元数组件未规范化失败、mobile 在最后截图中断，修复终端实际输入后重验。后完整 point 批 3 通过／1 导入被未保存场景保护遮挡，测试先保存默认场景；私有 followup 在 Chest 样本 449／3.6432859048465986 秒严格比较发现约 1 ULP 漂移，冻结已保存权威 Take 后才通过全部原值检查。
+
+原完整基础 528／530 的两项 timeout、backup focused 9／10 与 101／104 的 timeout、最初 Wrangler 默认日志目录失败保留；测试仅将必要容量用例时限设为 15／45 秒并限定两 worker，未弱化数值／资源断言。其后 542 基础与最终 543 CI 分别记录。两处 frontend Set 类型错误是已守卫对象的类型收窄问题，类型断言不改变运行 JS。
+
+Timeline 首完整批 1 通过／3 失败（5.0 分钟）：旧 ruler selector 和手机平移；第二批 1 通过／3 失败（2.7 分钟）：原生事件 JSON 确认首 16px move 后 pointercancel，浏览器接管横向滚动；edge 又因合并中的 App conflict marker／Vite500 在业务前退出。整数 CDP origin 没有修复此问题，不能归成纯 1px 输入量化；恢复原 viewport pan-y 与 ruler／zoom-input none 后，390 原生事件为 269→173 六次 move＋pointerup、scroll 13034→13130，320 同样精确 96px，无 cancel，原严格断言不变。后 clean 3／4 的 edge 成功移 Root276→新299，却被备份 validator 正确拒绝二次 NLERP 的新支点姿态；仅让新增时点用 canonical derived pose、旧时点保 exact stored pose，focused edge 才通过导出／Undo／resize。原 log 引用 trace.zip 不能代替实际文件存在性证明；实际 mobile event JSON、上下文、截图及各轮日志保留。
+
+music＋native 首批实际 native 1 通过／music 7 失败，原因是测试 JSON reader 忽略 compact envelope；仅解析新格式、保留原音乐／异步／选段断言后 music 7／7。该修正已在下述准确 dd0d132 source 内，没有另设假想 CI 或取消。
+
+**准确源码和部署。** Runtime [dd0d132](https://github.com/DFerryman/ChoreographyStudio/commit/dd0d132785489ac3baedb19f53448ad6945adaf6)／tree `c6a09961f587d7a3b93b2260db5efc10e0d90295` 已 main 并 native 读回。准确 [CI37910066138](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37910066138)／job113752815025／attempt1／push 于 09:28:05Z completed success：**543／543 基础、27 文件＋类型／Vite 599ms＋Worker PASS；37 个浏览器实际 unique IDs 通过、8 文件、11.5 分钟，1 个私有 fixture 跳过**。Run created09:15:10Z，job09:15:12–09:28:05Z，updated09:28:06Z；原始日志 83,687 B／SHA256 `85ad50b82c2de382bc7410eed1251c1b534b17274db5035d3262e741309f9192`，未手动 rerun。
+
+Cloudflare version `ed9c35b6-15b2-4af7-a895-7f74462b8d34`（native23／tag v19-point-edits）创建 09:23:55.434468Z，首 deployment `56eeba04-841b-45f2-b2ab-bc4d1df4c947`／09:23:55.872532Z／100%，native annotation 绑定 dd0d132；Wrangler EXIT0、Read29、3 新／20 复用。冻结 runtime74／dist26 与模型 README 保持。正常 TLS verify0 的有界 HTTP8／8 于09:27:35.326739–09:27:37.544456Z通过：根 HTML、JS／CSS、native GLB／rig JSON／model README 的 bytes／SHA exact，加 health／capabilities 两只读 GET。最初 /index.html 是307 canonical redirect，传输 exit0、审计 exit1；改用 / 的最终8项与该独立请求累计9请求，无重试，不把初审计失败写成成功。
+
+| 冻结主要资产 | Bytes | SHA256 |
+| --- | ---: | --- |
+| index.html | 645 | 54f91039f937d5330ec8e93ff9dc0366712173a153a39f1e5583104e4d827185 |
+| assets/index-DCKYDdaR.js | 1,161,641 | 279a0772403bd0507133d98d0b5fd53239a053478222aeb946383ecb85e909b3 |
+| assets/index-B5ZA0MHA.css | 72,223 | b698624b8677a8fdad833d3ec57bd206c3870f927d16f387fa79342d9909bfb9 |
+| models/neutral-quaternius-v1.glb | 480,376 | 6570b23a63a0a5b87ad3fa5f8d7a24536c8e7fc3ceb03d28893cb48966cc6527 |
+| models/neutral-quaternius-v1.json | 79,998 | 882e122c2d497ea7c23ce073eefe3ddc3d09b6992f814a586b5b9ca658b7e68b |
+| models/README.md | 21,099 | 14a040b502495cbd844209ec056681a9da82feeb7cde18035215d068b5dd5202 |
+
+**公网首批实际 0／6。** 六个场景均在第一次 document goto 因 `ERR_CERT_AUTHORITY_INVALID` 退出，未进入应用，不能记为业务断言失败或应用通过。6 份实际 diagnostics 的 errors／warnings／API 都为0，同时有6个 failed document requests、documentResponse0；6 张 privacy 页图与6份实际 trace.zip 保留，verify 亲看其中3张隐私页，Root 尚未接受任何本轮公网 App 图。执行环境已有代理 CA 位于旧 HOME 的 `.pki/nssdb` 并以 C,, 信任；官方151 tag核查仍优先已存在旧目录，不能把XDG路径猜测当原因。旧NSS库挂载只读是RW初始化／fallback的有据待证原因，尚无直接NSS错误日志。修复实际为work内Chrome-created Default/ServerCertificate用户库配置已有CA DER和官方Trusted(3) metadata，离线原生cert manager复核，再wrapper复制至Playwright临时profile；不是成功UI文件导入。离线原生UI确认Trusted唯一openai.com、Intermediate／Distrusted为空、HTTP requests=[]，实际txt／png保留于work/v19/chrome-cert-manager/configured-trusted-ui；正常关闭profile后仅复制该用户库。Chrome args／HOME／正常TLS验证保持，不绕过证书。--list 确认 exactly6／2 wrapper 文件，与准确 CI 的8文件分别计；首批0／6不改写为通过。
+
+**修复后唯一有界公网实际6／6。** 同一冻结dd0d132运行源、两wrapper文件覆盖三个points（真实场景部位／局部旋转、390 Root／compact完整重导、IK关联变化）与首播放、390／320布局。于2026-10-09T09:51:12.731Z开始，用时111,888.072ms，EXIT0；expected6、unexpected／skipped／flaky／report errors均0，每项actual result passed。六份独立JSON的pageErrors／consoleErrors／consoleWarnings／apiRequests／failedRequests都为空，累计10个mainResponses均200，httpsVerification=true；正常CA验证、HOME／原Chromium args不变。原始report1,517,966B／SHA256 `f723e3f4d7c514e0bd25c2daa1af61198047e1f915aaa5f216e4b8f55be5a8d1`。Root亲审该批public-point-desktop、public-point-mobile-root和public-preview-320三张实际App图接受舞台／精确点／紧凑Timeline及390／320布局；与本地三张图独立计，不是首失败的privacy页，也不据此保证所有取景全身无遮挡。没有追加测试批。
+
+真实 Workers AI／付费推理／D1用户数据写入／新图片上传为0，私有附件不上传repo；固定默认人物数字资产、Worker业务源／绑定／限频不改。长期规范五页 Notion 已成功插入并读回，原全文／引用／四图保留，最终Markdown-only提交／同版部署注释及发布metadata同步按实际head读回。以下 v18 及以前全部原证据保留。
+
 ## Version 18 · 最终源码、部署与独立场景包验收
 
 最新最后阶段用户要求：Timeline区域拉伸／扩张时同步放大或缩小每帧间距，逐帧K应清晰可见、可点击区分；极简界面要精致、便于操作；Timeline最后集中整理，功能明确、一眼可懂，以常见直觉拖拽为主，删除不使用的入口。本轮时间线已实现：全段显示→对数缩放滑杆→逐帧最大48px帧间距、统一滚动坐标与缩放锚点、空白区域点击定位／拖动平移、K和音乐边缘自动滚动；暗色中性浮层、不透明固定轨头、紧凑桌面约195px／手机约235px、手机K／音乐44px命中区，循环／速度／前后帧进入按需“更多”。16个显示轴几何用例实际通过；末尾不足1／30秒帧可伸展至48px，音频使用相同分段显示轴，真实时刻／核心动作逻辑不改。最终ac92保留上述操作与精致布局，仅三行≤360px工具padding-inline6修复四按钮右边界；保留完整12px标签／44px高／单行。新source公网缩放4＋原transfer3共7／7、诊断0／96runtime和26dist前后同，Root亲审公网3图及本地4图分别接受；准确完整CI结果独立记录。320倒立腿端仍可能被既有浮层／边缘遮，布局验收不保证任何取景下全身无遮挡。最终修复源码／CI／Cloudflare与实际交互和人物取景须独立核验，不借任何旧source通过。

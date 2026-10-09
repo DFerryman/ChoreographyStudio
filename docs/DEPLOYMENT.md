@@ -1,5 +1,32 @@
 # Cloudflare 预览部署
 
+## v19 · 精确数据点自动记录（已上线验证，准确源码 CI 通过）
+
+[打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。当前默认手动流程不依赖 AI：选精确时刻、在场景选部位，Timeline 自动聚焦对应点，直接编辑并在松手时只记录局部／IK关联变化；一手势一撤销。Root 与全部25局部旋转可见可改，原数据及音乐无损往返；完整姿态快照按钮／K快捷键移除。用户要求将此布局和流程作为后续标准，见 [EDITOR_INTERACTION_STANDARD.md](EDITOR_INTERACTION_STANDARD.md)。
+
+运行源码 [dd0d132](https://github.com/DFerryman/ChoreographyStudio/commit/dd0d132785489ac3baedb19f53448ad6945adaf6)／tree `c6a09961f587d7a3b93b2260db5efc10e0d90295` 已 main，native读回相符。准确 [CI37910066138](https://github.com/DFerryman/ChoreographyStudio/actions/runs/37910066138)／job113752815025／attempt1／push 于09:28:05Z success：543／543基础27文件、前端类型／Vite599ms、Worker类型通过；37个浏览器实际通过、8文件、11.5分钟，私有fixture1项跳过。未手动rerun；日志83,687B／SHA `85ad50b82c2de382bc7410eed1251c1b534b17274db5035d3262e741309f9192`。本地38个独立场景由多个完整／focused批次覆盖，不能称一次全量38通过；跨引擎样本、原生触控、NLERP新支点、compact音乐reader的首失败和修复详见[验证记录](VERIFICATION.md)。
+
+| 实际部署项 | 原生读回 |
+| --- | --- |
+| Version／number／tag | ed9c35b6-15b2-4af7-a895-7f74462b8d34／23／v19-point-edits |
+| Version创建UTC | 2026-10-09T09:23:55.434468Z |
+| 首deployment／UTC | 56eeba04-841b-45f2-b2ab-bc4d1df4c947／2026-10-09T09:23:55.872532Z |
+| 流量／source annotation | 100%／Exact channel editing and permanent workflow standards; main dd0d132785489ac3baedb19f53448ad6945adaf6 |
+| 官方Wrangler结果 | EXIT0，Read29资产文件，3新／20复用；启动3ms为CLI测量，非设备帧率 |
+| 不变绑定 | AI、ASSETS、RELEASE_STAGE；API20／60s namespace2026100601，AI2／60s namespace2026100801 |
+| 静态策略 | SPA fallback、/api/* worker-first、安全headers原样 |
+| 冻结库存 | runtime74／dist26；modelREADME21,099B／SHA14a040b502495cbd844209ec056681a9da82feeb7cde18035215d068b5dd5202 |
+| 有界HTTP | 8／8，09:27:35.326739–09:27:37.544456Z，正常TLS verify0；6静态bytes／SHA＋health／capabilities两GET |
+| 公网浏览器 | 修复CA信任后唯一6／6，09:51:12.731Z开始／111,888.072ms；6实际零诊断、10document200、正常TLS；首0／6未进应用独立保留 |
+
+最初单独 /index.html 返回307 canonical redirect，传输成功但expect200审计失败；改用 / 的8项与原请求累计9请求，无retry，初失败保留。HTTP精确核对的主JS `index-DCKYDdaR.js` 1,161,641B／SHA `279a0772403bd0507133d98d0b5fd53239a053478222aeb946383ecb85e909b3`，CSS `index-B5ZA0MHA.css` 72,223B／SHA `b698624b8677a8fdad833d3ec57bd206c3870f927d16f387fa79342d9909bfb9`；完整关键资产表见验证。
+
+公网首唯一批的6次 `ERR_CERT_AUTHORITY_INVALID` 均在document首次导航，6份diagnostics虽然API／errors／warnings为0，实际failedRequests6、documentResponse0，不能当应用通过。6张privacy图与6份实际trace.zip保留，Root没有接受该批App图；官方151 tag仍优先已有旧NSS目录，XDG猜测不作原因；只读旧NSS初始化fallback仍待直接日志证明。实际配置work内Chrome-created Default/ServerCertificate用户库，已有CA DER＋官方Trusted(3) metadata经离线原生cert manager复核，再复制到任务临时profile；不是UI文件导入。args／HOME／正常TLS保持、不忽略证书。修复后有界批另计，首次0／6原样保留。
+
+修复后唯一公网批覆盖三points、首播放与390／320布局，实际6／6，unexpected／skipped／flaky／report errors0；六份独立JSON的pageErrors／consoleErrors／consoleWarnings／apiRequests／failedRequests全空，10个mainResponses全200、httpsVerification=true。report1,517,966B／SHA256 `f723e3f4d7c514e0bd25c2daa1af61198047e1f915aaa5f216e4b8f55be5a8d1`，两wrapper文件与CI八source文件独立计。Root亲审该批desktop／390-Root／320三张实际App图接受，与本地dense320／edge／backup-mobile三图分计，未追加测试／网络批。
+
+本轮只发布编辑器代码，已有独立CMU场景包／下载服务／Release tag及其SHA不改。私有源附件和音频不入公共repo，默认Quaternius人物数字资产及静态modelREADME冻结；真实Workers AI／付费推理／D1用户数据写入／新图片上传0。最后Markdown-only main通过同版deployment annotation关联，准确CI仍绑定dd0d132 runtime，不把文档head冒充CIhead。五页Notion保留最新v18全文／引用／四图和新增永久标准，最终Markdown-only提交与同版deployment注释后按实际head同步metadata；以下全部旧发布证据保留。
+
 ## v18 · 最终运行与独立场景包发布（已上线验证）
 
 最新最后阶段用户要求：Timeline区域拉伸／扩张时同步放大或缩小每帧间距，逐帧K应清晰可见、可点击区分；极简界面要精致、便于操作；Timeline最后集中整理，功能明确、一眼可懂，以常见直觉拖拽为主，删除不使用的入口。本轮时间线已实现：全段显示→对数缩放滑杆→逐帧最大48px帧间距、统一滚动坐标与缩放锚点、空白区域点击定位／拖动平移、K和音乐边缘自动滚动；暗色中性浮层、不透明固定轨头、紧凑桌面约195px／手机约235px、手机K／音乐44px命中区，循环／速度／前后帧进入按需“更多”。16个显示轴几何用例实际通过；末尾不足1／30秒帧可伸展至48px，音频使用相同分段显示轴，真实时刻／核心动作逻辑不改。最终ac92保留上述操作与精致布局，仅三行≤360px工具padding-inline6修复四按钮右边界；保留完整12px标签／44px高／单行。新source公网缩放4＋原transfer3共7／7、诊断0／96runtime和26dist前后同，Root亲审公网3图及本地4图分别接受；准确完整CI结果独立记录。320倒立腿端仍可能被既有浮层／边缘遮，布局验收不保证任何取景下全身无遮挡。最终修复源码／CI／Cloudflare与实际交互和人物取景须独立核验，不借任何旧source通过。
