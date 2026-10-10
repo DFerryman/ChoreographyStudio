@@ -110,7 +110,7 @@ export function RealismPanel(props: RealismPanelProps) {
       {capsuleCollisions && <div className="realism-diagnostics" aria-label="身体碰撞诊断">
         <p className={capsuleCollisions.selfCollisions.length || capsuleCollisions.floorPenetrations.length ? 'realism-warning' : 'realism-note'}>身体碰撞体：代理重叠 {capsuleCollisions.selfCollisions.length} 处 · 穿地 {capsuleCollisions.floorPenetrations.length} 处</p>
         {capsuleCollisions.selfCollisions.map(pair => <p key={pair.segments.join(':')} className="realism-warning">{pair.segments.map(id => capsuleLabels.get(id) ?? '身体').join(' / ')} · {(pair.depthMeters * 100).toFixed(1)} cm</p>)}
-        <p className="realism-note">拖动和 IK 阻止新增穿插；已有动作和数值编辑保持作者原值。这是身体近似检查。</p>
+        <p className="realism-note">摆姿保留作者原值；播放和时间线预览使用近似碰撞修正。</p>
       </div>}
       {props.ikResidual != null && <p className={props.ikResidual > .01 ? 'realism-warning' : 'realism-note'} aria-label="IK 目标残差">IK 目标残差 {(props.ikResidual * 100).toFixed(1)} cm</p>}
       {analysis.error && <p role="alert" className="realism-warning">{analysis.error}</p>}
