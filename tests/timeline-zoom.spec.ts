@@ -172,7 +172,7 @@ for (const width of [1440, 390, 320]) {
     const collision = page.getByRole('dialog', { name: '目标帧已有关键帧', exact: true });
     await expect(collision).toBeVisible();
     expect(await viewport(page).evaluate(element => element.scrollLeft)).toBe(fixedScroll);
-    await expect(collision).toContainText('第 278 帧');
+    await expect(collision).toContainText(`${278 / 30} 秒的 1 条对应轨已有作者关键帧`);
     await expect(key(page, 'root', 276)).toHaveCount(1);
     await expect(cursor(page)).toHaveValue('275');
     await collision.getByRole('button', { name: '替换并继续', exact: true }).click();
