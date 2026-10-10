@@ -4,7 +4,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { EDITABLE_JOINT_NAMES, JOINT_NAMES, RIG_DEFINITIONS, ROOT_TRANSLATION_LIMITS, sampleTake, type BakedTake, type JointName, type Pose, type Quat, type SampledCameraPose, type Vec3 } from '../../../packages/core/src';
 import { fitPerspectiveBounds } from './cameraFraming';
-import { constrainJointRotation, getBodyCollisions } from '../../../packages/core/src';
+import { constrainJointRotation } from '../../../packages/core/src';
+import { initializeBodyCollisionBackend, isBodyCollisionBackendReady } from '../../../packages/core/src/rapierBackend';
+import { sampleCollisionPreview } from '../../../packages/core/src/collisionPreview';
 import { disposeHumanoid, loadHumanoid, updateHumanoid } from './Humanoid';
 import { getPoseGuidance } from './poseGuidance';
 import './Stage.css';
@@ -57,6 +59,8 @@ type StageProps = {
   poseOverride?: Pose | null;
   editMode?: boolean;
   playing?: boolean;
+  /** Display-only collision correction; author data and gesture baselines stay raw. */
+  collisionPreview?: boolean;
   transformTool?: StageTransformTool;
   ikTarget?: Vec3 | null;
   collisionFeedback?: string | null;
@@ -195,9 +199,9 @@ function StageFallback({ error }: { error: string }) {
 }
 
 export function Stage(props: StageProps) {
-  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selectedJoint, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool = 'rotate', ikTarget } = props;
+  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selectedJoint, gridVisible, axesVisible, poseOverride, editMode, playing, collisionPreview, transformTool = 'rotate', ikTarget } = props;
   const containerRef = useRef<HTMLDivElement>(null);
-  const current = useRef(props);
+  const current = useRef<StageProps & { renderPose: Pose | null; previewState: 'author' | 'loading' | 'ready' | 'error' }>({ ...props, renderPose: null, previewState: 'author' });
   const requestDraw = useRef<() => void>(() => {});
   const [error, setError] = useState<string | null>(null);
   const [internalSelection, setInternalSelection] = useState<JointName | null>(null);
@@ -206,17 +210,44 @@ export function Stage(props: StageProps) {
   const [transformAxis, setTransformAxis] = useState<string | null>(null);
   const [ikResidual, setIKResidual] = useState<number | null>(null);
   const [humanLoaded, setHumanLoaded] = useState(false);
-  current.current = props;
+  const [collisionReady, setCollisionReady] = useState(isBodyCollisionBackendReady);
+  const [collisionError, setCollisionError] = useState<string | null>(null);
+  const previewActive = !!(collisionPreview || playing);
   const selection = selectedJoint === undefined ? internalSelection : selectedJoint;
   const selectionRef = useRef(selection);
   selectionRef.current = selection;
-  const feedbackPose = useMemo(() => !playing && poseOverride ? poseOverride : take ? sampleTake(take, time) : null, [playing, poseOverride, take, time]);
+  useEffect(() => {
+    if (!previewActive || collisionReady) return;
+    let active = true;
+    setCollisionError(null);
+    void initializeBodyCollisionBackend().then(() => {
+      if (active) setCollisionReady(true);
+    }).catch(error => {
+      if (active) setCollisionError(error instanceof Error ? error.message : '碰撞引擎无法加载。');
+    });
+    return () => { active = false; };
+  }, [previewActive, collisionReady]);
+  const presentation = useMemo<{ pose: Pose | null; preview: ReturnType<typeof sampleCollisionPreview> | null; error: string | null }>(() => {
+    const authored = !previewActive && poseOverride ? poseOverride : take ? sampleTake(take, time) : null;
+    if (!previewActive || !take || !collisionReady) return { pose: authored, preview: null, error: null };
+    try {
+      const preview = sampleCollisionPreview(take, time);
+      return { pose: preview.pose, preview, error: null };
+    } catch (error) {
+      return { pose: authored, preview: null, error: error instanceof Error ? error.message : '碰撞预览无法计算。' };
+    }
+  }, [previewActive, poseOverride, take, time, collisionReady]);
+  const feedbackPose = presentation.pose;
   const poseGuidance = useMemo(() => getPoseGuidance(feedbackPose), [feedbackPose]);
-  const capsuleCollisions = useMemo(() => humanLoaded && feedbackPose ? getBodyCollisions(feedbackPose) : null, [feedbackPose, humanLoaded]);
+  const capsuleCollisions = presentation.preview?.collisions ?? null;
   const hasCapsuleCollisions = !!capsuleCollisions && (capsuleCollisions.selfCollisions.length > 0 || capsuleCollisions.floorPenetrations.length > 0);
+  const previewFailure = presentation.error ?? collisionError;
+  const previewState = !previewActive ? 'author' : previewFailure ? 'error' : !collisionReady || !presentation.preview ? 'loading' : 'ready';
+  current.current = { ...props, renderPose: feedbackPose, previewState };
+  const previewStatus = !previewActive ? null : previewFailure ? '碰撞预览失败 · 显示作者姿态' : previewState === 'loading' ? '碰撞预览准备中 · 显示作者姿态' : presentation.preview?.corrected ? '碰撞预览 · 近似修正' : '碰撞预览 · 近似检查';
   const guidanceWarning = <>
-    {props.collisionFeedback && <span className="stage3d-author-warning" role="status" aria-label="身体碰撞编辑保护">{props.collisionFeedback}</span>}
-    {hasCapsuleCollisions && <span className="stage3d-author-warning" role="status" aria-label="身体碰撞提示" title="身体近似碰撞体存在重叠，已有动作保持原值，可调整相关部位检查接触。">身体接触需检查 {capsuleCollisions!.selfCollisions.length} · 穿地 {capsuleCollisions!.floorPenetrations.length}</span>}
+    {previewStatus && <span className="stage3d-author-warning" role="status" aria-label="碰撞预览" title={previewFailure ?? '碰撞修正仅用于预览，作者数据保持原值。'}>{previewStatus}</span>}
+    {hasCapsuleCollisions && <span className="stage3d-author-warning" role="status" aria-label="身体碰撞提示" title="近似求解仍有残余接触；选择相关部位后可编辑作者姿态。">残余接触 {capsuleCollisions!.selfCollisions.length} · 穿地 {capsuleCollisions!.floorPenetrations.length}</span>}
     {poseGuidance.outsideSuggestedRange.length > 0 && <span className="stage3d-author-warning" role="status" aria-label="全身关节建议范围" title={poseGuidance.outsideSuggestedRange.map(joint => STAGE_JOINT_LABELS[joint]).join('、')}>超出标准人体建议 · {poseGuidance.outsideSuggestedRange.length} 处 · 保留老师姿态</span>}
     {poseGuidance.shoulderCoupling.length > 0 && <span className="stage3d-author-warning" role="status" aria-label="肩部配合提示" title="大幅举臂请配合肩部，关键帧按老师原姿态保留。">举臂需检查肩部配合</span>}
   </>;
@@ -358,6 +389,7 @@ export function Stage(props: StageProps) {
     let previousTake: BakedTake | null | undefined;
     let previousTime = Number.NaN;
     let previousOverride: Pose | null | undefined;
+    let previousRenderPose: Pose | null | undefined;
     let draggingJoint: JointName | null = null;
     let draggingRoot = false;
     let draggingIK: StageIKEffector | null = null;
@@ -370,6 +402,7 @@ export function Stage(props: StageProps) {
     let cameraSignature = '';
     let projectionSignature = '';
     let jointSignature = '';
+    let renderedPoseSignature = '';
     let pointerStart: { id: number; x: number; y: number; dragged: boolean; button: number; gizmo: boolean } | null = null;
     const activePointers = new Set<number>();
     const blockedTransformPointers = new Set<number>();
@@ -576,7 +609,7 @@ export function Stage(props: StageProps) {
 
     function canEdit() {
       const state = current.current;
-      return !!rig.humanSurface && !!state.editMode && !state.playing && !state.mirror && !cameraGesture && blockedTransformPointers.size === 0;
+      return !!rig.humanSurface && !!state.editMode && !state.collisionPreview && !state.playing && !state.mirror && !cameraGesture && blockedTransformPointers.size === 0;
     }
 
     function canRotate() {
@@ -602,7 +635,7 @@ export function Stage(props: StageProps) {
         : gesture.kind === 'root' ? current.current.onRootPositionChange?.([...gesture.value] as Vec3, phase)
           : current.current.onJointRotationChange?.(gesture.joint, [...gesture.value] as Quat, phase);
       // Native controls move a bone before React renders. Put the accepted
-      // collision-safe pose back synchronously, including linked IK changes.
+      // author draft back synchronously, including linked IK changes.
       if (phase === 'change' && accepted) applyPose(rig, accepted);
     }
 
@@ -808,6 +841,7 @@ export function Stage(props: StageProps) {
       const cancelDrag = transform.dragging && (
         transform.object !== attachedObject || restoreChanged || cameraViewChanged ||
         state.take !== previousTake || state.time !== previousTime ||
+        state.collisionPreview || state.playing ||
         (draggingIK !== null && effector !== previousIKEffector) ||
         (state.poseOverride == null && previousOverride != null)
       );
@@ -838,12 +872,13 @@ export function Stage(props: StageProps) {
       mirrorGroup.scale.x = state.mirror ? -1 : 1;
       grid.visible = state.gridVisible !== false;
       axes.visible = state.axesVisible !== false;
-      const override = state.playing ? null : state.poseOverride;
-      if (state.take !== previousTake || state.time !== previousTime || override !== previousOverride || poseNeedsApply) {
-        applyPose(rig, override ?? (state.take ? sampleTake(state.take, state.time) : null), transform.dragging ? draggingJoint : null, transform.dragging && draggingRoot);
+      const override = state.playing || state.collisionPreview ? null : state.poseOverride;
+      if (state.take !== previousTake || state.time !== previousTime || override !== previousOverride || state.renderPose !== previousRenderPose || poseNeedsApply) {
+        applyPose(rig, state.renderPose, transform.dragging ? draggingJoint : null, transform.dragging && draggingRoot);
         previousTake = state.take;
         previousTime = state.time;
         previousOverride = override;
+        previousRenderPose = state.renderPose;
         poseNeedsApply = false;
       }
       for (const [name, marker] of rig.markers) {
@@ -857,6 +892,22 @@ export function Stage(props: StageProps) {
       }
       updateHumanoid(rig.humanSurface);
       scene.updateMatrixWorld(true);
+      // Publish the actual canonical rig after application, not merely React's
+      // requested pose. Browser checks can inspect the same bones being drawn.
+      const renderedPose: Pose = {
+        root: rig.root.position.toArray() as Vec3,
+        joints: Object.fromEntries(JOINT_NAMES.map(joint => [joint, rig.joints.get(joint)!.quaternion.toArray() as Quat])) as Pose['joints'],
+      };
+      const renderedSignature = JSON.stringify(renderedPose);
+      if (renderedSignature !== renderedPoseSignature) {
+        canvas.dataset.renderPose = renderedSignature;
+        renderedPoseSignature = renderedSignature;
+      }
+      const motionPresentation = state.collisionPreview || state.playing ? 'collision-preview' : 'author';
+      if (canvas.dataset.motionPresentation !== motionPresentation) canvas.dataset.motionPresentation = motionPresentation;
+      const renderTime = String(state.time);
+      if (canvas.dataset.renderTime !== renderTime) canvas.dataset.renderTime = renderTime;
+      if (canvas.dataset.collisionPreviewState !== state.previewState) canvas.dataset.collisionPreviewState = state.previewState;
       ikGoal.visible = canIK();
       ikLine.visible = false;
       let residual: number | null = null;
@@ -951,6 +1002,26 @@ export function Stage(props: StageProps) {
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
+      }
+      // React can switch presentation before the next draw detaches a handle.
+      // Disable native grabbing synchronously so a preview pose is never a draft.
+      if (!canEdit()) {
+        if (transform.dragging || transformGesture) cancelTransform();
+        transform.enabled = false;
+        transform.axis = null;
+        transform.detach();
+        localAxes.visible = false;
+        syncOrbit();
+        return;
+      }
+      // On preview -> author transition, refresh the rig before native controls
+      // capture their initial matrices; waiting for requestAnimationFrame is late.
+      const state = current.current;
+      if (!transform.dragging && state.renderPose !== previousRenderPose) {
+        applyPose(rig, state.renderPose);
+        updateHumanoid(rig.humanSurface);
+        scene.updateMatrixWorld(true);
+        previousRenderPose = state.renderPose;
       }
       if (transform.dragging && pointerStart?.id !== event.pointerId) {
         // A second touch must not feed the native control's pointerMove/up,
@@ -1273,10 +1344,10 @@ export function Stage(props: StageProps) {
 
   useEffect(() => {
     requestDraw.current();
-  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selection, gridVisible, axesVisible, poseOverride, editMode, playing, transformTool, ikTarget]);
+  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selection, gridVisible, axesVisible, poseOverride, editMode, playing, collisionPreview, feedbackPose, previewState, transformTool, ikTarget]);
 
   return (
-    <div className="stage3d" ref={containerRef} data-camera-offset-y="0" tabIndex={editMode ? 0 : undefined} role="region" aria-label="3D 动画舞台" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined} aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y Alt+ArrowUp Alt+ArrowDown' : undefined} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }} onKeyDown={event => {
+    <div className="stage3d" ref={containerRef} data-camera-offset-y="0" data-motion-presentation={previewActive ? 'collision-preview' : 'author'} data-collision-preview-state={previewState} tabIndex={editMode ? 0 : undefined} role="region" aria-label="3D 动画舞台" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined} aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y Alt+ArrowUp Alt+ArrowDown' : undefined} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }} onKeyDown={event => {
       if (!editMode || event.nativeEvent.isComposing || !event.altKey || event.ctrlKey || event.metaKey || !['ArrowUp', 'ArrowDown'].includes(event.key)
         || (event.target !== containerRef.current && !(event.target instanceof HTMLCanvasElement))) return;
       event.preventDefault();
@@ -1299,12 +1370,12 @@ export function Stage(props: StageProps) {
         </div>}
         {hover && <div className="stage3d-joint-tooltip" style={{ left: hover.x, top: hover.y }} aria-hidden="true">{STAGE_JOINT_LABELS[hover.joint]}<span>点击选择</span></div>}
         {editMode && <div className={`stage3d-edit-indicator${transformTool === 'ik' ? ' is-ik' : ''}`} aria-label={transformTool === 'translate' ? 'Root 世界位移' : transformTool === 'ik' ? 'IK 手脚目标' : transformTool === 'rotate' ? '关节局部旋转' : '关节选择'}>
-          {(selection || transformTool === 'translate') && <output className="stage3d-selected-part" aria-label="选中姿态状态" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined}>{transformTool === 'translate' ? '角色' : STAGE_JOINT_LABELS[selection!]} · {!playing && poseOverride ? '编辑中' : '已记录'}</output>}
-          {playing ? '播放期间不可编辑' : mirror ? '关闭镜像后编辑' : transformTool === 'select' ? '点身体部位选择' : transformTool === 'translate' ? <>整体移动<span>{transformAxis ? `${transformAxis}轴` : '拖箭头调整位置'}</span></> : transformTool === 'ik' ? !getIKEffector(selection) ? '点手或脚，再拖箭头摆姿' : <>手脚协调<span>{transformAxis ? `${transformAxis}轴` : '拖箭头摆姿'}</span>{ikResidual !== null && ikResidual > 0.015 && <span className="stage3d-ik-residual" role="status">目标差 {(ikResidual * 100).toFixed(1)} cm</span>}</> : !selection ? '点身体部位，再拖彩色环摆姿' : <>旋转<span>{transformAxis ? `${transformAxis}轴` : '拖彩色环摆姿'}</span></>}
+          {(selection || transformTool === 'translate') && <output className="stage3d-selected-part" aria-label="选中姿态状态" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined}>{transformTool === 'translate' ? '角色' : STAGE_JOINT_LABELS[selection!]} · {previewActive ? '预览中' : poseOverride ? '编辑中' : '已记录'}</output>}
+          {playing ? '播放期间不可编辑' : previewActive ? '点身体部位继续编辑' : mirror ? '关闭镜像后编辑' : transformTool === 'select' ? '点身体部位选择' : transformTool === 'translate' ? <>整体移动<span>{transformAxis ? `${transformAxis}轴` : '拖箭头调整位置'}</span></> : transformTool === 'ik' ? !getIKEffector(selection) ? '点手或脚，再拖箭头摆姿' : <>手脚协调<span>{transformAxis ? `${transformAxis}轴` : '拖箭头摆姿'}</span>{ikResidual !== null && ikResidual > 0.015 && <span className="stage3d-ik-residual" role="status">目标差 {(ikResidual * 100).toFixed(1)} cm</span>}</> : !selection ? '点身体部位，再拖彩色环摆姿' : <>旋转<span>{transformAxis ? `${transformAxis}轴` : '拖彩色环摆姿'}</span></>}
           {guidanceWarning}
         </div>}
         {!editMode && cameraTrackEditing && <div className="stage3d-edit-indicator" aria-label="相机轨道编辑">{playing ? '相机轨道 · 播放中' : '相机 · 拖动画面，松手记录'}{guidanceWarning}</div>}
-        {!editMode && !cameraTrackEditing && (hasCapsuleCollisions || props.collisionFeedback || poseGuidance.outsideSuggestedRange.length > 0 || poseGuidance.shoulderCoupling.length > 0) && <div className="stage3d-edit-indicator" aria-label="姿态建议提示">{guidanceWarning}</div>}
+        {!editMode && !cameraTrackEditing && (previewActive || poseGuidance.outsideSuggestedRange.length > 0 || poseGuidance.shoulderCoupling.length > 0) && <div className="stage3d-edit-indicator" aria-label="姿态建议提示">{guidanceWarning}</div>}
         <span className="stage3d-selection-announcement" aria-live="polite">{selection ? `已选中${STAGE_JOINT_LABELS[selection]}` : '未选中关节'}</span>
       </>}
     </div>

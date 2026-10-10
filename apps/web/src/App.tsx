@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDownToLine, ArrowUpRight, Check, CheckCircle2, Copy, Focus, FolderOpen, Headphones, Layers3, LoaderCircle, MousePointer2, Move3D, Pause, Pencil, Play, Plus, Redo2, Repeat2, Rotate3D, RotateCcw, Save, Scan, SlidersHorizontal, Undo2, Upload, Volume2, X } from 'lucide-react';
-import { bakeKeyframeSequence, upsertMotionPointChanges, removeMotionPointEdit, EDITABLE_JOINT_NAMES, frameAtTime, frameTime, getKeyframeCount, makeCountMap, makeKeyframeSequence, removePoseKeyframe, removeRootKeyframe, removeRotationKeyframe, sampleTake, transferKeyframes, type ArrangementPlan, type BakedTake, type CountMap, type KeyframeTransferRequest, type KeyframeTransferTrack, JOINT_NAMES, type JointName, type KeyframeSequence, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
+import { bakeKeyframeSequence, upsertMotionPointChanges, removeMotionPointEdit, EDITABLE_JOINT_NAMES, frameAtTime, frameTime, getKeyframeCount, makeCountMap, makeKeyframeSequence, removePoseKeyframe, removeRootKeyframe, removeRotationKeyframe, sampleTake, transferKeyframes, type ArrangementPlan, type BakedTake, type CountMap, type KeyframeTransferInput, type KeyframeTransferTrack, JOINT_NAMES, type JointName, type KeyframeSequence, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
 import { Stage, STAGE_JOINT_LABELS, type StageCamera, type StageCameraFocus, type StageTransformTool, type StageView } from './Stage';
 import { demoAudio } from './demoAudio';
 import { deleteScene, duplicateScene, listScenes, loadCurrentScene, loadScene, renameScene, saveScene, setCurrentScene as selectStoredScene } from './storage';
@@ -10,7 +10,7 @@ import { encodeSceneBackup, encodeSceneJsonBackup, decodeSceneBackup } from './s
 import type { SceneSnapshot as Snapshot, SceneProject as Session } from './sceneProject';
 import { useModalFocus } from './useModalFocus';
 import { useEditorShortcuts } from './useEditorShortcuts';
-import { addFootLock, analyzePose, applyFootLocks, buildAICandidate, canonicalEditRotation, captureFootLock, constrainBodyCollisions, evaluatePose, getKeyframeProtection, removeFootLock, simulatePhysicsTake, solveLimbIK, STANDARD_HUMAN_PROFILE, type FootLockProtection, type IKEffector, type LockedFoot } from '../../../packages/core/src';
+import { addFootLock, analyzePose, applyFootLocks, buildAICandidate, canonicalEditRotation, captureFootLock, evaluatePose, getKeyframeProtection, removeFootLock, simulatePhysicsTake, solveLimbIK, STANDARD_HUMAN_PROFILE, type FootLockProtection, type IKEffector, type LockedFoot } from '../../../packages/core/src';
 import { getIKEffector } from './Stage';
 import AIPanel from './AIPanel';
 import { requestAIArrangement } from './aiClient';
@@ -24,7 +24,7 @@ import { cloneCameraPose, createCameraTrackSampler, makeCameraTrack, moveCameraK
 
 type SceneAction = { type: 'new' } | { type: 'open' | 'copy' | 'delete'; id: string } | { type: 'import'; scene: SceneDocument<Session> } | { type: 'recoverAudio'; sceneId: string; countMapId: string; audio: Blob; audioName: string; name: string };
 type KeyframeDeleteTarget = { kind: 'joint'; joint: JointName; frame: number } | { kind: 'root' | 'pose'; frame: number };
-type TransferAction = { type: 'transferKeys'; originFrame: number; request: Omit<KeyframeTransferRequest, 'collision'>; sceneId: string; countMapId: string };
+type TransferAction = { type: 'transferKeys'; originTime: number; request: KeyframeTransferInput; sceneId: string; countMapId: string };
 type AudioMoveAction = { type: 'moveAudio'; offsetSeconds: number; sceneId: string; countMapId: string };
 type PoseAction = AudioMoveAction | { type: 'seek'; time: number } | { type: 'scene'; action: SceneAction } | { type: 'history'; direction: -1 | 1 } | { type: 'deleteKey'; target: KeyframeDeleteTarget } | TransferAction | { type: 'play' | 'save' | 'music' | 'teaching' | 'backup' | 'projectBackup' };
 type PendingTransfer = { action: TransferAction; sequenceId: string; revision: number; collisions: KeyframeTransferTrack[] };
@@ -124,7 +124,8 @@ export default function App() {
   const [page, setPage] = useState<'studio' | 'teaching'>('studio');
   const [transformTool, setTransformTool] = useState<StageTransformTool>('rotate');
   const [poseDraft, setPoseDraft] = useState<Pose | null>(null);
-  const [collisionFeedback, setCollisionFeedback] = useState<string | null>(null);
+  // Presentation only: preview corrections never enter author data or history.
+  const [collisionPreview, setCollisionPreview] = useState(false);
   const [queuedPoseAction, setQueuedPoseAction] = useState<PoseAction | AssistAction | null>(null);
   const [pendingResetAction, setPendingResetAction] = useState<ResetAction | null>(null);
   const [assistCandidate, setAssistCandidate] = useState<AssistCandidate | null>(null);
@@ -205,7 +206,7 @@ export default function App() {
   const activeTransformTool = manualEditing && !cameraSelected ? transformTool : 'select';
   const editableSelectedJoint = selectedJoint !== null && JOINT_NAMES.includes(selectedJoint);
   const rotateUnavailable = !active.take ? '请先新建或导入场景。' : !selectedJoint ? '先点击人物，选择要调整的部位。' : !editableSelectedJoint ? '末端节点只读；请选择肩、肘、髋等可旋转关节。' : busy ? '请等待当前操作完成。' : null;
-  const toolHelp = !active.take ? '请先新建或导入场景。' : previewAssist ? '正在看辅助候选。点旋转或移动，将切回原稿编辑。' : page === 'teaching' ? '点旋转或移动，返回编舞工作台编辑原稿。' : playing ? '点旋转或移动，暂停在当前帧开始编辑。' : mirror ? '点旋转或移动，退出镜像后编辑原始姿态。' : manualEditing && transformTool === 'ik' ? '拖动手脚目标 · 松开自动记录实际变化的关节' : manualEditing && transformTool === 'translate' ? '拖动 XYZ 箭头移动全身 · 世界空间（m）' : manualEditing && transformTool === 'rotate' ? editableSelectedJoint ? '拖动 XYZ 旋转环摆姿 · 相对父骨骼' : rotateUnavailable : selectedJoint ? editableSelectedJoint ? '已选中关节。点「旋转关节」开始摆姿。' : rotateUnavailable : '点击关节点选择，再旋转关节；移动作用于整个角色。';
+  const toolHelp = !active.take ? '请先新建或导入场景。' : previewAssist ? '正在看辅助候选。点旋转或移动，将切回原稿编辑。' : page === 'teaching' ? '点旋转或移动，返回编舞工作台编辑原稿。' : playing ? '点旋转或移动，暂停在当前帧开始编辑。' : collisionPreview ? '碰撞预览中 · 点选部位或工具，恢复原姿态继续编辑。' : mirror ? '点旋转或移动，退出镜像后编辑原始姿态。' : manualEditing && transformTool === 'ik' ? '拖动手脚目标 · 松开自动记录实际变化的关节' : manualEditing && transformTool === 'translate' ? '拖动 XYZ 箭头移动全身 · 世界空间（m）' : manualEditing && transformTool === 'rotate' ? editableSelectedJoint ? '拖动 XYZ 旋转环摆姿 · 相对父骨骼' : rotateUnavailable : selectedJoint ? editableSelectedJoint ? '已选中关节。点「旋转关节」开始摆姿。' : rotateUnavailable : '点击关节点选择，再旋转关节；移动作用于整个角色。';
 
   useModalFocus({ onEscape: dialog => {
     if (sceneActionBusy || importBusy || busy || saveStatus === 'saving') return;
@@ -327,11 +328,15 @@ export default function App() {
     if (guardPose({ type: 'seek', time: next })) return;
     seekDirect(Math.max(0, Math.min(active.countMap.durationSeconds, next)));
   }
-  function seekDirect(next: number) { setCameraViewOverride(false); timelinePlayback.seek(next); }
+  function seekDirect(next: number, presentation: 'author' | 'preview' = 'preview') {
+    setCollisionPreview(presentation === 'preview');
+    setCameraViewOverride(false); timelinePlayback.seek(next);
+  }
   async function togglePlay() {
     if (playing || timelinePlayback.isPending()) { pause(); return; }
     if (guardPose({ type: 'play' })) return;
     if (!displayedTake || !audioRef.current || !ready || !audioBlob) return;
+    setCollisionPreview(true);
     setCameraViewOverride(false);
     const start = loop ? 0 : time >= active.countMap.durationSeconds - .01 ? 0 : time;
     await timelinePlayback.play(start);
@@ -349,6 +354,7 @@ export default function App() {
   }
   function commit(next: Snapshot, operation: Snapshot['operation'] = { label: '编辑场景' }) {
     next = { ...next, operation };
+    setCollisionPreview(false);
     cancelAssistance(); pause(); setPreviewAssist(false);
     setSession(previous => {
       const history = [...previous.history.slice(0, previous.historyIndex + 1), next].slice(-12);
@@ -364,13 +370,15 @@ export default function App() {
     cancelAssistance(); pause(); setPreviewAssist(false);
     setSession(previous => { const updated = { ...previous, historyIndex: next, revision: previous.revision + 1, teacherCheckedRevision: null }; sessionRef.current = updated; return updated; });
     const operationTime = session.history[next].operation?.time;
-    if (operationTime !== undefined) seekDirect(operationTime);
+    if (operationTime !== undefined) seekDirect(operationTime, 'author');
+    else setCollisionPreview(false);
     markSceneDirty();
   }
   function navigateHistory(direction: -1 | 1) {
     if (guardPose({ type: 'history', direction })) return;
     const next = session.historyIndex + direction;
     if (next < 0 || next >= session.history.length) return;
+    setCollisionPreview(false);
     restoreHistoryCamera(session.history[next], direction);
     cancelAssistance(); pause(); setPreviewAssist(false);
     setSession(previous => { const updated = { ...previous, historyIndex: next, revision: previous.revision + 1, teacherCheckedRevision: null }; sessionRef.current = updated; return updated; });
@@ -505,10 +513,19 @@ export default function App() {
     } catch (error) { setNotice(errorMessage(error)); }
   }
   const handleJointPosition = useCallback((position: Vec3 | null) => { setJointPosition(position); }, []);
-  function chooseJoint(joint: JointName | null) { finishCameraGesture(); setCameraSelected(false); setSelectedJoint(joint); setSelectedPoint(joint); if (joint && transformTool === 'select') setTransformTool('rotate'); markSceneDirty(); }
+  function chooseJoint(joint: JointName | null) {
+    finishCameraGesture(); setCameraSelected(false);
+    if (joint) {
+      if (playing && manualEditing) { const exactTime = currentEditTime(); pause(); seekDirect(exactTime, 'author'); }
+      else setCollisionPreview(false);
+    }
+    setSelectedJoint(joint); setSelectedPoint(joint);
+    if (joint && transformTool === 'select') setTransformTool('rotate');
+    markSceneDirty();
+  }
   function selectMotionPoint(exactTime: number, point: JointName | 'root') {
     if (playing || !manualEditing || modalOpen || busy) return;
-    seek(exactTime); setCameraSelected(false); setSelectedPoint(point);
+    seek(exactTime); setCollisionPreview(false); setCameraSelected(false); setSelectedPoint(point);
     if (point === 'root') setTransformTool('translate');
     else { setSelectedJoint(point); setTransformTool('rotate'); }
   }
@@ -526,6 +543,7 @@ export default function App() {
     finally { setLibraryBusy(false); }
   }
   function applyScene(scene: SceneDocument<Session>, saved = true) {
+    setCollisionPreview(false);
     cameraGesture.current = null; setCameraRestoreExact(null); setCameraSelected(false); setCameraViewOverride(false);
     cancelAssistance(); setAssistCandidate(null); setPreviewAssist(false); pause(); closeCreate();
     const viewer = scene.viewer, map = scene.project.history[scene.project.historyIndex].countMap;
@@ -542,7 +560,7 @@ export default function App() {
     setPendingTransfer(null);
     setPage('studio');
     setTransformTool(viewer.transformTool ?? 'rotate');
-    poseDraftRef.current = null; setPoseDraft(null); poseDraftBaseline.current = null; setCollisionFeedback(null);
+    poseDraftRef.current = null; setPoseDraft(null); poseDraftBaseline.current = null;
     draftRotationIntents.current.clear(); draftRootIntent.current = false;
     sceneChangeVersion.current += 1; setSaveStatus(saved ? 'saved' : 'dirty');
   }
@@ -829,7 +847,7 @@ export default function App() {
   }
   function clearPoseDraft(restoreStatus = false) {
     const baseline = poseDraftBaseline.current;
-    poseDraftRef.current = null; setPoseDraft(null); poseDraftBaseline.current = null; setCollisionFeedback(null);
+    poseDraftRef.current = null; setPoseDraft(null); poseDraftBaseline.current = null;
     draftRotationIntents.current.clear(); draftRootIntent.current = false;
     setIKTarget(null); setIKResidual(null);
     if (restoreStatus && baseline && baseline.version === sceneChangeVersion.current) setSaveStatus(baseline.status);
@@ -853,23 +871,18 @@ export default function App() {
     // Linked IK/contact output uses the exact unit tuple the point writer will
     // store. Retained source channels are never normalized here.
     for (const joint of JOINT_NAMES) if (rotationsDiffer(copied.joints[joint], previous.joints[joint])) copied.joints[joint] = canonicalEditRotation(copied.joints[joint]);
-    // Only new stage gestures enter this guard. Stored/imported points and
-    // explicit numeric author edits retain their original channels exactly.
-    const collision = constrainBodyCollisions(previous, copied);
-    copied = collision.pose;
-    const collisionMessage = !collision.limited ? null : collision.limitReason === 'joint-limit' ? '已达到关节建议边界' : collision.limitReason === 'sweep-budget' ? '移动幅度过大，请分段调整' : collision.blockingCollisions.floorPenetrations.length ? '已阻止穿地' : '已阻止身体穿插';
-    setCollisionFeedback(collisionMessage);
+    // Collision response belongs to the derived viewing pose. Author gestures
+    // may pass through the floor/body without moving the whole actor first.
     // Foot-lock outputs are linked changes, not new author protection. Keep
     // only the direct gesture intents; recordPointChanges captures all results.
     for (const joint of draftRotationIntents.current) if (!rotationsDiffer(copied.joints[joint], reference.joints[joint])) draftRotationIntents.current.delete(joint);
     if (!rootsDiffer(copied.root, reference.root)) draftRootIntent.current = false;
-    if (!posesDiffer(copied, reference)) { clearPoseDraft(true); setCollisionFeedback(collisionMessage); return false; }
+    if (!posesDiffer(copied, reference)) { clearPoseDraft(true); return false; }
     if (!poseDraftRef.current) poseDraftBaseline.current = { status: saveStatus === 'saving' ? 'dirty' : saveStatus, version: sceneChangeVersion.current };
     poseDraftRef.current = copied; setPoseDraft(copied); setSaveStatus('dirty'); return true;
   }
   function beginPointGesture() {
-    if (!active.take || !manualSequence || !manualEditing || playing || mirror || modalOpen || busy) return false;
-    if (!pointGesture.current) setCollisionFeedback(null);
+    if (!active.take || !manualSequence || !manualEditing || collisionPreview || playing || mirror || modalOpen || busy) return false;
     pointGesture.current ??= { sceneId: currentScene.id, revision: session.revision, time, snapshot: active, sequence: manualSequence, before: clonePose(sampleTake(active.take, time)) };
     return true;
   }
@@ -925,6 +938,7 @@ export default function App() {
   function changeMotionPointValue(exactTime: number, point: JointName | 'root', value: Vec3 | Quat) {
     if (!active.take || !manualSequence || playing || mirror || !manualEditing || modalOpen || busy || exactTime !== time) return;
     try {
+      setCollisionPreview(false);
       const before = sampleTake(active.take, exactTime), after = clonePose(before);
       if (point === 'root') after.root = value as Vec3;
       else {
@@ -1056,9 +1070,9 @@ export default function App() {
       setNotice(`已删除第 ${target.frame} 帧${scope}，可撤销恢复。`);
     } catch (error) { setNotice(errorMessage(error)); }
   }
-  function requestKeyframeTransfer(request: Omit<KeyframeTransferRequest, 'collision'>) {
+  function requestKeyframeTransfer(request: KeyframeTransferInput) {
     if (!manualSequence || !active.take || playing || mirror || !manualEditing || busy) return;
-    const action: TransferAction = { type: 'transferKeys', originFrame: editorFrame, request: { ...request, scope: request.scope.kind === 'joints' ? { ...request.scope, joints: [...request.scope.joints] } : { ...request.scope } }, sceneId: currentScene.id, countMapId: active.countMap.id };
+    const action: TransferAction = { type: 'transferKeys', originTime: time, request: { ...request, scope: request.scope.kind === 'joints' ? { ...request.scope, joints: [...request.scope.joints] } : { ...request.scope } }, sceneId: currentScene.id, countMapId: active.countMap.id };
     if (guardPose(action)) return;
     performKeyframeTransfer(action);
   }
@@ -1067,8 +1081,8 @@ export default function App() {
     if (poseDraftRef.current) {
       setPendingTransfer(null); guardPose(action); return;
     }
-    if (action.sceneId !== currentScene.id || action.countMapId !== active.countMap.id || action.originFrame !== editorFrame) {
-      setPendingTransfer(null); setNotice('来源场景、数拍或帧已改变，请重新操作关键帧。'); return;
+    if (action.sceneId !== currentScene.id || action.countMapId !== active.countMap.id || action.originTime !== time) {
+      setPendingTransfer(null); setNotice('来源场景、数拍或时刻已改变，请重新操作关键帧。'); return;
     }
     if (replacement && (replacement.sequenceId !== manualSequence.id || replacement.revision !== session.revision)) {
       setPendingTransfer(null); setNotice('关键帧序列已改变，请重新检查目标帧。'); return;
@@ -1084,10 +1098,10 @@ export default function App() {
       }
       // Baking can reject resource overflow; commit only after all checks pass.
       const take = bakeKeyframeSequence(result.sequence);
-      const tracks: (JointName | 'root')[] = [...(JSON.stringify(result.sequence.root) !== JSON.stringify(manualSequence.root) ? ['root' as const] : []), ...JOINT_NAMES.filter(joint => JSON.stringify(result.sequence.rotations[joint] ?? []) !== JSON.stringify(manualSequence.rotations[joint] ?? []))];
-      commit({ ...active, manual: result.sequence, take }, { label: `${action.request.operation === 'move' ? '移动' : '复制'}${tracks.map(track => track === 'root' ? '整体位移' : STAGE_JOINT_LABELS[track]).join('、')}关键帧`, time: frameTime(action.request.targetFrame, take.durationSeconds), tracks });
-      setPendingTransfer(null); seekDirect(frameTime(action.request.targetFrame, take.durationSeconds));
-      setNotice(`已${action.request.operation === 'move' ? '移动' : '复制'} ${result.sourceKeyCount} 条显式 K 到第 ${action.request.targetFrame} 帧，可撤销恢复。`);
+      const tracks = result.changedTracks.map(track => track.kind === 'root' ? 'root' as const : track.joint);
+      commit({ ...active, manual: result.sequence, take }, { label: `${action.request.operation === 'move' ? '移动' : '复制'}${tracks.map(track => track === 'root' ? '整体位移' : STAGE_JOINT_LABELS[track]).join('、')}关键帧`, time: result.targetTime, tracks });
+      setPendingTransfer(null); seekDirect(result.targetTime, 'author');
+      setNotice(`已${action.request.operation === 'move' ? '移动' : '复制'} ${result.sourceKeyCount} 条作者关键帧到 ${result.targetTime} 秒，可撤销恢复。`);
     } catch (error) { setNotice(errorMessage(error)); }
   }
   function currentEditTime() {
@@ -1100,7 +1114,7 @@ export default function App() {
     const snapped = currentEditTime();
     const wasPreview = previewAssist;
     finishCameraGesture(); setCameraSelected(false); pause(); setMirror(false); setPreviewAssist(false); setPage('studio'); setTransformTool(tool); setSelectedPoint(tool === 'translate' ? 'root' : selectedJoint);
-    seekDirect(snapped); markSceneDirty();
+    seekDirect(snapped, 'author'); markSceneDirty();
     if (wasPreview) setNotice('已切回原稿编辑。候选尚未采用，松开后自动记录修改的数据点。');
   }
   function changeMirror(value: boolean) {
@@ -1179,7 +1193,7 @@ export default function App() {
         <div className="studio-grid manual-workspace">
           <section className="viewer-panel" aria-label="3D动作预览">
             <div className="viewer-toolbar"><span className="viewer-title">{previewAssist ? '辅助预览' : page === 'teaching' ? '教学预览' : '舞台'}<span className="muted-divider">/</span><span className="viewer-muted">{view === 'free' ? '自由视角' : '3D'}</span></span><div className="camera-toolbar"><div className="segmented" aria-label="观看视角">{([['front', '正面'], ['back', '背面']] as const).map(([preset, label]) => <button key={preset} className={view === preset ? 'selected' : ''} aria-pressed={view === preset} onClick={() => chooseView(preset)}>{label}</button>)}</div><button className="icon-button" aria-label="全身取景" disabled={!displayedTake || !ready || !!busy} title="全身取景" onClick={() => focusCamera('actor')}><Scan size={16} /></button><details className="editor-disclosure camera-options"><summary aria-label="相机选项" title="相机选项"><SlidersHorizontal size={16} /></summary><div className="disclosure-content"><div className="segmented">{([['left', '左侧'], ['right', '右侧'], ['top', '顶视']] as const).map(([preset, label]) => <button key={preset} aria-pressed={view === preset} onClick={() => chooseView(preset)}>{label}</button>)}</div><button className="button secondary compact" aria-label="复位相机" onClick={() => chooseView('front')}><RotateCcw size={14} />复位相机</button><button className="button secondary compact" disabled={!displayedTake || !selectedJoint || !ready || !!busy} onClick={() => focusCamera('joint')}><Focus size={14} />聚焦关节</button><span>仅改变观看，不修改动作</span></div></details></div></div>
-            <div className="stage-wrap"><Stage bottomOverlayInset={timelineInset} take={displayedTake} time={time} view={view} mirror={mirror} cameraState={camera ?? undefined} cameraTrackState={cameraTrackState} cameraRestoreExact={cameraRestoreExact} cameraEditRevision={session.revision} cameraCancelKey={cameraCancelKey} cameraTrackEditing={cameraSelected && cameraCanEdit()} onCameraGesture={handleCameraGesture} cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} cameraFocus={cameraFocus ?? undefined} onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction} selectedJoint={selectedJoint} onSelectJoint={chooseJoint} onJointPositionChange={handleJointPosition} poseOverride={manualEditing ? poseDraft : null} collisionFeedback={collisionFeedback} editMode={manualEditing && !cameraSelected && !modalOpen && !busy && !sceneActionBusy && saveStatus !== 'saving'} transformTool={activeTransformTool} playing={playing} onJointRotationChange={handleJointRotation} onRootPositionChange={handleRootPosition} ikTarget={ikTarget} onIKTargetChange={handleIKTarget} onTransformCancel={cancelPointGesture} />{manualSequence && <div ref={timelineOverlayRef} className="timeline-overlay">{manualTimeline}</div>}</div>
+            <div className="stage-wrap"><Stage bottomOverlayInset={timelineInset} take={displayedTake} time={time} view={view} mirror={mirror} cameraState={camera ?? undefined} cameraTrackState={cameraTrackState} cameraRestoreExact={cameraRestoreExact} cameraEditRevision={session.revision} cameraCancelKey={cameraCancelKey} cameraTrackEditing={cameraSelected && cameraCanEdit()} onCameraGesture={handleCameraGesture} cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} cameraFocus={cameraFocus ?? undefined} onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction} selectedJoint={selectedJoint} onSelectJoint={chooseJoint} onJointPositionChange={handleJointPosition} poseOverride={manualEditing ? poseDraft : null} collisionPreview={collisionPreview || previewAssist || page === 'teaching'} editMode={manualEditing && !cameraSelected && !modalOpen && !busy && !sceneActionBusy && saveStatus !== 'saving'} transformTool={activeTransformTool} playing={playing} onJointRotationChange={handleJointRotation} onRootPositionChange={handleRootPosition} ikTarget={ikTarget} onIKTargetChange={handleIKTarget} onTransformCancel={cancelPointGesture} />{manualSequence && <div ref={timelineOverlayRef} className="timeline-overlay">{manualTimeline}</div>}</div>
             <div className="stage-edit-tools">
               <div className="stage-tool-buttons" role="group" aria-label="舞台编辑工具">
                 <button aria-label="选择工具" aria-pressed={activeTransformTool === 'select'} className={activeTransformTool === 'select' ? 'selected' : ''} onClick={() => chooseTransformTool('select')} title="选择关节与移动相机；收起操作手柄"><MousePointer2 size={15} />选择</button>
@@ -1202,7 +1216,7 @@ export default function App() {
       </section>
     </main>
     {notice && <div className="toast" role="status"><CheckCircle2 size={18} /><span>{notice}</span><button aria-label="关闭提示" onClick={() => setNotice('')}><X size={15} /></button></div>}
-    {pendingTransfer && <div className="modal-backdrop guard-backdrop"><section className="modal scene-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="key-transfer-title"><div className="modal-heading"><h2 id="key-transfer-title">目标帧已有关键帧</h2></div><p className="modal-intro">第 {pendingTransfer.action.request.targetFrame} 帧的 {pendingTransfer.collisions.length} 条对应轨已有显式 K。继续将替换这些 K；来源没有 K 的目标轨保持原样。移动或复制会改变相邻 K 之间的插值，可撤销恢复。</p><div className="transfer-collisions">{pendingTransfer.collisions.map(track => <span key={track.kind === 'root' ? 'root' : track.joint}>{track.kind === 'root' ? 'Root 位移' : STAGE_JOINT_LABELS[track.joint]}</span>)}</div><div className="modal-actions"><button className="button secondary" onClick={() => setPendingTransfer(null)}>取消</button><button className="button primary" onClick={() => performKeyframeTransfer(pendingTransfer.action, pendingTransfer)}>替换并继续</button></div></section></div>}
+    {pendingTransfer && <div className="modal-backdrop guard-backdrop"><section className="modal scene-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="key-transfer-title"><div className="modal-heading"><h2 id="key-transfer-title">目标帧已有关键帧</h2></div><p className="modal-intro">{pendingTransfer.action.request.targetTime ?? frameTime(pendingTransfer.action.request.targetFrame!, active.countMap.durationSeconds)} 秒的 {pendingTransfer.collisions.length} 条对应轨已有作者关键帧。继续将替换这些通道的 K 与修改点；来源没有记录的目标轨保持原样。移动或复制会改变相邻记录之间的插值，可撤销恢复。</p><div className="transfer-collisions">{pendingTransfer.collisions.map(track => <span key={track.kind === 'root' ? 'root' : track.joint}>{track.kind === 'root' ? 'Root 位移' : STAGE_JOINT_LABELS[track.joint]}</span>)}</div><div className="modal-actions"><button className="button secondary" onClick={() => setPendingTransfer(null)}>取消</button><button className="button primary" onClick={() => performKeyframeTransfer(pendingTransfer.action, pendingTransfer)}>替换并继续</button></div></section></div>}
     {importOpen && <div className="modal-backdrop import-backdrop"><section className="modal backup-import-modal" role="dialog" aria-modal="true" aria-labelledby="backup-import-title"><div className="modal-heading"><div><span className="eyebrow">SCENE BACKUP / 本机恢复</span><h2 id="backup-import-title">导入场景备份</h2></div><button className="icon-button" aria-label="关闭场景备份导入" disabled={sceneActionBusy} onClick={closeBackupImport}><X size={20} /></button></div><p className="modal-intro">完整场景包包含原音乐和正式动作。导入会创建独立场景，保留现有作品；所有读取和验证都在浏览器完成。</p><label className="upload-area backup-upload"><Upload size={24} /><strong>{importBusy ? '正在验证场景与音乐…' : '选择 .choreo 场景包或旧 JSON 备份'}</strong><span>完整包最多 132 MB · 旧 JSON 最多 32 MB</span><input type="file" accept=".choreo,.json" aria-label="选择场景备份文件" disabled={importBusy || sceneActionBusy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; void chooseSceneBackup(file); }} /></label>{importScene && <><label className="field rename-field">导入后的场景名称<input value={importName} maxLength={80} onChange={event => setImportName(event.target.value)} disabled={importBusy || sceneActionBusy} /></label><div className="backup-summary"><strong>{importScene.name}</strong><span>{importScene.project.history.length} 个历史版本 · {importScene.project.history[importScene.project.historyIndex].countMap.durationSeconds.toFixed(1)} 秒</span><span>音乐：{importScene.audioName}</span></div>{importNeedsAudio && <div className="legacy-audio"><p>旧 JSON 没有音乐。请重新选择原音乐；只能核对时长，请确认使用的是备份时的曲目。正式动作和数拍会完整保留。</p><label className="field">重新关联原音乐<input type="file" accept="audio/*" aria-label="重新关联原音乐" disabled={importBusy || sceneActionBusy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; void associateBackupAudio(file); }} /></label></div>}</>}{importError && <div className="form-error" role="alert">{importError}</div>}<div className="form-note">场景包保留已记录的动作与操作历史，也不带入教师确认。保存到本机成功后才切换场景。</div><div className="modal-actions"><button className="button secondary" disabled={sceneActionBusy} onClick={closeBackupImport}>取消</button><button className="button primary" disabled={!importScene?.audio || importNeedsAudio || !importName.trim() || importBusy || sceneActionBusy} onClick={confirmSceneImport}>{sceneActionBusy ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />}作为新场景导入</button></div></section></div>}
     {pendingResetAction && <div className="modal-backdrop guard-backdrop"><section className="modal scene-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="reset-keys-title"><div className="modal-heading"><h2 id="reset-keys-title">{pendingResetAction === 'adoptAssist' ? '采用候选并替换当前编舞？' : '清空手动关键帧并继续？'}</h2></div><p className="modal-intro">{pendingResetAction === 'adoptAssist' ? '采用候选会替换整段动作，并清空当前可编辑关键帧轨、脚锁与自动步伐；原编舞保留在撤销历史中。完成后可用撤销恢复这份手动序列。' : '调整音乐与数拍会清空当前动作和相机关键帧，并创建新的中立姿态场景。请先保存或复制场景以保留原编舞。'}</p><div className="modal-actions"><button className="button secondary" onClick={() => setPendingResetAction(null)}>取消</button><button className="button primary" onClick={confirmResetAction}>确认并继续</button></div></section></div>}
     {libraryOpen && <div className="modal-backdrop"><section className="modal scene-library-modal" role="dialog" aria-modal="true" aria-labelledby="library-title"><div className="modal-heading"><div><span className="eyebrow">SCENE LIBRARY / 本机管理</span><h2 id="library-title">本机场景</h2></div><button className="icon-button" aria-label="关闭场景列表" disabled={sceneActionBusy} onClick={() => setLibraryOpen(false)}><X size={20} /></button></div><p className="modal-intro">每个场景独立保留音乐、编排、相机与观看设置。仅保存在这个浏览器。</p><div className="library-toolbar"><span>{sceneList.length} 个已保存场景</span><button className="button secondary compact" disabled={sceneActionBusy || !!busy} onClick={openBackupImport}><Upload size={15} />导入场景备份</button><button className="button primary compact" disabled={sceneActionBusy} onClick={() => requestSceneAction({ type: 'new' })}><Plus size={15} />新建场景</button></div>{libraryBusy ? <div className="library-empty"><LoaderCircle className="spin" size={22} />正在读取本机场景…</div> : sceneList.length ? <div className="scene-list" role="list" aria-label="已保存场景">{sceneList.map(scene => <div role="listitem" key={scene.id} className={`scene-list-row ${scene.id === currentScene.id ? 'current' : ''}`}><span className="scene-list-icon"><Layers3 size={19} /></span><div className="scene-list-info"><strong>{scene.id === currentScene.id ? currentScene.name : scene.name}{scene.id === currentScene.id && <small>当前</small>}</strong><span>{scene.audioName}</span><span>保存于 {new Date(scene.updatedAt).toLocaleString('zh-CN', { hour12: false })}</span></div><div className="scene-list-actions"><button className="button secondary compact" aria-label={`打开场景 ${scene.id === currentScene.id ? currentScene.name : scene.name}`} onClick={() => requestSceneAction({ type: 'open', id: scene.id })} disabled={sceneActionBusy}>{scene.id === currentScene.id ? '已打开' : '打开'}</button><button className="text-button" aria-label={`复制场景 ${scene.id === currentScene.id ? currentScene.name : scene.name}`} disabled={sceneActionBusy} onClick={() => requestSceneAction({ type: 'copy', id: scene.id })}>复制</button><button className="text-button" aria-label={`改名场景 ${scene.id === currentScene.id ? currentScene.name : scene.name}`} onClick={() => { setRenameTarget({ id: scene.id, name: scene.id === currentScene.id ? currentScene.name : scene.name }); setRenameValue(scene.id === currentScene.id ? currentScene.name : scene.name); }}>改名</button><button className="text-button danger-text" aria-label={`删除场景 ${scene.id === currentScene.id ? currentScene.name : scene.name}`} onClick={() => setDeleteTarget({ id: scene.id, name: scene.id === currentScene.id ? currentScene.name : scene.name })}>删除</button></div></div>)}</div> : <div className="library-empty"><FolderOpen size={28} /><strong>还没有保存的场景</strong><p>关闭列表后点击“保存”，即可保留当前场景。</p></div>}<div className="form-note">导入音乐调整当前场景；“新建场景”创建独立作品，“复制”基于该场景的已保存版本。清理浏览器数据会删除本机保存的场景与音乐。</div></section></div>}

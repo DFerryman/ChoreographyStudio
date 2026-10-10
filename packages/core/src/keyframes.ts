@@ -41,21 +41,31 @@ export interface KeyframeSequence {
 export type KeyframeTransferScope =
   { kind: 'all' } |
   { kind: 'joint'; joint: JointName } |
-  /** Transfer this nonempty, unique set of editable rotation tracks atomically. */
+  /** Transfer this nonempty, unique set of authored rotation tracks atomically. */
   { kind: 'joints'; joints: JointName[] } |
   { kind: 'root' };
 /** Collisions identify occupied concrete tracks, even for a grouped request. */
 export type KeyframeTransferTrack = Extract<KeyframeTransferScope, { kind: 'joint' | 'root' }>;
-export type KeyframeTransferRequest = {
+/** Legacy frame callers retain their 19-joint scope; exact-time callers include all 25 point tracks. */
+export type KeyframeTransferInput = {
   operation: 'move' | 'copy';
   scope: KeyframeTransferScope;
-  sourceFrame: number;
-  targetFrame: number;
+} & (
+  { sourceFrame: number; targetFrame: number; sourceTime?: never; targetTime?: never } |
+  { sourceTime: number; targetTime: number; sourceFrame?: never; targetFrame?: never }
+);
+export type KeyframeTransferRequest = KeyframeTransferInput & {
   /** Replacing occupied tracks requires explicit confirmation by the caller. */
   collision?: 'reject' | 'replace';
 };
 export type KeyframeTransferResult = {
   sequence: KeyframeSequence;
+  /** Normalized seconds are available for every valid request and result. */
+  sourceTime: number;
+  targetTime: number;
+  /** Applied concrete channels; empty for no-ops and unresolved conflicts. */
+  changedTracks: KeyframeTransferTrack[];
+  /** Count channels once, even when an old sparse key and point overlay coexist. */
   sourceKeyCount: number;
 } & (
   { status: 'noop'; reason: 'same-frame' | 'empty-source' | 'unchanged' } |
@@ -380,56 +390,123 @@ export function removePoseKeyframe(sequence: KeyframeSequence, frame: number, au
   return finishMutation(next, previous);
 }
 
-/** Transfer only explicit source keys; destination-only tracks remain untouched. */
+type TransferPayload = { track: KeyframeTransferTrack; sparse?: Quat | Vec3; point?: Quat | Vec3 };
+
+function transferPayload(sequence: KeyframeSequence, track: KeyframeTransferTrack, time: number, frame: number | undefined): TransferPayload {
+  const edit = sequence.pointEdits?.find(edit => edit.time === time);
+  return track.kind === 'root'
+    ? { track, sparse: frame === undefined ? undefined : sequence.root.find(key => key.frame === frame)?.position, point: edit?.root }
+    : { track, sparse: frame === undefined ? undefined : sequence.rotations[track.joint]?.find(key => key.frame === frame)?.rotation, point: edit?.joints?.[track.joint] };
+}
+
+function sameTransferPayload(a: TransferPayload, b: TransferPayload): boolean {
+  const same = (left: Quat | Vec3 | undefined, right: Quat | Vec3 | undefined) => left === undefined ? right === undefined : right !== undefined && left.every((value, axis) => value === right[axis]);
+  return same(a.sparse, b.sparse) && same(a.point, b.point);
+}
+
+/** Clear the specified authored channel only; source/calculated samples are never records. */
+function clearTransferChannel(sequence: KeyframeSequence, track: KeyframeTransferTrack, time: number, frame: number | undefined): void {
+  if (frame !== undefined) {
+    if (track.kind === 'root') sequence.root = sequence.root.filter(key => key.frame !== frame);
+    else {
+      const retained = sequence.rotations[track.joint]?.filter(key => key.frame !== frame) ?? [];
+      if (retained.length) sequence.rotations[track.joint] = retained;
+      else delete sequence.rotations[track.joint];
+    }
+  }
+  const edit = sequence.pointEdits?.find(edit => edit.time === time);
+  if (!edit) return;
+  if (track.kind === 'root') delete edit.root;
+  else if (edit.joints) {
+    delete edit.joints[track.joint];
+    if (!Object.keys(edit.joints).length) delete edit.joints;
+  }
+  if (edit.root === undefined && !Object.keys(edit.joints ?? {}).length) sequence.pointEdits = sequence.pointEdits!.filter(point => point !== edit);
+}
+
+/** Transfer authored layers together, preserving their respective interpolation semantics. */
 export function transferKeyframes(sequence: KeyframeSequence, request: KeyframeTransferRequest, authority?: BakedTake): KeyframeTransferResult {
   validateSequence(sequence);
   if (!request || !['move', 'copy'].includes(request.operation) || !request.scope || !['all', 'joint', 'joints', 'root'].includes(request.scope.kind) || (request.collision !== undefined && !['reject', 'replace'].includes(request.collision))) throw new Error('关键帧移动或复制请求无效。');
-  const { operation, scope, sourceFrame, targetFrame, collision = 'reject' } = request;
-  if (scope.kind === 'joint') assertEditable(scope.joint);
+  const { operation, scope, collision = 'reject' } = request;
+  const exact = request.sourceTime !== undefined || request.targetTime !== undefined;
+  const framed = request.sourceFrame !== undefined || request.targetFrame !== undefined;
+  if (exact && framed) throw new Error('关键帧移动或复制只能指定一组帧索引或精确秒值。');
+  const duration = sequence.baseTake.durationSeconds;
+  const checkTime = (time: number) => {
+    finite(time, '数据点时间');
+    if (time < 0 || time > duration) throw new Error('数据点时间必须在动作范围内。');
+    return time;
+  };
+  const sourceTime = exact ? checkTime(request.sourceTime!) : frameTime(request.sourceFrame!, duration);
+  const targetTime = exact ? checkTime(request.targetTime!) : frameTime(request.targetFrame!, duration);
+  const exactFrame = (time: number) => {
+    const frame = frameAtTime(time, duration);
+    return frameTime(frame, duration) === time ? frame : undefined;
+  };
+  const sourceFrame = exact ? exactFrame(sourceTime) : request.sourceFrame;
+  const targetFrame = exact ? exactFrame(targetTime) : request.targetFrame;
+  const availableJoints = exact ? JOINT_NAMES : EDITABLE_JOINT_NAMES;
+  const assertTrack = (joint: JointName) => {
+    if (exact) {
+      if (!(JOINT_NAMES as readonly string[]).includes(joint)) throw new Error('作者数据点包含未知可编辑骨骼。');
+    } else assertEditable(joint);
+  };
+  if (scope.kind === 'joint') assertTrack(scope.joint);
   let groupedJoints: Set<JointName> | undefined;
   if (scope.kind === 'joints') {
-    if (!Array.isArray(scope.joints) || !scope.joints.length || scope.joints.length > EDITABLE_JOINT_NAMES.length) throw new Error('关键帧关节分组必须是非空且不重复的可编辑骨骼数组。');
+    if (!Array.isArray(scope.joints) || !scope.joints.length || scope.joints.length > availableJoints.length) throw new Error('关键帧关节分组必须是非空且不重复的可编辑骨骼数组。');
     groupedJoints = new Set(scope.joints);
     if (groupedJoints.size !== scope.joints.length) throw new Error('关键帧关节分组必须是非空且不重复的可编辑骨骼数组。');
-    for (const joint of groupedJoints) assertEditable(joint);
+    for (const joint of groupedJoints) assertTrack(joint);
   }
-  frameTime(sourceFrame, sequence.baseTake.durationSeconds);
-  frameTime(targetFrame, sequence.baseTake.durationSeconds);
-  const joints = scope.kind === 'root' ? [] : scope.kind === 'joint' ? [scope.joint] : groupedJoints ? EDITABLE_JOINT_NAMES.filter(joint => groupedJoints.has(joint)) : EDITABLE_JOINT_NAMES;
-  const rotations = joints.flatMap(joint => {
-    const key = sequence.rotations[joint]?.find(key => key.frame === sourceFrame);
-    return key ? [{ joint, rotation: key.rotation }] : [];
-  });
-  const root = scope.kind === 'all' || scope.kind === 'root' ? sequence.root.find(key => key.frame === sourceFrame) : undefined;
-  const sourceKeyCount = rotations.length + (root ? 1 : 0);
-  if (sourceFrame === targetFrame) return { status: 'noop', reason: 'same-frame', sequence, sourceKeyCount };
-  if (!sourceKeyCount) return { status: 'noop', reason: 'empty-source', sequence, sourceKeyCount };
+  const joints = scope.kind === 'root' ? [] : scope.kind === 'joint' ? [scope.joint] : groupedJoints ? availableJoints.filter(joint => groupedJoints.has(joint)) : availableJoints;
+  const tracks: KeyframeTransferTrack[] = joints.map(joint => ({ kind: 'joint', joint }));
+  if (scope.kind === 'all' || scope.kind === 'root') tracks.push({ kind: 'root' });
+  const sources = tracks.map(track => transferPayload(sequence, track, sourceTime, sourceFrame)).filter(payload => payload.sparse !== undefined || payload.point !== undefined);
+  const sourceKeyCount = sources.length;
+  const common = { sequence, sourceTime, targetTime, sourceKeyCount, changedTracks: [] as KeyframeTransferTrack[] };
+  if (sourceTime === targetTime) return { ...common, status: 'noop', reason: 'same-frame' };
+  if (!sourceKeyCount) return { ...common, status: 'noop', reason: 'empty-source' };
+  if (targetFrame === undefined && sources.some(payload => payload.sparse !== undefined)) throw new Error('旧稀疏 K 只能移动或复制到 30fps 帧时刻，请选择帧时刻；精确修改点可使用任意秒值。');
 
-  const collisions: KeyframeTransferTrack[] = rotations
-    .filter(({ joint }) => sequence.rotations[joint]?.some(key => key.frame === targetFrame))
-    .map(({ joint }) => ({ kind: 'joint', joint }));
-  const targetRoot = root ? sequence.root.find(key => key.frame === targetFrame) : undefined;
-  if (targetRoot) collisions.push({ kind: 'root' });
-  if (collisions.length && collision === 'reject') return { status: 'conflict', sequence, sourceKeyCount, collisions };
+  const targets = sources.map(({ track }) => transferPayload(sequence, track, targetTime, targetFrame));
+  const collisions = targets.filter(payload => payload.sparse !== undefined || payload.point !== undefined).map(({ track }) => track);
+  if (collisions.length && collision === 'reject') return { ...common, status: 'conflict', collisions };
 
   // A confirmed copy of identical explicit payloads is not an animation change.
-  if (operation === 'copy' && rotations.every(({ joint, rotation }) => {
-    const target = sequence.rotations[joint]?.find(key => key.frame === targetFrame);
-    return target && rotation.every((value, axis) => value === target.rotation[axis]);
-  }) && (!root || (targetRoot && root.position.every((value, axis) => value === targetRoot.position[axis])))) return { status: 'noop', reason: 'unchanged', sequence, sourceKeyCount };
+  if (operation === 'copy' && sources.every((payload, index) => sameTransferPayload(payload, targets[index]))) return { ...common, status: 'noop', reason: 'unchanged' };
 
-  const count = sequence.root.length + Object.values(sequence.rotations).reduce((sum, keys) => sum + keys!.length, 0) + validateMotionPointEdits(sequence.pointEdits, sequence.baseTake.durationSeconds);
-  if (operation === 'copy' && count + sourceKeyCount - collisions.length > MAX_KEYFRAME_COUNT) throw new Error(`当前预览最多支持 ${MAX_KEYFRAME_COUNT} 条关键帧记录。`);
+  const count = getKeyframeCount(sequence), records = (payload: TransferPayload) => Number(payload.sparse !== undefined) + Number(payload.point !== undefined);
+  if (count + (operation === 'copy' ? sources.reduce((sum, payload) => sum + records(payload), 0) : 0) - targets.reduce((sum, payload) => sum + records(payload), 0) > MAX_KEYFRAME_COUNT) throw new Error(`当前预览最多支持 ${MAX_KEYFRAME_COUNT} 条关键帧记录。`);
+  // Freeze the old layers before removing their records, so an overlay cannot
+  // become a permanent source value at its former time.
   const previous = withPointAuthority(sequence, authority), next = copySequence(previous);
-  for (const { joint, rotation } of rotations) {
-    const retained = (next.rotations[joint] ?? []).filter(key => operation !== 'move' || key.frame !== sourceFrame);
-    next.rotations[joint] = upsert(retained, { frame: targetFrame, rotation: [...rotation] as Quat });
+  for (const payload of sources) {
+    const { track, sparse, point } = payload;
+    if (operation === 'move') clearTransferChannel(next, track, sourceTime, sourceFrame);
+    clearTransferChannel(next, track, targetTime, targetFrame);
+    if (sparse !== undefined) {
+      if (track.kind === 'root') next.root = upsert(next.root, { frame: targetFrame!, position: [...sparse] as Vec3 });
+      else next.rotations[track.joint] = upsert(next.rotations[track.joint] ?? [], { frame: targetFrame!, rotation: [...sparse] as Quat });
+    }
+    if (point !== undefined) {
+      const edit = next.pointEdits?.find(edit => edit.time === targetTime) ?? { time: targetTime };
+      if (!(next.pointEdits ??= []).includes(edit)) next.pointEdits.push(edit);
+      if (track.kind === 'root') edit.root = [...point] as Vec3;
+      else (edit.joints ??= {})[track.joint] = [...point] as Quat;
+    }
   }
-  if (root) {
-    const retained = next.root.filter(key => operation !== 'move' || key.frame !== sourceFrame);
-    next.root = upsert(retained, { frame: targetFrame, position: [...root.position] as Vec3 });
-  }
-  return { status: 'changed', sequence: finishMutation(next, previous), sourceKeyCount, replaced: collisions };
+  next.pointEdits?.sort((a, b) => a.time - b.time);
+  const sparseChanged = JSON.stringify(next.root) !== JSON.stringify(previous.root) || JOINT_NAMES.some(joint => JSON.stringify(next.rotations[joint] ?? []) !== JSON.stringify(previous.rotations[joint] ?? []));
+  // Pure point operations keep legacy contact/author-priority semantics intact.
+  if (sparseChanged) finishMutation(next, previous);
+  else validateSequence(next);
+  // Legacy sparse-only callers already bake before commit. Every new exact or
+  // point-layer operation validates its final sample grid here as well.
+  if (exact || sources.some(payload => payload.point !== undefined) || targets.some(payload => payload.point !== undefined)) bakeKeyframeSequence(next);
+  const changedTracks = sources.filter((payload, index) => operation === 'move' || !sameTransferPayload(payload, targets[index])).map(({ track }) => track);
+  return { status: 'changed', sequence: next, sourceTime, targetTime, sourceKeyCount, changedTracks, replaced: collisions };
 }
 
 export function getKeyframeFrames(sequence: KeyframeSequence): number[] {

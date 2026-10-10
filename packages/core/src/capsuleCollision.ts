@@ -241,7 +241,6 @@ type RawShape = ReturnType<Shape['intoRaw']>;
 const rawShapes = new WeakMap<AvatarColliderDefinition, RawShape>();
 const preparedConvexProfiles = new WeakSet<AvatarCollisionProfile>();
 const releaseRawShape = new FinalizationRegistry<RawShape>(shape => shape.free());
-const contactScratch = new Float32Array(13);
 function cachedRawShape(definition: AvatarBoxDefinition | AvatarConvexDefinition): RawShape {
   let shape = rawShapes.get(definition);
   if (!shape) {
@@ -331,9 +330,13 @@ export function convexColliderPenetrationDepth(a: EvaluatedCollider, b: Evaluate
     const contact = aa.shape.contactShape(posA, rotA, bb.shape, posB, rotB, CAPSULE_SELF_TOLERANCE_METERS);
     if (!contact) return -Infinity;
     resources.push(contact);
-    contact.getComponents(contactScratch);
-    if (!Number.isFinite(contactScratch[0])) throw new Error('身体碰撞检测未得到有限结果。');
-    return -contactScratch[0];
+    // Rapier 0.21 exports raw contacts through a packed buffer. Keep ownership
+    // here so the existing finally also releases contacts if decoding fails.
+    const components = new Float32Array(13);
+    contact.getComponents(components);
+    const distance = components[0];
+    if (!Number.isFinite(distance)) throw new Error('身体碰撞检测未得到有限结果。');
+    return -distance;
   } finally {
     for (const resource of resources.reverse()) resource.free();
   }
@@ -395,6 +398,60 @@ function diagnostics(state: Geometry): CapsuleCollisions {
 
 /** Read-only skin-proxy overlaps; this never changes imported or saved motion. */
 export function getCapsuleCollisions(pose: Pose, profile: AvatarCollisionProfile = AVATAR_COLLISION_PROFILE): CapsuleCollisions { return diagnostics(geometry(pose, profile)); }
+
+export interface BodyCollisionContact {
+  segments: [string, string];
+  depthMeters: number;
+  /** Common world-space witnesses and A's outward normal towards B. */
+  points: [Vec3, Vec3];
+  normal: Vec3;
+}
+export interface BodyCollisionContacts {
+  collisions: CapsuleCollisions;
+  selfContacts: BodyCollisionContact[];
+  /** Greatest signed floor depth, including calibrated sole corners. */
+  floorDepthMeters: number;
+}
+
+function contactWitnesses(a: EvaluatedCollider, b: EvaluatedCollider): Pick<BodyCollisionContact, 'points' | 'normal'> | undefined {
+  const engine = getReadyRapierBackend(), resources: { free(): void }[] = [];
+  try {
+    const aa = backendShape(a), bb = backendShape(b);
+    if (aa.owned) resources.push(aa.shape);
+    if (bb.owned) resources.push(bb.shape);
+    const rotationA = new Quaternion(...aa.rotation), inverseA = rotationA.clone().invert();
+    const relativePosition = new Vector3(...subtract(bb.position, aa.position)).applyQuaternion(inverseA);
+    const relativeRotation = inverseA.multiply(new Quaternion(...bb.rotation)).normalize();
+    const posA = engine.VectorOps.intoRaw({ x: 0, y: 0, z: 0 }); resources.push(posA);
+    const rotA = engine.RotationOps.intoRaw({ x: 0, y: 0, z: 0, w: 1 }); resources.push(rotA);
+    const posB = engine.VectorOps.intoRaw(relativePosition); resources.push(posB);
+    const rotB = engine.RotationOps.intoRaw(relativeRotation); resources.push(rotB);
+    const contact = aa.shape.contactShape(posA, rotA, bb.shape, posB, rotB, CAPSULE_SELF_TOLERANCE_METERS);
+    if (!contact) return undefined;
+    resources.push(contact);
+    // [distance, point1.xyz, point2.xyz, normal1.xyz, normal2.xyz]. The decoded
+    // values are ordinary JS data; only the owned raw contact needs freeing.
+    const components = new Float32Array(13);
+    contact.getComponents(components);
+    const worldPoint = (offset: number) => new Vector3(components[offset], components[offset + 1], components[offset + 2]).applyQuaternion(rotationA).add(new Vector3(...aa.position)).toArray() as Vec3;
+    const normal = new Vector3(components[7], components[8], components[9]).applyQuaternion(rotationA);
+    if (normal.lengthSq() < 1e-12 || !normal.toArray().every(Number.isFinite)) return undefined;
+    return { points: [worldPoint(1), worldPoint(4)], normal: normal.normalize().toArray() as Vec3 };
+  } finally {
+    for (const resource of resources.reverse()) resource.free();
+  }
+}
+
+/** Read-only contact geometry for deterministic derived previews, never a World. */
+export function getBodyCollisionContacts(pose: Pose, profile: AvatarCollisionProfile = AVATAR_COLLISION_PROFILE): BodyCollisionContacts {
+  const state = geometry(pose, profile), collisions = diagnostics(state);
+  const selfContacts = state.selfDepths.flatMap((depthMeters, i) => {
+    if (depthMeters <= CAPSULE_SELF_TOLERANCE_METERS + DEPTH_ROUNDING_METERS) return [];
+    const { a, b } = state.pairs[i], witnesses = contactWitnesses(state.colliders[a], state.colliders[b]);
+    return witnesses ? [{ segments: [state.colliders[a].id, state.colliders[b].id] as [string, string], depthMeters, ...witnesses }] : [];
+  });
+  return { collisions, selfContacts, floorDepthMeters: Math.max(...state.floorDepths.map(item => item.depthMeters)) };
+}
 
 export interface CapsuleCollisionConstraintResult {
   pose: Pose;
