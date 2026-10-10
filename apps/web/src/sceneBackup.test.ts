@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { deepStrictEqual } from 'node:assert/strict';
-import { analyzeStepAssistance, bakeKeyframeSequence, bakeLegacyKeyframeSequence, JOINT_NAMES, lastFrame, makeCountMap, makeKeyframeSequence, makePlan, MAX_CAMERA_KEYS, rotationFromDegrees, sampleTake, setStepAssistance, upsertRootKeyframe, upsertRotationKeyframe, type BakedTake, type CameraTrack, type Pose } from '../../../packages/core/src';
+import { analyzeStepAssistance, bakeKeyframeSequence, bakeLegacyKeyframeSequence, createNeutralTake, JOINT_NAMES, lastFrame, makeCountMap, makeKeyframeSequence, makePlan, MAX_CAMERA_KEYS, rotationFromDegrees, sampleTake, setStepAssistance, upsertMotionPoint, upsertRootKeyframe, upsertRotationKeyframe, type BakedTake, type CameraTrack, type Pose } from '../../../packages/core/src';
 import { createScene, type SceneDocument } from './scene';
 import { decodeSceneBackup, encodeSceneBackup, encodeSceneJsonBackup, SCENE_BACKUP_LIMITS } from './sceneBackup';
 import type { SceneProject } from './sceneProject';
@@ -196,6 +196,50 @@ describe('independent authored camera backup', () => {
       expect(imported.scene.viewer.camera).toEqual(source.viewer.camera);
       imported.scene.project.history.forEach(snapshot => expect(snapshot).not.toHaveProperty('cameraTrack'));
     }
+  });
+});
+
+describe('versioned author interpolation backup', () => {
+  it('round trips held exact-time authors, their frozen authority and original audio in compact JSON and complete bundles', async () => {
+    const scene = fixture(), previous = scene.project.history[0], base = createNeutralTake(previous.take!);
+    let manual = makeKeyframeSequence(base, { pointInterpolation: 'hold-last-key-1' });
+    manual = upsertMotionPoint(manual, 1.01723456, { root: [.5, 1.2, .3], joints: { Head: rotationFromDegrees([15, -35, 8]), LeftToe: rotationFromDegrees([10, 0, 0]) } }, base);
+    manual = upsertMotionPoint(manual, 6.12345678, { root: [1.1, 1.3, -.3], joints: { Head: rotationFromDegrees([25, 35, 8]) } }, bakeKeyframeSequence(manual));
+    scene.project.history = [{ ...previous, plan: null, take: base }, { ...previous, plan: null, title: '手动作者关键帧', manual, take: bakeKeyframeSequence(manual) }];
+    for (const blob of [await encodeSceneBackup(scene), await encodeSceneJsonBackup(scene)]) {
+      const imported = await decodeSceneBackup(blob), restored = imported.scene.project.history[1];
+      deepStrictEqual(restored.manual, manual);
+      deepStrictEqual(restored.take, scene.project.history[1].take);
+      expect(sampleTake(restored.take!, restored.take!.durationSeconds).root).toEqual([1.1, 1.3, -.3]);
+      expect(restored.take!.times).toContain(1.01723456); expect(restored.take!.times).toContain(6.12345678);
+      if (imported.scene.audio) expect(new Uint8Array(await imported.scene.audio.arrayBuffer())).toEqual(new Uint8Array(await scene.audio!.arrayBuffer()));
+    }
+  });
+
+  it('keeps unmarked legacy sparse endpoints and changes only a subsequently authored sparse track', async () => {
+    const scene = fixture(), snapshot = scene.project.history[1];
+    delete snapshot.manual!.trackInterpolation;
+    snapshot.take = bakeKeyframeSequence(snapshot.manual!);
+    const imported = await decodeSceneBackup(legacy(scene));
+    deepStrictEqual(imported.scene.project.history[1].take, snapshot.take);
+    expect(imported.scene.project.history[1].manual).not.toHaveProperty('trackInterpolation');
+    const changed = upsertRotationKeyframe(snapshot.manual!, 'Head', 90, rotationFromDegrees([25, 35, 8]));
+    snapshot.manual = changed; snapshot.take = bakeKeyframeSequence(changed);
+    const restored = await decodeSceneBackup(await encodeSceneBackup(scene));
+    expect(restored.scene.project.history[1].manual!.trackInterpolation).toEqual({ schema: 'hold-last-key-1', tracks: ['Head'] });
+    for (const [index, time] of changed.baseTake.times.entries()) expect(restored.scene.project.history[1].take!.poses[restored.scene.project.history[1].take!.times.indexOf(time)].joints.LeftToe).toEqual(changed.baseTake.poses[index].joints.LeftToe);
+  });
+
+  it.each([
+    ['unknown point version', (manual: any) => { manual.pointInterpolation = 'unknown'; }],
+    ['unknown track version', (manual: any) => { manual.trackInterpolation.schema = 'unknown'; }],
+    ['duplicate held tracks', (manual: any) => { manual.trackInterpolation.tracks.push('Head'); }],
+    ['unsupported held track', (manual: any) => { manual.trackInterpolation.tracks.push('LeftToe'); }],
+    ['empty held track', (manual: any) => { manual.trackInterpolation.tracks.push('Neck'); }],
+    ['extra interpolation field', (manual: any) => { manual.trackInterpolation.extra = true; }],
+    ['false legacy evaluation', (manual: any) => { delete manual.trackInterpolation; }],
+  ])('rejects %s without relaxing stored authority validation', async (_label, mutate) => {
+    await expect(decodeSceneBackup(legacy(fixture(), data => mutate(data.scene.project.history[1].manual)))).rejects.toThrow('场景备份无效');
   });
 });
 

@@ -19,6 +19,71 @@ const source = (): BakedTake => ({
 });
 const neutral = (): Pose => ({ root: [0, 1.05, 0], joints: Object.fromEntries(JOINT_NAMES.map(joint => [joint, [0, 0, 0, 1]])) as Pose['joints'] });
 
+describe('exact-time author tracks on fresh manual motion', () => {
+  const neutralSource = (): BakedTake => ({ ...source(), times: [0, 1.02], poses: [neutral(), neutral()] });
+  const sameOrientation = (actual: Quat, expected: Quat) => expect(Math.abs(actual.reduce((sum, value, axis) => sum + value * expected[axis], 0))).toBeCloseTo(1, 12);
+
+  it('holds a single off-grid author pose, interpolates to the next key and holds the final pose on independent channels', () => {
+    const base = neutralSource();
+    let sequence = makeKeyframeSequence(base, { pointInterpolation: 'hold-last-key-1' });
+    const firstTime = .2134567, nextTime = .8134567;
+    const first = rotationFromDegrees([0, 0, 30]), next = rotationFromDegrees([0, 0, 90]);
+    sequence = upsertMotionPoint(sequence, firstTime, { root: [1, 1.1, .2], joints: { LeftUpperArm: first, LeftToe: first } }, base);
+    const one = bakeKeyframeSequence(sequence);
+    for (const time of [firstTime, .4, .7134567, 1.02]) {
+      sameOrientation(sampleTake(one, time).joints.LeftUpperArm, first);
+      sameOrientation(sampleTake(one, time).joints.LeftToe, first);
+      expect(sampleTake(one, time).root).toEqual([1, 1.1, .2]);
+    }
+    sequence = upsertMotionPoint(sequence, nextTime, { root: [3, 1.3, .6], joints: { LeftUpperArm: next } }, one);
+    const two = bakeKeyframeSequence(sequence), midpoint = sampleTake(two, (firstTime + nextTime) / 2);
+    sameOrientation(midpoint.joints.LeftUpperArm, rotationFromDegrees([0, 0, 60]));
+    midpoint.root.forEach((value, axis) => expect(value).toBeCloseTo([2, 1.2, .4][axis], 12));
+    for (const time of [.9, 1.02]) {
+      sameOrientation(sampleTake(two, time).joints.LeftUpperArm, next);
+      expect(sampleTake(two, time).root).toEqual([3, 1.3, .6]);
+      sameOrientation(sampleTake(two, time).joints.LeftToe, first);
+    }
+    expect(sampleTake(two, firstTime / 2).root[0]).toBeCloseTo(.5, 12);
+    sameOrientation(sampleTake(two, firstTime / 2).joints.LeftUpperArm, rotationFromDegrees([0, 0, 15]));
+    for (const pose of two.poses) for (const joint of JOINT_NAMES.filter(joint => !['LeftUpperArm', 'LeftToe'].includes(joint))) expect(pose.joints[joint]).toEqual([0, 0, 0, 1]);
+    expect(two.times).toEqual([0, firstTime, nextTime, 1.02]);
+    expect(bakeKeyframeSequence(JSON.parse(JSON.stringify(sequence))).poses).toEqual(two.poses);
+    expect(base.times).toEqual([0, 1.02]); expect(base.poses).toEqual([neutral(), neutral()]);
+    const clearedSecond = removeMotionPointEdit(removeMotionPointEdit(sequence, nextTime, 'root'), nextTime, 'LeftUpperArm');
+    expect(bakeKeyframeSequence(clearedSecond).poses).toEqual(one.poses);
+    const restored = removeMotionPointEdit(removeMotionPointEdit(removeMotionPointEdit(clearedSecond, firstTime, 'root'), firstTime, 'LeftUpperArm'), firstTime, 'LeftToe');
+    expect(bakeKeyframeSequence(restored).poses).toEqual(base.poses);
+    expect(bakeKeyframeSequence(restored).times).toEqual(base.times);
+  });
+
+  it('holds all 25 rotation channels from zero and uses the shortest antipodal path without synthesizing keys', () => {
+    const base = neutralSource(), q = rotationFromDegrees([12, -8, 17]);
+    const channels = Object.fromEntries(JOINT_NAMES.map(joint => [joint, q])) as Pose['joints'];
+    let sequence = upsertMotionPoint(makeKeyframeSequence(base, { pointInterpolation: 'hold-last-key-1' }), 0, { joints: channels });
+    sequence = upsertMotionPoint(sequence, .7134567, { joints: { LeftHeel: q.map(component => -component) as Quat } });
+    const take = bakeKeyframeSequence(sequence);
+    for (const time of [0, .123, .4134567, .7134567, 1.02]) for (const joint of JOINT_NAMES) sameOrientation(sampleTake(take, time).joints[joint], q);
+    expect(sequence.pointEdits).toHaveLength(2);
+    expect(getKeyframeCount(sequence)).toBe(26);
+    expect(sequence.rotations).toEqual({}); expect(sequence.root).toEqual([]);
+    expect(take.poses.at(-1)!.joints.LeftHeel).toEqual(sequence.pointEdits![1].joints!.LeftHeel);
+  });
+
+  it('recovers the pre-author authority for old unfrozen held point tracks and preserves untouched stored bits', () => {
+    const base = source(), marker = { pointInterpolation: 'hold-last-key-1' } as const;
+    const old = upsertMotionPoint(makeKeyframeSequence(base, marker), .27, { joints: { Head: rotationFromDegrees([0, 45, 0]) } });
+    const authority = bakeKeyframeSequence(old);
+    authority.poses[1].joints.Chest[0] += Number.EPSILON / 8;
+    const edited = upsertMotionPoint(old, .61, { joints: { LeftToe: rotationFromDegrees([10, 0, 0]) } }, authority);
+    expect(edited.pointBaseTake!.poses.map(pose => pose.joints.Head)).toEqual(base.poses.map(pose => pose.joints.Head));
+    expect(edited.pointBaseTake!.poses[1].joints.Chest).toEqual(authority.poses[1].joints.Chest);
+    const cleared = removeMotionPointEdit(removeMotionPointEdit(edited, .27, 'Head'), .61, 'LeftToe');
+    expect(bakeKeyframeSequence(cleared).poses).toEqual(edited.pointBaseTake!.poses);
+    expect(edited.pointInterpolation).toBe('hold-last-key-1');
+  });
+});
+
 describe('exact-time channel editing over the original authority', () => {
   it('changes one joint sample while retaining every Root, unrelated channel and existing knot bit-exactly', () => {
     let sequence = makeKeyframeSequence(source());

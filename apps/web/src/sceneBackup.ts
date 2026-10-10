@@ -141,7 +141,7 @@ function matchesAuthority(actual: BakedTake, reference: BakedTake): boolean {
   });
 }
 function validateManual(value: unknown, map: CountMap, take: BakedTake, context: ValidationContext): KeyframeSequence {
-  const object = record(value, ['schema', 'id', 'fps', 'baseTake', 'rotations', 'root'], ['footLocks', 'authorKeyPriority', 'steps', 'pointEdits', 'pointBaseTake'], '手 K 序列', context);
+  const object = record(value, ['schema', 'id', 'fps', 'baseTake', 'rotations', 'root'], ['footLocks', 'authorKeyPriority', 'steps', 'pointEdits', 'pointBaseTake', 'trackInterpolation', 'pointInterpolation'], '手 K 序列', context);
   if (object.schema !== 'manual-keyframes-1' || object.fps !== 30) fail('手 K 版本或帧率无效。');
   const baseTake = validateTake(object.baseTake, map, context);
   if (baseTake.planId !== take.planId) fail('手 K 基底与动作编排绑定不同。');
@@ -194,6 +194,15 @@ function validateManual(value: unknown, map: CountMap, take: BakedTake, context:
     };
   });
   const authorKeyPriority = object.authorKeyPriority === undefined ? undefined : enumValue(object.authorKeyPriority, ['author-key-priority-1'] as const, '作者关键帧优先版本');
+  const pointInterpolation = object.pointInterpolation === undefined ? undefined : enumValue(object.pointInterpolation, ['hold-last-key-1'] as const, '作者数据点插值版本');
+  let trackInterpolation: KeyframeSequence['trackInterpolation'];
+  if (object.trackInterpolation !== undefined) {
+    const interpolation = record(object.trackInterpolation, ['schema', 'tracks'], [], '作者关键帧插值', { strict: true });
+    const schema = enumValue(interpolation.schema, ['hold-last-key-1'] as const, '作者关键帧插值版本');
+    const tracks = array(interpolation.tracks, 0, EDITABLE_JOINT_NAMES.length + 1, '作者关键帧插值轨道').map(track => enumValue<'root' | JointName>(track, ['root', ...EDITABLE_JOINT_NAMES], '作者关键帧插值轨道'));
+    if (new Set(tracks).size !== tracks.length) fail('作者关键帧插值轨道不能重复。');
+    trackInterpolation = { schema, tracks };
+  }
   let steps: KeyframeSequence['steps'];
   if (object.steps !== undefined) {
     const assistance = record(object.steps, ['schema', 'startFrame', 'endFrame'], [], '自动步伐', { strict: true });
@@ -203,14 +212,14 @@ function validateManual(value: unknown, map: CountMap, take: BakedTake, context:
     if (authorKeyPriority === undefined) fail('自动步伐必须使用作者关键帧优先版本。');
     steps = { schema: 'ground-steps-1', startFrame, endFrame };
   }
-  const sequence: KeyframeSequence = { schema: 'manual-keyframes-1', id: text(object.id, '手 K 序列 ID'), fps: 30, baseTake, rotations, root, ...(footLocks !== undefined ? { footLocks } : {}), ...(authorKeyPriority !== undefined ? { authorKeyPriority } : {}), ...(steps !== undefined ? { steps } : {}), ...(pointEdits !== undefined ? { pointEdits } : {}), ...(pointBaseTake !== undefined ? { pointBaseTake } : {}) };
+  const sequence: KeyframeSequence = { schema: 'manual-keyframes-1', id: text(object.id, '手 K 序列 ID'), fps: 30, baseTake, rotations, root, ...(footLocks !== undefined ? { footLocks } : {}), ...(authorKeyPriority !== undefined ? { authorKeyPriority } : {}), ...(steps !== undefined ? { steps } : {}), ...(pointEdits !== undefined ? { pointEdits } : {}), ...(pointBaseTake !== undefined ? { pointBaseTake } : {}), ...(trackInterpolation !== undefined ? { trackInterpolation } : {}), ...(pointInterpolation !== undefined ? { pointInterpolation } : {}) };
   let expected: BakedTake;
   try { getKeyframeCount(sequence); expected = bakeKeyframeSequence(sequence); }
   catch { fail('手 K 轨道、脚锁、帧索引或采样资源无效。'); }
   if (pointBaseTake !== undefined) {
     // Only immutable source identity and all underlying evaluation inputs can
     // reuse this check. IDs and point overlays do not define that authority.
-    const signature = JSON.stringify({ rotations, root, footLocks, authorKeyPriority, steps });
+    const signature = JSON.stringify({ rotations, root, footLocks, authorKeyPriority, steps, trackInterpolation });
     const frozen = object.pointBaseTake as object;
     let sources = context.frozenEquivalence?.get(frozen);
     let signatures = sources?.get(baseTake);

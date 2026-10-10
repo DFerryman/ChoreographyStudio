@@ -60,16 +60,13 @@ export async function timelineScopeFrames(page: Page): Promise<number[]> {
   return keys.evaluateAll(items => [...new Set(items.map(item => Number(item.getAttribute('data-frame'))))].sort((a, b) => a - b));
 }
 
-/** Manual editing has one frame slider; arranging retains its seconds slider. */
+/** The manual Timeline uses exact scene seconds, including imported off-grid points. */
 export async function seekSeconds(page: Page, time: number): Promise<void> {
-  const frames = page.getByRole('slider', { name: '关键帧时间线进度', exact: true });
-  const manual = await frames.count() > 0;
-  const slider = manual ? frames : page.getByRole('slider', { name: '播放进度', exact: true });
-  const value = manual ? Math.round(time * 30) : time;
+  const slider = page.getByRole('slider', { name: '关键帧时间线进度', exact: true });
   await slider.evaluate((element: HTMLInputElement, next) => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(element, String(next));
     element.dispatchEvent(new Event('input', { bubbles: true }));
     element.dispatchEvent(new Event('change', { bubbles: true }));
-  }, value);
-  await expect(slider).toHaveValue(String(value));
+  }, time);
+  await expect(slider).toHaveValue(String(time));
 }

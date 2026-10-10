@@ -1,8 +1,8 @@
 import { JOINT_NAMES, type BakedTake, type JointName, type Pose, type Quat, type Vec3 } from './motion-types';
-import { bakeKeyframeSequence, getKeyframeCount, MAX_TAKE_SAMPLES, ROOT_TRANSLATION_LIMITS, type KeyframeSequence } from './keyframes';
+import { bakeKeyframeSequence, getKeyframeCount, interpolateKeyframeRotation, MAX_TAKE_SAMPLES, ROOT_TRANSLATION_LIMITS, type KeyframeSequence } from './keyframes';
 import { sampleTake } from './index';
 
-/** An exact-time channel overlay; omitted channels retain their original authority. */
+/** Exact-time supplied channels; omitted channels retain their original authority. */
 export interface MotionPointChannels {
   root?: Vec3;
   joints?: Partial<Record<JointName, Quat>>;
@@ -72,16 +72,38 @@ export function validateMotionPointEdits(edits: MotionPointEdit[] | undefined, d
   return count;
 }
 
-/** Apply after all sparse-key and automatic assistance evaluation. */
-export function applyMotionPointEdits(take: BakedTake, edits: readonly MotionPointEdit[] | undefined): BakedTake {
+function evaluateAuthorTrack<T>(keys: readonly { time: number; value: T }[], time: number, interpolate: (a: T, b: T, amount: number) => T): T {
+  if (time <= keys[0].time) return interpolate(keys[0].value, keys[0].value, 0);
+  const last = keys.at(-1)!;
+  if (time >= last.time) return interpolate(last.value, last.value, 0);
+  let low = 0, high = keys.length - 1;
+  while (high - low > 1) {
+    const middle = Math.floor((low + high) / 2);
+    if (keys[middle].time <= time) low = middle;
+    else high = middle;
+  }
+  return interpolate(keys[low].value, keys[high].value, (time - keys[low].time) / (keys[high].time - keys[low].time));
+}
+
+/** Apply after assistance. Versioned fresh author tracks interpolate keys and hold their final value. */
+export function applyMotionPointEdits(take: BakedTake, edits: readonly MotionPointEdit[] | undefined, interpolation?: KeyframeSequence['pointInterpolation']): BakedTake {
+  if (interpolation !== undefined && interpolation !== 'hold-last-key-1') throw new Error('作者数据点插值版本无效。');
   if (!edits?.length) return take;
   const times = [...new Set([...take.times, ...edits.map(edit => edit.time)])].sort((a, b) => a - b);
   if (times.length > MAX_TAKE_SAMPLES) throw new Error('数据点修改后的动作样本超出预览范围，请减少新增时刻。');
   const original = new Map(take.times.map((time, index) => [time, take.poses[index]]));
   const overlays = new Map(edits.map(edit => [edit.time, edit]));
+  const withStart = <T>(keys: { time: number; value: T }[], value: T) => keys.length && keys[0].time !== 0 ? [{ time: 0, value }, ...keys] : keys;
+  const roots = interpolation ? withStart(edits.filter(edit => edit.root !== undefined).map(edit => ({ time: edit.time, value: edit.root! })), take.poses[0].root) : [];
+  const rotations = interpolation ? JOINT_NAMES.flatMap(joint => {
+    const keys = withStart(edits.filter(edit => edit.joints?.[joint] !== undefined).map(edit => ({ time: edit.time, value: edit.joints![joint]! })), take.poses[0].joints[joint]);
+    return keys.length ? [{ joint, keys }] : [];
+  }) : [];
   const poses = times.map(time => {
     const source = original.get(time) ?? sampleTake(take, time);
     const pose: Pose = { root: [...source.root], joints: Object.fromEntries(JOINT_NAMES.map(joint => [joint, [...source.joints[joint]]])) as Pose['joints'] };
+    if (roots.length) pose.root = evaluateAuthorTrack(roots, time, (a, b, amount) => amount === 0 ? [...a] : amount === 1 ? [...b] : a.map((value, axis) => value + amount * (b[axis] - value)) as Vec3);
+    for (const { joint, keys } of rotations) pose.joints[joint] = evaluateAuthorTrack(keys, time, (a, b, amount) => amount === 0 ? [...a] : amount === 1 ? [...b] : interpolateKeyframeRotation(a, b, amount));
     const edit = overlays.get(time);
     if (edit?.root) pose.root = [...edit.root];
     for (const [joint, rotation] of Object.entries(edit?.joints ?? {})) pose.joints[joint as JointName] = [...rotation!] as Quat;
@@ -93,16 +115,19 @@ export function applyMotionPointEdits(take: BakedTake, edits: readonly MotionPoi
 export function freezePointAuthority(sequence: KeyframeSequence, authority: BakedTake): BakedTake {
   const copy = (pose: Pose): Pose => ({ root: [...pose.root], joints: Object.fromEntries(JOINT_NAMES.map(joint => [joint, [...pose.joints[joint]]])) as Pose['joints'] });
   if (!sequence.pointEdits?.length) return { ...authority, times: [...authority.times], poses: authority.poses.map(copy) };
-  // Older point-only files did not store their pre-edit authority. Recover its
-  // grid and edited channels from the evaluator, retaining saved bits for every
-  // channel that those overlays never changed. Previously edited source bits
+  // Point-only files can omit their pre-edit authority. Recover its grid and
+  // affected channels from the evaluator, retaining saved bits for every
+  // channel that those authors never changed. Previously edited source bits
   // cannot be recovered more precisely than the old schema actually stored.
   const original = bakeKeyframeSequence({ ...sequence, pointEdits: [] });
   const stored = new Map(authority.times.map((time, index) => [time, authority.poses[index]]));
   const oldEdits = new Map(sequence.pointEdits.map(edit => [edit.time, edit]));
+  const heldRoot = sequence.pointInterpolation !== undefined && sequence.pointEdits.some(edit => edit.root !== undefined);
+  const heldJoints = sequence.pointInterpolation !== undefined ? JOINT_NAMES.filter(joint => sequence.pointEdits!.some(edit => edit.joints?.[joint] !== undefined)) : [];
   return { ...authority, id: newId('take'), times: [...original.times], poses: original.times.map((time, index) => {
     const pose = copy(stored.get(time) ?? sampleTake(authority, time)), edit = oldEdits.get(time);
-    if (edit?.root) pose.root = [...original.poses[index].root];
+    if (heldRoot || edit?.root) pose.root = [...original.poses[index].root];
+    for (const joint of heldJoints) pose.joints[joint] = [...original.poses[index].joints[joint]];
     for (const joint of Object.keys(edit?.joints ?? {}) as JointName[]) pose.joints[joint] = [...original.poses[index].joints[joint]];
     return pose;
   }) };

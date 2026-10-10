@@ -55,8 +55,8 @@
 .kf-timeline-legend { display: flex; align-items: center; gap: 10px; min-height: 18px; color: #8292a9; font-size: 9px; }
 .kf-timeline-legend > span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .kf-timeline-legend i { display: inline-block; width: 4px; height: 4px; border-radius: 50%; }
-.kf-timeline-legend .source { background: #8396ae; }
-.kf-timeline-legend .evaluated { background: #46546a; }
+.kf-timeline-legend .source { background: #9bb4d2; }
+.kf-timeline-legend .evaluated { width: 2px; height: 7px; border-radius: 0; background: #74879e; }
 .kf-timeline-legend > span:has(svg) { color: #8fb9e8; }
 .kf-auto-note { margin-left: auto; }
 .kf-zoom-controls { display: flex; align-items: center; gap: 3px; margin-left: auto; color: #9faec2; font-size: 9px; }
@@ -81,7 +81,8 @@
 .kf-lane.selected > .kf-lane-label { color: #bed8fb; background: #2b3b51; }
 .kf-lane-label > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kf-group-toggle, .kf-track-select { display: flex; align-items: center; gap: 4px; width: 100%; height: 100%; overflow: hidden; color: inherit; font-size: inherit; text-align: left; white-space: nowrap; }
-.kf-group-toggle > span { margin-left: auto; color: #66758a; font-size: 8px; }
+.kf-track-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.kf-sample-count { flex: none; margin-left: auto; color: #91a4bf; font-size: 8px; font-variant-numeric: tabular-nums; }
 .kf-group-toggle[aria-expanded='true'] > svg { transform: rotate(90deg); }
 .kf-joint-lane > .kf-lane-label { padding-left: 23px; color: #8292a9; font-size: 10px; background: #202733; }
 .kf-joint-lane.selected > .kf-lane-label { color: #bdd9fc; background: #293a50; }
@@ -89,8 +90,8 @@
 .kf-lane-track:hover { background-color: #a9caff04; }
 .kf-sample-dots { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .kf-sample-dots path { fill: none; stroke-width: 1.6px; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-.kf-source-dots { stroke: #8396ae; }
-.kf-evaluated-dots { stroke: #46546a; }
+.kf-sample-dots .kf-source-dots { stroke: #9bb4d2; stroke-width: 3px; stroke-linecap: round; }
+.kf-sample-dots .kf-evaluated-dots { stroke: #74879e; stroke-width: 1.6px; stroke-linecap: butt; }
 .kf-lane-key { position: absolute; z-index: 3; top: 2px; display: grid; place-items: center; width: 12px; height: 20px; padding: 0; color: #87b2e6; border-radius: 3px; transform: translateX(-50%); cursor: grab; touch-action: none; }
 .kf-lane-key.selected { color: #d0e5ff; }
 .kf-lane-key:hover { z-index: 6; color: #e4f0ff; background: #8db7f021; }

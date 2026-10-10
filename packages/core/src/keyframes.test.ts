@@ -92,21 +92,59 @@ describe('immutable independent manual motion tracks', () => {
     for (const time of [0.123, 0.289, 0.52, 0.88, 1.019]) sameOrientation(sampleTake(baked, time).joints.Head, sampleTake(take, time).joints.Head);
   });
 
-  it('fills missing endpoints from baseTake and lets explicit endpoint keys override them', () => {
+  it('keeps the start base anchor, holds a single author key after its time and replaces the hold with the next interval', () => {
     const take = source();
     let sequence = upsertRotationKeyframe(makeKeyframeSequence(take), 'Head', 15, rotationZ(90));
     sequence = upsertRootKeyframe(sequence, 15, [2, 2, 1]);
     const implicit = bakeKeyframeSequence(sequence);
     expect(implicit.poses[0]).toEqual(take.poses[0]);
-    expect(implicit.poses.at(-1)).toEqual(take.poses.at(-1));
+    sameOrientation(implicit.poses.at(-1)!.joints.Head, rotationZ(90));
+    expect(implicit.poses.at(-1)!.root).toEqual([2, 2, 1]);
     sameOrientation(sampleTake(implicit, 0.25).joints.Head, rotationZ(45));
-    sameOrientation(sampleTake(implicit, 0.76).joints.Head, rotationZ(60));
+    sameOrientation(sampleTake(implicit, 0.76).joints.Head, rotationZ(90));
+    expect(sampleTake(implicit, .76).root).toEqual([2, 2, 1]);
+    expect(sequence.trackInterpolation).toEqual({ schema: 'hold-last-key-1', tracks: ['root', 'Head'] });
     sequence = upsertRotationKeyframe(sequence, 'Head', lastFrame(take.durationSeconds), rotationZ(180));
     sequence = upsertRootKeyframe(sequence, lastFrame(take.durationSeconds), [3, 3, -2]);
     const explicit = bakeKeyframeSequence(sequence);
     expect(explicit.times.at(-1)).toBe(1.02);
     sameOrientation(sampleTake(explicit, 1.02).joints.Head, rotationZ(180));
     expect(sampleTake(explicit, 1.02).root).toEqual([3, 3, -2]);
+    sameOrientation(sampleTake(explicit, .76).joints.Head, rotationZ(135));
+    sampleTake(explicit, .76).root.forEach((value, axis) => expect(value).toBeCloseTo([2.5, 2.5, -.5][axis], 12));
+  });
+
+  it('holds a key at zero through the exact short final frame, independently for each sparse track', () => {
+    let sequence = upsertRotationKeyframe(makeKeyframeSequence(source()), 'Head', 0, rotationZ(90));
+    sequence = upsertRootKeyframe(sequence, 12, [2, 1.4, -.5]);
+    const take = bakeKeyframeSequence(sequence);
+    for (const time of [0, .123, .4, .713, 1.02]) sameOrientation(sampleTake(take, time).joints.Head, rotationZ(90));
+    for (const time of [.4, .713, 1.02]) expect(sampleTake(take, time).root).toEqual([2, 1.4, -.5]);
+    for (const [index, time] of source().times.entries()) expect(take.poses[take.times.indexOf(time)].joints.LeftUpperLeg).toEqual(source().poses[index].joints.LeftUpperLeg);
+  });
+
+  it('preserves legacy endpoint behavior until a particular sparse track is changed', () => {
+    const base = source();
+    const legacy: KeyframeSequence = {
+      ...makeKeyframeSequence(base),
+      rotations: { Head: [{ frame: 15, rotation: rotationZ(90) }], LeftUpperArm: [{ frame: 15, rotation: rotationZ(75) }] },
+      root: [{ frame: 15, position: [2, 2, 1] }],
+    };
+    const original = bakeKeyframeSequence(legacy);
+    expect(original.poses.at(-1)).toEqual(base.poses.at(-1));
+    sameOrientation(sampleTake(original, .76).joints.Head, rotationZ(60));
+    const changed = upsertRotationKeyframe(legacy, 'Head', 15, rotationZ(100));
+    expect(changed.trackInterpolation).toEqual({ schema: 'hold-last-key-1', tracks: ['Head'] });
+    const baked = bakeKeyframeSequence(changed);
+    sameOrientation(sampleTake(baked, 1.02).joints.Head, rotationZ(100));
+    for (const [index, pose] of original.poses.entries()) {
+      expect(baked.poses[index].root).toEqual(pose.root);
+      for (const joint of JOINT_NAMES.filter(joint => joint !== 'Head')) expect(baked.poses[index].joints[joint]).toEqual(pose.joints[joint]);
+    }
+    const removed = removeRotationKeyframe(changed, 'Head', 15);
+    expect(removed.trackInterpolation).toBeUndefined();
+    expect(bakeKeyframeSequence(removed).poses.at(-1)).toEqual(base.poses.at(-1));
+    expect(legacy.trackInterpolation).toBeUndefined();
   });
 
   it('handles antipodal XYZW keys without a full spin and normalizes finite input quaternions', () => {
@@ -258,6 +296,11 @@ describe('manual keyframe safety envelope', () => {
     expect(() => bakeKeyframeSequence({ ...sequence, rotations: { Head: [{ frame: 4, rotation: rotationZ(0) }, { frame: 4, rotation: rotationZ(1) }] } })).toThrow(/重复/);
     expect(() => bakeKeyframeSequence({ ...sequence, rotations: { Head: [{ frame: 7, rotation: rotationZ(0) }, { frame: 4, rotation: rotationZ(1) }] } })).toThrow(/递增/);
     expect(() => bakeKeyframeSequence({ ...sequence, rotations: { UnknownJoint: [] } } as unknown as KeyframeSequence)).toThrow(/可编辑/);
+    for (const trackInterpolation of [
+      { schema: 'unknown', tracks: [] }, { schema: 'hold-last-key-1', tracks: ['root'] },
+      { schema: 'hold-last-key-1', tracks: ['Head', 'Head'] }, { schema: 'hold-last-key-1', tracks: ['LeftToe'] },
+    ]) expect(() => bakeKeyframeSequence({ ...sequence, trackInterpolation } as KeyframeSequence)).toThrow();
+    expect(() => makeKeyframeSequence(source(), { pointInterpolation: 'unknown' } as never)).toThrow(/插值/);
   });
 
   it('rejects nonfinite/zero rotations and bounds manual Root position to the declared metric workspace', () => {

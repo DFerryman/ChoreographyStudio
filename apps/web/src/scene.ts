@@ -18,7 +18,7 @@ export type SceneViewer = {
   gridVisible?: boolean;
   axesVisible?: boolean;
   rigMode?: 'skeleton' | 'body';
-  /** Optional so existing choreo-scene-1 saves reopen without rebaking motion. */
+  /** `arrange` is accepted only for legacy saves; the Web editor always opens manual K frames. */
   editorMode?: 'arrange' | 'keyframes';
   /** Optional editor view setting; selecting a tool never changes animation data. */
   transformTool?: 'select' | 'rotate' | 'translate' | 'ik';
@@ -62,7 +62,7 @@ export function defaultSceneViewer(): SceneViewer {
   return {
     camera: null, view: 'front', mirror: false, rate: 1, loop: false,
     countSound: false, selectedSlot: 0, selectedJoint: null, time: 0,
-    gridVisible: true, axesVisible: true, rigMode: 'skeleton', editorMode: 'arrange', transformTool: 'select',
+    gridVisible: true, axesVisible: true, rigMode: 'skeleton', editorMode: 'keyframes', transformTool: 'rotate',
   };
 }
 

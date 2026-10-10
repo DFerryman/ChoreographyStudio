@@ -22,6 +22,8 @@ describe('versioned author priority and legacy contact compatibility', () => {
   const legacy = (sequence: KeyframeSequence): KeyframeSequence => {
     const copy: KeyframeSequence = JSON.parse(JSON.stringify(sequence));
     delete copy.authorKeyPriority;
+    delete copy.trackInterpolation;
+    delete copy.pointInterpolation;
     return copy;
   };
 
@@ -282,6 +284,8 @@ describe('explicit author keys take precedence over automatic foot support', () 
     let sequence = upsertRotationKeyframe(makeKeyframeSequence(base), 'LeftLowerLeg', 12, rotationFromDegrees([-70, 0, 0]));
     sequence = upsertRootKeyframe(sequence, 6, [0.15, 1.05, 0]);
     sequence = upsertRootKeyframe(sequence, 18, [0.25, 1.05, 0]);
+    // Historical tracks have no final-hold version and retain symmetric fades.
+    delete sequence.trackInterpolation;
     const value = (frame: number) => getKeyframeProtection(sequence, frame).joints?.LeftLowerLeg ?? 0;
     expect(value(12)).toBe(1); expect(value(12 + 5e-9)).toBe(1);
     expect(value(11)).toBeCloseTo(20 / 27, 12); expect(value(13)).toBeCloseTo(20 / 27, 12);

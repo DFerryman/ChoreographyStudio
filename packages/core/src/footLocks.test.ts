@@ -94,6 +94,33 @@ describe('persistent explicit foot support constraints', () => {
 });
 
 describe('bounded authoritative contact baking and save equivalence', () => {
+  it('protects a sparse final pose continuously from foot locks and leaves legacy and adjacent transition protection unchanged', () => {
+    const base = source(), author = neutral();
+    author.root = [.15, 1.1, 0]; author.joints.LeftLowerLeg = rotationFromDegrees([-40, 0, 0]);
+    let sequence = setPoseKeyframe(makeKeyframeSequence(base), 15, author);
+    const lock = captureFootLock(base.poses[0], 'LeftFoot', 0, lastFrame(base.durationSeconds), 0);
+    sequence = addFootLock(sequence, lock);
+    const take = bakeKeyframeSequence(sequence);
+    for (const [index, time] of take.times.entries()) if (time >= .5) {
+      expect(take.poses[index].root).toEqual(sequence.root[0].position);
+      for (const [joint, keys] of Object.entries(sequence.rotations)) expect(take.poses[index].joints[joint as keyof Pose['joints']]).toEqual(keys![0].rotation);
+    }
+    const heldProtection = getKeyframeProtection(sequence, 25), legacyProtection = getKeyframeProtection({ ...sequence, trackInterpolation: undefined }, 25);
+    expect(heldProtection.root).toBe(1); expect(heldProtection.joints!.LeftLowerLeg).toBe(1);
+    expect(legacyProtection).toEqual({});
+    const held = applyFootLocks(author, [lock], 25, base.durationSeconds, heldProtection), unconstrained = applyFootLocks(author, [lock], 25, base.durationSeconds, legacyProtection);
+    expect(held.pose).toEqual(author);
+    expect(held.residuals[0].residual).toBeGreaterThan(.005);
+    expect(unconstrained.pose).not.toEqual(author);
+    const nextAuthor = neutral(); nextAuthor.root = [.2, 1.05, 0];
+    const withNext = setPoseKeyframe(sequence, 27, nextAuthor);
+    expect(getKeyframeProtection(withNext, 22)).toEqual({});
+    expect(getKeyframeProtection(withNext, 29).root).toBe(1);
+    const rebaked = bakeKeyframeSequence(withNext);
+    expect(rebaked.poses.at(-1)!.root).toEqual(withNext.root.at(-1)!.position);
+    expect(JSON.parse(JSON.stringify(sequence)).trackInterpolation).toEqual(sequence.trackInterpolation);
+  });
+
   it('samples contact solving at 30 Hz while preserving exact base times/end without inserting track keys', () => {
     const base = source(), end = lastFrame(base.durationSeconds);
     let sequence = upsertRootKeyframe(makeKeyframeSequence(base), 0, [0, 1.05, 0]);

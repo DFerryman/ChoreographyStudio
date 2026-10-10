@@ -1,5 +1,9 @@
 # Cloudflare 预览部署
 
+## 2026-10-10 · 四肢Timeline／末键保持／手动单模式（发布待验证）
+
+本轮将发布可辨认的四肢源点／计算点／作者点、版本化末键保持和单一手动工作台。用户附件、音频、私有审计工件不进入公共仓库，现有模型资产和业务API配置保持。完成本地检查后提交main、部署相同源码并核对原生版本和静态字节；准确结果随后回填。本段不把下方既有Camera发布证据作为本轮完成证明。
+
 ## v21 · 摄像机轨道已发布，准确 CI 与分批公网验收完成
 
 [打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。运行源码 [29d56d23](https://github.com/DFerryman/ChoreographyStudio/commit/29d56d23a22c5a55c6da8a263d01515e10fc6323)／tree `07def2ca48c8cc594a7e83dd21b8526b4dd2f983`，冻结inventory `d8ebf7910998524fd289d1ede533e6c774eb302303f83e3f0f1a198270d751da`。Camera独立精确秒轨道／历史／原场景回环已验证；未来bake只为需求。下方提交前和AF正文全部原字节保留。

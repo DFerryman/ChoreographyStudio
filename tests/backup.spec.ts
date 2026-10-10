@@ -100,7 +100,6 @@ async function openScene(page: Page) {
   await page.reload(); await ready(page);
   await expect(page.locator('.project-title h1')).toHaveText(source.scene.name);
   deepStrictEqual(current(await backup(page)).take, source.take);
-  await clickRevealed(page, page.getByRole('button', { name: '手动 K帧', exact: true, includeHidden: true }));
   await expect(page.getByRole('region', { name: '手动关键帧时间线', exact: true })).toBeVisible();
   return source;
 }

@@ -87,6 +87,18 @@ async function drag(page: Page, button: 'left' | 'right', start = [0.7, 0.42], e
   await page.mouse.up({ button });
 }
 
+async function atTime(page: Page, time: number) {
+  const input = page.getByRole('spinbutton', { name: '当前时间（秒）', exact: true, includeHidden: true });
+  await reveal(page, input); await input.fill(String(time)); await input.press('Tab');
+  await expect(input).toHaveValue(String(time));
+  await closeDisclosures(page, '.kf-point-inspector');
+}
+async function playbackRate(page: Page, value: string) {
+  const input = page.getByRole('combobox', { name: '播放速度', exact: true, includeHidden: true });
+  await reveal(page, input); await input.selectOption(value);
+  await closeDisclosures(page, '.playback-options, .kf-more');
+}
+
 async function save(page: Page) {
   await page.getByRole('button', { name: '保存', exact: true }).click();
   await expect(page.locator('.save-state')).toHaveText('已保存到本机');
@@ -202,7 +214,6 @@ test('camera gestures and presets change the view, preserve the take, and keep j
 test('saved scenes independently restore audio, choreography and camera settings, while copied scenes can change and be deleted', async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   await ready(page);
-  await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
   const wave = fixtureWave(), expectedAudio = createHash('sha256').update(wave).digest('hex');
   await clickRevealed(page, page.getByRole('button', { name: '导入音乐', exact: true, includeHidden: true }));
   const music = page.getByRole('dialog', { name: '先把音乐和数拍准备好', exact: true });
@@ -211,25 +222,25 @@ test('saved scenes independently restore audio, choreography and camera settings
   await expect(music).toContainText('20.0 秒可用音频');
   await music.getByLabel('选取几个完整八拍').fill('4');
   await music.getByRole('button', { name: '确认数拍，进入工作台', exact: true }).click();
-  await page.getByRole('button', { name: '生成模板初稿', exact: true }).click();
-  await page.getByRole('listitem', { name: /^第2个八拍/ }).click();
+  await expect(page.getByRole('region', { name: '手动关键帧时间线', exact: true })).toBeVisible();
+  await atTime(page, 4);
   await page.getByRole('button', { name: '背面', exact: true }).click();
   await drag(page, 'left', [0.75, 0.43], [0.83, 0.46]);
   await expect(page.locator('.viewer-muted')).toHaveText('自由视角');
   await selectStageJoint(page, 'LeftHand');
-  await page.getByRole('combobox', { name: '播放速度', exact: true }).selectOption('0.5');
+  await playbackRate(page, '0.5');
   await clickRevealed(page, page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true }));
-  await page.getByRole('button', { name: '循环当前八拍', exact: true }).click();
+  await clickRevealed(page, page.getByRole('button', { name: '循环整段', exact: true, includeHidden: true }));
   await clickRevealed(page, page.getByRole('button', { name: '节拍提示', exact: true, includeHidden: true }));
   await save(page);
   const sceneA = await backup(page);
 
-  await newScene(page); await clickRevealed(page, page.getByRole('button', { name: '八拍编排', exact: true, includeHidden: true }));
+  await newScene(page);
   await renameCurrent(page, '场景 B · 节奏示例');
-  await page.getByRole('listitem', { name: /^第3个八拍/ }).click();
+  await atTime(page, 8);
   await clickRevealed(page, page.getByRole('button', { name: '左侧', exact: true, includeHidden: true }));
   await selectStageJoint(page, 'RightHand');
-  await page.getByRole('combobox', { name: '播放速度', exact: true }).selectOption('0.75');
+  await playbackRate(page, '0.75');
   await save(page);
   const sceneB = await backup(page), sceneBAudio = await audioHash(page);
   expect(sceneA.scene.id).not.toBe(sceneB.scene.id);
@@ -239,9 +250,9 @@ test('saved scenes independently restore audio, choreography and camera settings
   await page.reload();
   await expect(page.locator('.project-title h1')).toHaveText(sceneB.scene.name);
   await expect(page.locator('.save-state')).toHaveText('已保存到本机');
-  await expect(page.getByRole('combobox', { name: '播放速度', exact: true })).toHaveValue('0.75');
+  await expect(page.getByRole('combobox', { name: '播放速度', exact: true, includeHidden: true })).toHaveValue('0.75');
   await expectStageSelection(page, 'RightHand');
-  await expect(page.getByRole('listitem', { name: /^第3个八拍/ })).toHaveClass(/selected/);
+  await expect(page.getByRole('slider', { name: '关键帧时间线进度', exact: true })).toHaveValue(String(sceneB.scene.viewer.time));
   await waitCamera(page, sceneB.scene.viewer.camera);
   let restored = await backup(page);
   sameCamera(restored.scene.viewer.camera, sceneB.scene.viewer.camera);
@@ -250,12 +261,12 @@ test('saved scenes independently restore audio, choreography and camera settings
 
   await openScene(page, sceneA.scene.name);
   await expect(page.locator('.project-title h1')).toHaveText(sceneA.scene.name);
-  await expect(page.getByRole('combobox', { name: '播放速度', exact: true })).toHaveValue('0.5');
+  await expect(page.getByRole('combobox', { name: '播放速度', exact: true, includeHidden: true })).toHaveValue('0.5');
   await expectStageSelection(page, 'LeftHand');
   await expect(page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('button', { name: '循环当前八拍', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: '循环整段', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: '节拍提示', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('listitem', { name: /^第2个八拍/ })).toHaveClass(/selected/);
+  await expect(page.getByRole('slider', { name: '关键帧时间线进度', exact: true })).toHaveValue(String(sceneA.scene.viewer.time));
   await waitCamera(page, sceneA.scene.viewer.camera);
   restored = await backup(page);
   sameCamera(restored.scene.viewer.camera, sceneA.scene.viewer.camera);
@@ -295,9 +306,10 @@ test('saved scenes independently restore audio, choreography and camera settings
   expect(await audioHash(page)).toBe(sceneBAudio);
   await testInfo.attach('copy-refresh', { body: JSON.stringify({ copiedId: copied.scene.id, restoredId: copiedAfterRefresh.scene.id }), contentType: 'application/json' });
   await renameCurrent(page, '独立副本 C');
-  await page.getByRole('listitem', { name: /^第1个八拍/ }).click();
-  await page.getByRole('button', { name: '换一个八拍', exact: true }).click();
-  await page.getByRole('region', { name: '替换候选' }).getByRole('button', { name: '采用', exact: true }).click();
+  await atTime(page, 1);
+  await selectStageJoint(page, 'Head');
+  await editStageValue(page, '关节 X 旋转（度）', (await stageValue(page, '关节 X 旋转（度）')) + 5);
+  expect(projectHash(await backup(page)), 'A copied scene must support an independent manual edit').not.toBe(projectHash(sceneB));
   await save(page);
   await openScene(page, sceneB.scene.name);
   await expect(page.locator('.project-title h1')).toHaveText(sceneB.scene.name);
@@ -333,10 +345,12 @@ test('cancel, failed save and discard preserve automatically recorded point edit
   expect(Object.keys(current.manual!.pointEdits![0].joints!)).toEqual(['Head']);
   expect(current.manual!.root).toEqual([]);
   expect(current.manual!.rotations).toEqual({});
-  expect(current.take!.times).toEqual(originalTake.times);
+  expect(current.take!.times).toEqual([...new Set([...originalTake.times, 1])].sort((a, b) => a - b));
+  expect(current.manual!.pointInterpolation).toBe('hold-last-key-1');
   current.take!.poses.forEach((pose, index) => {
-    expect(pose.root, 'A head adjustment must preserve the original Root path').toEqual(originalTake.poses[index].root);
-    for (const joint of JOINT_NAMES) if (joint !== 'Head' || current.take!.times[index] !== 1) expect(pose.joints[joint]).toEqual(originalTake.poses[index].joints[joint]);
+    expect(pose.root, 'A head adjustment must preserve the original Root path').toEqual(originalTake.poses[0].root);
+    for (const joint of JOINT_NAMES) if (joint !== 'Head') expect(pose.joints[joint]).toEqual(originalTake.poses[0].joints[joint]);
+    if (current.take!.times[index] >= 1) expect(pose.joints.Head).toEqual(current.manual!.pointEdits![0].joints!.Head);
   });
   await openScene(page, sceneA.scene.name);
   const guard = page.getByRole('dialog', { name: '保留当前场景的修改？', exact: true });

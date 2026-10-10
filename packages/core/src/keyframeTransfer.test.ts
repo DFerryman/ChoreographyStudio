@@ -220,7 +220,7 @@ describe('explicit keyframe copy and move', () => {
     expect(getKeyframeCount(sequence)).toBe(2);
   });
 
-  it('moves explicit endpoint keys while restoring implicit base endpoints and preserving exact short-tail timing', () => {
+  it('moves explicit endpoint keys while restoring the base start and holding the last key through the exact short tail', () => {
     let sequence = upsertRootKeyframe(makeKeyframeSequence(base()), 0, [2, 2, 1]);
     sequence = upsertRotationKeyframe(sequence, 'Head', 31, rotationZ(120));
     const start = changed(sequence, request({ scope: { kind: 'root' }, sourceFrame: 0 }));
@@ -231,7 +231,8 @@ describe('explicit keyframe copy and move', () => {
     expect(frameTime(31, baked.durationSeconds)).toBe(1.005);
     expect(getKeyframeFrames(final.sequence)).toEqual([15, 30]);
     expect(sampleTake(baked, 0).root).toEqual(sequence.baseTake.poses[0].root);
-    expect(sampleTake(baked, 1.005).joints.Head).toEqual(sequence.baseTake.poses.at(-1)!.joints.Head);
+    expect(sampleTake(baked, 1.005).joints.Head).toEqual(rotationZ(120));
+    expect(sampleTake(baked, 1.005).root).toEqual([2, 2, 1]);
     expect(sampleTake(baked, 0.5).root).toEqual([2, 2, 1]);
     expect(sampleTake(baked, 1).joints.Head).toEqual(rotationZ(120));
     for (const time of sequence.baseTake.times) expect(baked.times).toContain(time);

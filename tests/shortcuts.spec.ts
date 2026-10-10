@@ -399,7 +399,7 @@ test('@shortcuts seeking or an automatically recorded gesture cancels pending pl
   expect((await backup(page)).scene.project).toEqual(recorded.scene.project);
 });
 
-test('@shortcuts Space restarts from the last frame and starts phrase looping without cancelling its own seek', async ({ page }) => {
+test('@shortcuts Space restarts from the last frame and starts whole-scene looping without cancelling its own seek', async ({ page }) => {
   await ready(page);
   const baseline = await backup(page);
   const end = Math.ceil(current(baseline).countMap.durationSeconds * 30);
@@ -408,7 +408,7 @@ test('@shortcuts Space restarts from the last frame and starts phrase looping wi
   await key(page, 'Space'); await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeVisible();
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.currentTime)).toBeLessThan(offset + 1.5);
   await key(page, 'Space'); await expectPaused(page);
-  await clickRevealed(page, page.getByRole('button', { name: '循环当前八拍', exact: true, includeHidden: true }));
+  await clickRevealed(page, page.getByRole('button', { name: '循环整段', exact: true, includeHidden: true }));
   await closeDisclosures(page, '.kf-more');
   await key(page, 'Space'); await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeVisible();
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.currentTime)).toBeGreaterThan(offset + 0.1);

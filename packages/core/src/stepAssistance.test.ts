@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { Quaternion } from 'three';
 import { JOINT_NAMES, type BakedTake, type Pose, type Vec3 } from './motion-types';
-import { analyzeStepAssistance, bakeKeyframeSequence, frameTime, getKeyframeCount, makeKeyframeSequence, removeStepAssistance, rotationFromDegrees, setPoseKeyframe, setStepAssistance, upsertRootKeyframe, upsertRotationKeyframe } from './keyframes';
+import { analyzeStepAssistance, bakeKeyframeSequence, frameTime, getKeyframeCount, getKeyframeProtection, makeKeyframeSequence, removeStepAssistance, rotationFromDegrees, setPoseKeyframe, setStepAssistance, upsertRootKeyframe, upsertRotationKeyframe } from './keyframes';
 import { evaluatePose } from './humanoid';
 import { isJointRotationWithinLimits } from './jointConstraints';
-import { buildStepPlan, GROUND_STEP_DEFAULTS } from './stepAssistance';
+import { applyStepAssistance, buildStepPlan, GROUND_STEP_DEFAULTS } from './stepAssistance';
 import { addFootLock, removePoseKeyframe } from './keyframes';
 import { captureFootLock } from './footLocks';
 import { sampleTake } from './index';
@@ -19,6 +19,27 @@ const moved = (position: Vec3 = [.5, 1.05, 0], duration = 4) => {
 const distance = (a: number[], b: number[]) => Math.hypot(...a.map((value, axis) => value - b[axis]));
 
 describe('versioned author-first flat-ground step assistance', () => {
+  it('keeps a final sparse leg channel held throughout actual supported steps while unmarked channels can receive assistance', () => {
+    let sequence = moved();
+    sequence = upsertRotationKeyframe(sequence, 'LeftLowerLeg', 0, [0, 0, 0, 1]);
+    sequence = setStepAssistance(sequence);
+    const take = bakeKeyframeSequence(sequence), report = analyzeStepAssistance(sequence);
+    expect(report.stepCount).toBeGreaterThan(0);
+    expect(report.segments.some(segment => segment.status === 'supported')).toBe(true);
+    for (const pose of take.poses) expect(pose.joints.LeftLowerLeg).toEqual(sequence.rotations.LeftLowerLeg![0].rotation);
+    expect(take.poses.some(pose => distance(pose.joints.RightLowerLeg, [0, 0, 0, 1]) > .01)).toBe(true);
+    const off = removeStepAssistance(sequence), raw = bakeKeyframeSequence(off);
+    const plan = buildStepPlan(sequence, (frame, exactTime) => sampleTake(raw, exactTime ?? frame / 30));
+    const frame = 60, author = sampleTake(raw, frame / 30);
+    const protection = getKeyframeProtection(sequence, frame), unmarked = getKeyframeProtection({ ...sequence, trackInterpolation: undefined }, frame);
+    expect(protection.joints!.LeftLowerLeg).toBe(1); expect(unmarked.joints?.LeftLowerLeg).toBeUndefined();
+    expect(applyStepAssistance(author, plan, frame, protection).joints.LeftLowerLeg).toEqual(author.joints.LeftLowerLeg);
+    // Root keeps its ordinary interval fade before the final Root key.
+    expect(protection.root).toBeUndefined();
+    const second = upsertRotationKeyframe(sequence, 'LeftLowerLeg', 120, [0, 0, 0, 1]);
+    expect(getKeyframeProtection(second, 60).joints?.LeftLowerLeg).toBeUndefined();
+  });
+
   it.each([[.5, 0], [-.5, 0], [0, .5], [0, -.5]])('creates actual supported alternating feet for X=%s Z=%s', (x, z) => {
     const off = moved([x, 1.05, z]), sequence = setStepAssistance(off), before = JSON.stringify(sequence), take = bakeKeyframeSequence(sequence), report = analyzeStepAssistance(sequence);
     expect(report.stepCount).toBeGreaterThan(0);

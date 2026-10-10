@@ -24,11 +24,15 @@ export interface KeyframeSequence {
   root: RootKeyframe[];
   /** New edits declare author precedence; absence is accepted for legacy data. */
   authorKeyPriority?: 'author-key-priority-1';
+  /** Only listed sparse tracks hold their final author key; legacy tracks retain saved endpoint semantics. */
+  trackInterpolation?: { schema: 'hold-last-key-1'; tracks: Array<'root' | JointName> };
+  /** Fresh manual motion uses exact-time author tracks; imported source edits remain local overlays. */
+  pointInterpolation?: 'hold-last-key-1';
   /** Optional persistent world-space support constraints; legacy absence is untouched. */
   footLocks?: FootLock[];
   /** Optional versioned flat-ground stepping, derived around author keys. */
   steps?: StepAssistance;
-  /** Exact-time edits over the evaluated motion; only supplied channels change. */
+  /** Exact-time edits; pointInterpolation distinguishes fresh author tracks from source-local overlays. */
   pointEdits?: MotionPointEdit[];
   /** Original saved/evaluated authority before point edits; preserve its stored bits. */
   pointBaseTake?: BakedTake;
@@ -175,6 +179,15 @@ function assertEditable(joint: JointName): void {
 function validateSequence(sequence: KeyframeSequence): void {
   if (!sequence || sequence.schema !== 'manual-keyframes-1' || sequence.fps !== FPS || !sequence.id || !sequence.rotations || typeof sequence.rotations !== 'object' || Array.isArray(sequence.rotations) || !Array.isArray(sequence.root)) throw new Error('关键帧序列格式或帧率无效。');
   if (sequence.authorKeyPriority !== undefined && sequence.authorKeyPriority !== 'author-key-priority-1') throw new Error('作者关键帧优先版本无效。');
+  if (sequence.pointInterpolation !== undefined && sequence.pointInterpolation !== 'hold-last-key-1') throw new Error('作者数据点插值版本无效。');
+  if (sequence.trackInterpolation !== undefined) {
+    const interpolation = sequence.trackInterpolation;
+    if (!interpolation || interpolation.schema !== 'hold-last-key-1' || !Array.isArray(interpolation.tracks) || interpolation.tracks.length > EDITABLE_JOINT_NAMES.length + 1 || new Set(interpolation.tracks).size !== interpolation.tracks.length || Object.keys(interpolation).some(key => !['schema', 'tracks'].includes(key))) throw new Error('作者关键帧插值版本或轨道无效。');
+    for (const track of interpolation.tracks) {
+      if (track !== 'root') assertEditable(track);
+      if (!(track === 'root' ? sequence.root.length : sequence.rotations[track]?.length)) throw new Error('作者关键帧插值轨道必须包含关键帧。');
+    }
+  }
   validateTake(sequence.baseTake);
   if (sequence.pointBaseTake !== undefined) {
     validateTake(sequence.pointBaseTake);
@@ -213,6 +226,7 @@ function copySequence(sequence: KeyframeSequence): KeyframeSequence {
     ...sequence, id: newId('keys'),
     rotations: Object.fromEntries(Object.entries(sequence.rotations).map(([joint, keys]) => [joint, keys!.map(key => ({ frame: key.frame, rotation: [...key.rotation] as Quat }))])),
     root: sequence.root.map(key => ({ frame: key.frame, position: [...key.position] as Vec3 })),
+    ...(sequence.trackInterpolation !== undefined ? { trackInterpolation: { ...sequence.trackInterpolation, tracks: [...sequence.trackInterpolation.tracks] } } : {}),
     ...(sequence.footLocks !== undefined ? { footLocks: sequence.footLocks.map(cloneFootLock) } : {}),
     ...(sequence.steps !== undefined ? { steps: { ...sequence.steps } } : {}),
     ...(sequence.pointEdits !== undefined ? { pointEdits: cloneMotionPointEdits(sequence.pointEdits) } : {}),
@@ -223,12 +237,14 @@ function withPointAuthority(sequence: KeyframeSequence, authority?: BakedTake): 
   return !sequence.pointBaseTake && authority ? { ...sequence, pointBaseTake: freezePointAuthority(sequence, authority), pointEdits: sequence.pointEdits ?? [] } : sequence;
 }
 
-export function makeKeyframeSequence(baseTake: BakedTake): KeyframeSequence {
+export function makeKeyframeSequence(baseTake: BakedTake, options: { pointInterpolation?: KeyframeSequence['pointInterpolation'] } = {}): KeyframeSequence {
   validateTake(baseTake);
+  if (options.pointInterpolation !== undefined && options.pointInterpolation !== 'hold-last-key-1') throw new Error('作者数据点插值版本无效。');
   return {
     schema: 'manual-keyframes-1', id: newId('keys'), fps: FPS, authorKeyPriority: 'author-key-priority-1',
     baseTake: { ...baseTake, times: [...baseTake.times], poses: baseTake.poses.map(copyPose) },
     rotations: {}, root: [],
+    ...(options.pointInterpolation !== undefined ? { pointInterpolation: options.pointInterpolation } : {}),
   };
 }
 
@@ -272,10 +288,18 @@ function upsert<T extends { frame: number }>(keys: T[], key: T): T[] {
 function finishMutation(sequence: KeyframeSequence, previous: KeyframeSequence): KeyframeSequence {
   // Includes the aggregate cap before returning a possibly atomic whole-pose write.
   sequence.authorKeyPriority = 'author-key-priority-1';
+  const changedRoot = JSON.stringify(sequence.root) !== JSON.stringify(previous.root);
+  const changedJoints = JOINT_NAMES.filter(joint => JSON.stringify(sequence.rotations[joint] ?? []) !== JSON.stringify(previous.rotations[joint] ?? []));
+  if (changedRoot || changedJoints.length) {
+    const held = new Set(previous.trackInterpolation?.tracks ?? []);
+    if (changedRoot) held.add('root');
+    for (const joint of changedJoints) held.add(joint);
+    const tracks = (['root', ...EDITABLE_JOINT_NAMES] as const).filter(track => held.has(track) && (track === 'root' ? sequence.root.length : sequence.rotations[track]?.length));
+    if (tracks.length) sequence.trackInterpolation = { schema: 'hold-last-key-1', tracks };
+    else delete sequence.trackInterpolation;
+  }
   validateSequence(sequence);
   if (previous.pointBaseTake) {
-    const changedRoot = JSON.stringify(sequence.root) !== JSON.stringify(previous.root);
-    const changedJoints = JOINT_NAMES.filter(joint => JSON.stringify(sequence.rotations[joint] ?? []) !== JSON.stringify(previous.rotations[joint] ?? []));
     const changedAssistance = JSON.stringify(sequence.footLocks ?? []) !== JSON.stringify(previous.footLocks ?? []) || JSON.stringify(sequence.steps) !== JSON.stringify(previous.steps) || (sequence.authorKeyPriority !== previous.authorKeyPriority && !!sequence.footLocks?.length);
     if (changedRoot || changedJoints.length || changedAssistance) {
       const derived = materializeKeyframeSequence({ ...sequence, pointBaseTake: undefined, pointEdits: [] }, true).take;
@@ -438,16 +462,19 @@ function nearestKeyProtection(keys: readonly { frame: number }[], frame: number)
 
 function keyframeProtection(sequence: KeyframeSequence, frame: number): FootLockProtection {
   const protection: FootLockProtection = {};
-  const root = nearestKeyProtection(sequence.root, frame);
+  const heldTracks = new Set(sequence.trackInterpolation?.tracks ?? []);
+  const weightAt = (keys: readonly { frame: number }[], track: 'root' | JointName) =>
+    heldTracks.has(track) && keys.length && frame >= keys.at(-1)!.frame ? 1 : nearestKeyProtection(keys, frame);
+  const root = weightAt(sequence.root, 'root');
   if (root > 0) protection.root = root;
   for (const [joint, keys] of Object.entries(sequence.rotations)) {
-    const weight = nearestKeyProtection(keys!, frame);
+    const weight = weightAt(keys!, joint as JointName);
     if (weight > 0) (protection.joints ??= {})[joint as JointName] = weight;
   }
   return protection;
 }
 
-/** Explicit author K overrides automatic contacts, including unusual poses. */
+/** Author K and versioned final holds override contacts; neighboring transitions retain their fade. */
 export function getKeyframeProtection(sequence: KeyframeSequence, frame: number): FootLockProtection {
   validateSequence(sequence);
   finite(frame, '作者关键帧保护求值帧');
@@ -455,7 +482,8 @@ export function getKeyframeProtection(sequence: KeyframeSequence, frame: number)
   return keyframeProtection(sequence, frame);
 }
 
-function interpolateRotation(a: Quat, b: Quat, amount: number): Quat {
+/** Shared shortest-path interpolation for frame-based and exact-time author tracks. */
+export function interpolateKeyframeRotation(a: Quat, b: Quat, amount: number): Quat {
   const qa = normalizedRotation(a);
   let qb = normalizedRotation(b);
   let dot = qa.reduce((sum, value, index) => sum + value * qb[index], 0);
@@ -469,8 +497,8 @@ function interpolateRotation(a: Quat, b: Quat, amount: number): Quat {
   return normalizedRotation(qa.map((value, index) => left * value + right * qb[index]) as Quat);
 }
 
-function trackWithEndpoints<T extends { frame: number }>(keys: T[], start: T, end: T): T[] {
-  return [...(keys[0].frame === 0 ? [] : [start]), ...keys, ...(keys.at(-1)!.frame === end.frame ? [] : [end])];
+function trackWithEndpoints<T extends { frame: number }>(keys: T[], start: T, end: T, holdLast = false): T[] {
+  return [...(keys[0].frame === 0 ? [] : [start]), ...keys, ...(holdLast || keys.at(-1)!.frame === end.frame ? [] : [end])];
 }
 
 function evaluateTrack<T extends { frame: number }>(keys: T[], time: number, duration: number, interpolate: (a: T, b: T, amount: number) => Quat | Vec3): Quat | Vec3 {
@@ -491,7 +519,7 @@ export function bakeKeyframeSequence(sequence: KeyframeSequence): BakedTake {
   if (sequence.pointBaseTake) {
     validateSequence(sequence);
     const source = sequence.pointBaseTake;
-    return applyMotionPointEdits({ ...source, id: newId('take'), times: [...source.times], poses: source.poses.map(copyPose) }, sequence.pointEdits);
+    return applyMotionPointEdits({ ...source, id: newId('take'), times: [...source.times], poses: source.poses.map(copyPose) }, sequence.pointEdits, sequence.pointInterpolation);
   }
   return materializeKeyframeSequence(sequence, sequence.pointEdits === undefined || sequence.authorKeyPriority !== undefined).take;
 }
@@ -518,7 +546,7 @@ function materializeKeyframeSequence(sequence: KeyframeSequence, respectAuthorKe
   const locks = sequence.footLocks ?? [];
   if (!frames.length && !locks.length && !sequence.steps) {
     const authority = sequence.pointBaseTake ?? base;
-    return { take: applyMotionPointEdits({ ...authority, id: newId('take'), times: [...authority.times], poses: authority.poses.map(copyPose) }, sequence.pointEdits), report: buildStepPlan(sequence, () => base.poses[0]).report };
+    return { take: applyMotionPointEdits({ ...authority, id: newId('take'), times: [...authority.times], poses: authority.poses.map(copyPose) }, sequence.pointEdits, sequence.pointInterpolation), report: buildStepPlan(sequence, () => base.poses[0]).report };
   }
   const duration = base.durationSeconds, finalFrame = lastFrame(duration);
   // Solved samples, not thousands of sparse K records. Preserve exact source
@@ -526,11 +554,12 @@ function materializeKeyframeSequence(sequence: KeyframeSequence, respectAuthorKe
   const contactTimes = locks.length ? Array.from({ length: finalFrame + 1 }, (_, frame) => frameTime(frame, duration)) : [];
   const authorTimes = [...new Set([...base.times, ...frames.map(frame => frameTime(frame, duration)), ...contactTimes])].sort((a, b) => a - b);
   const initial = base.poses[0], final = base.poses.at(-1)!;
+  const heldTracks = new Set(sequence.trackInterpolation?.tracks ?? []);
   const rotations = Object.entries(sequence.rotations).filter(([, keys]) => keys!.length).map(([joint, keys]) => {
     const name = joint as JointName;
-    return [name, trackWithEndpoints(keys!, { frame: 0, rotation: initial.joints[name] }, { frame: finalFrame, rotation: final.joints[name] })] as const;
+    return [name, trackWithEndpoints(keys!, { frame: 0, rotation: initial.joints[name] }, { frame: finalFrame, rotation: final.joints[name] }, heldTracks.has(name))] as const;
   });
-  const roots = sequence.root.length ? trackWithEndpoints(sequence.root, { frame: 0, position: initial.root }, { frame: finalFrame, position: final.root }) : [];
+  const roots = sequence.root.length ? trackWithEndpoints(sequence.root, { frame: 0, position: initial.root }, { frame: finalFrame, position: final.root }, heldTracks.has('root')) : [];
   const sourceSamples = new Map(base.times.map((time, index) => [time, base.poses[index]]));
   const rawAuthoredAtTime = (time: number): Pose => {
     // Keep base sample bits exactly for every untouched channel and support knot.
@@ -538,7 +567,7 @@ function materializeKeyframeSequence(sequence: KeyframeSequence, respectAuthorKe
     for (const [joint, keys] of rotations) pose.joints[joint] = evaluateTrack(keys, time, duration, (a, b, amount) => {
       if (amount === 0) return [...a.rotation] as Quat;
       if (amount === 1) return [...b.rotation] as Quat;
-      return interpolateRotation(a.rotation, b.rotation, amount);
+      return interpolateKeyframeRotation(a.rotation, b.rotation, amount);
     }) as Quat;
     if (roots.length) pose.root = evaluateTrack(roots, time, duration, (a, b, amount) => {
       if (amount === 0) return [...a.position] as Vec3;
@@ -565,7 +594,7 @@ function materializeKeyframeSequence(sequence: KeyframeSequence, respectAuthorKe
     return pose;
   });
   const authority = sequence.pointBaseTake ? { ...sequence.pointBaseTake, id: newId('take'), times: [...sequence.pointBaseTake.times], poses: sequence.pointBaseTake.poses.map(copyPose) } : { ...base, id: newId('take'), times, poses };
-  return { take: applyMotionPointEdits(authority, sequence.pointEdits), report: plan.report };
+  return { take: applyMotionPointEdits(authority, sequence.pointEdits, sequence.pointInterpolation), report: plan.report };
 }
 
 /** Neutral FK starting point; timing, selected music and arrangement binding stay. */
