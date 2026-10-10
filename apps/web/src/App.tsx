@@ -35,10 +35,10 @@ type AssistPayload = { kind: 'ai' | 'physics'; plan: ArrangementPlan | null; tak
 type AssistCandidate = AssistPayload & { sceneId: string; countMapId: string; baseRevision: number };
 const initialMap = () => makeCountMap({ bpm: 120, musicBeatsPerDanceCount: 1, firstCountSourceSeconds: 0, startOctet: 0, octetCount: 8, audioDurationSeconds: 40 });
 /** Empty manual scenes have a valid neutral animation before the first gesture. */
-function neutralSnapshot(countMap: CountMap, title: string): Snapshot {
+function neutralSnapshot(countMap: CountMap, title: string, planId?: string): Snapshot {
   const neutral = (): Pose => ({ root: [0, 1.05, 0], joints: Object.fromEntries(JOINT_NAMES.map(joint => [joint, [0, 0, 0, 1]])) as Pose['joints'] });
   const take: BakedTake = {
-    id: `take-${crypto.randomUUID()}`, schemaVersion: 'preview-1', planId: `manual-${crypto.randomUUID()}`,
+    id: `take-${crypto.randomUUID()}`, schemaVersion: 'preview-1', planId: planId ?? `manual-${crypto.randomUUID()}`,
     countMapId: countMap.id, durationSeconds: countMap.durationSeconds, times: [0, countMap.durationSeconds],
     poses: [neutral(), neutral()], provenance: 'synthetic-demo',
   };
@@ -171,7 +171,7 @@ export default function App() {
   // Old music-only saves remain untouched until the first real edit, but are editable now.
   const active = useMemo(() => {
     if (storedActive.take) return storedActive;
-    const neutral = neutralSnapshot(storedActive.countMap, storedActive.title);
+    const neutral = neutralSnapshot(storedActive.countMap, storedActive.title, storedActive.plan?.id);
     return { ...storedActive, take: neutral.take, manual: storedActive.manual ?? neutral.manual };
   }, [storedActive]);
   const cameraSampler = useMemo(() => active.cameraTrack ? createCameraTrackSampler(active.cameraTrack, active.countMap.durationSeconds) : null, [active.cameraTrack, active.countMap.durationSeconds]);

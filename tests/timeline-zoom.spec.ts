@@ -221,6 +221,7 @@ for (const width of [1440, 390, 320]) {
     // Panning away from the playhead must make toolbar zoom anchor the view
     // center, rather than jump back to the old cursor time.
     await cursor(page).fill('0'); await cursor(page).press('Tab');
+    await expect.poll(() => viewport(page).evaluate(element => element.scrollLeft)).toBe(0);
     await centerFrame(page, 276);
     const centeredRail = (await row(page, 'root').locator('.kf-lane-track').boundingBox())!, centeredView = (await viewport(page).boundingBox())!;
     const centerX = centeredView.x + audioLabelWidth + (centeredView.width - audioLabelWidth) / 2;

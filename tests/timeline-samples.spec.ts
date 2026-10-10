@@ -32,8 +32,8 @@ for (const width of [1440, 390]) {
         ])) as typeof source.take.poses[number]['joints'],
       }));
       let manual = makeKeyframeSequence(source.take);
-      manual = upsertRotationKeyframe(manual, 'Spine', 30, rotationFromDegrees([0, 3, 0]));
-      manual = upsertRotationKeyframe(manual, 'Spine', 60, rotationFromDegrees([0, 6, 0]));
+      manual = upsertRotationKeyframe(manual, 'Spine', 24, rotationFromDegrees([0, 3, 0]));
+      manual = upsertRotationKeyframe(manual, 'Spine', 27, rotationFromDegrees([0, 6, 0]));
       source.take = bakeKeyframeSequence(manual);
       Object.assign(source.scene.project.history[0], { manual, take: source.take });
     });
@@ -51,6 +51,12 @@ for (const width of [1440, 390]) {
       await expect(track).toHaveAttribute('data-sample-count', String(sampleCount));
       await expect(row(page, id).locator('.kf-sample-count')).toHaveText(String(sampleCount));
       await expect(row(page, id).locator('.kf-sample-count')).toBeVisible();
+      await row(page, id).locator('.kf-sample-count').scrollIntoViewIfNeeded();
+      await expect(row(page, id).locator('.kf-sample-count')).toBeInViewport();
+      const name = await row(page, id).locator('.kf-track-name').evaluate(element => ({
+        scrollWidth: element.scrollWidth, clientWidth: element.clientWidth,
+      }));
+      expect(name.scrollWidth, `${id} must retain its full collapsed track label alongside the sample count`).toBeLessThanOrEqual(name.clientWidth);
       if (id !== 'body') {
         await expect(track).toHaveAttribute('data-authored-count', '0');
         await expect(track.locator('.kf-lane-key')).toHaveCount(0);
@@ -86,10 +92,11 @@ for (const width of [1440, 390]) {
     const selected = row(page, 'LeftUpperArm').locator('[data-selected-point="true"]');
     await expect(selected).toHaveAttribute('data-time', String(.70612));
     await expect(selected).toBeInViewport();
-    // A visible point hit uses the exact source instant even when the two
-    // neighboring timestamps occupy the same canonical 30 fps frame.
+    // A lane hit at the source x uses its exact instant, even when neighboring
+    // timestamps occupy the same canonical frame. Click below the selected
+    // neighbor's circular handle, which also legitimately owns its exact time.
     const rail = (await track.boundingBox())!;
-    await page.mouse.click(rail.x + .70391 / 16 * rail.width, rail.y + rail.height / 2);
+    await page.mouse.click(rail.x + .70391 / 16 * rail.width, rail.y + rail.height - 2);
     await expect(selected).toHaveAttribute('data-time', String(.70391));
     await track.press('ArrowRight');
     await expect(selected).toHaveAttribute('data-time', String(.70612));

@@ -224,6 +224,7 @@ test('saved scenes independently restore audio, choreography and camera settings
   await music.getByRole('button', { name: '确认数拍，进入工作台', exact: true }).click();
   await expect(page.getByRole('region', { name: '手动关键帧时间线', exact: true })).toBeVisible();
   await atTime(page, 4);
+  await closeDisclosures(page);
   await page.getByRole('button', { name: '背面', exact: true }).click();
   await drag(page, 'left', [0.75, 0.43], [0.83, 0.46]);
   await expect(page.locator('.viewer-muted')).toHaveText('自由视角');

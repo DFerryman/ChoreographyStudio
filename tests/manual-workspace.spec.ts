@@ -45,7 +45,7 @@ for (const width of [1440, 390]) {
   test(`@manualworkspace ${width}px a new scene holds one key, interpolates to the next, and preserves exact undo and saved animation`, async ({ page }, info) => {
     test.setTimeout(180_000);
     await page.setViewportSize({ width, height: width === 1440 ? 1000 : 844 });
-    await page.goto('/'); await ready(page);
+    await page.goto('/'); await ready(page); await save(page);
     await page.getByRole('button', { name: '场景', exact: true }).click();
     await page.getByRole('dialog', { name: '本机场景', exact: true }).getByRole('button', { name: '新建场景', exact: true }).click();
     await ready(page); await manualWorkspace(page);
@@ -90,10 +90,14 @@ for (const width of [1440, 390]) {
     expect(current(await backup(page))).toEqual(one);
     await expectStageValue(page, '关节 X 旋转（度）', -10);
     await page.getByRole('button', { name: '重做', exact: true }).click();
-    expect(current(await backup(page))).toEqual(two);
+    const redone = await backup(page);
+    expect(current(redone)).toEqual(two);
+    expect(redone.scene.project.history).toEqual(second.scene.project.history);
+    expect(redone.scene.project.historyIndex).toBe(second.scene.project.historyIndex);
+    expect(redone.scene.project.revision).toBe(second.scene.project.revision + 2);
     await expectStageValue(page, '关节 X 旋转（度）', 10);
     await save(page); await page.reload(); await ready(page); await manualWorkspace(page);
-    expect((await backup(page)).scene.project).toEqual(second.scene.project);
+    expect((await backup(page)).scene.project).toEqual(redone.scene.project);
     await atTime(page, 4); await expectStageValue(page, '关节 X 旋转（度）', 0);
     await screenshot(page, info, `manual-hold-${width}.png`);
   });
@@ -107,7 +111,7 @@ test('@manualworkspace native legacy arrange import restores directly into manua
     viewer: { ...source.scene.viewer, editorMode: 'arrange', time: .7, selectedJoint: 'LeftForeArm' },
   } as unknown as SceneDocument<SceneProject>;
   const bytes = Buffer.from(await (await encodeSceneBackup(legacy)).arrayBuffer());
-  await page.goto('/'); await ready(page);
+  await page.goto('/'); await ready(page); await save(page);
   await page.getByRole('button', { name: '场景', exact: true }).click();
   await page.getByRole('dialog', { name: '本机场景', exact: true }).getByRole('button', { name: '导入场景备份', exact: true }).click();
   const importer = page.getByRole('dialog', { name: '导入场景备份', exact: true });
