@@ -8,6 +8,8 @@
 
 手动创作轨的单个关键帧在之后持续保持；加入后续关键帧后，只在相邻作者关键帧之间插值，末键之后保持，不补结束姿态。导入密集动作上的局部点编辑继续按邻近源点过渡，保持未改通道和原时刻；旧作品载入保留已保存动作。详细规则见[手动关键帧说明](docs/MANUAL_KEYFRAMES.md)，最新实际结果见[验证](docs/VERIFICATION.md)与[部署](docs/DEPLOYMENT.md)。下方版本段落为各轮历史，旧八拍模式及显式写 K 流程不代表当前操作。
 
+本轮已推送运行源码[05afa539](https://github.com/DFerryman/ChoreographyStudio/commit/05afa539d1627777f1319f36528c3f5ecaa7e2f7)并部署Cloudflare native26／100%，[打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。准确[CI38023885337](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38023885337)通过635基础及51浏览器用例，1私有附件skip；正常TLS静态／健康检查5／5。公网原批5／6、唯一聚焦0／1，原动作和音乐字节回环断言完成，但本地blob音频取消仍未解释，严格失败记录保留。文档收据单独同步，不将文档head或截图接受计为完整线上审计通过。
+
 ## Camera Track 与两阶段制作（镜头编辑已上线验证，准确源码CI通过）
 
 当前第一阶段优先快速编舞与操作响应，允许实用的简化计算／碰撞代理。Timeline已加入独立“镜头（Camera）”轨道：精确选秒后直接调整镜头位置、目标或缩放，完成实际变化时自动记录，只形成一次撤销；镜头K可直接拖时间或删除。普通观看、取景与导航继续作为观看设置，显式选择镜头轨道后才自动写镜头K。相机独立随历史、本机保存及完整备份保留，不改Root、25关节、Take／baseTake／manual、源时刻或原音乐，旧作品兼容。

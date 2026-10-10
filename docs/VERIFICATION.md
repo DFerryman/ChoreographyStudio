@@ -1,12 +1,28 @@
 # 预览验证记录
 
-## 2026-10-10 · 四肢Timeline／末键保持／手动单模式（本地验证完成，发布待授权）
+## 2026-10-10 · 四肢Timeline／末键保持／手动单模式（本地与CI通过，已部署；公网严格音频审计仍有未解释失败）
 
 真实附件为26,710,050字节，SHA-256 `e5f3d969c550fa6d401706b08cbe8beafb80a9346e1029e4d2c7a10a906afad5`。只读结构检查确认5,040有效姿态、4,499基底源姿态均含Root及25关节；681个稀疏K为Spine441／Chest236／左右Shoulder各2。主要四肢各有4,499个不同旋转值，双肩稀疏键只在0／37.5秒；该文件的问题是密集点显示过细和当前窗口没有肩作者菱形，不是四肢数据缺失。
 
-本轮本地实现、635项基础检查、52个不同浏览器流程及真实包无损往返已完成。直接GitHub main推送被自动审批拒绝，理由是当前请求未明确授权发布；推送未执行，本轮没有准确源码CI、Cloudflare上传／部署或公网检查。下方全部旧记录保留。
+本轮本地实现、635项基础检查、52个不同浏览器流程及真实包无损往返已完成。此前直接GitHub main推送被自动审批拒绝，理由是请求未明确授权发布；用户随后明确要求提交、push及Cloudflare部署，源码05afa539／tree49a78128实际进入main，准确CI成功，native26已在单一100%部署上线。公网正常TLS HTTP5／5通过；首批六个浏览器流程实际5／6，未解释的本地blob取消按原严格规则保留失败，具体功能断言和诊断分别计。下方全部旧记录保留。
+
+本次准确[CI38023885337](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38023885337)／job114130496257／attempt1于04:23:22–04:41:37 UTC实际success：635／635基础32文件、Python6／6（1.010秒）、17代理／8483顶点全覆盖0outside、前端类型／Vite构建606ms、Worker类型通过。原官方日志52编号各一次：51浏览器实际pass（16.6m），私有37.5秒附件缺少CHOREO_POINT_FIXTURE显式skip1，非52pass。17个native步骤中16success，唯一条件skip为失败时artifact上传；它与浏览器私有case skip分别计。无rerun／cancel。完整原log100443字节／SHA `3cd61ec3e50da48bce031655745fc6ad02a5a213f3c31a20d31d8dff74d3497b`，receipt SHA `f6981dcab5cbe3985381f7417e9e02d2da6b443e239ee2d8671363cd29f08c53`。首次原logs下载exit1只工具问题，官方gh run view fallback EXIT0。
+
+Cloudflare native26 `8e5e1648-0452-4263-b876-aa41099d17d7`／04:24:51.195601Z，部署`4f51abfa-bcb4-43f9-912d-2e47867b87ff`／04:39:16.971692Z，原生source／tree及唯一100%核对。部署与完整CI后半段并行，最终CI真实通过。正常TLS有界5GET于04:39:50.028594–04:39:51.789106 UTC全通过：verify0／retry0／redirect0，HTML／JS／CSS严格等于封存dist，另health／capabilities只读；receipt SHA `6601e5d619173a83a5eb9e5dc6a12ced0d464f2fb4ea98d6da2db907321b1578`。运行配置／bindings与native25一致，无D1，业务AI请求及写入0。156源码／dist／spec冻结不变，130 Git blob精确；详见[部署](DEPLOYMENT.md)。
 
 执行环境预检的默认无网络沙箱Git请求未到达proxy，开启命令网络范围后只读远端main读取成功。Wrangler帮助预检未配置任务日志目录时报默认配置目录不可写，后续使用任务work下XDG配置目录。类型预检发现预装Rapier0.12.0与锁定0.21.0不符，已用锁定依赖恢复，不通过削弱碰撞契约绕过。
+
+公网六流程首次审批把native FileChooser本地读取视为私有上传，拒绝时0执行／0目标请求；源路径及只允许冻结静态GET、严格审计重定向的证据读回后获准执行，原拒绝收据保留。正常TLS／Chrome151／单worker／retries0的实际首批于04:47:35.474Z开始，259.826103秒、EXIT1：手动桌面／390、旧空Take首次编辑、密集轨道桌面／390五例通过，真实附件例严格失败；无skip／flaky。六份原基础诊断的errors／warnings／expectedHTTP／API全0，网络共77个静态GET、11主文档和11原模型响应均200及SHA正确，未知HTTP／重定向／API／付费AI／D1写入／附件外发0。初始route不覆盖重定向后续，因此逐项审计未知请求，不把route声明为完整网络隔离。
+
+真实附件例实际执行150.331秒；全部25通道和Root展示、精确时刻Head局部修改、其余125,999原旋转和Root保持、Delete／Undo、原动作与7,200,044原音乐字节完整备份／重导断言均已完成。失败仅在scratch native audit：一个已归属本地音频的Range0 blob GET在15.078秒后被Chrome取消为net::ERR_ABORTED，无2秒内src离开、导航或seek的实证，不能归为已解释正常取消；另一次真实src替换取消已按原规则计expected。原report1,717,851B／SHA `ca1012d129dee99a1d11c98434ad29f30041dbe900951538de8277d31e99365a`、receipt SHA `4e6cbe550e0e8e6190796da35b7e103561a2bb9b3fc4952c8200f4197c5eab19`及trace原样保留；离线诊断SHA `1aa8b7fc56c29d61fa8fbf53478dc8878390285495beff54175044d49610b033`没有足够原生媒体事件证明原因。
+
+Root已实际查看并接受首批8张桌面／390px截图，图审收据SHA `94017bf50fcfb5732ac13f3435410343f23af83726865358989dde1b19f4aaf2`；手机六个折叠轨名称／数量可读，腿部行需Timeline内纵向滚动。桌面既有Timeline或下载提示可遮住部分脚部，图片接受不改变首批5／6，也不证明任何取景都无遮挡。
+
+唯一聚焦只补原生媒体事件观察，原断言及失败分类不变，于05:00:22.726Z开始、191.186852秒结束、EXIT1：实际1执行／0通过／1严格失败，skip／flaky／retry0。原动作、编辑、Delete／Undo和音乐字节完整包回环断言已完成，四字段基础诊断全0；85个原生媒体事件和4条媒体请求记录仍留下2个未解释本地blob ERR_ABORTED，不能用缺少console错误证明正常取消或音频播放健康。新增7个无body／query静态GET均200且字节／SHA精确，API／阻止请求／重定向／pageerror／auditErrors0；没有再复跑或扩展规则。
+
+85个媒体事件均为isTrusted；媒体error／stalled及非null error为0。两次取消前均已观察readyState4、networkState1、duration37.5及buffered／seekable覆盖[0,37.5]，但play事件0，未验收实际播放。聚焦请求记录的start／failed在相同Date.now写入，不能据此推断物理请求时长或根因；独立原生诊断SHA `f2414a10835cd4158b509c11c5aad0fb8ce84d7aa84e5e0c6adb49b435e0a190`保留，取消仍未解释。
+
+聚焦原report475,391字节／SHA `7c0ab8fcda495382935451cb566ccf0788f7c34f70d4d7c83d96bcbbc836019f`，receipt SHA `a21845ef2cf4ddfce6a12d8c410bbec9641fcf776fc545ac2289465c304a2c25`；156源码／dist／原spec、原18 scratch及其归档18、观察6前后相同，库存SHA `38777e793e30355e0da35f803a0d749d818b09056171e7e5b9d71807bee6d93d`。原六批5／6和聚焦0／1分别保留，合计七次实际尝试，不能宣称六流程全部审计通过。Root另亲审并接受聚焦实际截图1张，合计9张图；图接受不改变两份失败结果。最终仅Markdown发布记录提交不改运行资产，准确CI仍绑定05afa539，同Cloudflare版本保持。
 
 最终本地基础检查于2026-10-10 11:31:38（UTC+8）开始：635／635、32文件，61.05秒；前端TypeScript／Vite1952模块构建通过，保留既有大chunk警告，Worker类型通过。官方Rapier0.21包SHA512与lock精确一致，npm ci恢复锁定依赖后类型阻塞消除；包与lock、碰撞数学未改。离线拟合--check核对17代理／8483顶点，Python6／6通过。相关Core／codec230个独立测试分两批（220／6文件与10／1文件）通过；末键现在持续保护已标记通道，显式脚锁／迈步仍报告真实残差，未标记旧轨行为保留。
 
@@ -28,7 +44,7 @@
 
 只读兼容核对又复现合法旧plan非空／take:null首次编辑后编排ID失配导致同步备份失败；最终仅App三行沿用既有plan.id，并重置轨道按钮默认内边距使手机左右臂／腿名称与数量可读。最终3例核对空动作导入不改旧历史、第一次Head编辑与末键保持、绑定ID、未改Root／24关节、保存重开／原生完整包回环及原音频；同时重复桌面／390密集点和六个折叠轨名无截断、纵向滚动可达。85个运行／测试SHA前后相同，三份errors／warnings／expectedHTTP／API均0。总共52个不同流程；最终补验覆盖改变的App空Take分支和CSS，旧Take路径、Core／codec、Worker及模型字节保持。
 
-最终App／CSS之后前端TypeScript和Vite1952模块构建EXIT0，构建1.09秒，既有大chunk提示保留；日志SHA `ac2a2be7a3aae9ee57354f93eb64465d2c9feb936db05ff0de8122a09c494bd5`。最终71运行文件／26dist封存SHA `ed241fc2db63e49421b8fd11d56c3479b330c1a586a362cff610783013cc3a95`；相对原51源仅App与KeyframeEditor.css改变，原基础及Node真实包审计所用Core／codec源码保持。最终产物为`index-B3UefweF.js`／`index-GhWOHzJk.css`，尚未上传。
+最终App／CSS之后前端TypeScript和Vite1952模块构建EXIT0，构建1.09秒，既有大chunk提示保留；日志SHA `ac2a2be7a3aae9ee57354f93eb64465d2c9feb936db05ff0de8122a09c494bd5`。最终71运行文件／26dist封存SHA `ed241fc2db63e49421b8fd11d56c3479b330c1a586a362cff610783013cc3a95`；相对原51源仅App与KeyframeEditor.css改变，原基础及Node真实包审计所用Core／codec源码保持。最终产物`index-B3UefweF.js`／`index-GhWOHzJk.css`随后实际上传并部署，正常TLS HTTP核对字节相同。
 
 第二40批逐例记录的errors／warnings全部为0；API30份、expectedHTTP14份均为0，旧preview／scene使用较小诊断范围。Node色彩／npm版本提示属于CLI输出。Root亲审单键桌面／390、真实附件、四肢／精确点桌面／390和空Take首次编辑实际截图；手机腿部行需在Timeline内纵向滚动，桌面既有浮动Timeline及下载提示可遮住部分脚部，图审不证明任意取景都无遮挡。原附件及审计／日志／截图均保留在任务work，不进入公共仓库。
 

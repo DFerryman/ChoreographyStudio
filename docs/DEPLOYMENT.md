@@ -1,10 +1,27 @@
 # Cloudflare 预览部署
 
-## 2026-10-10 · 四肢Timeline／末键保持／手动单模式（本地完成，发布待授权）
+## v22 · 2026-10-10 · 四肢Timeline／末键保持／手动单模式（已发布；公网严格音频审计仍有未解释失败）
 
-本轮实现可辨认的四肢源点／计算点／作者点、版本化末键保持和单一手动工作台。用户附件、音频、私有审计工件不进入公共仓库，现有模型资产和业务API配置保持。最终635项基础、52个不同浏览器流程、类型／构建、Worker、离线拟合及真实包严格审计已通过，分批结果和范围见[验证](VERIFICATION.md)。最终本地产物`index-B3UefweF.js`／`index-GhWOHzJk.css`已封存，尚未上传。
+本轮实现可辨认的四肢源点／计算点／作者点、版本化末键保持和单一手动工作台。用户附件、音频、私有审计工件不进入公共仓库，现有模型资产和业务API配置保持。本地635项基础、52个不同浏览器流程、类型／构建、Worker、离线拟合及真实包严格审计已通过，分批结果和范围见[验证](VERIFICATION.md)。最终产物`index-B3UefweF.js`／`index-GhWOHzJk.css`已上传并在[工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)生效。
 
-直接推送GitHub main被自动审批拒绝，理由是当前请求未明确授权发布。推送没有执行，本轮没有准确源码CI、Cloudflare上传／部署或公网验收；线上入口仍为下方既有Camera版本。待用户明确授权后再推送已审阅改动并部署相同源码，读取原生版本／100%流量和静态字节，不以旧发布或dry-run代替本轮上线证明。
+此前直接推送GitHub main被自动审批拒绝，理由是请求未明确授权发布；用户随后明确要求提交、push到main并部署Cloudflare，本次推送和部署均实际完成。
+
+| 本次发布项 | 实际收据 |
+| --- | --- |
+| GitHub main运行源码 | [05afa539](https://github.com/DFerryman/ChoreographyStudio/commit/05afa539d1627777f1319f36528c3f5ecaa7e2f7)，tree `49a78128a45cc1abb527fecf846d5079a576706e`；源码push EXIT0并原生读回相同，后续发布记录通过仅Markdown提交同步 |
+| 准确源码CI | [38023885337](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38023885337)／job114130496257／attempt1／success，04:23:22–04:41:37 UTC；635基础32文件、Python6项、fit、前端类型／构建和Worker通过；浏览器51实际pass／1私有附件skip（16.6m），非52pass |
+| Cloudflare版本 | native26／`8e5e1648-0452-4263-b876-aa41099d17d7`／v22-manual-timeline，04:24:51.195601Z，upload EXIT0；仅新HTML／JS／CSS三资产上传 |
+| 100%部署 | `4f51abfa-bcb4-43f9-912d-2e47867b87ff`／04:39:16.971692Z，deploy EXIT0，唯一新version100%；version／deployment原生message都含准确source／tree |
+| 配置核对 | 与native25的bindings／script_runtime精确一致；AI、ASSETS、API20／60s、AI2／60s、原namespace、SPA／API worker-first及安全headers保持，无D1；observability enabled／sampling1、logpush false |
+| 正常TLS HTTP | 04:39:50.028594–04:39:51.789106 UTC，5／5，verify0／retry0／redirect0；HTML／JS／CSS逐字节与dist相同；health／capabilities仅两次只读GET |
+| 公网浏览器首批 | 04:47:35.474Z开始、259.826秒，实际EXIT1／5通过／1严格失败／0跳过或重试；真实包动作／音频断言全部完成，scratch审计仍保留1个未解释的本地blob媒体取消，不能将该批改为6／6 |
+| 唯一聚焦诊断 | 05:00:22.726Z开始、191.187秒，实际EXIT1／0通过／1严格失败；仅补原生媒体事件观察，原判定不变，2个本地blob取消仍unexpected。原动作与音乐字节回环断言完成，不声称音频播放或完整线上审计通过 |
+
+完整CI原log100443B／SHA `3cd61ec3e50da48bce031655745fc6ad02a5a213f3c31a20d31d8dff74d3497b`；首次logs下载exit1只是工具下载失败，官方gh run view有界fallback EXIT0，不是CI失败或重跑。上传／部署日志SHA分别`521937a83e6b0a50434a161d09b3ad0a831743568a85acf37fef9725ebd1887c`／`f0f3a6f9151929cc65b5b95bd11238399a712af76cbd316050f08f578487d3e3`；HTTPreceipt SHA `6601e5d619173a83a5eb9e5dc6a12ced0d464f2fb4ea98d6da2db907321b1578`。发布freeze156文件／SHA `0135a4e48b735f8771e02783872d6d01a3f4f9acd77f2f93c7494cc06e31f7c1`，130 Git blob精确，未修改已验收运行源码／dist／原spec。付费AI与D1写入0。
+
+公网首次审批将native FileChooser本地读取视为私有附件上传，拒绝时0执行／0目标请求。随后核对File.arrayBuffer→本地decode／IndexedDB及blob音乐路径，并以冻结静态GET和严格重定向审计获准执行。首批77个实际HTTP请求均为无query／body的静态GET，11主文档及11模型响应均200且SHA正确，API／外发附件／AI／D1写入0；初始route不拦截重定向后的请求，因此仍逐项记录并严格拒绝未知后续请求，不声称它完整隔离网络。原report SHA `ca1012d129dee99a1d11c98434ad29f30041dbe900951538de8277d31e99365a`／receipt SHA `4e6cbe550e0e8e6190796da35b7e103561a2bb9b3fc4952c8200f4197c5eab19`保留。
+
+唯一聚焦仍失败，report SHA `7c0ab8fcda495382935451cb566ccf0788f7c34f70d4d7c83d96bcbbc836019f`／receipt SHA `a21845ef2cf4ddfce6a12d8c410bbec9641fcf776fc545ac2289465c304a2c25`，85个媒体事件、4条媒体请求记录、7个静态GET精确响应，API／重定向／外发附件0。156发布文件、原18 scratch及归档18、观察6前后完全一致；库存SHA `38777e793e30355e0da35f803a0d749d818b09056171e7e5b9d71807bee6d93d`。未放宽判定或再复跑。最终Markdown发布记录不改运行资产，沿用上述准确源码CI及同版本部署，无二次上传。下方v21及旧本地发布段保留为历史。
 
 ## v21 · 摄像机轨道已发布，准确 CI 与分批公网验收完成
 
