@@ -1,5 +1,25 @@
 # Cloudflare 预览部署
 
+## 2026-10-10 · 自由摆姿、碰撞预览与作者键转移（已发布，公网及准确CI通过）
+
+本轮先实现自由摆姿与播放／Timeline确定性派生碰撞预览，再整合旧稀疏K与精确修改点的移动／复制。本地660项基础、类型／构建、Worker、离线拟合／Python6及12个不同浏览器流程已分批成功验证，原6／8及后续2／2、4／4分别保留，见[验证](VERIFICATION.md)。当前[工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)运行native28；当前本轮有界公网浏览器2／2通过，测试更正源码c09的准确CI已通过（660基础／56浏览器pass／1私有skip）。
+
+| 当前发布项 | 实际收据 |
+| --- | --- |
+| GitHub main运行源码 | [778a0574](https://github.com/DFerryman/ChoreographyStudio/commit/778a05740bfd03690fca1d3aa4c43d8e296b83c9)，tree `b0ce269b1e8502413d42455063c2b8c4c91e65cd`，实际push及远端读回 |
+| 补发布范围 | 仅修 `RealismPanel.tsx:113` 一条仍描述“阻止新增穿插”的旧说明，164清单仅此源文件变化，算法及tests不改；前端类型／构建EXIT0，1953模块／810ms，保留大chunk提示 |
+| Cloudflare当前版本 | native28／`dbf52557-d27a-4abf-9087-89d64e4ea5db`，2026-10-10T09:01:53.3154Z创建，原生message准确绑定778a源码／treeb0ce |
+| 首次100%部署 | `252d1204-aae1-4566-aa5c-5d1b97f1de77`，09:02:35.239239Z，唯一native28／100%，原生message准确绑定源码／tree |
+| 当前静态资产 | `index-BiBDtDbp.js`／`index-hFHWYmCk.css`／`rapier-BcnL-M2-.js`与原Quaternius GLB；模型与碰撞拟合资产不改 |
+| 新正常TLS HTTP | 09:03:06.371957–09:03:08.013406Z，7／7；HTML／主JS／CSS／Rapier／原GLB的5静态资源逐字节及SHA等于新dist，另health／capabilities两次只读GET |
+| 测试更正源码 | [c09c662d](https://github.com/DFerryman/ChoreographyStudio/commit/c09c662d42437e27e7ef28ab38eea837b4d9298d)，tree `d5ebcded9dfc70d4c7f2372a9294c00254752506`；只更正共享旧帧文案断言为严格278／30秒＋1通道，本地原3例完整回归3／3，运行apps／core和26dist不变，native28运行注释仍绑定778a |
+| 准确验收源码CI | c09的[38040748871](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38040748871)／workflow376219518／job114180329145／attempt1实际completed／success，job09:15:34Z–09:37:22Z；660／660基础33文件、Python6／fit／前端类型构建／Worker通过，57浏览器56pass／1私有附件skip（19.9分钟，0fail）；首次7bbc CI实际53浏览器pass／1私有skip／3共享旧文案断言fail，660基础等通过，778a CI亦实际53pass／1私有skip／3同型fail（19.6分钟），660基础等通过，原记录分别保留 |
+| 本轮公网浏览器 | 09:02:54.647Z开始、67.275634秒，EXIT0／2／2、skip／unexpected／flaky0；官方Chromium151及任务CA信任正常TLS，164源与26distSHA不变，两份诊断4数组全空；knee2次GLB严格校验，mobile未记录模型SHA，Root另接受2实际图，脚部遮挡限制保留 |
+
+首次实现版本[7bbc9a23](https://github.com/DFerryman/ChoreographyStudio/commit/7bbc9a23b0c95de9b5aec66337206e4a3e4aeef9)／tree `c8108a2845eaa62274f4a1b2ec1b7304d7775d22`亦实际main：native27 `c69dcb64-780d-4193-91bb-84122b43dca2`于08:53:39.784338Z创建，deployment `3d07c4b0-8c05-4141-9c53-f7b0570fe14f`于08:55:04.881682Z／100%；两处原生注释准确。其正常TLS HTTP7／7于08:56:03.820924–08:56:06.094290Z通过，5静态资产严格等于当时构建；该版本原主JS为 `index-oALUdvV5.js`。旧版本和旧HTTP记录完整保留，不冒充修文案后新构建的验证。
+
+当前原始收据分别为 `collision-help-release-receipt.json`、`collision-public-help-http/receipt.json`；首次版本为 `collision-cloudflare-version.json`、`collision-cloudflare-deployments.json`、`collision-public-http/receipt.json`。准确CI最终结果完成后再回填，最后仅Markdown收据提交以同native28部署注释关联文档head，运行资产不重复上传。必要性评估已同步5页Notion；最终实现及发布收据同步对应5页，并以各页原生回执核对。下方native26与所有旧失败完整保留。
+
 ## v22 · 2026-10-10 · 四肢Timeline／末键保持／手动单模式（已发布；公网严格音频审计仍有未解释失败）
 
 本轮实现可辨认的四肢源点／计算点／作者点、版本化末键保持和单一手动工作台。用户附件、音频、私有审计工件不进入公共仓库，现有模型资产和业务API配置保持。本地635项基础、52个不同浏览器流程、类型／构建、Worker、离线拟合及真实包严格审计已通过，分批结果和范围见[验证](VERIFICATION.md)。最终产物`index-B3UefweF.js`／`index-GhWOHzJk.css`已上传并在[工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)生效。

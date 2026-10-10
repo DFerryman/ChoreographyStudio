@@ -1,6 +1,6 @@
 # 预览验证记录
 
-## 2026-10-10 · 自由摆姿、统一碰撞预览与新旧作者键转移（本地验证完成，发布待实际收据）
+## 2026-10-10 · 自由摆姿、统一碰撞预览与新旧作者键转移（已发布，公网及准确CI通过）
 
 本轮按用户顺序完成自由摆姿与播放／Timeline 派生碰撞预览，再整合旧稀疏 K 和精确修改点的移动／复制。编辑取消身体／地面截停；精确时刻预览的接触修正不写回作者 Take、manual、K、历史或备份，返回编辑前恢复作者操作基准。17 凸包、脚底角点及固定模型资产保持，有限投影保留未解决接触，不代表完整动力学、连续时间零穿透、主动平衡或第二阶段高精度烘焙。
 
@@ -18,7 +18,21 @@ Root离线解析三份正式报告的原生附件：原8的8组、聚焦2的2组
 
 Root亲审原批3张、聚焦2张及回踢1张共6张实际图并接受，覆盖桌面／390px预览、原姿态交叉、分组转移及站地面回踢。图片接受与数值断言分别计；桌面某些取景中既有Timeline仍遮挡部分脚部，不保证所有取景全身无遮挡。
 
-第3、4项原要求仍待实现；“AI生成为主、手动微调为辅”下自动迈步可选、高级脚锁／steps参数建议后置只是必要性评估，未获得取消原需求的指令。评估已同步5个Notion页面，5任务均succeeded后读回，新段各仅插入一次且旧全文严格保留；完整实现与发布收据待实际完成后另行同步。准确运行commit／tree、CI、Cloudflare版本及有界线上验收尚待实际回执；本地通过不计为发布。下方上一轮native26及其公网5／6、聚焦0／1媒体审计失败全文保持。
+首次运行源码[7bbc9a23](https://github.com/DFerryman/ChoreographyStudio/commit/7bbc9a23b0c95de9b5aec66337206e4a3e4aeef9)／tree `c8108a2845eaa62274f4a1b2ec1b7304d7775d22`实际进入main，Cloudflare native27 `c69dcb64-780d-4193-91bb-84122b43dca2`于08:53:39.784338Z创建，100%deployment `3d07c4b0-8c05-4141-9c53-f7b0570fe14f`于08:55:04.881682Z生效；version／deployment原生注释均含准确源码和tree。正常TLS HTTP7／7于08:56:03.820924–08:56:06.094290Z通过，HTML／JS／CSS／Rapier／原GLB逐字节相同，另health／capabilities两次只读GET。
+
+随后发现 `RealismPanel.tsx:113` 仍写“拖动和IK阻止新增穿插”，与新行为相反。只修这一说明字符串，运行源码[778a0574](https://github.com/DFerryman/ChoreographyStudio/commit/778a05740bfd03690fca1d3aa4c43d8e296b83c9)／tree `b0ce269b1e8502413d42455063c2b8c4c91e65cd`实际push到main；164文件清单仅该源文件变化，预览／编辑／转移算法和已验收tests不改，复用12个行为流程。新的前端TypeScript与构建EXIT0（1953模块、810ms，保留大chunk提示），新26dist中主文件为 `index-BiBDtDbp.js`。
+
+补发布的Cloudflare native28 `dbf52557-d27a-4abf-9087-89d64e4ea5db`于09:01:53.3154Z创建，唯一100%deployment `252d1204-aae1-4566-aa5c-5d1b97f1de77`于09:02:35.239239Z生效，两处原生注释准确绑定778a／treeb0ce。新正常TLS HTTP7／7于09:03:06.371957–09:03:08.013406Z全部通过，5静态资源字节及SHA严格等于新构建，另两次只读health／capabilities；旧HTTP7不冒充新构建核验。具体资产与版本见[部署](DEPLOYMENT.md)。
+
+新版本公网有界2例于2026-10-10T09:02:54.647Z开始，67.275634秒、EXIT0，实际2／2、skip／unexpected／flaky0；站地面回踢例27.353秒，390px终端关节例36.746秒。官方Chromium151使用已验证任务CA信任，保持正常TLS，两份原生诊断的errors／warnings／expectedHTTP／API数组均空。164源码／测试与26distSHA运行前后不变。回踢例实际记录2次GLB响应，均200／480376字节／SHA `6570b23a63a0a5b87ad3fa5f8d7a24536c8e7fc3ceb03d28893cb48966cc6527`；390px例未记录模型SHA，不扩大验证范围。Root另亲审接受2张实际公网图，桌面回踢取景中Timeline遮挡站立腿下部的限制保留，图片接受不替代数值断言。当前native28的bindings／script_runtime与native27严格一致，共AI／ASSETS／两项限频／RELEASE_STAGE五绑定，无D1；归一资产清单仅index.html和主JS变更，其余24项含原GLB／CSS／Rapier／headers不变。
+
+首次7bbc的[CI38039320857](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38039320857)／job114176236939／attempt1实际completed／failure：660／660基础33文件、Python6、拟合与类型／构建及Worker通过；浏览器57例、单worker，实际53通过／1私有附件skip／3失败、19.4分钟。3例均在 `timeline-zoom.spec.ts:175` 同一共享旧“第278帧”提示断言失败，实际新冲突提示正确使用9.266666666666667秒及1条占用轨道；后续替换与authority断言尚未执行，不能记为转移成功。原log、终态JSON及artifact保留。
+
+测试更正[c09c662d](https://github.com/DFerryman/ChoreographyStudio/commit/c09c662d42437e27e7ef28ab38eea837b4d9298d)／tree `d5ebcded9dfc70d4c7f2372a9294c00254752506`已实际push main，只将175行提示断言改为严格278／30秒及1通道；原生手势、源数据、替换、Root／音频及历史断言均保持。164清单仅该test SHA变更为 `25e43e89a5549f0feb31f8d3fd20cef86a3b8887b9ac1286ec8bc6350cdbc3a3`，apps／core与26dist完全不变，不再次上传资产或复跑有效公网／HTTP，native28的运行源码仍为778a。
+
+仅对应的原3例完整本地回归于09:14:17.535Z开始，99.943805秒、EXIT0，实际3／3，skip／unexpected／flaky0；1440px44.241秒、390px28.456秒、320px24.784秒，三份原生diagnostics四数组均空，164源码／测试及26dist运行前后SHA不变。Root实际接受2张1440／390新图，桌面Timeline遮脚限制保留。这批本地3不修改旧CI的53pass／1skip／3fail，也不冒充新完整CI。
+
+当前c09测试验收源码的[CI38040748871](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38040748871)／workflow376219518／job114180329145／attempt1已实际completed／success，job09:15:34Z–09:37:22Z；660／660基础（33文件）、Python6、avatar fit、前端类型／构建与Worker全通过，57浏览器实际56passed／1privateSkipped（19.9分钟，0failed）。唯一skip是point-editing.spec.ts313私有37.5秒场景asset在CI不可用；官方raw `collision-c09-ci-job.log` 71699字符／SHA256 `901781cf94aefc32fc98a3bb34fe7be3eb6bb6c97a79a1b1e2abbcce1e0ad277` 与 `collision-c09-ci-final.json` 保留。更正后准确源码CI通过不回写旧失败；778a的[CI38039937469](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38039937469)／job114177983903／attempt1亦实际completed／failure：660基础33文件、Python6、拟合／类型／构建／Worker通过，57浏览器为53pass／1私有skip／3fail、19.6分钟，均同一旧175行帧提示断言，后续替换与authority断言未执行；85563字符原log及终态JSON保留，不重复下载同型artifact。第3、4项原要求仍待实现，AI工作流必要性评估未宣布取消原需求；评估已同步5页Notion并原文读回，最终实现及发布收据同步对应5页，并以各页原生回执核对。下方上一轮native26及其公网5／6、聚焦0／1媒体审计失败全文保持。
 
 ## 2026-10-10 · 四肢Timeline／末键保持／手动单模式（本地与CI通过，已部署；公网严格音频审计仍有未解释失败）
 

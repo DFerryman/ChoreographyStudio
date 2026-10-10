@@ -6,7 +6,7 @@
 
 旧稀疏 K 与精确修改点可统一移动、复制：拖菱形移动，按住 Alt 开始拖动复制，手机可在作者点数值浮层输入目标秒值再执行。旧 K 与同秒点修改一起转移；目标冲突明确确认，一次操作一次撤销。纯精确修改点支持合法非整数帧秒值，旧稀疏 K 仍按帧时刻保存。
 
-本轮本地 660 项基础、类型／构建、Worker、离线拟合和 Python 6 项通过；12 个不同浏览器流程跨 6／8、2／2、4／4 三批成功覆盖，保留原失败。准确源码 CI 与本轮发布待实际回执，完整证据见[验证](docs/VERIFICATION.md)。下方 `05afa539`／native26 为上一轮已发布版本。
+本轮本地 660 项基础、类型／构建、Worker、离线拟合和 Python 6 项通过；12 个不同浏览器流程跨 6／8、2／2、4／4 三批成功覆盖，保留原失败。运行源码[778a0574](https://github.com/DFerryman/ChoreographyStudio/commit/778a05740bfd03690fca1d3aa4c43d8e296b83c9)已推送 main 并部署 Cloudflare native28／100%，[打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)；正常 TLS 静态／健康检查7／7及公网浏览器2／2通过。只更正旧测试文案后的验收源码c09c662d对应[CI38040748871](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38040748871)已实际 success：660项基础／56浏览器通过／1私有附件跳过（57总数，19.9分钟，0失败），运行资产保持。完整证据见[验证](docs/VERIFICATION.md)与[部署](docs/DEPLOYMENT.md)，下方 `05afa539`／native26 为上一轮版本。
 
 工作台只保留手动 K帧编辑，八拍编排及模式切换入口移除。打开旧场景同样进入手动编辑，保留原动作、音乐和历史。新建或确认新音乐后从站姿开始，无需先生成模板；音乐的 BPM／数拍设置继续用于同步。
 
