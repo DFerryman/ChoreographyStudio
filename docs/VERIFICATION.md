@@ -1,5 +1,19 @@
 # 预览验证记录
 
+## 2026-10-12 · 解除真实模型验证禁令，线上AI单次生成成功
+
+用户在上述只读AI检查后明确要求“帮我放开这个模型限制”，已取代此前开发/测试/上线验收必须零真实推理的工作规则。必要低频真实调用现获授权，无需仅因旧禁令重复确认；当前只做一次，自动化回归默认mock，无后台生成或自动重试。AI2/60s、API20/60s、同源校验、严格数据契约、候选明确采用和本机数据保护继续保留，不修改付费套餐。已更新AGENTS、手动编辑说明、接入清单、README、路线、实现状态和真实体验计划的当前规则，历史零调用收据保持。
+
+- 唯一真实线上生成由当前网页原生“生成 AI 候选”触发：`2026-10-12T16:05:18.630Z`–`16:05:28.037Z`，生成点击`16:05:25.311Z`；HTTP200，响应耗时2175ms，682B。模型为`@cf/qwen/qwen3-30b-a3b-fp8`，provider=cloudflare-workers-ai、protocol=ai-arrangement-1；原32秒/8八拍的CountMap ID/version和duration完全匹配，返回8项合法动作/幅度，真实界面显示“AI 动作候选”和预览/采用按钮，无错误。
+- 使用原创本机示例和合成描述。全程6静态GET、唯一1生成POST，无重试、额外模型调用或被拦截请求。POST只有文字、协议与确认数拍，未上传音频或项目；未预览/采用/保存，服务端数据库写入0。独占调用锁防重复；业务请求增加专用诊断头以使原生日志仅捕获本次请求，不改变应用请求内容。
+- 生成前后整个authoritative project和全部packed takes严格相等，revision1/history1/take ID及CountMap保持，SHA256均为`9c7714fcf66b3e52a1ae5f131c4a83ba78ab8da3757c8eb252eb900f6c66578f`。五项browser诊断console errors/warnings、pageErrors、failedRequests、HTTP errors全部空。Root实际查看候选截图，确认候选就绪但原稿尚未改变。
+- 受限原生Worker tail捕获同一次POST：HTTP200/outcome=ok，实际scriptVersion=`b3ad2578-1c98-4aca-9e68-af9a734a3b8f`，logs/exceptions均空；捕获后结束tail，没有第二轮调用。正常TLS、继承代理、原已核验CA独立profile，ignoreHTTPSErrors=false。
+- 未修改任何应用、测试、配置或资产，沿用上一轮native36及100%部署，无需上传新运行版本。前一轮680基础/10相关浏览器/HTTP8/公网上线证据复用，未重复运行。准确f5源码[CI38271007531](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38271007531)/attempt1现已实际completed/success，updated`2026-10-12T15:46:36Z`；下方先前in_progress观察作为历史保留，不新增未经日志核对的逐项计数。
+
+此次真实请求证明当前账号和线上接线可以生成，无需用户额外开通服务才能完成该请求；不据此承诺剩余额度、未来持续可用或舞蹈质量。当前仍是有限原创动作库的整段编排候选，按选区只改局部未实现。真实请求/响应、原生日志、合成场景备份和图片均只存ignored work。当前规则及实际结果按既有授权同步原五份Notion项目文档，完成状态以原生任务和回读收据为准。
+
+原五页Notion同步已完成：五个原生异步任务全部succeeded，逐页回读确认新marker各一次、顶部新政策及实际HTTP200/2175ms/8槽/候选结果准确、旧全文作为完整后缀保持且SHA256精确一致；原子页保持。最小原生/回读收据仅在ignored work，无私有全文落盘。最终九份Markdown规则及收据commit/push到main，应用/配置/测试与26dist哈希保持，不增加模型调用或重复部署。
+
 ## 2026-10-12 · 最新 main 播放线与人物中心相机（已部署，限定复核通过）
 
 按用户要求，从干净 work/aef229e 拉取并切换到最新 main [f5e8e4a4](https://github.com/DFerryman/ChoreographyStudio/commit/f5e8e4a47a204a7c1ae30a5549dff5c7d2b14260)，tree `a3507985f45bdd99e161fab212abf27f239a92da`；push 返回已是最新，远端完整 SHA 相等。应用、测试、配置均来自该提交，本次没有修改。

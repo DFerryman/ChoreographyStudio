@@ -1,5 +1,17 @@
 # Cloudflare 预览部署
 
+## 2026-10-12 · 真实模型验证已放行，线上单次AI生成成功
+
+用户明确解除此前真实推理验证禁令，必要低频Workers AI调用现获授权；当前只执行一次，无自动重试，默认回归仍mock，原AI2/60s/API20/60s限频、同源校验、候选明确采用及本机存储保持，不更改账单套餐。
+
+在[当前工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)原生点击“生成 AI 候选”一次，`2026-10-12T16:05:25.311Z`触发；真实Qwen请求HTTP200、2175ms，返回与原32秒/8八拍绑定的8项动作编排，网页显示候选。6静态GET/1生成POST，五项诊断空，原稿project/全部takes前后逐值与SHA一致，没有预览/采用/保存、用户音频/项目上传、自动重试或D1写入。Root查看实际候选图；原生tail同一次请求outcome=ok/HTTP200/无logs和exceptions，scriptVersion精确native36。
+
+此变更仅为文档工作规则及验证收据，无运行源码/测试/配置/资产变化；继续使用native36 `b3ad2578-1c98-4aca-9e68-af9a734a3b8f`、100% deployment `24d20a42-0f6d-4adf-9762-29c0672dcda2`，运行source`f5e8e4a47a204a7c1ae30a5549dff5c7d2b14260`/tree`a3507985f45bdd99e161fab212abf27f239a92da`。沿用上一轮有效检查，不再次部署或重复线上循环，文档commit/push到main。
+
+准确f5的[CI38271007531](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38271007531)/attempt1现实际completed/success，updated`2026-10-12T15:46:36Z`。当前真实调用成功证明本次无需额外开通服务，未据此声称剩余额度或生成质量验收；局部AI生成仍待实现。详细结果见[验证记录](VERIFICATION.md)，历史零调用、原失败和先前CI观察完整保留。当前政策及实际结果同步原五页Notion，完成以原生回执为准。
+
+原五页Notion已实际5/5完成：五个异步任务succeeded，全文回读确认新marker唯一、所有政策/验证字段准确、原文完整后缀SHA不变且子页保留；最小收据留ignored work，无私有全文落盘。最终九份Markdown规则/验证收据另commit/push到main，沿用同一运行版本，真实推理仍总计一次。
+
 ## 2026-10-12 · 最新播放线与人物中心相机（native36已上线）
 
 已拉取并推送核对 GitHub main [f5e8e4a4](https://github.com/DFerryman/ChoreographyStudio/commit/f5e8e4a47a204a7c1ae30a5549dff5c7d2b14260)，tree `a3507985f45bdd99e161fab212abf27f239a92da`。本次发布远端已有的连续红色播放线、播放时静止Timeline、绕人物髋部的四元数相机和精简界面，没有应用/测试/配置改动。
