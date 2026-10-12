@@ -1,5 +1,16 @@
 # Cloudflare 预览部署
 
+## 2026-10-12 · 拉取最新 main 并部署前端重构（已发布，有界公网检查通过）
+
+本次按用户要求拉取并快进到 [bb7245a5](https://github.com/DFerryman/ChoreographyStudio/commit/bb7245a5a3edb3d4ce4e82505dd36f9ad79e127e)，tree `da9bbac0a60e8fd36750ff8b70b4e710e546f23a`，无应用源码修改。Cloudflare [工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/) 已部署 native29／`32aff49d-cea4-4e1b-8def-e9f01522bc40`，版本创建 `2026-10-12T07:36:04.178429Z`；deployment `812b0c91-9603-4c2c-8fe9-1f4a8d50ccab` 创建 `07:36:04.794809Z`，原生读回单一新版本 100%。版本与部署 message 均绑定准确 bb7245a 源码／tree。保留 ASSETS、AI、API 20／60s、AI 2／60s、SPA 回退、`/api/*` Worker-first 与安全 headers；无 AI 推理或数据库写入。
+
+- 依赖恢复：首次环境缓存错误地把顶层 Rapier 安装为 0.12.0，导致基础 641 通过／19 失败、Worker 类型失败；原始失败日志保留。按未修改的锁文件 `npm ci` 恢复声明的 0.21.0 后，正式 `npm run check` 660／660、33 文件，前端类型和 Vite 1969 模块构建通过（936ms；保留大 chunk 提示）；Worker types／TypeScript 与 Wrangler deploy dry-run 均 EXIT0。
+- 正式依赖本地浏览器 4／4，47.8s：3D 非空渲染／实际音频与场景时钟播放、手动工作区入口、390px／320px 音乐对话框与页面无横向溢出。这是限定烟测，未重跑完整 57 例；前次重构验证 51 pass／1 private skip／5 环境下载名失败保持独立。
+- 正常 TLS HTTP 8／8：HTML、main JS `index-PX-zV7lZ.js`、CSS `index-02NGHR1J.css`、Rapier、旧 neutral-human-v2 及当前 Quaternius GLB 六静态文件逐字节／SHA 等于 dist；另 health／capabilities 两次只读 GET。默认模型 480376B／SHA `6570b23a63a0a5b87ad3fa5f8d7a24536c8e7fc3ceb03d28893cb48966cc6527`。首次 Python urllib 根请求实际 403；随后 curl 正常 TLS 的根响应 200 被复用，未关闭 TLS 或循环重试。
+- 公网限定浏览器正式 4／4，`2026-10-12T07:40:57.121Z` 开始／53872.921ms，skipped／unexpected／flaky 均 0；四份 console 附件均实际为 No console errors or warnings。使用未改应用断言的同源烟测副本，业务 `/api/**` 全阻断，正常 TLS（ignoreHTTPSErrors=false）；任务临时 Chromium151 用户证书库仅加入现有执行环境 CA，并经离线原生证书管理界面确认。首批 0／4 仅在离线 CA 界面把隐藏列表误当作可见列表，尚未进入应用；修正为先打开 Installed by you 后验证可见证书，保留首批失败工件，不能称首批 4／4。
+- 已实际查看公网桌面截图，模型、暗色顶栏、舞台和时间线正常；下载提示仍可遮挡脚部，不宣称任意取景全身无遮挡。26 个 dist 文件 SHA 已封存，记录文档不改变运行资产，无重复上传。
+- 准确源码 GitHub CI [38217882999](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38217882999)／job114706792915／attempt1 于 `2026-10-12T07:49:21Z` 实际 completed／failure：npm ci、离线拟合、Python 测试、check、Worker、Chromium 安装均 success；完整 57 个浏览器用例为 55 passed／1 skipped／1 failed，19.9m。唯一失败是 `tests/backup.spec.ts:265`，执行至 line324 的原音乐缺失场景时，`下载项目备份`按钮被 workspace-content 的缺音乐说明拦截点击，等待 download 超过210s。该 CI 失败与此前本容器 suggestedFilename 下载名失败不同，根因尚未修复，不将其归为已证实的环境问题，不改断言或重跑。部署、本地660和公网4通过独立保留；本次追加授权仅提交三个记录文档。
+
 ## 2026-10-10 · 自由摆姿、碰撞预览与作者键转移（已发布，公网及准确CI通过）
 
 本轮先实现自由摆姿与播放／Timeline确定性派生碰撞预览，再整合旧稀疏K与精确修改点的移动／复制。本地660项基础、类型／构建、Worker、离线拟合／Python6及12个不同浏览器流程已分批成功验证，原6／8及后续2／2、4／4分别保留，见[验证](VERIFICATION.md)。当前[工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)运行native28；当前本轮有界公网浏览器2／2通过，测试更正源码c09的准确CI已通过（660基础／56浏览器pass／1私有skip）。
