@@ -1,10 +1,14 @@
 # 实现状态
 
-## 2026-10-12 · 黑白灰视觉与紧凑比例（已实现，本地有界验证通过，发布待完成）
+## 2026-10-12 · 黑白灰视觉与紧凑比例（已发布，本地及有界公网检查通过，准确 CI 进行中）
 
 用户认可目前前端结构，要求黑白或灰黑白主体、适度圆角，并缩小图标与文字；完成后提交并 push main、同步部署 Cloudflare。实施范围为前端视觉令牌和组件比例：主要工具图标约 13–14px、标签约 11px、对话框标题约 17px，Timeline 原 9–11px 密集数据字号继续保持可读。舞台与下方停靠 Timeline、联动、主要手机 44px 命中区及编辑／数据流程保留；3D 轴语义色和必要错误提示使用克制颜色。
 
-视觉实现及有界本地检查已完成。660／660 基础检查（33 文件，34.66 秒）、前端类型、Worker 类型及部署 dry-run 通过；最终 Vite 构建 1970 模块／563ms 通过，保留大 chunk 提示。正式本地浏览器 6／6（4 个 preview 基础流程＋2 个 Timeline 流程，59.139631 秒）及独立 mobile Root 用例 1／1（17.819667 秒）通过。320px 缩放行曾超出容器 5px，仅让 range 可 flex 收缩后修复，手机 44px 命中区保持；最终临时检查沿用原断言，1440／390／320px 共 3／3 通过。Root 亲审最终桌面、390px、音乐对话框及 320px 共 4 张实际截图并接受；GitHub main 和 Cloudflare 发布仍待完成。
+视觉实现及有界本地检查已完成。660／660 基础检查（33 文件，34.66 秒）、前端类型、Worker 类型及部署 dry-run 通过；最终 Vite 构建 1970 模块／563ms 通过，保留大 chunk 提示。正式本地浏览器 6／6（4 个 preview 基础流程＋2 个 Timeline 流程，59.139631 秒）及独立 mobile Root 用例 1／1（17.819667 秒）通过。320px 缩放行曾超出容器 5px，仅让 range 可 flex 收缩后修复，手机 44px 命中区保持；最终临时检查沿用原断言，1440／390／320px 共 3／3 通过。Root 亲审最终桌面、390px、音乐对话框及 320px 共 4 张实际截图并接受。
+
+运行源码 [b927b359](https://github.com/DFerryman/ChoreographyStudio/commit/b927b35971730fbcc38af361be3e181a7a8c88f1)／tree ec067cd15281430c09f477d9859a45bb6025d4aa 已 push main 并精确核对远端。Cloudflare native32／version 76f8ea60-b471-406a-b44f-3bc5de093a1b／deployment 58ee372b-2790-4f7d-ada0-6227e69b136f 为单版本 100%，版本和部署两份原生注释均准确绑定上述 source／tree。正常 TLS HTTP 8／8：HTML、main JS、CSS、Rapier、默认 GLB、favicon 共 6 个静态响应字节与 dist 匹配，另 2 个 health／capabilities 请求只读。
+
+唯一正式公网 1440／390／320px 批次在 2026-10-12 18:32:58.754（Asia/Shanghai）开始，实际 3／3 通过，12.105 秒；三份诊断各六数组全空，18 个 static GET，无 API／AI 请求或数据库写入。Root 亲审最终公网桌面与 320px 两图并接受，代理另审 6 图。[准确源码 CI38236853808](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38236853808) 最后观察仍 in_progress，未宣称完整 57 例已完成。最终 Markdown 收据沿用此运行版本，不重复部署。
 
 五份既有 Notion 页面只读成功，首个需求插入被自动审批拒绝（当前请求未显式授权向该外部目的地披露需求）；没有执行 Notion 写入、重试或绕过，本轮外部同步保持未完成。后续检查及部署收据分别见[验证](VERIFICATION.md)、[部署](DEPLOYMENT.md)；以前各版本的实际成功、失败与能力边界均保留。
 

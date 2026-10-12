@@ -1,10 +1,14 @@
 # Cloudflare 预览部署
 
-## 2026-10-12 · 黑白灰视觉与紧凑比例（本地验证完成，发布待记录）
+## 2026-10-12 · 黑白灰视觉与紧凑比例（已上线，线上有界检查通过）
 
 本轮从 GitHub main `8668e43c03b02b9ff0d79fe6d6149d08feb5311d` 快进更新，保留最新 Timeline／Stage 联动和手机44px命中区；仅修改前端视觉、HTML主题色、favicon和需求文档。660基础、前端／Worker类型与构建、dry-run、既有正式浏览器6／6＋独立手机Root1／1通过，320工具栏5px宽度问题修复后实际三尺寸3／3通过；范围和原始失败见[验证](VERIFICATION.md)。
 
-将以 `wrangler deploy --keep-vars --message` 部署 `choreo-studio-preview`，保留ASSETS、AI、两个限频绑定、SPA fallback、`/api/*` Worker-first及已有安全headers。运行commit／tree、远端main、原生version／deployment、100%流量和正常TLS资产检查将在实际发布后回填；此段不预先宣称上线。Notion需求同步因自动审批拒绝外部写入仍未完成。
+运行源码 [b927b359](https://github.com/DFerryman/ChoreographyStudio/commit/b927b35971730fbcc38af361be3e181a7a8c88f1)／tree `ec067cd15281430c09f477d9859a45bb6025d4aa` 已推main，远端完整SHA核对相等。`wrangler deploy --keep-vars --message` EXIT0，当前Cloudflare native32 version `76f8ea60-b471-406a-b44f-3bc5de093a1b`／deployment `58ee372b-2790-4f7d-ada0-6227e69b136f`，唯一版本100%；version created `2026-10-12T10:31:42.141095Z`、deployment created `2026-10-12T10:32:22.49552Z`。两处原生注释准确绑定完整source／tree。ASSETS、AI、两个限频、SPA fallback、`/api/*` Worker-first及原静态安全headers保留，无D1。
+
+[打开新版工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)；正常TLS单轮HTTP8／8，HTML／mainJS／CSS／Rapier／默认GLB／favicon六份字节与冻结dist一致，health／capabilities两只读200。唯一公网1440／390／320布局3／3通过，12.105s，正常证书验证、三份六数组诊断全空，共18静态GET，无业务API／真实AI／服务端数据库写入；Root亲审desktop／320两图接受，173源码及26dist冻结SHA保持。准确source CI [38236853808](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38236853808)最后读取in_progress，未宣称完整CI通过。最终Markdown收据另提交push并沿用相同runtime，未再上传或发起第二公网批次。
+
+本轮五份Notion只读成功，但需求写入被自动审批以缺少明确外部披露授权拒绝，未写入／重试／绕过；Notion同步仍未完成。
 
 ## 2026-10-12 · 最新 main 轨道联动与手机触控版（已部署并核对）
 

@@ -1,6 +1,6 @@
 # 预览验证记录
 
-## 2026-10-12 · 黑白灰视觉与紧凑比例：本地验证完成，发布待记录
+## 2026-10-12 · 黑白灰视觉与紧凑比例：已推 main／Cloudflare，线上有界检查通过
 
 在远端 main `8668e43c03b02b9ff0d79fe6d6149d08feb5311d` 基础上统一页面、舞台、Timeline、音乐轨、菜单、对话框、favicon 和浏览器主题色为中性灰黑白；主要工具图标 13–14px、标签 11px，对话框标题 17px，圆角 5／8／10px。保留停靠布局、舞台轨头联动、手机 44px 命中区、数据点形状及全部编辑／数据逻辑，3D 轴语义色和必要错误反馈保留。
 
@@ -8,7 +8,12 @@
 - `npm run check` EXIT0：660／660 基础，33 文件，34.66 秒；前端类型及 Vite 构建通过。Worker types／类型检查、Wrangler dry-run EXIT0，配置绑定保持。最后一次样式窄屏修正后的前端类型／构建再次通过，1970 modules／563ms；保留已有大 chunk 警告，不称其为缺席。
 - 既有正式浏览器第一批基础 preview4＋Timeline2：6／6，开始 `2026-10-12T10:23:03.263Z`，59.139631s，无跳过、失败或 flaky。独立 mobile Root 联动回归 1／1，17.819667s，原生 console/API 诊断四数组全空。两批分别记录，不声称完整57项浏览器／CI已通过。
 - Scratch 首批桌面／390检查完成，320 的 zoom 行实际超过工具栏5px（313 对308），页面未溢出；原失败保留。仅取消 flex 行及滑杆强制最小宽度后，原断言最终1440／390／320三尺寸3／3通过，320工具条308／308且按钮44px。三份 console／pageerror／API／failedRequest 数组为空，布局停靠、灰阶、更多工具和音乐对话框通过；主要按钮对比14.63:1，手机保存hover16.83:1。Root亲审最终桌面／390主界面、390音乐、320主界面四张实际图并接受。
-- 173个运行源码／测试／配置文件及26个dist文件已冻结SHA-256；work证据、生成文件和私有内容均不提交。GitHub和Cloudflare实际收据将在发布后补录。
+- 173个运行源码／测试／配置文件及26个dist文件已冻结SHA-256；work证据、生成文件和私有内容均不提交。运行源码 `b927b35971730fbcc38af361be3e181a7a8c88f1`／tree `ec067cd15281430c09f477d9859a45bb6025d4aa` 已推 main 且 `ls-remote` 精确相等。
+
+- Wrangler部署EXIT0，Cloudflare native32 version `76f8ea60-b471-406a-b44f-3bc5de093a1b`，created `2026-10-12T10:31:42.141095Z`；deployment `58ee372b-2790-4f7d-ada0-6227e69b136f`，created `2026-10-12T10:32:22.49552Z`，唯一版本100%。两处原生 `workers/message` 与上述完整source／tree相等，原ASSETS、AI、两限频、SPA、安全headers及Worker-first保留，无D1。
+- 正常TLS单轮HTTP8／8，无重试／跳过证书校验：HTML、新mainJS/CSS、Rapier、默认GLB、favicon六份与冻结dist逐字节及SHA-256相等；health／capabilities两只读返回200/ok及无服务端项目存储。静态响应安全headers与既有配置吻合。
+- 唯一正式公网布局批次1440／390／320：3／3，`2026-10-12T10:32:58.754Z`–`10:33:10.859Z`，12.105s。Chromium151、继承代理、`ignoreHTTPSErrors=false`，离线原生证书UI读回Trusted的环境CA DER SHA精确且无外部请求后才导航应用。三份console／pageerror／API／failedRequests／httpErrors／unapprovedRequests六数组为空，共18次同源静态GET，业务API／真实AI／服务器数据库写入0。灰阶、dock、菜单、音乐dialog、44px点击区及主按钮对比均通过。Root亲审公网desktop和320两张实际图并接受，另代理审6图；320标题正常ellipsis，音乐主按钮滚动后完整可达，不确认音乐／修改作者数据。
+- 发布后173源码／tests／配置及26dist的SHA保持。准确运行源码的GitHub push CI [38236853808](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38236853808) 最后实际读取为in_progress（conclusion=null），不宣称完整57项浏览器或CI已成功。后续仅Markdown交付收据更新沿用本运行版本及已验证资产，不重复部署或公网循环。
 
 仓库要求同步五份Notion需求页，五页只读成功，但首次写入被自动审批拒绝：本次请求未显式授权向该外部目的地披露项目需求。没有执行Notion写入或绕过，本轮外部同步未完成。下面历次成功、失败和CI状态原样保留。
 
