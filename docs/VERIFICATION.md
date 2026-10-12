@@ -1,5 +1,20 @@
 # 预览验证记录
 
+## 2026-10-12 · 最新 main 轨道联动与触控版部署复核（已发布）
+
+按用户要求从干净的 `c3b7988` 同步到远端 [7997b33c](https://github.com/DFerryman/ChoreographyStudio/commit/7997b33c7dbac120bc1467c2fe41b24a6c2095e8)，tree `101aed1c913ea186c55a5b36cc64994d66f20feb`，切换到跟踪 origin/main 的 main。运行源码、测试和配置未修改；`git push origin HEAD:main` 返回 Everything up-to-date，远端 main SHA 精确读回。
+
+- 依赖按未修改的锁文件 `npm ci` 恢复 Rapier 0.21.0；预装 0.12.0 未用于正式测试。`npm run check` 实际 660／660、33 文件、33.05s；前端类型与 Vite 1970 模块构建（499ms）通过，保留大 chunk 提示。Worker types／TypeScript、Wrangler dry-run 均 EXIT0。
+- 本地既有 `preview.spec.ts` 烟测 4／4、22.264s：非空 3D／音频及场景时钟播放、默认手动工作区、390／320px 页面及音乐对话框无横向溢出。首次因沙箱无法启动 webServer 未执行任何用例，随后报告解析也因 npm stdout 前缀失败；保留原结果，开放所需网络权限并使用纯 JSON 输出后才得到上述正式 4／4。
+- 独立布局／联动检查最终 3／3、7.997s，1440／390／320px：舞台与 Timeline 无重叠、填满主工作区、轨头悬停产生实际画布变化但不改变选择／Root／时间／IndexedDB 正式项目、键盘调高及还原、折叠展开。390／320px 八个可见工具条按钮均实测 44×44px。初稿三宽检查的按钮选择器为空，未验证触控尺寸；修正选择器并增加非空断言，同时清除跨宽度的高度偏好后才形成最终触控证据，原收据单独保留。
+- Cloudflare native31／`5241b2ec-11bf-4e86-9f69-f3709fce3f5e`，100% deployment `1b6be9a9-9335-43df-9479-b619ec4a6ae4`，version／deployment message 均原生读回准确 7997b33 源码与 tree。只上传新 HTML、`index-BaNdlCTh.js`、`index-BR0vXyWx.css` 三资产；ASSETS、AI、API20／60s、AI2／60s、RELEASE_STAGE、SPA 回退、`/api/*` Worker-first 和安全 headers 已读回。
+- 正常 TLS HTTP 7／7，无重试或重定向：HTML／主 JS／CSS／Rapier／当前 Quaternius GLB 五静态资源逐字节及 SHA 等于 dist，health／capabilities 两次只读 GET 均 200。
+- 唯一公网布局／联动批次于 17:40:26.137（UTC+8）开始，3／3、9.296s、EXIT0；三宽同断言通过，errors／warnings／httpErrors／apiRequests／failedRequests 全空。业务 API 阻断，无 AI 推理或服务端数据库写入。浏览器正常 TLS／ignoreHTTPSErrors=false，任务隔离 profile 使用执行环境现有公开 CA；当前 Chromium 数据库 schema 与官方 protobuf 已核对，原生 Trusted Certificates 列表的 textbox 读回准确 DER SHA。之前两次离线 UI 定位／文案断言失败单独保留，未访问应用，不改记为公网失败或通过。
+- 实际查看公网桌面悬停与 390px 布局两张截图：左臂关节点高亮，Timeline 位于舞台下方，模型与手机工具正常显示。209 tracked／26 dist 文件在本地和公网验证后 SHA 全部保持冻结值；仅以下发布记录修改 Markdown，不重复上传运行资产。
+- 准确 7997b33 GitHub CI [38229677932](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38229677932)／job114745793441／attempt1 最后观察仍为 in_progress：安装、离线拟合／Python、check、Worker、Chromium 安装已 success，完整浏览器步骤仍运行。限定烟测通过不等于完整 57 例或准确 CI 已通过；前次 CI 失败与历史环境下载名失败保持原记录。
+
+原始构建、浏览器 JSON／截图、正常 TLS HTTP、Cloudflare version／deployment、源码／dist 冻结及 CI 状态收据保存于任务 `work/cloudflare-release/`；部署记录见 [DEPLOYMENT.md](DEPLOYMENT.md)。
+
 ## 2026-10-12 · 舞台／Timeline 联动与触控（本地验证）
 
 依据 Notion 产品规格的长期编辑标准、持续前端目标和界面规范，本轮先把需求写入 Notion（产品规格、开发计划、验收页），再改代码：轨头悬停／聚焦高亮舞台关节点，手机 Timeline 工具条按钮 44px，320／390px 无横向溢出。

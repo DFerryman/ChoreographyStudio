@@ -1,5 +1,15 @@
 # Cloudflare 预览部署
 
+## 2026-10-12 · 最新 main 轨道联动与手机触控版（已部署并核对）
+
+运行源码为 [7997b33c](https://github.com/DFerryman/ChoreographyStudio/commit/7997b33c7dbac120bc1467c2fe41b24a6c2095e8)，tree `101aed1c913ea186c55a5b36cc64994d66f20feb`；从干净 c3b7988 同步并切换到 main，push 返回已是最新，远端 SHA 精确读回。应用、测试与配置不改。本次发布包含轨头与舞台高亮联动、手机 44px 工具条及新版停靠布局断言。
+
+- [打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。native31／`5241b2ec-11bf-4e86-9f69-f3709fce3f5e` 于 17:37:52.197（UTC+8）创建；deployment `1b6be9a9-9335-43df-9479-b619ec4a6ae4` 于 17:37:52.723 创建，唯一新版本 100%。两处原生 message 均绑定准确运行源码／tree。
+- `wrangler deploy --keep-vars` 实际成功，只上传新 HTML／`index-BaNdlCTh.js`／`index-BR0vXyWx.css` 三静态资产。原生读回 ASSETS／AI／两项限频／RELEASE_STAGE、SPA、API Worker-first、安全 headers 和 2026-10-06 兼容日期；无 D1 绑定。
+- 660／660 基础测试、前端类型／构建、Worker 类型及 dry-run 通过；正式本地烟测 4／4，独立三宽布局／联动检查 3／3，公网同断言首批 3／3。手机八个可见工具条按钮均 44×44px，轨头悬停不改正式项目。公网诊断五数组全空；实际查看桌面／390px 两图。
+- 正常 TLS HTTP 7／7：五个静态资源字节及 SHA 与 dist 相同，health／capabilities 两次 GET 返回 200，无重试或重定向。无真实 AI 推理或服务端数据库写入。209 tracked／26 dist 哈希在验证后不变；发布记录只修改 Markdown，沿用上述 native31，不重新上传运行资产。
+- 准确源码 [CI 38229677932](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38229677932)／job114745793441／attempt1 最后观察仍运行完整浏览器步骤，其余检查已 success；不声称完整 CI 通过。详细范围、初始环境／审计设置失败及原始证据见 [VERIFICATION.md](VERIFICATION.md)。
+
 ## 2026-10-12 · 拉取最新 main 并发布舞台／Timeline 双主区域布局（已部署并核对）
 
 按用户要求从 `abf081b` 快进到远端 [c3b7988f](https://github.com/DFerryman/ChoreographyStudio/commit/c3b7988f9458cdd6fb424c57300452eb10a86a71)，tree `f03d355653044268898e77453c8749041f8f407e`；应用、测试及部署配置未修改。当前 [工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/) 已运行停靠式 Timeline 布局。
