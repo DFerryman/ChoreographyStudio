@@ -15,6 +15,10 @@
 
 原始构建、浏览器 JSON／截图、正常 TLS HTTP、Cloudflare version／deployment、源码／dist 冻结及 CI 状态收据保存于任务 `work/cloudflare-release/`；部署记录见 [DEPLOYMENT.md](DEPLOYMENT.md)。
 
+## 2026-10-12 · 舞台／Timeline 联动与触控 · 准确 CI 通过
+
+7997b33 的准确 CI [38229677932](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38229677932)／job 114745793441／attempt 1（main push）于 2026-10-12T09:45:43Z 实际 completed／success：离线拟合与 Python、`npm run check`、Worker 类型均 success；完整浏览器 57 例中 56 通过、1 私有附件跳过（point-editing.spec.ts:313，CI 无私有素材）、0 失败，19.5 分钟，未手动重跑。改写后的 point-editing.spec.ts 390px 停靠布局断言及 backup.spec.ts:265 均在其中通过。上一提交 fe7e3f7 的 CI 38225462553 失败记录保留不变。
+
 ## 2026-10-12 · 舞台／Timeline 联动与触控（本地验证）
 
 依据 Notion 产品规格的长期编辑标准、持续前端目标和界面规范，本轮先把需求写入 Notion（产品规格、开发计划、验收页），再改代码：轨头悬停／聚焦高亮舞台关节点，手机 Timeline 工具条按钮 44px，320／390px 无横向溢出。
