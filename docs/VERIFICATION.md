@@ -1,5 +1,18 @@
 # 预览验证记录
 
+## 2026-10-12 · 最新 main 的停靠布局发布复核（本地与有界公网通过，完整 CI 保留一项失败）
+
+拉取并快进到 `c3b7988f9458cdd6fb424c57300452eb10a86a71`／tree `f03d355653044268898e77453c8749041f8f407e`，不修改应用、测试或配置。Cloudflare native30 `6c2dc1e7-3b84-4768-974a-34fc97ccbbdc`／deployment `8f2b7e6f-aca6-4733-b7f9-ea6232114e0b` 已原生核对单一 100%，两处注释绑定准确源码／tree；[打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+
+- 环境依赖：预装 Rapier 为 0.12.0，在正式检查前用未修改的锁文件 `npm ci` 恢复 0.21.0；未把错误依赖当作正式验证。本轮 `npm run check` 于 16:58:08（UTC+8）开始，660／660、33 文件、62.45s；前端类型／Vite 1970 模块构建 773ms，Worker types／TypeScript 和 dry-run 均 EXIT0，保留大 chunk 提示。
+- 既有本地烟测：`preview.spec.ts` 中非空 3D／音频与场景时钟播放、默认手动工作区、390／320px 页面及音乐对话框无横向溢出，4／4，45.492s，skip／unexpected／flaky 0。另独立 scratch 布局／菜单检查 2／2、43.0s；两批分别计数，不称完整 57 例通过。
+- 公网有界检查：17:09:49.379（UTC+8）开始，2／2、35.552s、EXIT0，skip／unexpected／flaky 0。桌面 stage 608px／dock 340px，390px 手机 stage 438px／dock 354px；无舞台／Timeline 重叠。键盘与原生拖动调高、32px 调整后刷新保持、折叠展开、正式项目不变、缺音乐时菜单 elementFromPoint 实际命中备份按钮且 JSON 下载成功。两份原生诊断四数组全空，业务 API 阻断，未运行付费 AI。
+- 公网 Chromium151 保持正常 TLS／ignoreHTTPSErrors=false。任务临时 profile 使用当前 Chromium ServerCertificateDatabase schema 写入执行环境现有公开 CA 的信任，随后在原生 Installed by you／Trusted Certificates 界面核对准确 DER SHA；这是隔离 profile 信任配置，非原生文件导入成功。此前离线 native filechooser 超时及错误主体字符串断言失败原样保留；它们发生在访问应用前，不改写为公网失败或通过。没有更改 HOME 或关闭 TLS 验证。
+- 正常 TLS HTTP 8／8：六静态文件字节／SHA 与 dist 相同，health／capabilities 两次只读 GET 均 200；无重试或重定向。ASSETS／AI／两项限频／RELEASE_STAGE 五绑定和 runtime 配置与 native29 一致，无 D1。209 tracked／26 dist SHA 在本地及公网检查后精确不变；Root 实际查看并接受本地四张和公网三张布局／菜单截图，临时下载提示遮挡部分人物／工具的限制保留。
+- 最新运行源码 fe7e3f7 的 [CI 38225462553](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38225462553)／job114731761425／attempt1 实际 completed／failure，16:58:19（UTC+8）完成；非浏览器检查均 success，完整浏览器为 55 passed／1 private skipped／1 failed（12.3m）。`backup.spec.ts:265` 22.0s 通过，此前菜单遮挡失败未在该 CI 复现。唯一失败 `point-editing.spec.ts:273` 在先前编辑／备份／导入／历史断言完成后，仍用覆盖式布局高度阈值 `844 * .75 = 633px`；停靠布局实测 438px。未修改原 test 或手动 rerun，保留失败；最新 c3b7988 只增加 Markdown，因工作流 paths-ignore 没有新 head 检查，不宣称准确 c3 CI 或完整套件通过。
+
+原始证据包含 `local-smoke-report.json`、`layout-report.json`、`public/report.json`、两份公网布局 receipt、`http/receipt.json`、native version／deployment JSON、`runtime-ci-final.json` 与失败日志，保存在本任务 work 目录。仅验证／部署文档回填，不重复上传已验证运行资产。下方此前本地环境失败及旧发布记录完整保留。
+
 ## 2026-10-12 · 舞台／Timeline 双主区域布局（本地验证）
 
 - `npm run check`：660／660 基础测试（33 文件）、前端类型与 Vite 构建通过；`npm run typecheck:worker` 通过。

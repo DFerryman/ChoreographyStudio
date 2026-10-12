@@ -1,5 +1,17 @@
 # Cloudflare 预览部署
 
+## 2026-10-12 · 拉取最新 main 并发布舞台／Timeline 双主区域布局（已部署并核对）
+
+按用户要求从 `abf081b` 快进到远端 [c3b7988f](https://github.com/DFerryman/ChoreographyStudio/commit/c3b7988f9458cdd6fb424c57300452eb10a86a71)，tree `f03d355653044268898e77453c8749041f8f407e`；应用、测试及部署配置未修改。当前 [工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/) 已运行停靠式 Timeline 布局。
+
+- Cloudflare native30／`6c2dc1e7-3b84-4768-974a-34fc97ccbbdc` 于 2026-10-12 17:01:07（UTC+8）创建；deployment `8f2b7e6f-aca6-4733-b7f9-ea6232114e0b` 于 17:01:08 创建，原生读回唯一新版本 100%。version／deployment message 均绑定准确 c3b7988 源码和 tree。此次仅上传新 HTML、`index-CTY3FQFL.js`、`index-C2xDV7ZO.css` 三资产；其余资产复用。
+- 锁文件保持不变，`npm ci` 恢复声明的 Rapier 0.21.0；660／660 基础测试、33 文件，前端类型与 Vite 1970 模块构建（773ms）、Worker 类型及 Wrangler dry-run 通过。Vite 大 chunk 提示保留。
+- 本地既有烟测 4／4（45.492s）和独立布局／菜单检查 2／2（43.0s）通过；公网同断言布局／菜单检查于 17:09:49（UTC+8）开始，2／2（35.552s），skipped／unexpected／flaky 均 0。桌面 1440 与手机 390 验证舞台和 Timeline 无重叠、键盘／拖动调高及刷新保持、折叠展开、正式项目不变、缺音乐状态下备份菜单实际命中及 JSON 下载；两份公网诊断的 errors／warnings／expectedHttpErrors／apiRequests 全空。
+- 正常 TLS HTTP 8／8，无重定向或重试：HTML、主 JS、CSS、Rapier、旧 neutral-human-v2 和当前 Quaternius GLB 六静态文件逐字节／SHA 等于冻结 dist，另 health／capabilities 两次只读 GET。native30 的 bindings／script_runtime 与 native29 精确一致，保留 ASSETS、AI、两项限频、SPA 回退、API Worker-first 与安全 headers；本次无 AI 推理或服务端数据库写入。
+- 实际运行源码 fe7e3f7 的 [CI 38225462553](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38225462553)／job114731761425／attempt1 于 16:58:19（UTC+8）completed／failure：55 浏览器通过、1 私有附件跳过、1 失败。缺音乐备份例 `backup.spec.ts:265` 已通过；唯一失败为 `point-editing.spec.ts:273` 仍要求手机画布高至少 633px，新停靠布局实际 438px。未改该断言或重跑 CI；c3b7988 相对 fe7e3f7 仅修改两份 Markdown，受 paths-ignore 规则影响没有新的准确 head 检查。限定烟测通过不替代完整 CI 通过。
+
+验证前后 209 个 tracked 文件和 26 个 dist 文件 SHA 均不变；Root 实际查看桌面／390px 布局及手机缺音乐菜单三张公网截图，确认 Timeline 位于舞台下方，临时下载提示仍可遮挡部分人物／工具。原始 native version／deployment、HTTP、浏览器及 CI 收据保留在任务 work 目录；详见[验证记录](VERIFICATION.md)。下方“未部署”及旧失败均为此前会话的历史结果。
+
 ## 2026-10-12 · 舞台／Timeline 双主区域布局（已推送 main，未部署）
 
 源码已提交并推送到 GitHub main。本会话没有 Cloudflare 凭据，未上传新版本；线上预览仍为上一条记录中的 native29 版本，需在有凭据的环境中执行部署并记录实际版本。
