@@ -1,3 +1,4 @@
+import type { SceneAudioClip } from './audioTracks';
 import { JOINT_NAMES, type JointName } from '../../../packages/core/src';
 
 export type SceneVector3 = [number, number, number];
@@ -52,6 +53,8 @@ export type SceneDocument<TProject, TViewer = SceneViewer> = {
   project: TProject;
   audio: Blob | null;
   audioName: string;
+  /** Bytes for additional audio tracks, keyed by the track id used in history. */
+  audioClips?: SceneAudioClip[];
   viewer: TViewer;
 };
 
@@ -71,6 +74,7 @@ export function createScene<TProject, TViewer = SceneViewer>(input: {
   project: TProject;
   audio: Blob | null;
   audioName: string;
+  audioClips?: SceneAudioClip[];
   viewer?: TViewer;
 }): SceneDocument<TProject, TViewer> {
   const timestamp = new Date().toISOString();
@@ -80,6 +84,7 @@ export function createScene<TProject, TViewer = SceneViewer>(input: {
     coordinateSystem: { handedness: 'right', upAxis: '+Y', forwardAxis: '+Z', units: 'm', floorPlane: 'XZ', origin: [0, 0, 0] },
     actor: { id: 'actor-1', rigId: 'synthetic-skeleton-1', provenance: 'synthetic-demo', joints: [...JOINT_NAMES] },
     project: input.project, audio: input.audio, audioName: input.audioName,
+    ...(input.audioClips?.length ? { audioClips: [...input.audioClips] } : {}),
     viewer: input.viewer ?? defaultSceneViewer() as TViewer,
   };
 }

@@ -725,6 +725,7 @@ describe('complete local scene backup', () => {
     const file = await encodeSceneBackup(fixture());
     for (const mutate of [
       (data: any) => { data.format = 'choreo-scene-bundle-3'; },
+      (data: any) => { data.format = 'choreo-scene-bundle-4'; },
       (data: any) => { data.audio.mimeType = 'text/html'; },
       (data: any) => { data.audio.sha256 = 'g'.repeat(64); },
       (data: any) => { data.audio.byteLength = 0.5; },
@@ -733,7 +734,7 @@ describe('complete local scene backup', () => {
   });
 
   it('bounds total file and audio sizes before allocating their contents, and bounds header reads by the prefix', async () => {
-    class OversizedFile extends Blob { get size() { return 133 * 1024 * 1024; } }
+    class OversizedFile extends Blob { get size() { return 333 * 1024 * 1024; } }
     const huge = new OversizedFile(['unused']); const slice = vi.spyOn(huge, 'slice'); const read = vi.spyOn(huge, 'arrayBuffer');
     await expect(decodeSceneBackup(huge)).rejects.toThrow('大小上限'); expect(slice).not.toHaveBeenCalled(); expect(read).not.toHaveBeenCalled();
     const file = await encodeSceneBackup(fixture()); const { bytes, magicLength, prefixLength } = await bundleParts(file);
@@ -794,5 +795,77 @@ describe('complete local scene backup', () => {
   it('rejects nonfinite numbers even though native JSON permits exponent overflow', async () => {
     const json = await legacy(fixture()).text();
     await expect(decodeSceneBackup(new Blob([json.replace('"audioDuration":40', '"audioDuration":1e999')]))).rejects.toThrow('有限数字');
+  });
+});
+
+describe('additional audio tracks', () => {
+  const clipA = new Blob([new Uint8Array([1, 2, 3, 4, 5])], { type: 'audio/mpeg' });
+  const clipB = new Blob([new Uint8Array([9, 8, 7])], { type: '' });
+  function tracksFixture() {
+    const scene = fixture();
+    scene.project.history[0].audioTracks = [{ id: 'track-a', name: 'drums.mp3', offsetSeconds: 2, durationSeconds: 12.5 }];
+    scene.project.history[1].audioTracks = [
+      { id: 'track-a', name: 'drums.mp3', offsetSeconds: -1, durationSeconds: 12.5, muted: true },
+      { id: 'track-b', name: 'voice.wav', offsetSeconds: 31 / 30, durationSeconds: 3 },
+    ];
+    scene.audioClips = [{ id: 'track-a', blob: clipA }, { id: 'track-b', blob: clipB }, { id: 'unused', blob: clipB }];
+    return scene;
+  }
+
+  it('round-trips every track placement, mute state and exact clip bytes in a full bundle without changing the main music', async () => {
+    const source = tracksFixture(), original = structuredClone(source.project);
+    const file = await encodeSceneBackup(source);
+    const { rawHeader } = await bundleParts(file);
+    expect(rawHeader.format).toBe('choreo-scene-bundle-3');
+    expect(rawHeader.audioTracks.map((clip: { id: string }) => clip.id)).toEqual(['track-a', 'track-b']);
+    const imported = await decodeSceneBackup(file);
+    expect(imported.scene.project).toEqual({ ...original, teacherCheckedRevision: null });
+    expect(await imported.scene.audio!.arrayBuffer()).toEqual(await source.audio!.arrayBuffer());
+    expect(imported.scene.audioClips!.map(clip => clip.id)).toEqual(['track-a', 'track-b']);
+    expect(new Uint8Array(await imported.scene.audioClips![0].blob.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3, 4, 5]));
+    expect(new Uint8Array(await imported.scene.audioClips![1].blob.arrayBuffer())).toEqual(new Uint8Array([9, 8, 7]));
+  });
+
+  it('keeps scenes without extra tracks on the original bundle-2 layout', async () => {
+    const { rawHeader } = await bundleParts(await encodeSceneBackup(fixture()));
+    expect(rawHeader.format).toBe('choreo-scene-bundle-2');
+    expect(rawHeader).not.toHaveProperty('audioTracks');
+  });
+
+  it('keeps track placements in project-only JSON while their audio is reported missing by omission', async () => {
+    const imported = await decodeSceneBackup(encodeSceneJsonBackup(tracksFixture()));
+    expect(imported.scene.project.history[1].audioTracks).toHaveLength(2);
+    expect(imported.scene).not.toHaveProperty('audioClips');
+  });
+
+  it('rejects damaged, truncated or unreferenced track audio', async () => {
+    const file = await encodeSceneBackup(tracksFixture());
+    const { bytes } = await bundleParts(file); bytes[bytes.length - 1] ^= 1;
+    await expect(decodeSceneBackup(new Blob([bytes]))).rejects.toThrow('音轨音频校验失败');
+    await expect(decodeSceneBackup(file.slice(0, file.size - 1))).rejects.toThrow('截断');
+    const parts = await bundleParts(file);
+    const header = { ...parts.rawHeader, audioTracks: [...parts.rawHeader.audioTracks, { id: 'ghost', byteLength: 1, mimeType: 'audio/wav', sha256: 'a'.repeat(64) }] };
+    const encoded = new TextEncoder().encode(JSON.stringify(header));
+    const prefix = parts.bytes.slice(0, parts.prefixLength); new DataView(prefix.buffer).setUint32(parts.magicLength, encoded.byteLength, true);
+    await expect(decodeSceneBackup(new Blob([prefix, encoded, parts.audio, new Uint8Array([0])]))).rejects.toThrow('未被任何音轨使用');
+  });
+
+  it.each([
+    [{ id: 'bad id!', name: 'a', offsetSeconds: 0, durationSeconds: 1 }, 'ID'],
+    [{ id: 'a', name: '', offsetSeconds: 0, durationSeconds: 1 }, '名称'],
+    [{ id: 'a', name: 'a', offsetSeconds: 0.01, durationSeconds: 1 }, '整帧'],
+    [{ id: 'a', name: 'a', offsetSeconds: -1, durationSeconds: 1 }, '场景内'],
+    [{ id: 'a', name: 'a', offsetSeconds: 100, durationSeconds: 1 }, '场景内'],
+    [{ id: 'a', name: 'a', offsetSeconds: 0, durationSeconds: 601 }, '时长'],
+    [{ id: 'a', name: 'a', offsetSeconds: 0, durationSeconds: 1, muted: 'yes' }, '静音'],
+    [{ id: 'a', name: 'a', offsetSeconds: 0, durationSeconds: 1, gain: 2 }, '字段'],
+  ])('rejects invalid track %j', async (track, message) => {
+    await expect(decodeSceneBackup(legacy(fixture(), data => { data.scene.project.history[1].audioTracks = [track]; }))).rejects.toThrow(message);
+  });
+
+  it('rejects duplicate track ids and more than eight tracks in one snapshot', async () => {
+    const track = { id: 'a', name: 'a', offsetSeconds: 0, durationSeconds: 1 };
+    await expect(decodeSceneBackup(legacy(fixture(), data => { data.scene.project.history[1].audioTracks = [track, track]; }))).rejects.toThrow('重复');
+    await expect(decodeSceneBackup(legacy(fixture(), data => { data.scene.project.history[1].audioTracks = Array.from({ length: 9 }, (_, index) => ({ ...track, id: `t${index}` })); }))).rejects.toThrow('数量');
   });
 });

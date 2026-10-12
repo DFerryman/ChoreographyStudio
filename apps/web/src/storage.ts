@@ -195,7 +195,7 @@ export async function duplicateScene<TProject, TViewer = SceneViewer>(id: string
   if (!original) return null;
   return saveScene(createScene({
     name: name?.trim() || `${original.name} 副本`, project: original.project,
-    audio: original.audio, audioName: original.audioName, viewer: original.viewer,
+    audio: original.audio, audioName: original.audioName, audioClips: original.audioClips, viewer: original.viewer,
   }));
 }
 

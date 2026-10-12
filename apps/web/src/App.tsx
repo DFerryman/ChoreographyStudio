@@ -15,6 +15,8 @@ import { createScene, type SceneDocument, type SceneMetadata, type SceneViewer }
 import { decodeSceneBackup, encodeSceneBackup, encodeSceneJsonBackup } from './sceneBackup';
 import type { SceneSnapshot as Snapshot, SceneProject as Session } from './sceneProject';
 import { snapAudioOffset } from './audioTimeline';
+import { AUDIO_TRACK_LIMITS, audioTrackName, fitAudioTracks, pruneAudioClips, snapAudioTrackOffset, type SceneAudioClip, type SceneAudioTrack } from './audioTracks';
+import { useAudioClipWaveforms, useAudioTrackMixer } from './useAudioTrackMixer';
 import { useModalFocus } from './useModalFocus';
 import { useEditorShortcuts } from './useEditorShortcuts';
 import { useTimelinePlayback } from './useTimelinePlayback';
@@ -50,6 +52,13 @@ type NamedTarget = { id: string; name: string };
 const DEFAULT_CAMERA: StageCamera = { position: [2.4, 1.85, 4], target: [0, 1.04, 0], zoom: 1 };
 const cameraMatches = (a: StageCamera | null, b: StageCamera) => !!a && [...a.position, ...a.target, a.zoom ?? 1].every((value, index) => Math.abs(value - [...b.position, ...b.target, b.zoom ?? 1][index]) < 1e-6);
 const nextFrame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+const NO_AUDIO_TRACKS: SceneAudioTrack[] = [];
+
+async function decodeAudioDuration(blob: Blob): Promise<number> {
+  const context = new AudioContext();
+  try { return (await context.decodeAudioData(await blob.arrayBuffer())).duration; }
+  finally { await context.close().catch(() => {}); }
+}
 
 /** Explicitly record a camera key at an exact time, even when it equals the current view. */
 function withCameraKey(track: CameraTrack, time: number, camera: CameraPose, duration: number): CameraTrack {
@@ -88,6 +97,8 @@ export default function App() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioName, setAudioName] = useState(DEMO_AUDIO_NAME);
   const [audioUrl, setAudioUrl] = useState('');
+  /** Bytes of additional audio tracks; placements live in history snapshots. */
+  const [audioClips, setAudioClips] = useState<SceneAudioClip[]>([]);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
   const [rate, setRate] = useState(1);
@@ -118,6 +129,8 @@ export default function App() {
   const cameraRef = useRef<StageCamera | null>(null);
   const cameraGesture = useRef<CameraGesture | null>(null);
   const sessionRef = useRef(session);
+  const sceneIdRef = useRef(currentScene.id);
+  sceneIdRef.current = currentScene.id;
   const sceneChangeVersion = useRef(0);
 
   // ── AI candidates ─────────────────────────────────────────────────────────
@@ -160,6 +173,13 @@ export default function App() {
     beforePlay: cue.prepare,
   });
   const waveform = useAudioWaveform(audioBlob, active.countMap);
+  const audioTracks = active.audioTracks ?? NO_AUDIO_TRACKS;
+  useAudioTrackMixer({ clips: audioClips, tracks: audioTracks, time, playing, rate, sceneDuration: duration, getTime: timelinePlayback.getTime });
+  const trackWaveforms = useAudioClipWaveforms(audioClips);
+  const audioTrackLanes = useMemo(() => {
+    const present = new Set(audioClips.map(clip => clip.id));
+    return audioTracks.map(track => ({ ...track, muted: !!track.muted, missing: !present.has(track.id), waveform: trackWaveforms[track.id] ?? [] }));
+  }, [audioTracks, audioClips, trackWaveforms]);
 
   /** Persistable viewer state; never contains candidates, ranges or selections. */
   function captureViewer(at = time): SceneViewer {
@@ -290,6 +310,66 @@ export default function App() {
     if (action.sceneId !== currentScene.id || action.countMapId !== active.countMap.id || playing || !editing || busy) return;
     if (action.offsetSeconds === (active.audioOffsetSeconds ?? 0)) return;
     commit({ ...active, audioOffsetSeconds: action.offsetSeconds }, { label: '移动音乐' });
+  }
+
+  // ── Additional audio tracks ───────────────────────────────────────────────
+  function audioTracksEditable() { return !playing && editing && !workLocked; }
+  /** Apply one track-list change to the latest committed snapshot as one history entry. */
+  function editAudioTracks(label: string, edit: (tracks: SceneAudioTrack[]) => SceneAudioTrack[] | null) {
+    if (!audioTracksEditable()) return;
+    finishCameraGesture();
+    const latest = sessionRef.current, snapshot = latest.history[latest.historyIndex];
+    const next = edit(snapshot.audioTracks ?? []);
+    if (!next) return;
+    const { audioTracks: _previous, ...rest } = snapshot;
+    commit(next.length ? { ...rest, audioTracks: next } : rest, { label });
+  }
+  /** Import another audio file onto a new track starting at the current time. */
+  async function addAudioTrack(file: File) {
+    if (!audioTracksEditable()) return;
+    if (audioTracks.length >= AUDIO_TRACK_LIMITS.tracks) { setNotice(`最多只能添加 ${AUDIO_TRACK_LIMITS.tracks} 条音轨。`); return; }
+    if (!file.size || file.size > AUDIO_TRACK_LIMITS.clipBytes) { setNotice('音轨音频必须在 100 MB 以内。'); return; }
+    const used = pruneAudioClips(audioClips, sessionRef.current).reduce((sum, clip) => sum + clip.blob.size, 0);
+    if (used + file.size > AUDIO_TRACK_LIMITS.totalBytes) { setNotice('全部音轨合计不能超过 200 MB。'); return; }
+    const target = { sceneId: currentScene.id, countMapId: active.countMap.id, time };
+    pause(); setBusy('正在读取音轨');
+    let durationSeconds: number;
+    try { durationSeconds = await decodeAudioDuration(file); }
+    catch { setNotice('无法解码这个音频文件，请选择浏览器支持的音频格式。'); return; }
+    finally { setBusy(''); }
+    if (!Number.isFinite(durationSeconds) || durationSeconds < AUDIO_TRACK_LIMITS.minDurationSeconds || durationSeconds > AUDIO_TRACK_LIMITS.maxDurationSeconds) { setNotice('音轨音频时长需在 10 分钟以内。'); return; }
+    const latest = sessionRef.current, snapshot = latest.history[latest.historyIndex];
+    if (sceneIdRef.current !== target.sceneId || snapshot.countMap.id !== target.countMapId) { setNotice('场景已经改变，音轨未添加。'); return; }
+    if ((snapshot.audioTracks?.length ?? 0) >= AUDIO_TRACK_LIMITS.tracks) { setNotice(`最多只能添加 ${AUDIO_TRACK_LIMITS.tracks} 条音轨。`); return; }
+    const id = crypto.randomUUID();
+    const offsetSeconds = snapAudioTrackOffset(target.time, durationSeconds, snapshot.countMap.durationSeconds);
+    setAudioClips(previous => [...previous, { id, blob: file }]);
+    finishCameraGesture();
+    const current = sessionRef.current.history[sessionRef.current.historyIndex];
+    commit({ ...current, audioTracks: [...current.audioTracks ?? [], { id, name: audioTrackName(file.name), offsetSeconds, durationSeconds }] }, { label: '添加音轨', time: target.time });
+    setNotice('已添加音轨。可拖动片段调整位置，选择音轨可静音或删除。');
+  }
+  function moveAudioTrack(id: string, offsetSeconds: number) {
+    editAudioTracks('移动音轨', tracks => {
+      const track = tracks.find(item => item.id === id);
+      if (!track) return null;
+      const snapped = snapAudioTrackOffset(offsetSeconds, track.durationSeconds, duration);
+      return snapped === track.offsetSeconds ? null : tracks.map(item => item.id === id ? { ...item, offsetSeconds: snapped } : item);
+    });
+  }
+  function toggleAudioTrackMute(id: string) {
+    const track = audioTracks.find(item => item.id === id);
+    if (!track) return;
+    editAudioTracks(track.muted ? '取消静音音轨' : '静音音轨', tracks => tracks.map(item => {
+      if (item.id !== id) return item;
+      const { muted: _muted, ...rest } = item;
+      return item.muted ? rest : { ...rest, muted: true };
+    }));
+  }
+  function removeAudioTrack(id: string) {
+    if (!audioTracksEditable()) return;
+    editAudioTracks('删除音轨', tracks => tracks.some(item => item.id === id) ? tracks.filter(item => item.id !== id) : null);
+    setNotice('已删除音轨；可撤销恢复。');
   }
 
   // ── History ───────────────────────────────────────────────────────────────
@@ -530,7 +610,7 @@ export default function App() {
     cancelAssistance(); setAssistCandidate(null); setPreviewAssist(false); pause(); music.close();
     const viewer = scene.viewer, map = scene.project.history[scene.project.historyIndex].countMap;
     setCurrentScene(scene); setSession(scene.project); sessionRef.current = scene.project;
-    setAudioBlob(scene.audio); setAudioName(scene.audioName);
+    setAudioBlob(scene.audio); setAudioName(scene.audioName); setAudioClips(scene.audioClips ?? []);
     setTime(Math.max(0, Math.min(map.durationSeconds, viewer.time)));
     setSelected(Math.max(0, Math.min(map.octetCount - 1, viewer.selectedSlot)));
     setView(viewer.view); setMirror(viewer.mirror); setRate(viewer.rate); setLoop(viewer.loop); setCountSound(viewer.countSound);
@@ -548,7 +628,7 @@ export default function App() {
     const version = sceneChangeVersion.current, snapshot = sessionRef.current;
     setSaveStatus('saving');
     await nextFrame();
-    const document: SceneDocument<Session> = { ...currentScene, project: snapshot, audio: audioBlob, audioName, viewer: captureViewer() };
+    const document: SceneDocument<Session> = { ...currentScene, project: snapshot, audio: audioBlob, audioName, audioClips: pruneAudioClips(audioClips, snapshot), viewer: captureViewer() };
     try {
       const saved = await saveScene(document);
       setCurrentScene(previous => previous.id === saved.id ? { ...previous, updatedAt: saved.updatedAt } : previous);
@@ -578,7 +658,7 @@ export default function App() {
         if (action.type === 'recoverAudio' && (action.sceneId !== currentScene.id || action.countMapId !== active.countMap.id)) throw new Error('恢复目标场景或数拍已改变，请重新关联音乐。');
         // Capture the current formal project now rather than the modal's older read-only preview.
         const document = action.type === 'import' ? action.scene : createScene({
-          name: action.name, project: { ...sessionRef.current, teacherCheckedRevision: null }, audio: action.audio, audioName: action.audioName, viewer: captureViewer(),
+          name: action.name, project: { ...sessionRef.current, teacherCheckedRevision: null }, audio: action.audio, audioName: action.audioName, audioClips: pruneAudioClips(audioClips, sessionRef.current), viewer: captureViewer(),
         });
         const saved = await saveScene(document);
         applyScene(saved); closeBackupImport();
@@ -643,9 +723,9 @@ export default function App() {
     const snapshot = sessionRef.current;
     try {
       await nextFrame();
-      const blob = await encodeSceneBackup({ ...currentScene, project: snapshot, audio: audioBlob, audioName, viewer: captureViewer(Math.max(0, Math.min(duration, capturedTime))) });
+      const blob = await encodeSceneBackup({ ...currentScene, project: snapshot, audio: audioBlob, audioName, audioClips, viewer: captureViewer(Math.max(0, Math.min(duration, capturedTime))) });
       downloadBlob(blob, `${safeFileName(currentScene.name)}.choreo`);
-      setNotice('已下载完整场景包，包含原音乐、动作、历史与相机。可从“场景”重新导入。');
+      setNotice('已下载完整场景包，包含原音乐、全部音轨、动作、历史与相机。可从“场景”重新导入。');
     } catch (error) { setNotice(`备份未完成：${errorMessage(error)}`); }
     finally { setBusy(''); }
   }
@@ -705,7 +785,7 @@ export default function App() {
     if (audioRecoveryTarget) {
       requestSceneAction({ type: 'recoverAudio', ...audioRecoveryTarget, audio: importScene.audio, audioName: importScene.audioName, name: importName }); return;
     }
-    const scene = createScene({ name: importName, project: { ...importScene.project, teacherCheckedRevision: null }, audio: importScene.audio, audioName: importScene.audioName, viewer: importScene.viewer });
+    const scene = createScene({ name: importName, project: { ...importScene.project, teacherCheckedRevision: null }, audio: importScene.audio, audioName: importScene.audioName, audioClips: importScene.audioClips, viewer: importScene.viewer });
     requestSceneAction({ type: 'import', scene });
   }
 
@@ -723,7 +803,10 @@ export default function App() {
     cameraGesture.current = null; setCameraRestoreExact(null); setCameraSelected(false); setCameraViewOverride(false);
     cancelAssistance(); music.close(); pause();
     setAudioBlob(draft.blob); setAudioName(draft.name); setTime(0); setSelected(0); setRange(null);
-    setSession(previous => ({ history: [neutralSnapshot(map, title || '未命名组合')], historyIndex: 0, revision: previous.revision + 1, audioDuration: draft.duration, teacherCheckedRevision: null }));
+    // Additional audio tracks are independent of the CountMap; keep those that still fit.
+    const keptTracks = fitAudioTracks(active.audioTracks, map.durationSeconds);
+    const neutral = neutralSnapshot(map, title || '未命名组合');
+    setSession(previous => ({ history: [keptTracks.length ? { ...neutral, audioTracks: keptTracks } : neutral], historyIndex: 0, revision: previous.revision + 1, audioDuration: draft.duration, teacherCheckedRevision: null }));
     setQueuedAction(null); markSceneDirty(); setPage('studio');
     setCurrentScene(previous => ({ ...previous, name: title || UNTITLED_SCENE_NAME }));
     setNotice('音乐和选段已确认。可用 AI 生成人物动作，并在时间线上编排镜头。');
@@ -811,6 +894,7 @@ export default function App() {
               loop={loop} onLoop={() => { setLoop(!loop); markSceneDirty(); }}
               camera={{ track: active.cameraTrack, value: cloneCameraPose(cameraValue), selected: cameraSelected, onSelect: selectCameraPoint, onAdd: addCameraPoint, onChange: changeCameraPoint, onMove: moveCameraPoint, onDelete: deleteCameraPoint, onDeselect: deselectCamera }}
               audio={{ name: audioName, offsetSeconds: active.audioOffsetSeconds ?? 0, durationSeconds: duration, waveform, onMove: moveAudio, disabled: !audioBlob }}
+              audioTracks={{ tracks: audioTrackLanes, canAdd: audioTracks.length < AUDIO_TRACK_LIMITS.tracks && !busy, onAdd: file => { void addAudioTrack(file); }, onMove: moveAudioTrack, onToggleMute: toggleAudioTrackMute, onRemove: removeAudioTrack }}
               transport={<PlaybackTransport playing={playing} disabled={!displayedTake || !ready || !audioBlob} time={time} duration={duration} count={`${countPosition.octet}-${countPosition.count}`} onToggle={() => { void togglePlay(); }} />}
               playbackOptions={<PlaybackOptions rate={rate} mirror={mirror} countSound={countSound}
                 onRate={value => { setRate(value); markSceneDirty(); }} onMirror={() => { setMirror(!mirror); markSceneDirty(); }} onCountSound={() => { setCountSound(!countSound); markSceneDirty(); }} />}

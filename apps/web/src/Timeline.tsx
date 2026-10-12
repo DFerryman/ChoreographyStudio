@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
-import { Camera, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Diamond, Maximize2, Music2, Plus, Repeat2, SkipBack, SkipForward, Trash2, X } from 'lucide-react';
+import { Camera, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Diamond, Maximize2, Music2, Plus, Repeat2, SkipBack, SkipForward, Trash2, Volume2, VolumeX, X } from 'lucide-react';
 import { frameAtTime, frameTime, lastFrame, type CameraPose, type CameraTrack, type Vec3 } from '../../../packages/core/src';
+import { audioTrackOffsetBounds } from './audioTracks';
 import { timelineAnchorAtFraction, timelineEdgeScroll, timelineMajorTickFrames, timelineTimeAtX, timelineWidth, timelineXAtTime, timelineZoomAtWidth } from './timelineGeometry';
 import './Timeline.css';
 
@@ -23,6 +24,17 @@ export type CameraTimelineProps = {
 
 export type AudioTimelineProps = { name: string; offsetSeconds: number; durationSeconds: number; waveform: number[]; onMove: (offsetSeconds: number) => void; disabled?: boolean };
 
+/** One additional imported audio file on its own track. */
+export type AudioTrackLane = { id: string; name: string; offsetSeconds: number; durationSeconds: number; waveform: number[]; muted: boolean; missing: boolean };
+export type AudioTracksTimelineProps = {
+  tracks: AudioTrackLane[];
+  canAdd: boolean;
+  onAdd: (file: File) => void;
+  onMove: (id: string, offsetSeconds: number) => void;
+  onToggleMute: (id: string) => void;
+  onRemove: (id: string) => void;
+};
+
 type TimelineProps = {
   duration: number;
   time: number;
@@ -39,6 +51,7 @@ type TimelineProps = {
   playbackOptions: ReactNode;
   camera: CameraTimelineProps;
   audio: AudioTimelineProps;
+  audioTracks: AudioTracksTimelineProps;
 };
 
 const SNAP_PIXELS = 6;
@@ -111,17 +124,18 @@ function CameraValues({ time, value, keyTime, duration, disabled, onChange, onMo
 
 type DragBase = { pointerId: number; element: HTMLElement; startX: number; pointerX: number; startContentX: number; moved: boolean };
 type CameraDrag = DragBase & { kind: 'camera'; sourceTime: number; targetTime: number };
-type AudioDrag = DragBase & { kind: 'audio'; sourceOffset: number; targetOffset: number };
+/** trackId is absent for the primary CountMap music. */
+type AudioDrag = DragBase & { kind: 'audio'; trackId?: string; trackDuration: number; sourceOffset: number; targetOffset: number };
 /** create: drag a new range from an anchor; start/end: move one edge; move: shift the whole range. */
 type RangeDrag = DragBase & { kind: 'range'; mode: 'create' | 'start' | 'end' | 'move'; anchor: number; source: TimelineRange | null; target: TimelineRange | null };
 type Drag = CameraDrag | AudioDrag | RangeDrag;
 
 /**
- * Two tracks — music and camera — over one shared time axis. A count row
+ * Music (plus any added audio tracks) and camera over one shared time axis. A count row
  * underneath the ruler selects ranges; character motion is never keyed here.
  */
 export function SceneTimeline(props: TimelineProps) {
-  const { duration, time, playing, readOnly, range, camera, audio } = props;
+  const { duration, time, playing, readOnly, range, camera, audio, audioTracks } = props;
   const end = lastFrame(duration);
   const frame = frameAtTime(time, duration);
   const locked = playing || readOnly;
@@ -132,6 +146,8 @@ export function SceneTimeline(props: TimelineProps) {
   const [scrubbing, setScrubbing] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [drag, setDrag] = useState<Drag | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
+  const trackFile = useRef<HTMLInputElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const rulerLabel = useRef<HTMLDivElement>(null);
   const moreDisclosure = useRef<HTMLDetailsElement>(null);
@@ -246,7 +262,8 @@ export function SceneTimeline(props: TimelineProps) {
     } else if (active.kind === 'audio') {
       const sourceX = timelineXAtTime(active.sourceOffset, laneWidth, duration);
       const bound = Math.max(0, end - 1) / 30;
-      active.targetOffset = Math.max(-bound, Math.min(bound, Math.round(timelineTimeAtX(sourceX + delta, laneWidth, duration) * 30) / 30));
+      const { min, max } = active.trackId ? audioTrackOffsetBounds(active.trackDuration, duration) : { min: -bound, max: bound };
+      active.targetOffset = Math.max(min, Math.min(max, Math.round(timelineTimeAtX(sourceX + delta, laneWidth, duration) * 30) / 30));
     } else {
       const pointer = Math.max(0, Math.min(duration, timelineTimeAtX(contentX, laneWidth, duration)));
       const snapped = snapToCounts(pointer, laneWidth);
@@ -277,7 +294,7 @@ export function SceneTimeline(props: TimelineProps) {
   }
   function beginDrag(event: ReactPointerEvent<HTMLElement>, payload: Omit<CameraDrag, keyof DragBase> | Omit<AudioDrag, keyof DragBase> | Omit<RangeDrag, keyof DragBase>) {
     if (event.button !== 0 || !event.isPrimary || (payload.kind === 'range' ? playing : locked) || dragRef.current || panRef.current || scrubRef.current) return;
-    if (payload.kind === 'audio' && audio.disabled) return;
+    if (payload.kind === 'audio' && (payload.trackId ? audioTracks.tracks.find(track => track.id === payload.trackId)?.missing !== false : audio.disabled)) return;
     event.stopPropagation();
     const active = { ...payload, pointerId: event.pointerId, element: event.currentTarget, startX: event.clientX, pointerX: event.clientX, startContentX: laneContentX(event.currentTarget, event.clientX), moved: false } as Drag;
     event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = active; setDrag(active);
@@ -306,6 +323,7 @@ export function SceneTimeline(props: TimelineProps) {
       return;
     }
     if (active.kind === 'camera' && active.sourceTime !== active.targetTime) camera.onMove(active.sourceTime, active.targetTime);
+    else if (active.kind === 'audio' && active.trackId) { if (active.sourceOffset !== active.targetOffset) audioTracks.onMove(active.trackId, active.targetOffset); }
     else if (active.kind === 'audio' && !audio.disabled && active.sourceOffset !== active.targetOffset) audio.onMove(active.targetOffset);
     else if (active.kind === 'range') props.onRange(active.target);
   }
@@ -315,7 +333,9 @@ export function SceneTimeline(props: TimelineProps) {
     onPointerCancel: () => finishDrag(true),
     onLostPointerCapture: (event: ReactPointerEvent<HTMLElement>) => { if (event.pointerId === dragRef.current?.pointerId) finishDrag(true); },
   };
-  useEffect(() => { finishDrag(true); }, [locked, audio.offsetSeconds, audio.name, audio.disabled, camera.track, duration]);
+  const trackSignature = audioTracks.tracks.map(track => `${track.id}:${track.offsetSeconds}:${track.missing}`).join('|');
+  useEffect(() => { finishDrag(true); }, [locked, audio.offsetSeconds, audio.name, audio.disabled, trackSignature, camera.track, duration]);
+  useEffect(() => { if (selectedTrack && !audioTracks.tracks.some(track => track.id === selectedTrack)) setSelectedTrack(null); }, [audioTracks.tracks, selectedTrack]);
   useEffect(() => () => { const active = dragRef.current; if (active?.element.hasPointerCapture(active.pointerId)) active.element.releasePointerCapture(active.pointerId); if (scrollAnimation.current !== null) cancelAnimationFrame(scrollAnimation.current); }, []);
 
   function beginRange(event: ReactPointerEvent<HTMLDivElement>) {
@@ -416,10 +436,12 @@ export function SceneTimeline(props: TimelineProps) {
   const shownRange = drag?.kind === 'range' && drag.moved ? drag.target : range;
   const rangeStyle = shownRange ? { left: `${position(shownRange.start)}%`, width: `${position(shownRange.end) - position(shownRange.start)}%` } : undefined;
   const rangeShade = shownRange && <span className="tl-range-shade" style={rangeStyle} aria-hidden="true" />;
-  const audioOffset = drag?.kind === 'audio' ? drag.targetOffset : audio.offsetSeconds;
+  const audioOffset = drag?.kind === 'audio' && !drag.trackId ? drag.targetOffset : audio.offsetSeconds;
   const audioLeft = timelineXAtTime(audioOffset, timeWidth, duration);
   const audioWidth = timelineXAtTime(audioOffset + audio.durationSeconds, timeWidth, duration) - audioLeft;
   const inRange = !!range && time >= range.start - 1e-9 && time <= range.end + 1e-9;
+  const trackIndex = selectedTrack ? audioTracks.tracks.findIndex(track => track.id === selectedTrack) : -1;
+  const shownTrack = trackIndex >= 0 ? audioTracks.tracks[trackIndex] : null;
   const navigate = (next: number) => { if (!playing) props.onTime(Math.max(0, Math.min(duration, next))); };
 
   return <section className={`tl-timeline ${expanded ? '' : 'tl-collapsed'}`} aria-label="场景时间线" data-time={time} data-frame={frame}>
@@ -449,8 +471,8 @@ export function SceneTimeline(props: TimelineProps) {
       </div>}
       <details ref={moreDisclosure} className="tl-more" aria-label="更多时间线选项"><summary title="时间线选项">时间线选项</summary><div className="tl-popover">
         {props.playbackOptions}
-        <p>时间线只有音乐与镜头两条轨。人物动作由 AI 生成；在节拍行拖动可选择起止时间，双击某个八拍可整段选中，选区用于循环播放，并将作为 AI 只修改这一段的范围。</p>
-        <p>拖动音乐片段对齐节拍；选中镜头轨后拖动画面会在当前时间记录镜头，“＋”在当前时间记录当前视角，菱形可拖动改时间。</p>
+        <p>时间线包含音乐（可添加多条音轨）与镜头轨。人物动作由 AI 生成；在节拍行拖动可选择起止时间，双击某个八拍可整段选中，选区用于循环播放，并将作为 AI 只修改这一段的范围。</p>
+        <p>拖动音乐片段对齐节拍；音乐轨的“＋”可导入更多音频，每个文件放在独立音轨上，可分别拖动、静音或删除。选中镜头轨后拖动画面会在当前时间记录镜头，“＋”在当前时间记录当前视角，菱形可拖动改时间。</p>
         <p>快捷键：Space 播放，←/→ 逐帧，Shift+←/→ 逐拍，Home/End 起止，I/O 设选区，Esc 清除选区，Delete 删除选中镜头关键帧，Ctrl/⌘+滚轮缩放。</p>
       </div></details>
       <button className="tl-collapse" aria-label={expanded ? '收起时间线' : '展开时间线'} aria-expanded={expanded} title={expanded ? '收起时间线' : '展开时间线'} onClick={() => { finishDrag(true); finishPan(true); finishScrub(); setExpanded(!expanded); }}>{expanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}</button>
@@ -480,16 +502,42 @@ export function SceneTimeline(props: TimelineProps) {
             </span>}
           </div>
         </div>
-        <div className="tl-lane tl-audio-lane" data-track-id="audio" aria-label="音乐轨道"><div className="tl-lane-label"><Music2 size={11} /><span>音乐</span></div>
+        <div className="tl-lane tl-audio-lane" data-track-id="audio" aria-label="音乐轨道"><div className="tl-lane-label"><Music2 size={11} /><span className="tl-lane-name">音乐</span>
+            <button className="tl-add-key" aria-label="添加音轨" title={audioTracks.canAdd ? '导入另一个音频文件，放在新的音轨上（当前时间起）' : '音轨数量已达上限'} disabled={locked || !audioTracks.canAdd} onClick={() => trackFile.current?.click()}><Plus size={11} /></button>
+            <input ref={trackFile} type="file" accept="audio/*" hidden aria-label="选择音轨音频文件" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) audioTracks.onAdd(file); }} />
+          </div>
           <div className="tl-lane-track tl-pannable tl-audio-content" onClick={seekLane}>
             {rangeShade}
             <button className={`tl-audio-clip ${drag?.kind === 'audio' && drag.moved ? 'dragging' : ''}`} aria-label="移动音频片段" title={`${audio.name} · 拖动对齐音乐`} disabled={locked || audio.disabled} data-offset-seconds={audioOffset} data-duration-seconds={audio.durationSeconds}
-              style={{ left: `${audioLeft / timeWidth * 100}%`, width: `${audioWidth / timeWidth * 100}%` }} onPointerDown={event => beginDrag(event, { kind: 'audio', sourceOffset: audio.offsetSeconds, targetOffset: audio.offsetSeconds })} {...dragHandlers} onClick={event => event.stopPropagation()}>
+              style={{ left: `${audioLeft / timeWidth * 100}%`, width: `${audioWidth / timeWidth * 100}%` }} onPointerDown={event => beginDrag(event, { kind: 'audio', trackDuration: audio.durationSeconds, sourceOffset: audio.offsetSeconds, targetOffset: audio.offsetSeconds })} {...dragHandlers} onClick={event => event.stopPropagation()}>
               <svg className="tl-waveform" viewBox={`0 0 ${Math.max(wave.length, 1)} 24`} preserveAspectRatio="none" aria-hidden="true">{wave.map((value, index) => { const amplitude = Math.max(.5, Math.min(1, Math.abs(value)) * 11); return <line key={index} x1={index + .5} x2={index + .5} y1={12 - amplitude} y2={12 + amplitude} />; })}</svg>
               <span className="tl-audio-name" style={{ left: `${audioWidth > 0 ? Math.max(0, -audioLeft) / audioWidth * 100 : 0}%` }}>{drag?.kind === 'audio' && drag.moved ? `${audioOffset > 0 ? '+' : ''}${audioOffset.toFixed(3)} s` : audio.name}</span>
             </button>
           </div>
         </div>
+        {audioTracks.tracks.map((track, index) => {
+          const moving = drag?.kind === 'audio' && drag.trackId === track.id;
+          const offset = moving ? drag.targetOffset : track.offsetSeconds;
+          const left = timelineXAtTime(offset, timeWidth, duration);
+          const width = timelineXAtTime(offset + track.durationSeconds, timeWidth, duration) - left;
+          const trackWave = track.waveform.filter(Number.isFinite).slice(0, 160);
+          const number = index + 2;
+          return <div key={track.id} className={`tl-lane tl-audio-lane tl-extra-audio ${selectedTrack === track.id ? 'selected' : ''} ${track.muted ? 'muted' : ''}`} data-track-id={`audio-${track.id}`} aria-label={`音轨 ${number}`}>
+            <div className="tl-lane-label">
+              <button className="tl-track-select" aria-label={`选择音轨 ${number}`} aria-pressed={selectedTrack === track.id} title={`${track.name}${track.missing ? ' · 音频缺失' : ''}`} onClick={() => setSelectedTrack(selectedTrack === track.id ? null : track.id)}><Music2 size={11} /><span>音轨{number}</span></button>
+              <button className="tl-add-key" aria-label={track.muted ? `取消静音音轨 ${number}` : `静音音轨 ${number}`} aria-pressed={track.muted} title={track.muted ? '取消静音' : '静音'} disabled={locked} onClick={() => audioTracks.onToggleMute(track.id)}>{track.muted ? <VolumeX size={11} /> : <Volume2 size={11} />}</button>
+            </div>
+            <div className="tl-lane-track tl-pannable tl-audio-content" onClick={seekLane}>
+              {rangeShade}
+              <button className={`tl-audio-clip ${moving && drag.moved ? 'dragging' : ''} ${track.missing ? 'missing' : ''}`} aria-label={`移动音轨 ${number} 片段`} title={`${track.name}${track.missing ? ' · 音频缺失，请删除后重新添加' : ' · 拖动调整位置'}`} disabled={locked || track.missing}
+                data-offset-seconds={offset} data-duration-seconds={track.durationSeconds}
+                style={{ left: `${left / timeWidth * 100}%`, width: `${width / timeWidth * 100}%` }} onPointerDown={event => beginDrag(event, { kind: 'audio', trackId: track.id, trackDuration: track.durationSeconds, sourceOffset: track.offsetSeconds, targetOffset: track.offsetSeconds })} {...dragHandlers} onClick={event => { event.stopPropagation(); setSelectedTrack(track.id); }}>
+                <svg className="tl-waveform" viewBox={`0 0 ${Math.max(trackWave.length, 1)} 24`} preserveAspectRatio="none" aria-hidden="true">{trackWave.map((value, bin) => { const amplitude = Math.max(.5, Math.min(1, Math.abs(value)) * 11); return <line key={bin} x1={bin + .5} x2={bin + .5} y1={12 - amplitude} y2={12 + amplitude} />; })}</svg>
+                <span className="tl-audio-name" style={{ left: `${width > 0 ? Math.max(0, -left) / width * 100 : 0}%` }}>{moving && drag.moved ? `${offset > 0 ? '+' : ''}${offset.toFixed(3)} s` : `${track.name}${track.missing ? '（缺失）' : ''}`}</span>
+              </button>
+            </div>
+          </div>;
+        })}
         <div className={`tl-lane tl-camera-lane ${camera.selected ? 'selected' : ''}`} data-track-id="camera" aria-label="镜头轨道">
           <div className="tl-lane-label">
             <button className="tl-track-select" aria-label="选择镜头轨道" aria-pressed={camera.selected} title={camera.selected ? '镜头录制中：调整画面会在当前时间记录' : '选中后调整画面会在当前时间记录镜头'} onClick={() => selectCamera(time)}><Camera size={11} /><span>镜头</span><span className="tl-key-count">{cameraKeys.length}</span></button>
@@ -508,6 +556,12 @@ export function SceneTimeline(props: TimelineProps) {
           </div>
         </div>
       </div>
+    </div>}
+    {shownTrack && <div className="tl-camera-bar tl-track-bar" role="group" aria-label="音轨设置">
+      <span className="tl-camera-status"><Music2 size={12} />{`音轨 ${trackIndex + 2} · ${shownTrack.name} · 起点 ${seconds(shownTrack.offsetSeconds)} · 时长 ${seconds(shownTrack.durationSeconds)}${shownTrack.missing ? ' · 音频缺失' : ''}`}</span>
+      <button aria-label={shownTrack.muted ? '取消静音所选音轨' : '静音所选音轨'} aria-pressed={shownTrack.muted} disabled={locked} onClick={() => audioTracks.onToggleMute(shownTrack.id)}>{shownTrack.muted ? <VolumeX size={12} /> : <Volume2 size={12} />}{shownTrack.muted ? '取消静音' : '静音'}</button>
+      <button className="tl-danger" aria-label="删除所选音轨" disabled={locked} onClick={() => audioTracks.onRemove(shownTrack.id)}><Trash2 size={12} />删除</button>
+      <button aria-label="关闭音轨设置" onClick={() => setSelectedTrack(null)}>完成</button>
     </div>}
     {camera.selected && <div className="tl-camera-bar" role="group" aria-label="镜头关键帧">
       <span className="tl-camera-status"><Camera size={12} />{playing ? '镜头轨 · 播放中' : cameraKey ? `镜头关键帧 ${cameraTimes.indexOf(time) + 1} / ${cameraTimes.length} · ${seconds(time)}` : `镜头录制 · ${seconds(time)} · 调整画面即记录`}</span>

@@ -5,6 +5,7 @@ import { MAX_FOOT_LOCKS, type FootLock } from '../../../packages/core/src/footLo
 import { packScene, unpackScene } from './compactScene';
 import { SCENE_CAMERA_TRACK_LIMITS, validateProjectCameraTracks } from './sceneCameraTrack';
 import { PLAYBACK_RATES } from './playbackRates';
+import { AUDIO_TRACK_LIMITS, pruneAudioClips, referencedAudioClipIds, validateAudioTracks, type SceneAudioClip, type SceneAudioTrack } from './audioTracks';
 
 export const SCENE_BACKUP_LIMITS = {
   headerBytes: 32 * 1024 * 1024,
@@ -12,11 +13,14 @@ export const SCENE_BACKUP_LIMITS = {
   history: 12,
   totalSamples: 150_000,
   totalCameraKeys: SCENE_CAMERA_TRACK_LIMITS.totalKeys,
+  audioClips: AUDIO_TRACK_LIMITS.tracks * 12,
+  audioClipBytes: AUDIO_TRACK_LIMITS.clipBytes,
+  totalAudioClipBytes: AUDIO_TRACK_LIMITS.totalBytes,
 } as const;
 export const SCENE_BUNDLE_MAGIC = 'CHOREO-BUNDLE-1\n';
 const magic = new TextEncoder().encode(SCENE_BUNDLE_MAGIC);
 const prefixBytes = magic.length + 4;
-const maxFileBytes = prefixBytes + SCENE_BACKUP_LIMITS.headerBytes + SCENE_BACKUP_LIMITS.audioBytes;
+const maxFileBytes = prefixBytes + SCENE_BACKUP_LIMITS.headerBytes + SCENE_BACKUP_LIMITS.audioBytes + SCENE_BACKUP_LIMITS.totalAudioClipBytes;
 const forbiddenKeys = new Set(['__proto__', 'prototype', 'constructor']);
 const joints = new Set<string>(JOINT_NAMES);
 const editable = new Set<string>(EDITABLE_JOINT_NAMES);
@@ -297,13 +301,18 @@ function validateProject(value: unknown, context: ValidationContext): SceneProje
   const audioDuration = finite(object.audioDuration, '原音频时长');
   if (audioDuration < 16 || audioDuration > 600) fail('原音频必须是 16 秒至 10 分钟。');
   const history: SceneSnapshot[] = array(object.history, 1, SCENE_BACKUP_LIMITS.history, '历史').map(value => {
-    const snapshot = record(value, ['title', 'countMap', 'plan', 'take'], ['manual', 'cameraTrack', 'audioOffsetSeconds', 'operation'], '历史条目', context);
+    const snapshot = record(value, ['title', 'countMap', 'plan', 'take'], ['manual', 'cameraTrack', 'audioOffsetSeconds', 'audioTracks', 'operation'], '历史条目', context);
     const countMap = validateCountMap(snapshot.countMap, audioDuration, context);
     let audioOffsetSeconds: number | undefined;
     if (own(snapshot, 'audioOffsetSeconds')) {
       audioOffsetSeconds = finite(snapshot.audioOffsetSeconds, '音乐轨偏移');
       if (Math.abs(audioOffsetSeconds) >= countMap.durationSeconds) fail('音乐轨偏移必须保留场景内的选段。');
       if (Math.abs(audioOffsetSeconds * 30 - Math.round(audioOffsetSeconds * 30)) > 1e-9) fail('音乐轨偏移必须对齐 30 fps 整帧。');
+    }
+    let audioTracks: SceneAudioTrack[] | undefined;
+    if (own(snapshot, 'audioTracks')) {
+      try { audioTracks = validateAudioTracks(snapshot.audioTracks, countMap.durationSeconds); }
+      catch (error) { fail(error instanceof Error ? error.message : '音轨格式无效。'); }
     }
     const plan = validatePlan(snapshot.plan, countMap, context);
     const take = snapshot.take === null ? null : validateTake(snapshot.take, countMap, takeContext);
@@ -312,7 +321,7 @@ function validateProject(value: unknown, context: ValidationContext): SceneProje
     const manual = snapshot.manual === undefined ? undefined : validateManual(snapshot.manual, countMap, take!, takeContext);
     const cameraTrack = own(snapshot, 'cameraTrack') ? snapshot.cameraTrack as CameraTrack : undefined;
     const operation = snapshot.operation === undefined ? undefined : validateOperation(snapshot.operation, countMap.durationSeconds, context);
-    return { title: text(snapshot.title, '作品名称'), countMap, plan, take, ...(manual ? { manual } : {}), ...(cameraTrack !== undefined ? { cameraTrack } : {}), ...(audioOffsetSeconds !== undefined ? { audioOffsetSeconds } : {}), ...(operation !== undefined ? { operation } : {}) };
+    return { title: text(snapshot.title, '作品名称'), countMap, plan, take, ...(manual ? { manual } : {}), ...(cameraTrack !== undefined ? { cameraTrack } : {}), ...(audioOffsetSeconds !== undefined ? { audioOffsetSeconds } : {}), ...(audioTracks !== undefined ? { audioTracks } : {}), ...(operation !== undefined ? { operation } : {}) };
   });
   const revision = integer(object.revision, 1, Number.MAX_SAFE_INTEGER, '作品版本');
   const teacherCheckedRevision = object.teacherCheckedRevision === null ? null : integer(object.teacherCheckedRevision, 1, revision, '试看版本');
@@ -358,7 +367,7 @@ function validateViewer(value: unknown, project: SceneProject, context: Validati
   };
 }
 function validateScene(value: unknown, context: ValidationContext): SceneDocument<SceneProject> {
-  const object = record(value, ['schema', 'id', 'name', 'createdAt', 'updatedAt', 'coordinateSystem', 'actor', 'project', 'audioName', 'viewer'], ['audio'], '场景', context);
+  const object = record(value, ['schema', 'id', 'name', 'createdAt', 'updatedAt', 'coordinateSystem', 'actor', 'project', 'audioName', 'viewer'], ['audio', 'audioClips'], '场景', context);
   if (object.schema !== 'choreo-scene-1') fail('场景版本不受支持。');
   const coordinates = record(object.coordinateSystem, ['handedness', 'upAxis', 'forwardAxis', 'units', 'floorPlane', 'origin'], [], '坐标空间', context);
   const origin = vector(coordinates.origin, 3, '坐标原点');
@@ -438,10 +447,25 @@ export async function encodeSceneBackup(scene: SceneDocument<SceneProject>): Pro
   const sanitized = validateScene(scene, { strict: false });
   const { audio: _audio, ...document } = sanitized;
   const audio = { byteLength: audioBlob.size, mimeType, sha256: await digest(audioBlob) };
-  const header = new TextEncoder().encode(JSON.stringify({ format: 'choreo-scene-bundle-2', scene: packScene(document), audio }));
+  // Only clips referenced by retained history travel with the scene.
+  const clips = pruneAudioClips(scene.audioClips ?? [], document.project);
+  if (clips.length > SCENE_BACKUP_LIMITS.audioClips) fail('音轨数量超出备份范围。');
+  let clipBytes = 0;
+  const audioTracks = await Promise.all(clips.map(async clip => {
+    if (!(clip.blob instanceof Blob) || clip.blob.size < 1 || clip.blob.size > SCENE_BACKUP_LIMITS.audioClipBytes) fail('每条音轨需为不超过 100 MiB 的音频。');
+    clipBytes += clip.blob.size;
+    const type = clip.blob.type || 'application/octet-stream';
+    if (!safeAudioType(type)) fail('音轨 MIME 类型不受支持。');
+    return { id: clip.id, byteLength: clip.blob.size, mimeType: type, sha256: await digest(clip.blob) };
+  }));
+  if (clipBytes > SCENE_BACKUP_LIMITS.totalAudioClipBytes) fail('全部音轨合计超过 200 MiB。');
+  // Scenes without extra tracks keep the original bundle-2 layout byte for byte.
+  const header = new TextEncoder().encode(JSON.stringify(audioTracks.length
+    ? { format: 'choreo-scene-bundle-3', scene: packScene(document), audio, audioTracks }
+    : { format: 'choreo-scene-bundle-2', scene: packScene(document), audio }));
   if (header.byteLength > SCENE_BACKUP_LIMITS.headerBytes) fail('场景数据超过 32 MiB，请减少历史或采样数据。');
   const prefix = new Uint8Array(prefixBytes); prefix.set(magic); new DataView(prefix.buffer).setUint32(magic.length, header.byteLength, true);
-  return new Blob([prefix, header, audioBlob], { type: 'application/octet-stream' });
+  return new Blob([prefix, header, audioBlob, ...clips.map(clip => clip.blob)], { type: 'application/octet-stream' });
 }
 
 /** Lossless project-only export uses the same shared authority tables as full bundles. */
@@ -470,18 +494,46 @@ export async function decodeSceneBackup(file: Blob): Promise<{ scene: SceneDocum
   if (prefix.length !== prefixBytes) fail('完整备份文件头不完整。');
   const headerLength = new DataView(prefix.buffer, prefix.byteOffset, prefix.byteLength).getUint32(magic.length, true);
   if (!headerLength || headerLength > SCENE_BACKUP_LIMITS.headerBytes || prefixBytes + headerLength >= file.size) fail('项目文件头长度无效或数据不完整。');
-  const header = record(parseJson(await file.slice(prefixBytes, prefixBytes + headerLength).arrayBuffer()), ['format', 'scene', 'audio'], [], '完整备份', { strict: true });
-  if (!['choreo-scene-bundle-1', 'choreo-scene-bundle-2'].includes(header.format as string)) fail('完整备份版本不受支持。');
+  const rawHeader = parseJson(await file.slice(prefixBytes, prefixBytes + headerLength).arrayBuffer());
+  const withTracks = !!rawHeader && typeof rawHeader === 'object' && (rawHeader as RecordValue).format === 'choreo-scene-bundle-3';
+  const header = record(rawHeader, withTracks ? ['format', 'scene', 'audio', 'audioTracks'] : ['format', 'scene', 'audio'], [], '完整备份', { strict: true });
+  if (!['choreo-scene-bundle-1', 'choreo-scene-bundle-2', 'choreo-scene-bundle-3'].includes(header.format as string)) fail('完整备份版本不受支持。');
   const metadata = record(header.audio, ['byteLength', 'mimeType', 'sha256'], [], '音频记录', { strict: true });
   const byteLength = integer(metadata.byteLength, 1, SCENE_BACKUP_LIMITS.audioBytes, '音频字节数');
-  if (file.size !== prefixBytes + headerLength + byteLength) fail('原音频缺失、截断或有多余数据。');
   const mimeType = text(metadata.mimeType, '音频 MIME 类型', 100), sha256 = text(metadata.sha256, '音频校验值', 64);
   if (!safeAudioType(mimeType) || !/^[a-f0-9]{64}$/.test(sha256)) fail('音频类型或 SHA-256 校验记录无效。');
-  const document = header.format === 'choreo-scene-bundle-2' ? unpackScene(header.scene) : header.scene;
+  const clipIds = new Set<string>();
+  let clipBytes = 0;
+  const clipRecords = (withTracks ? array(header.audioTracks, 1, SCENE_BACKUP_LIMITS.audioClips, '音轨音频') : []).map(value => {
+    const clip = record(value, ['id', 'byteLength', 'mimeType', 'sha256'], [], '音轨音频记录', { strict: true });
+    const id = text(clip.id, '音轨 ID', 64);
+    if (clipIds.has(id)) fail('音轨音频重复。');
+    clipIds.add(id);
+    const size = integer(clip.byteLength, 1, SCENE_BACKUP_LIMITS.audioClipBytes, '音轨字节数');
+    clipBytes += size;
+    if (clipBytes > SCENE_BACKUP_LIMITS.totalAudioClipBytes) fail('全部音轨合计超过 200 MiB。');
+    const type = text(clip.mimeType, '音轨 MIME 类型', 100), hash = text(clip.sha256, '音轨校验值', 64);
+    if (!safeAudioType(type) || !/^[a-f0-9]{64}$/.test(hash)) fail('音轨类型或 SHA-256 校验记录无效。');
+    return { id, size, type, hash };
+  });
+  if (file.size !== prefixBytes + headerLength + byteLength + clipBytes) fail('原音频或音轨缺失、截断或有多余数据。');
+  const document = header.format === 'choreo-scene-bundle-1' ? header.scene : unpackScene(header.scene);
   const scene = validateScene(document, { strict: true });
-  if ((document as RecordValue).audio !== undefined) fail('原音频必须作为独立二进制数据保存。');
-  const audio = file.slice(prefixBytes + headerLength, file.size, mimeType);
+  if ((document as RecordValue).audio !== undefined || (document as RecordValue).audioClips !== undefined) fail('原音频必须作为独立二进制数据保存。');
+  const used = referencedAudioClipIds(scene.project);
+  if (clipRecords.some(clip => !used.has(clip.id))) fail('备份含未被任何音轨使用的音频。');
+  let cursor = prefixBytes + headerLength;
+  const audio = file.slice(cursor, cursor + byteLength, mimeType);
+  cursor += byteLength;
   if (await digest(audio) !== sha256) fail('原音频校验失败，文件可能已损坏。');
+  const audioClips: SceneAudioClip[] = [];
+  for (const clip of clipRecords) {
+    const blob = file.slice(cursor, cursor + clip.size, clip.type);
+    cursor += clip.size;
+    if (await digest(blob) !== clip.hash) fail('音轨音频校验失败，文件可能已损坏。');
+    audioClips.push({ id: clip.id, blob });
+  }
   scene.audio = audio; scene.project.teacherCheckedRevision = null;
+  if (audioClips.length) scene.audioClips = audioClips;
   return { scene, needsAudio: false };
 }

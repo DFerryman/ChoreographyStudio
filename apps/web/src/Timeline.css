@@ -146,3 +146,12 @@
   .tl-range-handle::after { left: 9px; }
   .tl-camera-bar > button { min-height: 44px; min-width: 44px; justify-content: center; padding: 0 6px; }
 }
+
+/* Additional audio tracks: one lane per imported file. */
+.tl-lane-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl-extra-audio.muted .tl-audio-clip { opacity: .45; }
+.tl-audio-clip.missing { border-style: dashed; background: transparent; }
+@media (max-width: 680px) {
+  .tl-extra-audio .tl-track-select > svg, .tl-audio-lane > .tl-lane-label > svg { display: none; }
+  .tl-extra-audio .tl-track-select { overflow: hidden; }
+}

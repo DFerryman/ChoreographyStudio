@@ -1,3 +1,4 @@
+import type { SceneAudioTrack } from './audioTracks';
 import type { ArrangementPlan, BakedTake, CameraTrack, CountMap, JointName, KeyframeSequence } from '../../../packages/core/src';
 
 /** A committed operation; older snapshots may omit this without being rewritten. */
@@ -18,6 +19,8 @@ export type SceneSnapshot = {
   cameraTrack?: CameraTrack;
   /** Placement of the unchanged selected music segment on the scene timeline. */
   audioOffsetSeconds?: number;
+  /** Additional imported audio, each on its own track; clip bytes live on the scene. */
+  audioTracks?: SceneAudioTrack[];
   operation?: SceneOperation;
 };
 
