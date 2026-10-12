@@ -1,5 +1,15 @@
 # 预览验证记录
 
+## 2026-10-12 · 舞台／Timeline 联动与触控（本地验证）
+
+依据 Notion 产品规格的长期编辑标准、持续前端目标和界面规范，本轮先把需求写入 Notion（产品规格、开发计划、验收页），再改代码：轨头悬停／聚焦高亮舞台关节点，手机 Timeline 工具条按钮 44px，320／390px 无横向溢出。
+
+- 上一提交 fe7e3f7 的准确 CI [38225462553](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38225462553)／job 114731761425／attempt 1 实际失败：55 通过、1 私有附件跳过、1 失败，12.3 分钟。前一轮失败的 backup.spec.ts:265（缺失音乐提示遮住菜单）在该 CI 中已通过。唯一失败 point-editing.spec.ts:273 断言 390px 下画布高度 ≥ 844×0.75（实际 438），这一断言表达的是旧的“Timeline 覆盖舞台”布局；本轮按新布局把它改为：画布不被 Timeline 覆盖、二者合计占满顶栏以下区域的 95% 以上、画布高度 ≥ 844×0.4。本地在 390×844 实测：画布底 447 ≤ Timeline 顶 456，合计 792 ≥ 752.4，画布 395 ≥ 337.6（此用例在本环境更早处因下载文件名失败，不能本地跑到该行）。
+- `npm run check`：660／660（33 文件）、类型与构建通过；`npm run typecheck:worker` 通过。
+- 完整浏览器套件首轮：50 通过、1 跳过、6 失败。5 例为既有环境下载文件名 `download`；另 1 例 manual-workspace.spec.ts:45（390px）因手机 Timeline 默认高度由 42% 改为 47% 改变舞台像素尺寸，两次真实拖动的残差不再抵消（中点 −7.8e−6°，断言 1e−6 级）。恢复 42% 默认后，manual-workspace／timeline-zoom／timeline-samples／preview 共 16／16 通过；camera-track／capsule-collision／keyframe-point-transfer／music／point-editing 21 通过、1 跳过、2 失败（均为下载文件名）。
+- 320、390、1440px 实测页面 scrollWidth 等于视口宽度；390／320px 下 Timeline 工具条按钮均为 44×44。悬停“左臂”轨头时舞台左臂关节点放大高亮（截图检查）。
+- 本会话没有 Cloudflare 凭据，未部署本提交；线上仍为上方记录的 native30（c3b7988 停靠布局）。
+
 ## 2026-10-12 · 最新 main 的停靠布局发布复核（本地与有界公网通过，完整 CI 保留一项失败）
 
 拉取并快进到 `c3b7988f9458cdd6fb424c57300452eb10a86a71`／tree `f03d355653044268898e77453c8749041f8f407e`，不修改应用、测试或配置。Cloudflare native30 `6c2dc1e7-3b84-4768-974a-34fc97ccbbdc`／deployment `8f2b7e6f-aca6-4733-b7f9-ea6232114e0b` 已原生核对单一 100%，两处注释绑定准确源码／tree；[打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。

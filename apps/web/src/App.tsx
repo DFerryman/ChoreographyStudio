@@ -180,6 +180,8 @@ export default function App() {
   const toolHelp = describeTool();
 
   const timelineOverlayRef = useRef<HTMLDivElement>(null);
+  /** Body parts pointed at from Timeline track headers; display only. */
+  const [linkedJoints, setLinkedJoints] = useState<readonly JointName[] | null>(null);
   const timelineInset = useOverlayInset(timelineOverlayRef, !!manualSequence, 0);
   const timelinePlayback = useTimelinePlayback({
     restoreKey: `${currentScene.id}:${session.historyIndex}:${session.revision}`, audioRef, countMap: active.countMap, audioOffsetSeconds: active.audioOffsetSeconds ?? 0,
@@ -1083,7 +1085,7 @@ export default function App() {
                 cameraCancelKey={cameraCancelKey} cameraTrackEditing={cameraSelected && cameraCanEdit()} onCameraGesture={handleCameraGesture}
                 cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} cameraFocus={cameraFocus ?? undefined}
                 onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction}
-                selectedJoint={selectedJoint} onSelectJoint={chooseJoint} onJointPositionChange={handleJointPosition}
+                selectedJoint={selectedJoint} linkedJoints={linkedJoints} onSelectJoint={chooseJoint} onJointPositionChange={handleJointPosition}
                 poseOverride={manualEditing ? poseDraft : null} collisionPreview={collisionPreview || previewAssist || page === 'teaching'}
                 editMode={manualEditing && !cameraSelected && !workLocked} transformTool={activeTransformTool} playing={playing}
                 onJointRotationChange={handleJointRotation} onRootPositionChange={handleRootPosition} ikTarget={ikTarget} onIKTargetChange={handleIKTarget} onTransformCancel={cancelPointGesture} />
@@ -1095,7 +1097,7 @@ export default function App() {
               camera={{ track: active.cameraTrack, value: cloneCameraPose(cameraValue), selected: cameraSelected, onSelect: selectCameraPoint, onChange: changeCameraPoint, onMove: moveCameraPoint, onDelete: deleteCameraPoint }}
               audio={{ name: audioName, offsetSeconds: active.audioOffsetSeconds ?? 0, durationSeconds: duration, waveform, onMove: moveAudio, disabled: !audioBlob }}
               sequence={manualSequence} take={active.take ?? undefined} selectedJoint={selectedJoint} selectedPoint={selectedPoint} selectedTime={time}
-              onSelectPoint={selectMotionPoint} onSelectJoint={chooseJoint} onPointValueChange={changeMotionPointValue} onDeletePoint={deleteSelectedPoint}
+              onSelectPoint={selectMotionPoint} onSelectJoint={chooseJoint} onHoverJoints={setLinkedJoints} onPointValueChange={changeMotionPointValue} onDeletePoint={deleteSelectedPoint}
               frame={editorFrame} onFrame={frame => seek(frameTime(frame, duration))} playing={playing} mirror={mirror}
               readOnly={!manualEditing || workLocked} dirty={!!poseDraft} onTime={seek} onTransferKeyframes={requestKeyframeTransfer}
               transport={<PlaybackTransport playing={playing} disabled={!displayedTake || !ready || !audioBlob} time={time} duration={duration} onToggle={() => { void togglePlay(); }} />}

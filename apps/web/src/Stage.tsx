@@ -54,6 +54,8 @@ type StageProps = {
   /** Transient screen space reserved by a floating timeline; never saved with the camera. */
   bottomOverlayInset?: number;
   selectedJoint?: JointName | null;
+  /** Joints pointed at from the Timeline; highlighted for display only. */
+  linkedJoints?: readonly JointName[] | null;
   gridVisible?: boolean;
   axesVisible?: boolean;
   poseOverride?: Pose | null;
@@ -199,7 +201,7 @@ function StageFallback({ error }: { error: string }) {
 }
 
 export function Stage(props: StageProps) {
-  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selectedJoint, gridVisible, axesVisible, poseOverride, editMode, playing, collisionPreview, transformTool = 'rotate', ikTarget } = props;
+  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selectedJoint, linkedJoints, gridVisible, axesVisible, poseOverride, editMode, playing, collisionPreview, transformTool = 'rotate', ikTarget } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const current = useRef<StageProps & { renderPose: Pose | null; previewState: 'author' | 'loading' | 'ready' | 'error' }>({ ...props, renderPose: null, previewState: 'author' });
   const requestDraw = useRef<() => void>(() => {});
@@ -883,12 +885,13 @@ export function Stage(props: StageProps) {
       }
       for (const [name, marker] of rig.markers) {
         const selected = name === selectionRef.current;
-        const over = name === hovered;
-        marker.visible = !!state.editMode && !state.playing && (selected || over);
+        const linked = !!state.linkedJoints?.includes(name);
+        const over = name === hovered || linked;
+        marker.visible = !state.playing && ((!!state.editMode && selected) || over);
         marker.material.color.set(selected ? '#85b6db' : over ? '#eef6ff' : '#a4b7c8');
         marker.material.emissiveIntensity = selected ? 0.75 : over ? 0.45 : 0.16;
         const radius = name === 'Hips' ? .013 : name.includes('Tip') || name.endsWith('Toe') || name.endsWith('Heel') ? .006 : .008;
-        marker.scale.setScalar(radius * (selected ? 1.38 : over ? 1.18 : 1));
+        marker.scale.setScalar(radius * (selected ? 1.38 : linked ? 1.9 : over ? 1.18 : 1));
       }
       updateHumanoid(rig.humanSurface);
       scene.updateMatrixWorld(true);
@@ -1344,7 +1347,7 @@ export function Stage(props: StageProps) {
 
   useEffect(() => {
     requestDraw.current();
-  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selection, gridVisible, axesVisible, poseOverride, editMode, playing, collisionPreview, feedbackPose, previewState, transformTool, ikTarget]);
+  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selection, linkedJoints, gridVisible, axesVisible, poseOverride, editMode, playing, collisionPreview, feedbackPose, previewState, transformTool, ikTarget]);
 
   return (
     <div className="stage3d" ref={containerRef} data-camera-offset-y="0" data-motion-presentation={previewActive ? 'collision-preview' : 'author'} data-collision-preview-state={previewState} tabIndex={editMode ? 0 : undefined} role="region" aria-label="3D 动画舞台" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined} aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y Alt+ArrowUp Alt+ArrowDown' : undefined} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }} onKeyDown={event => {

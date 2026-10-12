@@ -270,7 +270,13 @@ test('@points 390px local Root editing and compact full-scene import retain the 
   await assertMinimalAutomaticEditor(page);
   const canvas = (await page.getByRole('img', { name: '人体编舞动作预览', exact: true }).boundingBox())!;
   expect(canvas.width).toBeGreaterThanOrEqual(390 * .95);
-  expect(canvas.height).toBeGreaterThanOrEqual(844 * .75);
+  // The Timeline is docked under the stage: together they fill the workspace
+  // below the top bar, the Timeline never covers the canvas, and the stage
+  // keeps a substantial share of the screen.
+  const timelineBox = (await timeline(page).boundingBox())!;
+  expect(canvas.y + canvas.height).toBeLessThanOrEqual(timelineBox.y + 1);
+  expect(timelineBox.y + timelineBox.height - canvas.y).toBeGreaterThanOrEqual((844 - 52) * .95);
+  expect(canvas.height).toBeGreaterThanOrEqual(844 * .4);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await closeDisclosures(page);
   await screenshot(page, info, 'point-edit-mobile.png');
