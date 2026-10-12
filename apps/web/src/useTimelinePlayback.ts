@@ -38,9 +38,9 @@ export function useTimelinePlayback(options: Options) {
   const controller = playback.current;
   useEffect(() => { controller.refresh(); }, [controller, options.countMap, options.audioOffsetSeconds, options.rate, options.loopRange?.startSeconds, options.loopRange?.endSeconds]);
   useEffect(() => {
-    // Scene restore/history can set time directly while stopped.
-    if (!controller.isPlaying() && !controller.isPending()) controller.seek(options.time);
-  }, [controller, options.time, options.countMap, options.restoreKey]);
+    // Restore external scene/history changes without feeding clock updates back.
+    if (!controller.isPlaying() && !controller.isPending()) controller.seek(latest.current.time);
+  }, [controller, options.countMap, options.restoreKey]);
   useEffect(() => {
     const sync = () => { if (!document.hidden) controller.syncAudio(); };
     document.addEventListener('visibilitychange', sync);

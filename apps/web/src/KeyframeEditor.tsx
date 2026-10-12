@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperti
 import { Camera, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Diamond, Minus, Music2, Plus, Trash2 } from 'lucide-react';
 import { frameAtTime, frameTime, lastFrame, sampleTake, type BakedTake, type CameraPose, type CameraTrack, type JointName, type KeyframeSequence, type KeyframeTransferInput, type KeyframeTransferScope, type Quat, type Vec3 } from '../../../packages/core/src';
 import { STAGE_JOINT_LABELS } from './Stage';
-import { timelineAnchorAtFraction, timelineDragFrame, timelineEdgeScroll, timelineMajorTickFrames, timelineTimeAtX, timelineWidth, timelineXAtTime } from './timelineGeometry';
+import { timelineAnchorAtFraction, timelineAnchorScroll, timelineDragFrame, timelineEdgeScroll, timelineMajorTickFrames, timelineTimeAtX, timelineWidth, timelineXAtTime } from './timelineGeometry';
 import './KeyframeEditor.css';
 
 type Point = JointName | 'root';
@@ -287,6 +287,11 @@ export function KeyframeTimeline(props: KeyframeTimelineProps) {
     if (anchor && viewport.current) viewport.current.scrollLeft = timelineAnchorAtFraction(anchor.fraction, timeWidth, anchor.x, geometry.visibleWidth);
     zoomAnchor.current = null;
   }, [timeWidth, geometry.visibleWidth, duration]);
+  useLayoutEffect(() => {
+    if (!playing || !expanded || zoom === 0 || dragRef.current || panRef.current || scrubRef.current) return;
+    // Follow the playback clock with room ahead; clamp at the scene's ends.
+    if (viewport.current) viewport.current.scrollLeft = timelineAnchorScroll(time, timeWidth, duration, geometry.visibleWidth * .35, geometry.visibleWidth);
+  }, [playing, expanded, zoom, time, timeWidth, duration, geometry.visibleWidth, panning]);
   useEffect(() => { setZoom(0); if (viewport.current) viewport.current.scrollLeft = 0; }, [sequence.baseTake.id]);
   useEffect(() => {
     if (selectedGroup) setExpandedGroups(previous => previous.has(selectedGroup.id) ? previous : new Set([...previous, selectedGroup.id]));

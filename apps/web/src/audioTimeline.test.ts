@@ -64,6 +64,44 @@ describe('audio track placement', () => {
 });
 
 describe('independent scene playback clock', () => {
+  it.each([0.25, 0.1])('changes to %s× without a time jump and keeps source audio aligned through the silent lead-in', async rate => {
+    const f = fixture(3);
+    await f.controller.play();
+    await f.advance(2);
+    f.config.rate = rate; f.controller.refresh();
+    expect(f.controller.getTime()).toBe(2);
+    expect(f.audio.playbackRate).toBe(rate);
+    expect(f.audio.paused).toBe(true);
+    await f.advance(2 / rate);
+    expect(f.controller.getTime()).toBeCloseTo(4);
+    expect(f.audio.currentTime).toBeCloseTo(11);
+    expect(f.audio.paused).toBe(false);
+    expect(f.audio.playbackRate).toBe(rate);
+    await f.advance(16 / rate);
+    expect(f.controller.getTime()).toBe(20);
+    expect(f.controller.isPlaying()).toBe(false);
+    expect(f.audio.paused).toBe(true);
+    expect(f.timers.size).toBe(0);
+    expect(f.frames.size).toBe(0);
+  });
+
+  it.each([0.25, 0.1])('pauses source audio at its shifted boundary between frames at %s×', async rate => {
+    const f = fixture(-3);
+    f.config.rate = rate; f.controller.refresh();
+    await f.controller.play(16.5);
+    expect(f.audio.playbackRate).toBe(rate);
+    expect(f.audio.currentTime).toBeCloseTo(29.5);
+    await f.advance(0.5 / rate, false);
+    expect(f.controller.getTime()).toBeCloseTo(17);
+    expect(f.audio.currentTime).toBe(30);
+    expect(f.audio.paused).toBe(true);
+    expect(f.audio.muted).toBe(true);
+    expect(f.controller.isPlaying()).toBe(true);
+    await f.advance(3 / rate);
+    expect(f.controller.getTime()).toBe(20);
+    expect(f.controller.isPlaying()).toBe(false);
+  });
+
   it('advances through a positive shift lead-in and plays from the selected source start only', async () => {
     const f = fixture(2);
     await f.controller.play(0);

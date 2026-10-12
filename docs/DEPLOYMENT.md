@@ -1,5 +1,13 @@
 # Cloudflare 预览部署
 
+## 2026-10-12 · 播放线跟随与 0.25×／0.1×（实现及本地检查完成，发布待记录）
+
+五页授权同步的完成记录 e901f05 已先 push main，随后实施本轮播放增强。非全段Timeline播放跟随竖线，全段保持总览，暂停可平移；新增0.25×／0.1×以及持久化和严格备份兼容，同时修复播放停止时旧时间回灌的恢复effect。677基础、前端／Worker类型与构建、dry-run及最终相关浏览器9／9通过；首次follow0／3失败、真实循环刺激修正及具体检查见[验证](VERIFICATION.md)。
+
+本轮将以保留原配置的 `wrangler deploy --keep-vars --message` 发布至 [choreo-studio-preview](https://choreo-studio-preview.danuberiverferryman.workers.dev/)；source／tree、远端main、原生version／deployment与正常TLS资产／浏览器结果在实际发布后回填，不预称上线。下一步沿已授权的五页文档同步流程加入本轮需求与实际收据，私有全文及原生详情仅保留work。
+
+此前b927视觉源码的准确CI38236853808/job114769528056/attempt1已completed/success，18:52:06（Asia/Shanghai）完成，旧进行中观察仍作为历史保留；本轮新源码CI未声明通过。
+
 ## 2026-10-12 · 黑白灰视觉与紧凑比例（已上线，线上有界检查通过）
 
 本轮从 GitHub main `8668e43c03b02b9ff0d79fe6d6149d08feb5311d` 快进更新，保留最新 Timeline／Stage 联动和手机44px命中区；仅修改前端视觉、HTML主题色、favicon和需求文档。660基础、前端／Worker类型与构建、dry-run、既有正式浏览器6／6＋独立手机Root1／1通过，320工具栏5px宽度问题修复后实际三尺寸3／3通过；范围和原始失败见[验证](VERIFICATION.md)。

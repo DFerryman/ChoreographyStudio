@@ -1,5 +1,17 @@
 # 预览验证记录
 
+## 2026-10-12 · 非全段播放线跟随与 0.25×／0.1×（本地验证完成，发布待记录）
+
+此前授权五页 Notion 同步已实际 5／5 成功并完整回读，仓库记录 e901f05 已 push main 后才开始本轮。放大／逐帧 Timeline 在播放时让竖线位于内容可视宽约35%，首尾夹限、循环回绕及自定义缩放均跟随；全段保持固定总览，暂停后自由平移。新增速度用同一白名单供 UI 和严格 backup 验证，兼容原三档、拒绝非法值，不改变作者值、历史、时长、音乐或 CountMap。
+
+- 慢速相关 unit169／169通过，23.40s；完整 `npm run check` EXIT0，677／677、33文件、38.32s。Worker types／类型与dry-run EXIT0；首build1971／493ms，恢复effect修正后的最终前端类型／Vite1971／897ms通过，已有大chunk警告保留。复用既有Vite5173服务；一次重复启动因端口占用退出，不作为浏览器失败或通过。
+- 第一批follow原断言实际0／3（92.069084s，18:50:33.859 Asia/Shanghai起），三个视口均在终点显示约15.96s而非16s。正常clock更新触发的恢复effect可能在controller结束后回灌旧时间；改为仅外部CountMap／restoreKey变化恢复，并读取latest时间，保留真正用户seek。原错误、报告及trace保持，不放宽末时刻断言。
+- 原循环刺激因既有loop-play从0开始，刚开始的time<1并不能证明回绕；增强为先真实播放到>15秒，再观察回到<1秒。未改变循环启动语义或mock真实播放时钟。
+- 最终同一正式相关批次9／9：follow桌面／390／320共3、真实0.25／0.1慢速共2、既有Timeline缩放／拖动／边缘滚动回归4。18:55:40.897（Asia/Shanghai）开始，197.195939s，无skip/unexpected/flaky。真实循环、末时刻exact16、暂停平移不跳时刻、全段scroll0和逐帧／中间缩放都通过；慢速检查HTMLMediaElement实际rate、audio／scene／wall进度，本机save/reopen、.choreo／JSON导入及音乐恢复保留motion／CountMap及原音乐SHA。九份原生browser-console-and-api附件的所有数组为空。
+- Root亲审最终桌面及320实际跟随图并接受。176运行源码／tests／配置与26dist的SHA-256已冻结，work证据不公开提交。发布／公网结果待实际回填。
+
+上一轮视觉运行源码b927b359的准确CI38236853808已native completed/success，job114769528056／attempt1，18:31:24–18:52:06（Asia/Shanghai），run updated18:52:07；旧进行中观察保持，不伪造逐项计数，也不把旧CI当本轮完整验收。
+
 ## 2026-10-12 · 黑白灰视觉与紧凑比例：已推 main／Cloudflare，线上有界检查通过
 
 在远端 main `8668e43c03b02b9ff0d79fe6d6149d08feb5311d` 基础上统一页面、舞台、Timeline、音乐轨、菜单、对话框、favicon 和浏览器主题色为中性灰黑白；主要工具图标 13–14px、标签 11px，对话框标题 17px，圆角 5／8／10px。保留停靠布局、舞台轨头联动、手机 44px 命中区、数据点形状及全部编辑／数据逻辑，3D 轴语义色和必要错误反馈保留。

@@ -58,6 +58,19 @@ beforeEach(() => { vi.stubGlobal('indexedDB', new IDBFactory()); });
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('explicit local scene persistence', () => {
+  it.each([0.25, 0.1])('reopens and copies %s× playback without changing the saved project or original audio', async rate => {
+    const original = scene('慢放作品', [0, 255, 42, 19], { ...defaultSceneViewer(), rate, time: 3.125 });
+    const saved = await saveScene(original);
+    const reopened = await loadCurrentScene<typeof original.project>();
+    expect(reopened?.viewer).toEqual(original.viewer);
+    expect(reopened?.project).toEqual(original.project);
+    expect(await audioBytes(reopened?.audio ?? null)).toEqual([0, 255, 42, 19]);
+    const copy = await duplicateScene<typeof original.project>(saved.id);
+    expect(copy?.id).not.toBe(saved.id);
+    expect(copy?.viewer).toEqual(original.viewer);
+    expect((await loadScene(saved.id))?.viewer.rate).toBe(rate);
+  });
+
   it('reopens and copies optional camera history exactly, including an undone position, while isolating edits and preserving source motion and audio', async () => {
     const original = cameraScene(), before = structuredClone(original.project);
     const saved = await saveScene(original), restored = await loadCurrentScene<typeof original.project>();

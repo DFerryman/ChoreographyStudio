@@ -1,5 +1,6 @@
 import { Copy, Pause, Play, Repeat2, Volume2 } from 'lucide-react';
 import { formatClock } from '../editor/format';
+import { PLAYBACK_RATES } from '../playbackRates';
 
 export function PlaybackTransport({ playing, disabled, time, duration, onToggle }: { playing: boolean; disabled: boolean; time: number; duration: number; onToggle: () => void }) {
   return <div className="player-main">
@@ -15,8 +16,6 @@ type OptionsProps = {
   onLoop: () => void; onRate: (rate: number) => void; onMirror: () => void; onCountSound: () => void;
 };
 
-const RATES = [0.5, 0.75, 1];
-
 /** Viewing options never modify the choreography or its arrangement. */
 export function PlaybackOptions({ loop, rate, mirror, countSound, onLoop, onRate, onMirror, onCountSound }: OptionsProps) {
   return <details className="editor-disclosure playback-options">
@@ -24,7 +23,7 @@ export function PlaybackOptions({ loop, rate, mirror, countSound, onLoop, onRate
     <div className="player-options">
       <div className="playback-extra-options">
         <button className={`icon-button ${loop ? 'toggled' : ''}`} aria-label="循环整段" title="循环整段" aria-pressed={loop} onClick={onLoop}><Repeat2 size={14} />循环整段</button>
-        <label className="playback-rate-option">速度<select aria-label="播放速度" value={rate} onChange={event => onRate(Number(event.target.value))}>{RATES.map(value => <option key={value} value={value}>{value}×</option>)}</select></label>
+        <label className="playback-rate-option">速度<select aria-label="播放速度" value={rate} onChange={event => onRate(Number(event.target.value))}>{PLAYBACK_RATES.map(value => <option key={value} value={value}>{value}×</option>)}</select></label>
       </div>
       <button className={mirror ? 'option active' : 'option'} aria-pressed={mirror} onClick={onMirror}><Copy size={14} />镜像观看</button>
       <button className={countSound ? 'option active' : 'option'} aria-pressed={countSound} onClick={onCountSound}><Volume2 size={14} />节拍提示</button>

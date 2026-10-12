@@ -4,6 +4,7 @@ import type { SceneOperation, SceneProject, SceneSnapshot } from './sceneProject
 import { MAX_FOOT_LOCKS, type FootLock } from '../../../packages/core/src/footLocks';
 import { packScene, unpackScene } from './compactScene';
 import { SCENE_CAMERA_TRACK_LIMITS, validateProjectCameraTracks } from './sceneCameraTrack';
+import { PLAYBACK_RATES } from './playbackRates';
 
 export const SCENE_BACKUP_LIMITS = {
   headerBytes: 32 * 1024 * 1024,
@@ -347,7 +348,7 @@ function validateViewer(value: unknown, project: SceneProject, context: Validati
   if (time < 0 || time > active.countMap.durationSeconds) fail('播放时间超出当前组合。');
   if (object.selectedJoint !== null && !joints.has(object.selectedJoint as string)) fail('选中关节不存在。');
   return {
-    camera, view: enumValue(object.view, ['front', 'back', 'left', 'right', 'top', 'free'] as const, '视角'), mirror: boolean(object.mirror, '镜像'), rate: enumValue(object.rate, [0.5, 0.75, 1] as const, '播放速度'), loop: boolean(object.loop, '循环'), countSound: boolean(object.countSound, '节拍提示'),
+    camera, view: enumValue(object.view, ['front', 'back', 'left', 'right', 'top', 'free'] as const, '视角'), mirror: boolean(object.mirror, '镜像'), rate: enumValue(object.rate, PLAYBACK_RATES, '播放速度'), loop: boolean(object.loop, '循环'), countSound: boolean(object.countSound, '节拍提示'),
     selectedSlot: integer(object.selectedSlot, 0, active.countMap.octetCount - 1, '选中八拍'), selectedJoint: object.selectedJoint as JointName | null, time,
     ...(object.gridVisible !== undefined ? { gridVisible: boolean(object.gridVisible, '网格') } : {}),
     ...(object.axesVisible !== undefined ? { axesVisible: boolean(object.axesVisible, '坐标轴') } : {}),

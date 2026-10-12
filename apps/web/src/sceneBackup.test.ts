@@ -134,6 +134,29 @@ function cameraFixture() {
   return scene;
 }
 
+describe('playback speed backup compatibility', () => {
+  it.each([1, 0.75, 0.5, 0.25, 0.1])('round-trips %s× in old JSON, compact JSON and full audio bundles without changing motion or CountMap', async rate => {
+    const source = fixture(), before = structuredClone(source.project);
+    source.viewer.rate = rate;
+    for (const file of [legacy(source), encodeSceneJsonBackup(source), await encodeSceneBackup(source)]) {
+      const decoded = await decodeSceneBackup(file);
+      expect(decoded.scene.viewer).toEqual(source.viewer);
+      expect(decoded.scene.project).toEqual({ ...before, teacherCheckedRevision: null });
+      if (!decoded.needsAudio) {
+        expect(new Uint8Array(await decoded.scene.audio!.arrayBuffer())).toEqual(new Uint8Array(await source.audio!.arrayBuffer()));
+      }
+    }
+    expect(source.project).toEqual(before);
+  });
+
+  it.each([0, -0.1, 0.2, 1.5, '0.25', null])('still rejects unsupported playback speed %s in JSON and full bundles', async rate => {
+    const source = fixture();
+    await expect(decodeSceneBackup(legacy(source, data => { data.scene.viewer.rate = rate; }))).rejects.toThrow(/播放速度/);
+    const full = await changeHeader(await encodeSceneBackup(source), data => { data.scene.viewer.rate = rate; });
+    await expect(decodeSceneBackup(full)).rejects.toThrow(/播放速度/);
+  });
+});
+
 describe('independent authored camera backup', () => {
   it('retains off-grid camera keys, base, undone history and redo state without changing any Take, baseTake, original grid or music', async () => {
     const source = cameraFixture(), before = structuredClone(source.project), viewer = structuredClone(source.viewer);
