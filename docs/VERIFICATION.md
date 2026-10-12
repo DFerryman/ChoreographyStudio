@@ -1,5 +1,33 @@
 # 预览验证记录
 
+## 2026-10-12 · 最终最新 main／AI 两轨版发布复核
+
+首次aef229e/native34已验证；推送前再次fetch发现远端新增三个提交。保留中间收据后快进到 `67ab5b3c4da77b88f53d8827d4f38a133a65097c`／tree `6a7a2c4d885316e3119f3aefdf76e74320644429`，新功能／测试来自远端，未做应用或断言修改。
+
+- 新版 `npm run check` EXIT0：677／677、33文件、36.93s；前端类型和Vite1969模块构建524ms通过，已有大chunk警告保留。Worker types／类型检查及原生dry-run均EXIT0，使用任务XDG目录与已校验的锁定Rapier0.21.0。
+- 正式本地6／6，start `2026-10-12T14:04:12.415Z`、42.929358s，无skip／unexpected／flaky：非空3D与实际audio／scene时钟、新版仅music／camera两轨、390／320无横溢、显式Camera键与AI目标显示、旧人物关键帧隐藏但save／reload逐值保持。四预览原生console诊断均无errors／warnings，两range原生errors／warnings／expectedHttpErrors／apiRequests全空。没有重跑原全量44或放宽下载文件名断言。
+- Native35 version `acfcd7e5-8011-4650-8cc4-4dc4c9e2bfe7`，created `2026-10-12T14:06:42.615236Z`；deployment `68ba9514-7277-4910-9536-7ab5b3650129`，created `2026-10-12T14:06:43.68349Z`，唯一100%；version／deployment source／tree message精确。恰上传新HTML／mainJS／CSS三资产，其余资产复用；ASSETS、AI、API20／60s、AI2／60s、SPA、`/api/*`先运行Worker及安全headers读回正确，无D1。
+- 新版正常TLS单轮HTTP8／8，无重试：HTML、`index-CPwTIqdk.js`、`index-CvCwa641.css`、Rapier、默认GLB、favicon与dist逐字节／SHA相等，静态安全headers正确；health／capabilities两只读200，ok及serverProjectStorage=false。
+- 唯一新版公网批次1440／390：2／2、6.905s，`2026-10-12T14:07:54.448Z`–`14:08:01.353Z`，正常TLS与继承proxy／既有精确CA profile。轨行严格counts/audio/camera，人物编辑入口不存在；AI面板只打开观察空描述／disabled生成按钮，未提交。非空canvas、停靠Timeline、无页面横溢及五档速度选项通过；两默认GLB均200／480376B且SHA等于新dist。七数组errors／warnings／pageErrors／failedRequests／httpErrors／apiRequests／unapprovedRequests每例全空，12静态GET、无业务API／真实AI／数据库写入。Root查看桌面、390主界面和390AI面板三图接受；本批不宣称实际AI生成、局部生成或全量备份验收。
+- 204 tracked／26dist在验证后冻结SHA一致；发布Markdown仅改AGENTS／DEPLOYMENT／VERIFICATION，其余201 tracked／26dist再次核对保持。准确运行源码9a0b69c的CI38259541631／attempt1最后读取in_progress／conclusion=null，不声明全量44或CI成功。下面原未部署观察、环境文件名失败、中间native34与旧准确CI失败均保留为独立历史。
+
+后续只提交／push收据，复用native35，不再次上传或重复线上检查。[打开最新工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+
+## 2026-10-12 · 首次 aef229e 同步（中间发布历史）
+
+从干净 work 切换到跟踪 origin/main 的 main，fetch／pull 后最新提交为 `aef229ed987b226f6571c02c68c3f80f83aeba6c`／tree `52f3871e5cf51ca75f5ba54a385aaf5415f0e4c1`，push 已是最新且 ls-remote 完整 SHA 相等。应用／测试／配置相对 dcfc96d 未改。
+
+- 预装 Rapier0.12.0 未用于检查；按 lock 取得0.21.0 原包并验证 SHA-512 完全相等后恢复 node_modules，package／lock 不改。
+- `npm run check` EXIT0：677／677、33文件、34.43s；前端类型及 Vite1971模块构建536ms通过，保留已有大 chunk 警告。Worker types／类型检查 EXIT0；dry-run 首次因默认 `/home/agent/.config/.wrangler` 不存在退出，改用 `/tmp` 任务 XDG／日志目录后 EXIT0，原失败保留。
+- 正式本地预览4／4，start `2026-10-12T13:50:28.003Z`、23.7138s，无 skip／unexpected／flaky，四份原生诊断均无 console errors／warnings；覆盖非空3D、真实音频和场景时钟、手动工作区及390／320窄屏。独立 desktop1440 原循环用例1／1，start `2026-10-12T13:52:34.218Z`、45.683613s，无 skip／unexpected／flaky，errors／warnings／expectedHttpErrors／apiRequests 四数组空；覆盖跟随、暂停平移、真实完整循环、终点exact16、fit及作者数据保持。
+- 原生部署 native34 `749c65dd-b76a-4f9c-b859-e416411354e2`／deployment `49e775d3-c903-4d76-96b2-dc5bbecbb662` 为唯一100%，两处 message 精确绑定上述 source／tree。没有新静态资产上传，正常TLS六资产（HTML／主JS／CSS／Rapier／默认GLB／favicon）字节与SHA等于dist，静态安全headers通过。首批六资产检查后默认UA health返回403；随后仅对两只读API使用与静态相同的显式UA，health／capabilities均200／ok／serverProjectStorage=false；未确认403根因，不称首批8／8。证据在ignored work，212 tracked／26dist在验证后SHA保持。
+- 此前准确 CI38240181917／job114780560447／attempt1 已 completed／failure（updated `2026-10-12T11:26:54Z`），覆盖677基础和62浏览器尝试：60passed／1privateSkipped／1failed，唯一 tests/timeline-playback.spec.ts:89 的1440循环等待>15超时20s。原生官方日志81,636B已保存；CLI首次下载日志跳转403独立保留，随后通过官方连接器取得实际日志。不能用本次本地1／1改称原 CI 成功；没有手动 rerun、源码或断言修改。
+
+- 唯一公网desktop1440／390批次2／2，`2026-10-12T13:59:45.730Z`–`13:59:52.313Z`、6.583s，无setupFailure／caseFailure。非空canvas颜色1034／855种，停靠Timeline、scrollWidth=clientWidth1440／390及五档速度选项通过；两GLB各200／480376B／SHA `6570b23a63a0a5b87ad3fa5f8d7a24536c8e7fc3ceb03d28893cb48966cc6527` 与dist相等。errors／warnings／pageErrors／failedRequests／httpErrors／apiRequests／unapprovedRequests七数组每例全空，共11同源静态GET；无业务API、真实AI或服务端数据库写入。Root亲审桌面、390主界面及390速度菜单三张实际图，页面检查不冒充公网循环／慢速／备份验证。
+- Chromium151任务profile使用已有环境公共CA，官方protobuf核对metadata0a020803，SQLite与原生Trusted唯一条目DER SHA精确；正常TLS、继承proxy，不改HOME或系统CA。离线首选择器重复、文件chooser不可用／超时、错误trust编码及内部chrome://request统计问题分别保留，均未导航公网应用；完成准确离线回读后才执行上述唯一公网批次。209未修改tracked／26distSHA保持。
+
+此中间发布证据保留；随后远端新增功能提交导致再次构建和发布，本段证据不能充当新功能验收。此前历史原样保留。
+
 ## 2026-10-12 · AI 优先的两轨 Timeline（本地检查通过；GitHub main 已推送；未部署 Cloudflare）
 
 范围：移除人物手动编辑与人物轨，Timeline 只保留音乐／镜头两轨及节拍选区行；场景中已有人物数据隐藏但无损保留；底层碰撞／IK／物理保留。

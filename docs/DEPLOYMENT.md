@@ -1,5 +1,28 @@
 # Cloudflare 预览部署
 
+## 2026-10-12 · 最新 AI 优先两轨版（main／Cloudflare 已发布）
+
+推送前复核发现远端新增 ec5aab0／9a0b69c／67ab5b3，已保存首次 native34 收据并快进到 [67ab5b3c](https://github.com/DFerryman/ChoreographyStudio/commit/67ab5b3c4da77b88f53d8827d4f38a133a65097c)，tree `6a7a2c4d885316e3119f3aefdf76e74320644429`。本次实际部署 AI 优先、音乐／镜头两轨及节拍选区的新版；旧“未部署”会话观察保留为历史，由本节新结果更新。
+
+- 原生 `wrangler deploy --keep-vars --message` EXIT0，恰上传 HTML、`index-CPwTIqdk.js`、`index-CvCwa641.css` 三资产。native35／version `acfcd7e5-8011-4650-8cc4-4dc4c9e2bfe7`，created `2026-10-12T14:06:42.615236Z`；deployment `68ba9514-7277-4910-9536-7ab5b3650129`，created `2026-10-12T14:06:43.68349Z`，唯一100%。两原生 message 精确绑定完整67ab source／tree；ASSETS、AI、两限频、SPA、API Worker-first、安全headers与兼容日期保持，无D1。
+- 当前677／677基础、33文件，前端类型／构建、Worker类型和dry-run通过；正式本地相关6／6、42.929358s，覆盖非空3D／实际音频时钟、两轨工作区、390／320布局、显式Camera键及既有人物数据保存重开不变。
+- 正常TLS单轮HTTP8／8：六静态字节／SHA等于新dist、health／capabilities两只读200。唯一新版公网1440／390批次2／2，`2026-10-12T14:07:54.448Z`–`14:08:01.353Z`、6.905s，两轨／节拍行、无人物编辑工具、只读打开AI入口、非空舞台、停靠布局、无横溢、五速度选项及两GLB字节SHA通过；七诊断数组每例全空，共12静态GET，业务API／真实AI／数据库写入0。Root审桌面／390／390AI三图；201未改tracked／26distSHA保持。
+- 新运行源码9a0b69c的准确 [CI38259541631](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38259541631)／attempt1最后实际读取in_progress／null，未声明全量CI成功。按选区局部AI仍未实现；此次验证未调用真实模型。既有全量44浏览器的环境文件名4失败及旧dcfc CI失败保留。
+
+最终仅提交和push这三份部署／验证Markdown收据，沿用native35及上述证据，不再上传运行资产或重复公网检查。
+
+## 2026-10-12 · 首次同步 aef229e（中间发布，已被 native35 取代）
+
+已 fetch／pull 最新 [aef229ed](https://github.com/DFerryman/ChoreographyStudio/commit/aef229ed987b226f6571c02c68c3f80f83aeba6c)，tree `52f3871e5cf51ca75f5ba54a385aaf5415f0e4c1`；push 返回 Everything up-to-date，远端完整 SHA 相等。相对已部署 dcfc96d 只更新六份 Markdown，应用／测试／配置不变。
+
+`wrangler deploy --keep-vars --message` EXIT0，没有更新的静态资产需要上传。当前 native34／version `749c65dd-b76a-4f9c-b859-e416411354e2`，created `2026-10-12T13:53:43.671594Z`；唯一 100% deployment `49e775d3-c903-4d76-96b2-dc5bbecbb662`，created `2026-10-12T13:53:44.478302Z`。原生 version／deployment 的 source／tree message 均精确；ASSETS、AI、API20／60s、AI2／60s、SPA、`/api/*` Worker-first、安全 headers 和兼容日期保持，无 D1 绑定。
+
+[打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。本次 677／677 基础、33 文件，前端类型／构建、Worker 类型和 dry-run 通过；既有本地预览 4／4、桌面循环播放定向复核 1／1 通过。正常 TLS 下六静态资源逐字节／SHA 与 dist 相等，两只读 API 最终返回 200；首次默认 User-Agent 的 health GET 返回 403，随后使用与静态检查相同的显式 User-Agent 只读取 health／capabilities，各 200，未重复六资产检查，不把首批称为 8／8。
+
+唯一公网两宽1440／390检查2／2通过，`2026-10-12T13:59:45.730Z`–`13:59:52.313Z`、6.583s：非空3D、停靠Timeline、页面无横向溢出及五档速度选项通过，两默认GLB均200且字节／SHA等于dist。继承proxy／正常TLS，任务独立CA原生Trusted列表SHA精确；七项诊断每例全空，共11静态GET，业务API／真实AI／服务端数据库写入0。Root亲审桌面、390及390速度菜单三图；209未修改tracked／26distSHA保持。
+
+此前 [dcfc96d 准确 CI38240181917](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38240181917) 已实际 completed／failure，job114780560447／attempt1，updated `2026-10-12T11:26:54Z`：677 基础、拟合／Python、类型／构建均通过；浏览器 60 passed／1 skipped／1 failed，唯一失败为 desktop1440 循环用例在 tests/timeline-playback.spec.ts:89 等待时刻大于15的20秒超时。原断言不变，本次本地定向复核通过不改写原 CI；未修复源码或手动 rerun。该中间运行版随后由本文最新 native35 取代。
+
 ## 2026-10-12 · AI 优先的两轨 Timeline（已推送 main；未部署）
 
 本会话 `wrangler whoami` 显示未认证，环境中没有 Cloudflare 凭据，因此未上传新版本，线上 `choreo-studio-preview` 仍为上一版本（native33）。源码已推送 GitHub main；部署需在有凭据的环境执行 `npm run deploy` 并按既有流程核验。
