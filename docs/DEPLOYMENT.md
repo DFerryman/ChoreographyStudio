@@ -8,7 +8,7 @@
 
 [打开新版工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)；正常TLS单轮HTTP8／8，HTML／mainJS／CSS／Rapier／默认GLB／favicon六份字节与冻结dist一致，health／capabilities两只读200。唯一公网1440／390／320布局3／3通过，12.105s，正常证书验证、三份六数组诊断全空，共18静态GET，无业务API／真实AI／服务端数据库写入；Root亲审desktop／320两图接受，173源码及26dist冻结SHA保持。准确source CI [38236853808](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38236853808)最后读取in_progress，未宣称完整CI通过。最终Markdown收据另提交push并沿用相同runtime，未再上传或发起第二公网批次。
 
-本轮五份Notion只读成功，但需求写入被自动审批以缺少明确外部披露授权拒绝，未写入／重试／绕过；Notion同步仍未完成。
+首次 Notion 插入因当时缺少明确外部披露授权被自动审批拒绝，授权前未写入或绕过。用户随后明确授权同步原有五页；五个原生异步任务实际全部 succeeded，完整回读 5／5 确认每页本轮收据仅插入一次、全部验证／发布字段正确，原有全文作为完整后缀保留且 SHA-256 前后相等，无截断或未知块。私有全文、页面 ID 与原生任务详细收据仅留在 git ignored 的 work，本次仅提交公开同步完成记录；运行源码和 26 份 dist 资产不变，不重复部署或线上循环。准确源码 CI38236853808 最新读取仍 in_progress／conclusion=null，未宣布完整 CI 通过。
 
 ## 2026-10-12 · 最新 main 轨道联动与手机触控版（已部署并核对）
 

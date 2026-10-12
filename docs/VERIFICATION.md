@@ -15,7 +15,7 @@
 - 唯一正式公网布局批次1440／390／320：3／3，`2026-10-12T10:32:58.754Z`–`10:33:10.859Z`，12.105s。Chromium151、继承代理、`ignoreHTTPSErrors=false`，离线原生证书UI读回Trusted的环境CA DER SHA精确且无外部请求后才导航应用。三份console／pageerror／API／failedRequests／httpErrors／unapprovedRequests六数组为空，共18次同源静态GET，业务API／真实AI／服务器数据库写入0。灰阶、dock、菜单、音乐dialog、44px点击区及主按钮对比均通过。Root亲审公网desktop和320两张实际图并接受，另代理审6图；320标题正常ellipsis，音乐主按钮滚动后完整可达，不确认音乐／修改作者数据。
 - 发布后173源码／tests／配置及26dist的SHA保持。准确运行源码的GitHub push CI [38236853808](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38236853808) 最后实际读取为in_progress（conclusion=null），不宣称完整57项浏览器或CI已成功。后续仅Markdown交付收据更新沿用本运行版本及已验证资产，不重复部署或公网循环。
 
-仓库要求同步五份Notion需求页，五页只读成功，但首次写入被自动审批拒绝：本次请求未显式授权向该外部目的地披露项目需求。没有执行Notion写入或绕过，本轮外部同步未完成。下面历次成功、失败和CI状态原样保留。
+首次 Notion 插入因当时缺少明确外部披露授权被自动审批拒绝，授权前未写入或绕过。用户随后明确授权同步原有五页；五个原生异步任务实际全部 succeeded，完整回读 5／5 确认每页本轮收据仅插入一次、全部验证／发布字段正确，原有全文作为完整后缀保留且 SHA-256 前后相等，无截断或未知块。私有全文、页面 ID 与原生任务详细收据仅留在 git ignored 的 work，本次仅提交公开同步完成记录；运行源码和 26 份 dist 资产不变，不重复部署或线上循环。准确源码 CI38236853808 最新读取仍 in_progress／conclusion=null，未宣布完整 CI 通过。下面历次成功、失败和CI状态原样保留。
 
 ## 2026-10-12 · 最新 main 轨道联动与触控版部署复核（已发布）
 
