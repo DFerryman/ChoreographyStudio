@@ -1,5 +1,9 @@
 # Cloudflare 预览部署
 
+## 2026-10-12 · AI 优先的两轨 Timeline（已推送 main；未部署）
+
+本会话 `wrangler whoami` 显示未认证，环境中没有 Cloudflare 凭据，因此未上传新版本，线上 `choreo-studio-preview` 仍为上一版本（native33）。源码已推送 GitHub main；部署需在有凭据的环境执行 `npm run deploy` 并按既有流程核验。
+
 ## 2026-10-12 · 播放线跟随与 0.25×／0.1×（已发布，有界公网通过）
 
 五页授权同步的完成记录 e901f05 已先 push main，随后实施本轮播放增强。非全段Timeline播放跟随竖线，全段保持总览，暂停可平移；新增0.25×／0.1×以及持久化和严格备份兼容，同时修复播放停止时旧时间回灌的恢复effect。677基础、前端／Worker类型与构建、dry-run及最终相关浏览器9／9通过；首次follow0／3失败、真实循环刺激修正及具体检查见[验证](VERIFICATION.md)。

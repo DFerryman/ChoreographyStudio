@@ -1,6 +1,6 @@
 # 阶段路线
 
-## 当前调整 · 2026-10-12 · AI 优先的两轨 Timeline（实现完成，验证与发布见 VERIFICATION／DEPLOYMENT）
+## 当前调整 · 2026-10-12 · AI 优先的两轨 Timeline（已推送 main，本地检查通过，未部署 Cloudflare；见 VERIFICATION／DEPLOYMENT）
 
 1. **已实现**：Timeline 只保留音乐与镜头两种轨，另有只读节拍／选区行；移除人物轨与全部人物手动编辑入口，底层碰撞／IK／物理保留。
 2. **已实现**：场景中已有人物数据完整保留并照常播放，只是不显示、不手动编辑。

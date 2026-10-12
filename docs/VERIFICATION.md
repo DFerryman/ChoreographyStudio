@@ -1,5 +1,16 @@
 # 预览验证记录
 
+## 2026-10-12 · AI 优先的两轨 Timeline（本地检查通过；GitHub main 已推送；未部署 Cloudflare）
+
+范围：移除人物手动编辑与人物轨，Timeline 只保留音乐／镜头两轨及节拍选区行；场景中已有人物数据隐藏但无损保留；底层碰撞／IK／物理保留。
+
+- 基础 `npm run check`：677／677（33 文件）通过；前端类型与 Vite 构建通过（1969 模块，保留既有大 chunk 提示）；`npm run typecheck:worker` 通过。
+- 删除只测试人物手动编辑的旧浏览器用例：point-editing、keyframe-point-transfer、manual-workspace、timeline-samples、capsule-collision、plan-only-import、timeline-zoom。碰撞／IK／物理核心单元测试全部保留并通过。
+- 改写并新增：preview、scene、backup、camera-track、shortcuts、timeline-playback、playback-rates、music，新增 timeline-range（选区拖动／手柄／整体移动／双击八拍／缩放到选区、显式镜头 K、人物数据隐藏但保存重开逐值不变）。backup 用例的场景夹具改为携带已有人物关键帧，并逐项核对导出／导入／原音乐恢复后不变。
+- 全量浏览器批次（本地 Chromium，单 worker）：44 例中 40 通过、4 失败，11.1 分钟。4 例失败全部是同一断言：本沙箱 Chromium 的下载文件名为 `download` 而非 `*.choreo`，与此前记录的环境限定文件名失败相同。临时只放宽这一处文件名断言（未提交）后，这 4 例均完整通过。最后一次源码修改（选区不再受镜像／教学模式锁定）后，timeline-range、shortcuts、timeline-playback 共 17／17 重跑通过，基础检查再次 677／677。
+- 实际界面检查：1440、390、320px 截图人工审阅，无横向溢出、无控制台错误；手机按钮高度 44px。
+- 已知限制：按选区让 AI 只修改该段尚未实现，当前 AI 仍生成整段候选；本会话没有 Cloudflare 凭据，未部署，也未做公网检查；准确源码 CI 结果以 GitHub Actions 实际终态为准，本节不预先声明。
+
 ## 2026-10-12 · 非全段播放线跟随与 0.25×／0.1×（main／Cloudflare已发布，有界公网通过）
 
 此前授权五页 Notion 同步已实际 5／5 成功并完整回读，仓库记录 e901f05 已 push main 后才开始本轮。放大／逐帧 Timeline 在播放时让竖线位于内容可视宽约35%，首尾夹限、循环回绕及自定义缩放均跟随；全段保持固定总览，暂停后自由平移。新增速度用同一白名单供 UI 和严格 backup 验证，兼容原三档、拒绝非法值，不改变作者值、历史、时长、音乐或 CountMap。

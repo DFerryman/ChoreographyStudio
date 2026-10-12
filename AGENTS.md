@@ -1,6 +1,6 @@
 # Working in Choreo Studio
 
-## AI-first two-track Timeline · 2026-10-12 · implemented; verification in docs/VERIFICATION.md
+## AI-first two-track Timeline · 2026-10-12 · pushed to main; local checks passed; not deployed (no Cloudflare credentials in that session)
 
 The user found manual keyframing impractical: all character animation is now AI-generated. The Timeline has only music and camera tracks plus a read-only count/range row; never reintroduce character (Root/joint) tracks, pose/IK/rotation tools, joint picking, point values or key transfers. Selecting a time or touching the character must not create or update character keys. Hiding is not deleting: the scene must retain existing character data (take, manual sequence, point edits, foot locks, steps) losslessly through open/save/backup/import/recovery and keep playing it; only explicit AI-candidate adoption replaces it. Keep core collision/IK/physics modules and tests. Ranges are view state: they loop playback, zoom, and are shown as the AI target; range-limited AI generation is the next step and not yet implemented. Earlier manual-editing sections below are history, superseded where they conflict. See docs/EDITOR_INTERACTION_STANDARD.md.
 
