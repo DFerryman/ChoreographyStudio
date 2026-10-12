@@ -1,10 +1,14 @@
 # Cloudflare 预览部署
 
-## 2026-10-12 · 播放线跟随与 0.25×／0.1×（实现及本地检查完成，发布待记录）
+## 2026-10-12 · 播放线跟随与 0.25×／0.1×（已发布，有界公网通过）
 
 五页授权同步的完成记录 e901f05 已先 push main，随后实施本轮播放增强。非全段Timeline播放跟随竖线，全段保持总览，暂停可平移；新增0.25×／0.1×以及持久化和严格备份兼容，同时修复播放停止时旧时间回灌的恢复effect。677基础、前端／Worker类型与构建、dry-run及最终相关浏览器9／9通过；首次follow0／3失败、真实循环刺激修正及具体检查见[验证](VERIFICATION.md)。
 
-本轮将以保留原配置的 `wrangler deploy --keep-vars --message` 发布至 [choreo-studio-preview](https://choreo-studio-preview.danuberiverferryman.workers.dev/)；source／tree、远端main、原生version／deployment与正常TLS资产／浏览器结果在实际发布后回填，不预称上线。下一步沿已授权的五页文档同步流程加入本轮需求与实际收据，私有全文及原生详情仅保留work。
+运行源码 [dcfc96d8](https://github.com/DFerryman/ChoreographyStudio/commit/dcfc96d8c62a7620b3d0e5746beb971720dfc301)／tree `fd1c1328d6f4a70a6ae9c7101cfa62ac284e5281` 已 push main，完整远端SHA精确。保留原配置的 `wrangler deploy --keep-vars --message` EXIT0；当前 native33／version `64064ce4-ad63-4b89-9763-ef72b3a7c766`／deployment `9f14bffa-52e5-4806-9e7e-c1df2c0db2dd` 为唯一版本100%，版本／部署两份原生source/tree注释精确，分别created19:03:36.502577／19:03:37.024468（Asia/Shanghai）。原ASSETS、AI、限频、SPA、安全静态headers及Worker-first保持，无D1。
+
+[打开新版工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)；正常TLSHTTP8／8，六份静态字节SHA与dist相等，两只读健康／能力响应200。唯一公网desktop1440／390批次2／2通过、33.071286845s，19:04:51.335–19:05:24.406（Asia/Shanghai）；五档速度及两低速真实时钟、100／75%缩放跟随、暂停pan80px不seek和全段scroll0通过。共16 static GET，六项诊断各空，无API／真实AI／db写入；native owned blob身份／尺寸记录，未将零observed blob请求称为公网音频字节审计，本地音乐SHA检查另有证据。Root审公网两图接受，176源码／26dist冻结SHA保持。
+
+本轮准确源码 [CI38240181917](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38240181917) 实际读取仍in_progress／null，不宣布新完整CI成功；此前b927视觉CI已实际成功。原有五份已授权 Notion 页面已完成本轮播放规范及实际发布收据同步，五个原生任务全部 succeeded，完整回读5／5确认新旧marker各一次、17收据字段准确、原文suffix SHA完整保留；root独立回读项目中心核对release字段。最小native／回读证据存ignored work，无私有全文保存。最终只提交push Markdown收据，沿用同一runtime，无再次部署／公网循环；私有全文及native详情不提交公开库。
 
 此前b927视觉源码的准确CI38236853808/job114769528056/attempt1已completed/success，18:52:06（Asia/Shanghai）完成，旧进行中观察仍作为历史保留；本轮新源码CI未声明通过。
 

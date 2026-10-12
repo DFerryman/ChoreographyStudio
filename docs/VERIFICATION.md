@@ -1,6 +1,6 @@
 # 预览验证记录
 
-## 2026-10-12 · 非全段播放线跟随与 0.25×／0.1×（本地验证完成，发布待记录）
+## 2026-10-12 · 非全段播放线跟随与 0.25×／0.1×（main／Cloudflare已发布，有界公网通过）
 
 此前授权五页 Notion 同步已实际 5／5 成功并完整回读，仓库记录 e901f05 已 push main 后才开始本轮。放大／逐帧 Timeline 在播放时让竖线位于内容可视宽约35%，首尾夹限、循环回绕及自定义缩放均跟随；全段保持固定总览，暂停后自由平移。新增速度用同一白名单供 UI 和严格 backup 验证，兼容原三档、拒绝非法值，不改变作者值、历史、时长、音乐或 CountMap。
 
@@ -8,7 +8,13 @@
 - 第一批follow原断言实际0／3（92.069084s，18:50:33.859 Asia/Shanghai起），三个视口均在终点显示约15.96s而非16s。正常clock更新触发的恢复effect可能在controller结束后回灌旧时间；改为仅外部CountMap／restoreKey变化恢复，并读取latest时间，保留真正用户seek。原错误、报告及trace保持，不放宽末时刻断言。
 - 原循环刺激因既有loop-play从0开始，刚开始的time<1并不能证明回绕；增强为先真实播放到>15秒，再观察回到<1秒。未改变循环启动语义或mock真实播放时钟。
 - 最终同一正式相关批次9／9：follow桌面／390／320共3、真实0.25／0.1慢速共2、既有Timeline缩放／拖动／边缘滚动回归4。18:55:40.897（Asia/Shanghai）开始，197.195939s，无skip/unexpected/flaky。真实循环、末时刻exact16、暂停平移不跳时刻、全段scroll0和逐帧／中间缩放都通过；慢速检查HTMLMediaElement实际rate、audio／scene／wall进度，本机save/reopen、.choreo／JSON导入及音乐恢复保留motion／CountMap及原音乐SHA。九份原生browser-console-and-api附件的所有数组为空。
-- Root亲审最终桌面及320实际跟随图并接受。176运行源码／tests／配置与26dist的SHA-256已冻结，work证据不公开提交。发布／公网结果待实际回填。
+- Root亲审最终桌面及320实际跟随图并接受。176运行源码／tests／配置与26dist的SHA-256已冻结，work证据不公开提交。运行源码 dcfc96d8c62a7620b3d0e5746beb971720dfc301／tree fd1c1328d6f4a70a6ae9c7101cfa62ac284e5281 已 push main 且完整远端 SHA 相等。
+
+- Wrangler deploy EXIT0。Cloudflare native33／version `64064ce4-ad63-4b89-9763-ef72b3a7c766`，created19:03:36.502577（Asia/Shanghai）；deployment `9f14bffa-52e5-4806-9e7e-c1df2c0db2dd`，created19:03:37.024468，唯一版本100%。两份原生 workers/message 精确绑定 source／tree；原五绑定、ASSETS、SPA、限频及Worker-first保留，无D1。
+- 正常TLS单轮HTTP8／8：HTML、mainJS、CSS、Rapier、默认GLB、favicon六份逐字节及SHA匹配冻结dist；两只读health／capabilities200/ok，无重试／TLS绕过。
+- 唯一正式公网1440／390批次2／2，19:04:51.335–19:05:24.406（Asia/Shanghai），33.071286845s。五档菜单准确；0.25／0.1各约2秒真实HTMLMediaElement rate与scene/audio/wall推进通过；100%／75%缩放24RAF竖线可见且scroll增长、暂停原生pan精确+80px不seek、全段scroll全0、灰阶及dock通过。每页8静态GET（favicon各2条原始请求），总16；两份六项diagnostic全空，业务API／真实AI／数据库写入0。
+- 正常TLS、旧原生UI已核验CA及继承proxy保持。每页native owned audio blob1个、audio/wav／1,280,044B，currentSrc对应原owned URL；实际observed blobRequests／revoke为空，不声称公网音频字节审计。严格音乐SHA证据来自上述本地rates2用例。Root亲审公网桌面跟随与390速度菜单两图并接受，代理另审4图。
+- 176源码／tests／配置与26distSHA保持；新准确head dcfc的push CI [38240181917](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38240181917) 最新实际读取in_progress／conclusion=null，不称新完整CI通过。本轮需求及实际收据已完成原有五份已授权 Notion 页面同步：5／5 原生任务 succeeded，5／5 全文回读确认新播放 marker 各1、旧视觉 marker 各1、17个收据字段全true、完整原文suffix SHA一致且无truncated／unknown；root另独立回读项目中心核对新版本字段，私有详细收据仅在ignored work、未保存私有全文。最终仅Markdown收据沿用同一运行版本，不重复部署或公网批次。
 
 上一轮视觉运行源码b927b359的准确CI38236853808已native completed/success，job114769528056／attempt1，18:31:24–18:52:06（Asia/Shanghai），run updated18:52:07；旧进行中观察保持，不伪造逐项计数，也不把旧CI当本轮完整验收。
 

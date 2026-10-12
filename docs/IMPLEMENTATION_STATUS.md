@@ -1,6 +1,6 @@
 # 实现状态
 
-## 2026-10-12 · 播放线跟随与 0.25×／0.1×（实现及本地验证完成，发布待完成）
+## 2026-10-12 · 播放线跟随与 0.25×／0.1×（已发布，本地及有界公网检查通过，准确 CI 进行中）
 
 用户要求非全段 Timeline（逐帧及手动缩放等）播放时自动跟随当前播放竖线，保留全段固定总览；暂停不抢手动查看，循环回起点及跳时刻后跟随应稳定。视口跟随不得改播放时间、原音乐、作者数据或历史。播放速度扩展为 1×、0.75×、0.5×、0.25×、0.1×，两档新低速须与原舞台／Timeline／音乐时钟一致，并在本机保存重开和备份导出／导入后保持，兼容旧档。
 
@@ -8,7 +8,11 @@
 
 正式最终本地批次实际 9／9（1440／390／320px 跟随 3＋低速 2＋既有 Timeline 缩放 4），2026-10-12 18:55:40.897（Asia/Shanghai）开始，197.195939 秒，skip／unexpected／flaky 均 0，9 份 browser-console-and-api 所记录数组均空。最初计划误数 8 例，旧缩放实际 4 例；不把计划数当执行数。完整 16 秒循环回绕、终点精确 16、暂停平移、全段 scroll 0、缩放拖动／撤销、两慢速真实 media／scene／wall 时钟、本机重开及 .choreo／JSON 导入的动作／音频 SHA 均通过。Root 亲审最终 1440px 桌面和 320px 两张实际截图并接受，176 份 source／test／config 与 26 份 dist SHA 已冻结。
 
-main 提交推送及 Cloudflare 发布待完成；完成后再一次性向原有五份 Notion 文档新增本轮实际收据，当前未写入。上一轮黑白灰视觉的五页同步已经完成，继续保留其全文、实际通过及失败边界。本轮验证和部署将按[验证](VERIFICATION.md)、[部署](DEPLOYMENT.md)的真实结果另记。
+运行源码 [dcfc96d8](https://github.com/DFerryman/ChoreographyStudio/commit/dcfc96d8c62a7620b3d0e5746beb971720dfc301)／tree fd1c1328d6f4a70a6ae9c7101cfa62ac284e5281 已提交 push main，远端 SHA 精确核对。Cloudflare native33／version 64064ce4-ad63-4b89-9763-ef72b3a7c766（2026-10-12 19:03:36.502577 创建，Asia/Shanghai）／deployment 9f14bffa-52e5-4806-9e7e-c1df2c0db2dd（19:03:37.024468 创建），单版本 100%，版本／部署两份原生注释精确绑定 source／tree。正常 TLS HTTP 8／8，HTML／main JS／CSS／Rapier／默认 GLB／favicon 六静态响应字节与冻结 dist 匹配，health／capabilities 两次只读；176 份 source／test／config 和 26 份 dist SHA 保持。
+
+唯一正式公网 1440／390px 批次 2／2，2026-10-12 19:04:51.335–19:05:24.406（Asia/Shanghai），33.071286845 秒：五档精确选项、0.25×／0.1× 真实 media／scene／wall 约 2 秒时钟、100%／75% 跟随、暂停平移 80px 不 seek、全段 scroll 0、灰阶停靠通过；两份六数组诊断全空，16 个静态 GET（每页 favicon 两次按原记录保留），无 API／AI／服务器数据库写入。Root 亲审公网 1440px 跟随与 390px 菜单两图并接受，代理另审 4 图。每页一个 owned blob 音频为 audio/wav、1,280,044 字节、currentSrc 一致；observed blobRequests／revoke 数组为空。本批未做公网 blob 音频字节／SHA 审计，音频 SHA 仍由本地 rates 两例导出／导入证据支持。
+
+[新准确 CI38240181917](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38240181917) 绑定 dcfc96d8，最新实际读取仍 in_progress／conclusion=null，不宣称新完整 CI 通过。要求和本地／公网／部署收据及旧视觉 CI 后续成功更正已一次性插入原有五份 Notion 文档：五个原生异步任务 succeeded，完整回读 5／5 确认播放标记各一次、旧视觉标记各一次、完整旧文后缀 SHA 前后相等，字段核对通过且无截断／未知块；私有全文／页面 ID／详细原生任务证据不提交公开仓库。最终 Markdown 收据沿用同一运行版本，不重复部署。上一轮黑白灰视觉和本轮原 0／3 失败保持各自边界，详见[验证](VERIFICATION.md)、[部署](DEPLOYMENT.md)。
 
 ## 2026-10-12 · 黑白灰视觉与紧凑比例（已发布，本地及有界公网检查通过，准确 CI 已成功）
 
@@ -22,7 +26,7 @@ main 提交推送及 Cloudflare 发布待完成；完成后再一次性向原有
 
 首次 Notion 插入因当时缺少明确外部披露授权被自动审批拒绝，授权前未写入或绕过。用户随后明确授权同步原有五页；五个原生异步任务实际全部 succeeded，完整回读 5／5 确认每页本轮收据仅插入一次、全部验证／发布字段正确，原有全文作为完整后缀保留且 SHA-256 前后相等，无截断或未知块。私有全文、页面 ID 与原生任务详细收据仅留在 git ignored 的 work，本次仅提交公开同步完成记录；运行源码和 26 份 dist 资产不变，不重复部署或线上循环。准确源码 CI38236853808 最新读取仍 in_progress／conclusion=null，未宣布完整 CI 通过。后续检查及部署收据分别见[验证](VERIFICATION.md)、[部署](DEPLOYMENT.md)；以前各版本的实际成功、失败与能力边界均保留。
 
-后续准确 CI 终态更正：视觉运行源码 b927b359 的 CI38236853808／job114769528056／attempt1 实际 completed／success，job 在 2026-10-12 18:31:24–18:52:06（Asia/Shanghai）运行，终态 updated 18:52:07。上文 in_progress 是此前实际观察的历史，保留原记录；本段依据原生终态确认成功，不另填未读取的浏览器计数，也不代表新播放功能已通过验收。此更正将在新功能实际交付后随同本轮收据同步五页。
+后续准确 CI 终态更正：视觉运行源码 b927b359 的 CI38236853808／job114769528056／attempt1 实际 completed／success，job 在 2026-10-12 18:31:24–18:52:06（Asia/Shanghai）运行，终态 updated 18:52:07。上文 in_progress 是此前实际观察的历史，保留原记录；本段依据原生终态确认成功，不另填未读取的浏览器计数，也不代表新播放功能已通过验收。此更正已随本轮播放功能实际交付收据同步到原有五页。
 
 ## 2026-10-12 · 舞台／Timeline 双主区域布局（实现完成，验证见 VERIFICATION）
 
