@@ -8,6 +8,8 @@ export type EditorShortcutOptions = {
   onDelete: () => void;
   onUndo: () => void;
   onRedo: () => void;
+  /** Ctrl/Cmd+S; also available while viewing mirrored, since saving changes no motion. */
+  onSave?: () => void;
 };
 
 const interactiveSelector = [
@@ -39,6 +41,11 @@ export function useEditorShortcuts(options: EditorShortcutOptions): void {
       const key = event.key.toLowerCase();
       let action: (() => void) | undefined;
       let allowRepeat = false;
+      if ((event.ctrlKey || event.metaKey) && key === 's' && !event.shiftKey && callbacks.onSave) {
+        event.preventDefault();
+        if (!event.repeat) callbacks.onSave();
+        return;
+      }
       if (event.ctrlKey || event.metaKey) {
         if (key === 'z') action = event.shiftKey ? callbacks.onRedo : callbacks.onUndo;
         else if (key === 'y' && event.ctrlKey && !event.metaKey && !event.shiftKey) action = callbacks.onRedo;

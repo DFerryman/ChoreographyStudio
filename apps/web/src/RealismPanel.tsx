@@ -9,7 +9,6 @@ import type { Pose } from '../../../packages/core/src/motion-types';
 import { getPoseGuidance } from './poseGuidance';
 import { getBodyCollisions, getPoseColliders, initializeBodyCollisionBackend, isBodyCollisionBackendReady } from '../../../packages/core/src';
 import { STAGE_JOINT_LABELS } from './Stage';
-import './RealismPanel.css';
 import type { StepAssistanceReport } from '../../../packages/core/src';
 
 export interface RealismPanelProps {

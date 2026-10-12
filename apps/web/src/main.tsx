@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import './styles.css';
-import './ImmersiveStudio.css';
+import './styles/tokens.css';
+import './styles/app.css';
+import './styles/dialogs.css';
+import './styles/panels.css';
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);

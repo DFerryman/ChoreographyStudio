@@ -1,0 +1,41 @@
+/* Optional realism and AI tools, folded inside the stage extras panel. */
+.realism-panel, .ai-panel { color: var(--text-2); font-size: 11px; }
+.realism-panel > summary { display: flex; align-items: center; gap: 2px; min-height: 44px; padding: 10px 0; color: var(--muted); list-style: none; cursor: pointer; font-size: 11px; }
+.realism-panel > summary::-webkit-details-marker { display: none; }
+.realism-panel > summary::after { content: ''; flex: none; width: 6px; height: 6px; margin: 0 4px 0 auto; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(-45deg); transition: transform .15s; }
+.realism-panel[open] > summary::after { transform: rotate(45deg); }
+.realism-panel > summary:hover { color: var(--text); }
+.realism-content { display: flex; flex-direction: column; gap: 12px; padding-bottom: 16px; }
+.realism-content .button:not(.primary), .realism-physics .button:not(.primary) { border-color: var(--line-strong); color: var(--text-2); background: #ffffff06; }
+.realism-content .button:not(.primary):hover:not(:disabled) { color: var(--text); background: var(--surface-hover); }
+.realism-content > button, .realism-physics > button, .realism-steps > button { min-height: 44px; }
+.realism-profile { display: flex; flex-direction: column; gap: 4px; }
+.realism-profile strong, .realism-step-heading strong { color: var(--text); font-size: 12px; font-weight: 550; }
+.realism-profile span, .realism-profile small { color: var(--muted); font-size: 10px; line-height: 1.7; }
+.realism-diagnostics { display: flex; flex-direction: column; gap: 7px; padding-block: 10px; border-block: 1px solid var(--line); }
+.realism-diagnostics > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px; font-size: 10px; font-variant-numeric: tabular-nums; }
+.realism-note, .realism-warning { margin: 0; font-size: 10px; line-height: 1.8; overflow-wrap: anywhere; }
+.realism-note { color: var(--muted); }
+.realism-warning { color: var(--warning); }
+.realism-lock-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.realism-lock-fields > label { display: flex; flex-direction: column; gap: 6px; min-width: 0; color: var(--muted); }
+.realism-lock-fields input, .realism-lock-fields select { width: 100%; min-width: 0; height: 40px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--text); background: var(--field); font-size: 11px; }
+.realism-lock-fields input:disabled, .realism-lock-fields select:disabled { opacity: .4; }
+.realism-locks { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.realism-locks > li { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 10px; font-variant-numeric: tabular-nums; }
+.realism-locks button { min-height: 36px; padding: 5px; color: var(--accent); font-size: 10px; }
+.realism-physics { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.realism-physics progress { width: 100%; height: 5px; accent-color: var(--accent); }
+.realism-steps { display: flex; flex-direction: column; gap: 8px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.realism-step-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.realism-step-heading button { min-height: 36px; font-size: 10px; }
+.realism-step-report { display: flex; flex-direction: column; gap: 5px; }
+.realism-step-issues { margin: 0; padding-left: 16px; color: var(--warning); font-size: 10px; line-height: 1.8; }
+
+.ai-panel .disclosure-content { display: flex; flex-direction: column; gap: 12px; }
+.ai-panel .button-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.ai-panel [role='status'] { color: var(--muted); font-size: 11px; }
+
+@media (max-width: 680px) {
+  .realism-lock-fields input, .realism-lock-fields select, .realism-locks button { min-height: 44px; }
+}

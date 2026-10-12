@@ -1,5 +1,9 @@
 # Working in Choreo Studio
 
+## Frontend refactor · 2026-10-12 · local checks only
+
+The user asked for a thorough frontend refactor with no lost functionality and an interface kept as simple as possible, retaining only essential actions and flows. App.tsx is now split into `editor/`, `hooks/`, `components/` and `dialogs/`; styles live in one dark token system under `apps/web/src/styles/`. Keep accessible names, dialog ids/layers and floating-menu class names stable — browser tests depend on them. Do not reintroduce permanent controls; secondary functions stay in the top-bar "more" menu, camera options or the stage extras panel. Local results and the environment-only `.choreo` download-name failures are recorded in docs/VERIFICATION.md; CI/Cloudflare for this change are not yet recorded.
+
 ## Latest editor iteration · 2026-10-10 · published, public-browser and exact-source CI verified
 
 The user's highest-priority requirement is implemented: authoring allows body/floor overlap, while playback, forward/reverse Timeline scrubbing and direct seeks share deterministic contact projection of the exact authored sample. Restore the authored rig before native transform baselines; never persist preview corrections to Take/manual/keys/history/backups. This supersedes historical edit guards and collision-backend readiness blocking: model authoring readiness is separate, and preview loading/failure must not prevent editing. The 17-convex/sole-floor preview uses declared Rapier0.21.0, at most4 self-contact projection iterations and a minimum RootY floor lift, with residual contact reporting and a bounded256-point cache keyed by Take/profile object identity. Do not claim dynamics, balance, skinning precision, continuous-time zero penetration or jitter-free output. Read docs/EDITOR_INTERACTION_STANDARD.md and docs/COLLISION_PROXIES.md.
