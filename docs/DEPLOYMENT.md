@@ -1,5 +1,17 @@
 # Cloudflare 预览部署
 
+## 2026-10-12 · 最新播放线与人物中心相机（native36已上线）
+
+已拉取并推送核对 GitHub main [f5e8e4a4](https://github.com/DFerryman/ChoreographyStudio/commit/f5e8e4a47a204a7c1ae30a5549dff5c7d2b14260)，tree `a3507985f45bdd99e161fab212abf27f239a92da`。本次发布远端已有的连续红色播放线、播放时静止Timeline、绕人物髋部的四元数相机和精简界面，没有应用/测试/配置改动。
+
+`wrangler deploy --keep-vars --message` EXIT0；native36/version `b3ad2578-1c98-4aca-9e68-af9a734a3b8f`（`2026-10-12T15:44:53.477411Z`），唯一100% deployment `24d20a42-0f6d-4adf-9762-29c0672dcda2`（`15:44:54.232465Z`）。原生两处 source/tree注释与远端完整SHA准确相等；上传新HTML、`index-D6mlY3q7.js`和`index-CueCYijr.css`三资产，其余复用。AI/ASSETS/两限频、SPA/API先运行Worker、安全headers和2026-10-06兼容日期保持，无D1。
+
+680/680基础、34文件，前端/Worker类型、构建与dry-run通过；正式相关本地10/10，126.651s，十份诊断全空。正常TLS单轮HTTP8/8，六静态文件bytes/SHA等于dist，health/capabilities两只读200。公网实际成功为桌面首批1/1加手机390定向1/1，首手机因验证器误找窄屏隐藏的帧输入超时，原失败保留；仅修ignored验证器使用正式可见滑块事件后手机通过，没有改应用。三次尝试共21静态GET，七项诊断各空、默认GLB字节SHA精确，无业务API/真实AI/数据库写入。Root查看桌面和手机两图；详细范围和离线环境失败见[验证记录](VERIFICATION.md)。
+
+部署后AI只读检查确认线上AI binding和modelGeneration=true、准确Qwen模型目录GET200。官方文档未要求单独购买该模型，免费额度内可用；超过每天10,000 Neurons才需Workers Paid。账户订阅读取因权限10000失败，未改变账单/套餐或宣称实际推理成功；当前只支持有限动作库整段候选，局部生成仍待实现。原先禁止验证产生模型用量的要求保留，本次真实调用0。
+
+准确f5源码[CI38271007531](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38271007531)/attempt1最后观察仍in_progress/null，不称完整CI成功。206tracked/26dist在检查后保持；最终Markdown收据另提交push，沿用本版，不重新上传或重复公网检查。[打开新版工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+
 ## 2026-10-12 · 最新 AI 优先两轨版（main／Cloudflare 已发布）
 
 推送前复核发现远端新增 ec5aab0／9a0b69c／67ab5b3，已保存首次 native34 收据并快进到 [67ab5b3c](https://github.com/DFerryman/ChoreographyStudio/commit/67ab5b3c4da77b88f53d8827d4f38a133a65097c)，tree `6a7a2c4d885316e3119f3aefdf76e74320644429`。本次实际部署 AI 优先、音乐／镜头两轨及节拍选区的新版；旧“未部署”会话观察保留为历史，由本节新结果更新。

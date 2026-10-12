@@ -1,5 +1,24 @@
 # 预览验证记录
 
+## 2026-10-12 · 最新 main 播放线与人物中心相机（已部署，限定复核通过）
+
+按用户要求，从干净 work/aef229e 拉取并切换到最新 main [f5e8e4a4](https://github.com/DFerryman/ChoreographyStudio/commit/f5e8e4a47a204a7c1ae30a5549dff5c7d2b14260)，tree `a3507985f45bdd99e161fab212abf27f239a92da`；push 返回已是最新，远端完整 SHA 相等。应用、测试、配置均来自该提交，本次没有修改。
+
+- 环境预装 Rapier 0.12.0 与锁文件不符，未用于正式验证；`npm ci` 恢复 0.21.0，package/lock 保持。`npm run check` EXIT0：680/680 基础、34 文件、41.51s；前端类型与 Vite 1970 模块构建通过（553ms），既有大 chunk 提示保留。Worker types/类型及 Wrangler dry-run 均 EXIT0；Wrangler 日志与 XDG 使用任务 `/tmp` 目录。
+- 正式本地浏览器 10/10，`2026-10-12T15:41:55.134Z` 开始、126.651s，无 skip/unexpected/flaky；覆盖非空 3D/真实音频与场景时钟、两轨工作区、390/320 页面及音乐对话框、相机手势、三宽静止视口与移动播放线/循环/终点、显式镜头 K、旧人物数据保存重开。十份原生 console/API 诊断均为空；未重跑完整浏览器套件。
+- Cloudflare native36/version `b3ad2578-1c98-4aca-9e68-af9a734a3b8f`，created `2026-10-12T15:44:53.477411Z`；deployment `24d20a42-0f6d-4adf-9762-29c0672dcda2`，created `15:44:54.232465Z`，原生读回唯一100%。两处 message 准确绑定 f5e8e4a 完整 source/tree。上传新 HTML、`index-D6mlY3q7.js`、`index-CueCYijr.css` 三资产；AI/ASSETS/两限频、SPA、安全 headers、API Worker-first 和兼容日期保持，无 D1。
+- 正常 TLS 单轮 HTTP 8/8：HTML、主 JS、CSS、Rapier、默认 GLB、favicon 六份 bytes/SHA 与 dist 精确相等；health/capabilities 两只读 GET 200/ok，serverProjectStorage=false。无重试、重定向或 TLS 绕过。
+- 公网实际成功覆盖为桌面首批 1/1 加手机定向复核 1/1，不能把原批次记为2/2。首批 `15:45:17.430Z`–`15:45:48.270Z`：桌面全部通过；手机验证器查找被移动端 CSS 隐藏的“当前帧”输入，20s超时，原失败和截图保留。仅修 ignored 验证器，改用正式 helpers 的可见时间滑块原生事件，手机390复核 `15:47:09.265Z`–`15:47:16.095Z` EXIT0，未改应用或断言范围，桌面成功结果复用。
+- 两个成功尺寸均验证连续红色2px播放线/11px箭头、播放期间 scroll 固定而 scene/audio/播放线推进、五档速度、counts/audio/camera 行、无人物编辑入口、精简按钮、输入原生选择、非空 canvas、停靠布局与无横溢，只读打开 AI 面板。三次尝试七项诊断均为空，共21静态 GET，无业务 API/真实 AI/服务端数据库写入；三次实际 GLB 均200/480376B/SHA与dist精确相等。Root亲审桌面/手机两张实际 AI 面板图；逐帧放大时播放线可离开视口，未声称自动跟随或所有取景人物无遮挡。
+- Chromium151使用独立任务profile，既有环境公共CA的SQLite DER SHA与原生Trusted唯一条目精确，metadata `0a020803`；ignoreHTTPSErrors=false。首默认sandbox离线启动曾遇 socket EPERM/SIGTRAP，后按工具 network 权限正常启动；此环境失败尚未访问应用，与公网验证器选择器超时分别保留。
+- 准确 source 的 [CI38271007531](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38271007531)/attempt1 最后实际读取仍 in_progress/conclusion=null，未声明全量 CI 通过。206 tracked/26 dist 在正式检查和公网后 SHA 不变；最终只提交 Markdown 收据，沿用 native36，不再次上传或重复线上循环。
+
+部署后按用户追加问题做 AI 配置检查：原生版本含 AI binding，线上 capabilities 的 modelGeneration=true，账户模型目录 GET 200 确认 `@cf/qwen/qwen3-30b-a3b-fp8` 未废弃且可列出；Workers账户设置 GET 200，default_usage_model=standard。订阅查询因凭据缺少权限返回 Cloudflare10000，未据此宣称已开通/未开通付费计划，也未更改套餐。首次合并查询因该订阅错误未返回其他结果，随后分别捕获每个只读结果并保留失败。
+
+[官方定价](https://developers.cloudflare.com/workers-ai/platform/pricing/)和[接入教程](https://developers.cloudflare.com/workers-ai/get-started/workers-wrangler/)说明该模型支持免费额度，正确AI binding即可接入，无单独购买外部 API key 步骤；超过每天10,000 Neurons需Workers Paid。wrangler的remote:false仅影响本地开发，不代表线上AI关闭。当前生成仍是有限原创动作库的整段编排候选，按选区只修改局部尚未实现。模型目录和绑定成功不等于真实生成成功；仓库保留原先禁止开发/上线验证产生推理用量的要求，本次没有实际调用模型。真实输出、账户剩余额度和生成质量尚未验收。
+
+[打开已部署工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。原始收据在 ignored work，历史失败与此前发布事实完整保留。
+
 ## 2026-10-12 · 最终最新 main／AI 两轨版发布复核
 
 首次aef229e/native34已验证；推送前再次fetch发现远端新增三个提交。保留中间收据后快进到 `67ab5b3c4da77b88f53d8827d4f38a133a65097c`／tree `6a7a2c4d885316e3119f3aefdf76e74320644429`，新功能／测试来自远端，未做应用或断言修改。
