@@ -1,11 +1,11 @@
-import { applyStageViewOffset, editStageValue, expectStageSelection, expectStageValue, selectStageJoint, stageValue } from './stageInteractions';
+import { applyStageViewOffset, expectStageSelection } from './stageInteractions';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { PerspectiveCamera, Vector3 } from 'three';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed, closeDisclosures, reveal } from './helpers';
+import { clickRevealed, closeDisclosures, reveal, seekSeconds } from './helpers';
 import { unpackScene } from '../apps/web/src/compactScene';
-import { JOINT_NAMES, type BakedTake, type KeyframeSequence } from '../packages/core/src';
+import type { BakedTake, CameraTrack, KeyframeSequence } from '../packages/core/src';
 
 type Camera = { position: [number, number, number]; target: [number, number, number]; zoom?: number };
 type Backup = {
@@ -13,7 +13,7 @@ type Backup = {
     id: string;
     name: string;
     audioName: string;
-    project: { historyIndex: number; history: { take: BakedTake | null; plan: unknown; manual?: KeyframeSequence; operation?: { label: string; time?: number; tracks?: string[] } }[] };
+    project: { historyIndex: number; history: { take: BakedTake | null; plan: unknown; manual?: KeyframeSequence; cameraTrack?: CameraTrack; operation?: { label: string; time?: number; tracks?: string[] } }[] };
     viewer: { camera: Camera; view: string; mirror: boolean; rate: number; loop: boolean; countSound: boolean; selectedSlot: number; selectedJoint: string | null; time: number };
   };
 };
@@ -68,7 +68,7 @@ function sameCamera(actual: Camera, expected: Camera) {
 async function coordinateText(page: Page) {
   await reveal(page, page.getByLabel('相机世界坐标'));
   const text = await page.getByLabel('相机世界坐标').innerText();
-  await closeDisclosures(page, '.scene-extras');
+  await closeDisclosures(page, '.camera-options');
   return text;
 }
 async function coordinateValues(page: Page) { return (await coordinateText(page)).match(/-?\d+\.\d+/g)?.map(Number) ?? []; }
@@ -77,7 +77,7 @@ async function waitCamera(page: Page, camera: Camera) {
 }
 
 async function drag(page: Page, button: 'left' | 'right', start = [0.7, 0.42], end = [0.86, 0.49]) {
-  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more, .kf-more-actions');
+  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .tl-more');
   const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!;
@@ -88,15 +88,17 @@ async function drag(page: Page, button: 'left' | 'right', start = [0.7, 0.42], e
 }
 
 async function atTime(page: Page, time: number) {
-  const input = page.getByRole('spinbutton', { name: '当前时间（秒）', exact: true, includeHidden: true });
-  await reveal(page, input); await input.fill(String(time)); await input.press('Tab');
-  await expect(input).toHaveValue(String(time));
-  await closeDisclosures(page, '.kf-point-inspector');
+  await seekSeconds(page, time);
+  await expect(page.getByRole('region', { name: '场景时间线', exact: true })).toHaveAttribute('data-time', String(time));
+}
+/** The one remaining keyed edit: record the current view on the Camera track. */
+async function recordCamera(page: Page) {
+  await page.getByRole('button', { name: '在当前时间记录镜头', exact: true }).click();
 }
 async function playbackRate(page: Page, value: string) {
   const input = page.getByRole('combobox', { name: '播放速度', exact: true, includeHidden: true });
   await reveal(page, input); await input.selectOption(value);
-  await closeDisclosures(page, '.playback-options, .kf-more');
+  await closeDisclosures(page, '.tl-more');
 }
 
 async function save(page: Page) {
@@ -141,7 +143,7 @@ async function audioHash(page: Page) {
   });
 }
 
-test('camera gestures and presets change the view, preserve the take, and keep joint picking distinct from dragging', async ({ page }) => {
+test('camera gestures and presets change the view, preserve the take, and leave the body view-only', async ({ page }) => {
   test.setTimeout(90_000);
   await ready(page);
   const original = await backup(page);
@@ -169,7 +171,7 @@ test('camera gestures and presets change the view, preserve the take, and keep j
 
   // Forward-project a known landmark through the publicly exported camera.
   // This never reads renderer internals or duplicates its raycast selection algorithm.
-  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more, .kf-more-actions');
+  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .tl-more');
   const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
   await canvas.scrollIntoViewIfNeeded();
   const box = (await canvas.boundingBox())!;
@@ -180,13 +182,14 @@ test('camera gestures and presets change the view, preserve the take, and keep j
   camera.lookAt(new Vector3(...orbited.scene.viewer.camera.target));
   camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
   const point = new Vector3(0, 1.05, 0).project(camera);
+  // The body is view-only: clicking it never selects a joint or edits motion.
   await page.mouse.click(box.x + (point.x + 1) * box.width / 2, box.y + (1 - point.y) * box.height / 2);
-  await expectStageSelection(page, 'Hips');
-  await expect(page.getByLabel('选中关节世界坐标')).toContainText('Y1.050');
+  await expectStageSelection(page, null);
+  await expect(page.getByLabel('选中关节世界坐标')).toHaveCount(0);
   const beforeDrag = await coordinateText(page);
   await drag(page, 'left', [0.72, 0.42], [0.9, 0.49]);
   await expect.poll(() => coordinateText(page)).not.toBe(beforeDrag);
-  await expectStageSelection(page, 'Hips');
+  await expectStageSelection(page, null);
 
   const beforePan = await backup(page);
   const beforePanText = await coordinateText(page);
@@ -195,7 +198,7 @@ test('camera gestures and presets change the view, preserve the take, and keep j
   const panned = await backup(page);
   expect(panned.scene.viewer.camera.target).not.toEqual(beforePan.scene.viewer.camera.target);
   const beforeZoom = await coordinateText(page);
-  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .kf-more, .kf-more-actions');
+  await closeDisclosures(page, '.studio-more, .scene-extras, .camera-options, .tl-more');
   await canvas.scrollIntoViewIfNeeded();
   const zoomBox = (await canvas.boundingBox())!;
   await page.mouse.move(zoomBox.x + zoomBox.width * 0.7, zoomBox.y + zoomBox.height * 0.4);
@@ -222,13 +225,12 @@ test('saved scenes independently restore audio, choreography and camera settings
   await expect(music).toContainText('20.0 秒可用音频');
   await music.getByLabel('选取几个完整八拍').fill('4');
   await music.getByRole('button', { name: '确认数拍，进入工作台', exact: true }).click();
-  await expect(page.getByRole('region', { name: '手动关键帧时间线', exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: '场景时间线', exact: true })).toBeVisible();
   await atTime(page, 4);
   await closeDisclosures(page);
   await page.getByRole('button', { name: '背面', exact: true }).click();
   await drag(page, 'left', [0.75, 0.43], [0.83, 0.46]);
   await expect(page.locator('.viewer-muted')).toHaveText('自由视角');
-  await selectStageJoint(page, 'LeftHand');
   await playbackRate(page, '0.5');
   await clickRevealed(page, page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true }));
   await clickRevealed(page, page.getByRole('button', { name: '循环整段', exact: true, includeHidden: true }));
@@ -240,7 +242,6 @@ test('saved scenes independently restore audio, choreography and camera settings
   await renameCurrent(page, '场景 B · 节奏示例');
   await atTime(page, 8);
   await clickRevealed(page, page.getByRole('button', { name: '左侧', exact: true, includeHidden: true }));
-  await selectStageJoint(page, 'RightHand');
   await playbackRate(page, '0.75');
   await save(page);
   const sceneB = await backup(page), sceneBAudio = await audioHash(page);
@@ -252,8 +253,7 @@ test('saved scenes independently restore audio, choreography and camera settings
   await expect(page.locator('.project-title h1')).toHaveText(sceneB.scene.name);
   await expect(page.locator('.save-state')).toHaveText('已保存到本机');
   await expect(page.getByRole('combobox', { name: '播放速度', exact: true, includeHidden: true })).toHaveValue('0.75');
-  await expectStageSelection(page, 'RightHand');
-  await expect(page.getByRole('slider', { name: '关键帧时间线进度', exact: true })).toHaveValue(String(sceneB.scene.viewer.time));
+  await expect(page.getByRole('slider', { name: '时间线进度', exact: true })).toHaveValue(String(sceneB.scene.viewer.time));
   await waitCamera(page, sceneB.scene.viewer.camera);
   let restored = await backup(page);
   sameCamera(restored.scene.viewer.camera, sceneB.scene.viewer.camera);
@@ -263,11 +263,10 @@ test('saved scenes independently restore audio, choreography and camera settings
   await openScene(page, sceneA.scene.name);
   await expect(page.locator('.project-title h1')).toHaveText(sceneA.scene.name);
   await expect(page.getByRole('combobox', { name: '播放速度', exact: true, includeHidden: true })).toHaveValue('0.5');
-  await expectStageSelection(page, 'LeftHand');
   await expect(page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: '循环整段', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: '节拍提示', exact: true, includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('slider', { name: '关键帧时间线进度', exact: true })).toHaveValue(String(sceneA.scene.viewer.time));
+  await expect(page.getByRole('slider', { name: '时间线进度', exact: true })).toHaveValue(String(sceneA.scene.viewer.time));
   await waitCamera(page, sceneA.scene.viewer.camera);
   restored = await backup(page);
   sameCamera(restored.scene.viewer.camera, sceneA.scene.viewer.camera);
@@ -290,8 +289,6 @@ test('saved scenes independently restore audio, choreography and camera settings
 
   await (await library(page)).getByRole('button', { name: `复制场景 ${sceneB.scene.name}`, exact: true }).click();
   await expect(page.locator('.project-title h1')).toHaveText(`${sceneB.scene.name} 副本`);
-  await expect(page.getByLabel('选中关节世界坐标')).toContainText('右腕');
-  await expect(page.getByLabel('选中关节世界坐标').locator('strong')).toContainText('Y');
   const copied = await backup(page);
   expect(copied.scene.id).not.toBe(sceneB.scene.id);
   expect(projectHash(copied)).toBe(projectHash(sceneB));
@@ -308,9 +305,8 @@ test('saved scenes independently restore audio, choreography and camera settings
   await testInfo.attach('copy-refresh', { body: JSON.stringify({ copiedId: copied.scene.id, restoredId: copiedAfterRefresh.scene.id }), contentType: 'application/json' });
   await renameCurrent(page, '独立副本 C');
   await atTime(page, 1);
-  await selectStageJoint(page, 'Head');
-  await editStageValue(page, '关节 X 旋转（度）', (await stageValue(page, '关节 X 旋转（度）')) + 5);
-  expect(projectHash(await backup(page)), 'A copied scene must support an independent manual edit').not.toBe(projectHash(sceneB));
+  await recordCamera(page);
+  expect(projectHash(await backup(page)), 'A copied scene must support an independent edit').not.toBe(projectHash(sceneB));
   await save(page);
   await openScene(page, sceneB.scene.name);
   await expect(page.locator('.project-title h1')).toHaveText(sceneB.scene.name);
@@ -324,7 +320,7 @@ test('saved scenes independently restore audio, choreography and camera settings
   await expect(remaining.getByRole('button', { name: `打开场景 ${sceneB.scene.name}`, exact: true })).toBeVisible();
 });
 
-test('cancel, failed save and discard preserve automatically recorded point edits and saved scenes', async ({ page }) => {
+test('cancel, failed save and discard preserve recorded camera edits and saved scenes', async ({ page }) => {
   test.setTimeout(120_000);
   await ready(page);
   await renameCurrent(page, '保护场景 A'); await save(page);
@@ -332,34 +328,23 @@ test('cancel, failed save and discard preserve automatically recorded point edit
   await newScene(page); await renameCurrent(page, '保护场景 B'); await save(page);
   const pristineB = await backup(page);
   await page.getByRole('spinbutton', { name: '当前帧', exact: true }).fill('30');
-  await selectStageJoint(page, 'Head');
-  const target = await stageValue(page, '关节 X 旋转（度）') + 5;
-  await editStageValue(page, '关节 X 旋转（度）', target);
-  await expectStageValue(page, '关节 X 旋转（度）', target);
+  await expect(page.getByRole('region', { name: '场景时间线', exact: true })).toHaveAttribute('data-time', '1');
+  await recordCamera(page);
   await expect(page.locator('.save-state')).toHaveText('有未保存更改');
-  const edited = await backup(page), originalTake = pristineB.scene.project.history[pristineB.scene.project.historyIndex].take!;
+  const edited = await backup(page), pristine = pristineB.scene.project.history[pristineB.scene.project.historyIndex];
   const current = edited.scene.project.history[edited.scene.project.historyIndex];
   expect(edited.scene.project.history).toHaveLength(pristineB.scene.project.history.length + 1);
-  expect(current.operation).toMatchObject({ time: 1, tracks: ['Head'] });
-  expect(current.manual!.pointEdits).toHaveLength(1);
-  expect(current.manual!.pointEdits![0].time).toBe(1);
-  expect(Object.keys(current.manual!.pointEdits![0].joints!)).toEqual(['Head']);
-  expect(current.manual!.root).toEqual([]);
-  expect(current.manual!.rotations).toEqual({});
-  expect(current.take!.times).toEqual([...new Set([...originalTake.times, 1])].sort((a, b) => a - b));
-  expect(current.manual!.pointInterpolation).toBe('hold-last-key-1');
-  current.take!.poses.forEach((pose, index) => {
-    expect(pose.root, 'A head adjustment must preserve the original Root path').toEqual(originalTake.poses[0].root);
-    for (const joint of JOINT_NAMES) if (joint !== 'Head') expect(pose.joints[joint]).toEqual(originalTake.poses[0].joints[joint]);
-    if (current.take!.times[index] >= 1) expect(pose.joints.Head).toEqual(current.manual!.pointEdits![0].joints!.Head);
-  });
+  expect(current.operation).toMatchObject({ time: 1, tracks: ['camera'] });
+  expect(current.cameraTrack!.keys.map(key => key.time)).toEqual([1]);
+  // Camera authoring never touches the character's motion.
+  expect(current.take).toEqual(pristine.take);
+  expect(current.manual).toEqual(pristine.manual);
   await openScene(page, sceneA.scene.name);
   const guard = page.getByRole('dialog', { name: '保留当前场景的修改？', exact: true });
   await expect(guard).toBeVisible();
   await guard.getByRole('button', { name: '取消', exact: true }).click();
   await page.getByRole('button', { name: '关闭场景列表', exact: true }).click();
   expect(projectHash(await backup(page))).toBe(projectHash(edited));
-  await expectStageValue(page, '关节 X 旋转（度）', target);
   await expect(page.locator('.project-title h1')).toHaveText('保护场景 B');
 
   await openScene(page, sceneA.scene.name);
@@ -381,7 +366,6 @@ test('cancel, failed save and discard preserve automatically recorded point edit
   await guard.getByRole('button', { name: '取消', exact: true }).click();
   await page.getByRole('button', { name: '关闭场景列表', exact: true }).click();
   expect(projectHash(await backup(page))).toBe(projectHash(edited));
-  await expectStageValue(page, '关节 X 旋转（度）', target);
 
   await openScene(page, sceneA.scene.name);
   await guard.getByRole('button', { name: '保存后继续', exact: true }).click();
@@ -392,8 +376,6 @@ test('cancel, failed save and discard preserve automatically recorded point edit
   await waitCamera(page, edited.scene.viewer.camera);
   const savedB = await backup(page);
   expect(projectHash(savedB)).toBe(projectHash(edited));
-  await expectStageSelection(page, 'Head');
-  await expectStageValue(page, '关节 X 旋转（度）', target);
   await clickRevealed(page, page.getByRole('button', { name: '右侧', exact: true, includeHidden: true }));
   await openScene(page, sceneA.scene.name);
   await guard.getByRole('button', { name: '不保存，继续', exact: true }).click();

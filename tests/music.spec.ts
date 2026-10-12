@@ -125,7 +125,7 @@ async function confirmAndVerify(page: Page, name: string, expectedHash: string, 
   await expect(confirm(page)).toBeEnabled();
   await confirm(page).click();
   await expect(musicDialog(page)).toHaveCount(0);
-  await expect(page.locator('.kf-audio-name, .music-file strong').filter({ visible: true })).toHaveText(name);
+  await expect(page.locator('.tl-audio-name, .music-file strong').filter({ visible: true })).toHaveText(name);
   const downloading = page.waitForEvent('download');
   await clickRevealed(page, page.getByRole('button', { name: '下载项目备份', exact: true, includeHidden: true }));
   const path = await (await downloading).path();

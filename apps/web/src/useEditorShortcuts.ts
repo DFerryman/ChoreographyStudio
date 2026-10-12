@@ -4,6 +4,14 @@ export type EditorShortcutOptions = {
   enabled: boolean;
   readOnly?: boolean;
   onStep: (direction: -1 | 1) => void;
+  /** Shift+Arrow: previous/next dance count. */
+  onStepCount?: (direction: -1 | 1) => void;
+  /** Home/End: start/end of the selected range or the scene. */
+  onJump?: (edge: 'start' | 'end') => void;
+  /** I/O: set the range start/end at the current frame. */
+  onMark?: (edge: 'in' | 'out') => void;
+  /** Escape: clear the Timeline range. */
+  onClearRange?: () => void;
   onPlay: () => void;
   onDelete: () => void;
   onUndo: () => void;
@@ -50,9 +58,13 @@ export function useEditorShortcuts(options: EditorShortcutOptions): void {
         if (key === 'z') action = event.shiftKey ? callbacks.onRedo : callbacks.onUndo;
         else if (key === 'y' && event.ctrlKey && !event.metaKey && !event.shiftKey) action = callbacks.onRedo;
       } else if (key === 'arrowleft' || key === 'arrowright') {
-        action = () => callbacks.onStep(key === 'arrowleft' ? -1 : 1);
+        const direction = key === 'arrowleft' ? -1 : 1;
+        action = event.shiftKey && callbacks.onStepCount ? () => callbacks.onStepCount!(direction) : () => callbacks.onStep(direction);
         allowRepeat = true;
-      } else if (key === ' ' || key === 'spacebar' || event.code === 'Space') action = callbacks.onPlay;
+      } else if ((key === 'home' || key === 'end') && callbacks.onJump) action = () => callbacks.onJump!(key === 'home' ? 'start' : 'end');
+      else if ((key === 'i' || key === 'o') && !event.shiftKey && callbacks.onMark) action = () => callbacks.onMark!(key === 'i' ? 'in' : 'out');
+      else if (key === 'escape' && callbacks.onClearRange && !document.querySelector('details[open]')) action = callbacks.onClearRange;
+      else if (key === ' ' || key === 'spacebar' || event.code === 'Space') action = callbacks.onPlay;
       else if (key === 'delete') action = callbacks.onDelete;
 
       if (!action) return;

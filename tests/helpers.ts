@@ -36,33 +36,9 @@ export async function closeDisclosures(page: Page, selector = 'details'): Promis
   }
 }
 
-/** Operation scope is independent of the visible track overview. */
-export async function timelineScopeFrames(page: Page): Promise<number[]> {
-  const timeline = page.getByRole('region', { name: '手动关键帧时间线', exact: true });
-  const scope = await timeline.getByRole('combobox', { name: '关键帧轨道筛选', exact: true, includeHidden: true }).inputValue();
-  let keys = timeline.locator('.kf-lane-key');
-  if (scope === 'root') keys = timeline.locator('[data-track-id="root"] .kf-lane-key');
-  if (scope === 'joint') {
-    const joint = await page.getByRole('region', { name: '3D 动画舞台', exact: true }).getAttribute('data-selected-joint');
-    const groups: Record<string, string[]> = {
-      body: ['Hips', 'Spine', 'Chest', 'Neck', 'Head'],
-      'left-arm': ['LeftShoulder', 'LeftUpperArm', 'LeftForeArm', 'LeftHand'],
-      'right-arm': ['RightShoulder', 'RightUpperArm', 'RightForeArm', 'RightHand'],
-      'left-leg': ['LeftUpperLeg', 'LeftLowerLeg', 'LeftFoot'],
-      'right-leg': ['RightUpperLeg', 'RightLowerLeg', 'RightFoot'],
-    };
-    const group = Object.keys(groups).find(id => joint && groups[id].includes(joint));
-    if (!group) return [];
-    const toggle = timeline.locator(`[data-track-id="${group}"] .kf-group-toggle`);
-    if (await toggle.getAttribute('aria-expanded') !== 'true') await toggle.click();
-    keys = timeline.locator(`[data-track-id="${joint}"] .kf-lane-key`);
-  }
-  return keys.evaluateAll(items => [...new Set(items.map(item => Number(item.getAttribute('data-frame'))))].sort((a, b) => a - b));
-}
-
-/** The manual Timeline uses exact scene seconds, including imported off-grid points. */
+/** The Timeline ruler uses exact scene seconds, including imported off-grid points. */
 export async function seekSeconds(page: Page, time: number): Promise<void> {
-  const slider = page.getByRole('slider', { name: '关键帧时间线进度', exact: true });
+  const slider = page.getByRole('slider', { name: '时间线进度', exact: true });
   await slider.evaluate((element: HTMLInputElement, next) => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(element, String(next));
     element.dispatchEvent(new Event('input', { bubbles: true }));

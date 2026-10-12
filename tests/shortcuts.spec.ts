@@ -1,7 +1,6 @@
-import { editStageValue, expectStageValue, selectStageJoint } from './stageInteractions';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed, closeDisclosures, reveal } from './helpers';
+import { clickRevealed, closeDisclosures } from './helpers';
 import { bakePlan, createNeutralTake, makeCountMap, makePlan } from '../packages/core/src';
 import { unpackScene } from '../apps/web/src/compactScene';
 import { openFixture, ready as waitForReady } from './realismHelpers';
@@ -11,12 +10,8 @@ test.setTimeout(120_000);
 type Snapshot = {
   countMap: { durationSeconds: number; sourceOffsetSeconds: number };
   take: { id: string; times: number[]; poses: unknown[] };
-  manual?: {
-    id: string;
-    rotations: Partial<Record<string, { frame: number; rotation: number[] }[]>>;
-    root: { frame: number; position: number[] }[];
-    pointEdits?: { time: number; root?: number[]; joints?: Partial<Record<string, number[]>> }[];
-  };
+  manual?: unknown;
+  cameraTrack?: { keys: { time: number }[] };
 };
 type Backup = {
   scene: {
@@ -26,8 +21,8 @@ type Backup = {
 };
 const current = (backup: Backup) => backup.scene.project.history[backup.scene.project.historyIndex];
 const frameInput = (page: Page) => page.getByRole('spinbutton', { name: '当前帧', exact: true });
-const draft = (page: Page) => page.getByRole('status').filter({ hasText: '姿态草稿 · 尚未写入关键帧' });
-const guard = (page: Page) => page.getByRole('dialog', { name: '写入这份姿态草稿？', exact: true });
+const timeline = (page: Page) => page.getByRole('region', { name: '场景时间线', exact: true });
+const rangeReadout = (page: Page) => page.getByLabel('当前选区', { exact: true });
 const diagnostics = new WeakMap<Page, { errors: string[]; warnings: string[]; apiRequests: string[] }>();
 type PlaybackRequest = { ready: boolean; settled: boolean; release: (success: boolean) => void };
 declare global {
@@ -61,9 +56,8 @@ test.afterEach(async ({ page }, testInfo) => {
 async function ready(page: Page) {
   await page.goto('/');
   await waitForReady(page);
-  const editor = page.getByRole('region', { name: '手动关键帧时间线', exact: true });
-  await expect(editor).toBeVisible();
-  await expect(page.getByRole('button', { name: /^(添加|更新)关键帧$/, includeHidden: true })).toHaveCount(0);
+  await expect(timeline(page)).toBeVisible();
+  await expect(page.getByRole('button', { name: /^(添加|更新)关键帧$|旋转工具|移动角色工具/, includeHidden: true })).toHaveCount(0);
 }
 
 async function backup(page: Page): Promise<Backup> {
@@ -89,25 +83,16 @@ async function key(page: Page, shortcut: string) {
   await page.keyboard.press(shortcut);
 }
 
-async function number(page: Page, name: string, value: number) {
-  await editStageValue(page, name, value);
-}
-
 async function frame(page: Page, value: number) {
-  await number(page, '当前帧', value);
+  await frameInput(page).fill(String(value));
   await expect(frameInput(page)).toHaveValue(String(value));
+  await expect(timeline(page)).toHaveAttribute('data-frame', String(value));
 }
 
-async function selectJoint(page: Page, joint: string) {
-  await selectStageJoint(page, joint as Parameters<typeof selectStageJoint>[1]);
-}
-
-async function rootKey(page: Page, value = 1.2) {
-  await page.getByRole('button', { name: '移动角色工具', exact: true }).click();
-  await number(page, 'Root X 位移（米）', value);
-  await expect(draft(page)).toHaveCount(0);
-  await expect(guard(page)).toHaveCount(0);
-  await expect(page.locator('.kf-lane[data-track-id="root"] [data-selected-point="true"]')).toHaveAttribute('data-point', 'root');
+/** Record the current view on the Camera track; the track stays selected. */
+async function cameraKey(page: Page) {
+  await page.getByRole('button', { name: '在当前时间记录镜头', exact: true }).click();
+  await expect(timeline(page).locator('.tl-lane[data-track-id="camera"]')).toHaveClass(/selected/);
 }
 
 async function controlledPlayback(page: Page) {
@@ -174,92 +159,94 @@ test('@shortcuts frame arrows preserve the exact non-uniform final interval and 
   await page.keyboard.down('ArrowRight'); await expect(frameInput(page)).toHaveValue('3');
   await page.keyboard.up('ArrowRight');
 
-  const seconds = page.getByRole('spinbutton', { name: '当前时间（秒）', exact: true, includeHidden: true });
-  await reveal(page, seconds);
-  await seconds.focus(); await seconds.press('ArrowLeft'); await seconds.press('k'); await seconds.press('Space');
-  await expect(frameInput(page)).toHaveValue('3');
+  // A focused numeric field keeps its native keys; no global shortcut fires.
+  await frameInput(page).focus(); await frameInput(page).press('ArrowLeft'); await frameInput(page).press('i'); await frameInput(page).press('Space');
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeVisible();
-  await expect(draft(page)).toHaveCount(0);
+  await expect(rangeReadout(page)).toHaveText('未选区');
 
   await frame(page, end - 1);
   await key(page, 'ArrowRight'); await expect(frameInput(page)).toHaveValue(String(end));
-  const finalTime = Number(await seconds.inputValue());
-  expect(finalTime).toBeCloseTo(duration, 6);
+  expect(Number(await timeline(page).getAttribute('data-time'))).toBeCloseTo(duration, 6);
   const atEnd = await backup(page);
   expect(atEnd.scene.viewer.time).toBe(duration);
   expect(atEnd.scene.project).toEqual(baseline.scene.project);
-  expect(current(atEnd).take.times.at(-1)).toBe(duration);
   await key(page, 'ArrowRight'); await expect(frameInput(page)).toHaveValue(String(end));
   await key(page, 'ArrowLeft'); await expect(frameInput(page)).toHaveValue(String(end - 1));
-  expect(Number(await seconds.inputValue())).toBeCloseTo((end - 1) / 30, 6);
+  expect(Number(await timeline(page).getAttribute('data-time'))).toBeCloseTo((end - 1) / 30, 6);
 });
 
-test('@shortcuts automatic recording and selected-point Delete preserve other channels, K stays inert and keyboard history restores the exact animation', async ({ page }) => {
-  await ready(page); await frame(page, 120);
-  await selectJoint(page, 'LeftUpperArm');
-  await page.getByRole('button', { name: '旋转工具', exact: true }).click();
-  await number(page, '关节 Z 旋转（度）', 45);
-  const recorded = await backup(page);
-  await key(page, 'k'); await expect(draft(page)).toHaveCount(0);
-  expect((await backup(page)).scene.project).toEqual(recorded.scene.project);
-  await rootKey(page);
-  const authored = current(await backup(page));
-  expect(authored.manual!.rotations).toEqual({});
-  expect(authored.manual!.root).toEqual([]);
-  expect(authored.manual!.pointEdits).toHaveLength(1);
-  expect(authored.manual!.pointEdits![0].time).toBe(4);
-  expect(Object.keys(authored.manual!.pointEdits![0].joints!)).toEqual(['LeftUpperArm']);
-  expect(authored.manual!.pointEdits![0].root![0]).toBeCloseTo(1.2, 5);
-
-  await key(page, 'Delete');
-  const deletedRoot = current(await backup(page));
-  expect(deletedRoot.manual!.pointEdits![0].root).toBeUndefined();
-  expect(deletedRoot.manual!.pointEdits![0].joints).toEqual(authored.manual!.pointEdits![0].joints);
-  expect(deletedRoot.manual!.rotations).toEqual(authored.manual!.rotations);
-  await key(page, 'Control+z'); expect(current(await backup(page))).toEqual(authored);
-  await key(page, 'Control+Shift+z'); expect(current(await backup(page))).toEqual(deletedRoot);
-  await key(page, 'Control+z'); expect(current(await backup(page))).toEqual(authored);
-  await key(page, 'Control+y'); expect(current(await backup(page))).toEqual(deletedRoot);
-  await key(page, 'Meta+z'); expect(current(await backup(page))).toEqual(authored);
-  await key(page, 'Meta+Shift+z'); expect(current(await backup(page))).toEqual(deletedRoot);
-  await key(page, 'Meta+z'); expect(current(await backup(page))).toEqual(authored);
-
+test('@shortcuts beat, edge and range keys navigate without changing the scene', async ({ page }) => {
+  await ready(page);
+  const baseline = await backup(page);
+  const duration = current(baseline).countMap.durationSeconds, end = Math.ceil(duration * 30);
+  // The demo rhythm is 120 BPM: one dance count every 0.5 s (15 frames).
+  await frame(page, 7);
+  await key(page, 'Shift+ArrowRight'); await expect(frameInput(page)).toHaveValue('15');
+  await key(page, 'Shift+ArrowRight'); await expect(frameInput(page)).toHaveValue('30');
+  await key(page, 'Shift+ArrowLeft'); await expect(frameInput(page)).toHaveValue('15');
+  await key(page, 'i'); await expect(rangeReadout(page)).toHaveText(`0.5s–${duration}s · ${duration - .5}s`);
   await frame(page, 120);
-  await page.getByRole('button', { name: '旋转工具', exact: true }).click();
-  await key(page, 'Delete');
-  const deletedJoint = current(await backup(page));
-  expect(deletedJoint.manual!.pointEdits![0].joints).toBeUndefined();
-  expect(deletedJoint.manual!.pointEdits![0].root).toEqual(authored.manual!.pointEdits![0].root);
-  await key(page, 'Control+z'); expect(current(await backup(page))).toEqual(authored);
-  // K cannot snapshot or mark the pose, including at a new exact source time.
-  const seconds = page.getByRole('spinbutton', { name: '当前时间（秒）', exact: true, includeHidden: true });
-  await reveal(page, seconds);
-  await seconds.fill('4.0123456789'); await seconds.press('Tab');
-  const beforeMark = await backup(page);
+  await key(page, 'o'); await expect(rangeReadout(page)).toHaveText('0.5s–4s · 3.5s');
+  await expect(timeline(page).locator('[data-track-id="counts"] .tl-lane-track')).toHaveAttribute('data-range-start', '0.5');
+  // Home/End visit the range edges first, then the scene edges.
+  await key(page, 'Home'); await expect(frameInput(page)).toHaveValue('15');
+  await key(page, 'Home'); await expect(frameInput(page)).toHaveValue('0');
+  await key(page, 'End'); await expect(frameInput(page)).toHaveValue('120');
+  await key(page, 'End'); await expect(frameInput(page)).toHaveValue(String(end));
+  await key(page, 'Escape'); await expect(rangeReadout(page)).toHaveText('未选区');
+  const after = await backup(page);
+  expect(after.scene.project).toEqual(baseline.scene.project);
+});
+
+test('@shortcuts camera keys: Delete removes the selected key, K stays inert and keyboard history restores it exactly', async ({ page }) => {
+  await ready(page); await frame(page, 120);
+  const baseline = await backup(page);
   await key(page, 'k');
+  expect((await backup(page)).scene.project).toEqual(baseline.scene.project);
+  await cameraKey(page);
+  const authored = current(await backup(page));
+  expect(authored.cameraTrack!.keys.map(item => item.time)).toEqual([4]);
+  expect(authored.take).toEqual(current(baseline).take);
+  expect(authored.manual).toEqual(current(baseline).manual);
+
+  await key(page, 'Delete');
+  const deleted = current(await backup(page));
+  expect(deleted.cameraTrack).toBeUndefined();
+  await key(page, 'Control+z'); expect(current(await backup(page))).toEqual(authored);
+  await key(page, 'Control+Shift+z'); expect(current(await backup(page))).toEqual(deleted);
+  await key(page, 'Control+z'); expect(current(await backup(page))).toEqual(authored);
+  await key(page, 'Control+y'); expect(current(await backup(page))).toEqual(deleted);
+  await key(page, 'Meta+z'); expect(current(await backup(page))).toEqual(authored);
+  await key(page, 'Meta+Shift+z'); expect(current(await backup(page))).toEqual(deleted);
+  await key(page, 'Meta+z'); expect(current(await backup(page))).toEqual(authored);
+
+  // Without a key at the current time, Delete and K change nothing.
+  await frame(page, 121);
+  const beforeMark = await backup(page);
+  await key(page, 'k'); await key(page, 'Delete');
   expect((await backup(page)).scene.project).toEqual(beforeMark.scene.project);
+  // Leaving camera record mode makes Delete inert even on a key.
+  await frame(page, 120);
+  await timeline(page).getByRole('button', { name: '结束镜头录制', exact: true }).click();
   await key(page, 'Delete');
   expect((await backup(page)).scene.project).toEqual(beforeMark.scene.project);
 });
 
-test('@shortcuts recorded gestures allow immediate seeking and playback while open dialogs suspend editing keys', async ({ page }) => {
-  await ready(page); await frame(page, 120); await rootKey(page);
-  await number(page, 'Root X 位移（米）', 2);
+test('@shortcuts recorded camera edits allow immediate seeking and playback while open dialogs suspend editing keys', async ({ page }) => {
+  await ready(page); await frame(page, 120); await cameraKey(page);
   const recorded = await backup(page);
-  await expect(draft(page)).toHaveCount(0); await expect(guard(page)).toHaveCount(0);
   await key(page, 'ArrowRight'); await expect(frameInput(page)).toHaveValue('121');
   await page.getByRole('button', { name: '场景', exact: true }).click();
   const modal = page.getByRole('dialog', { name: '本机场景', exact: true });
   await expect(modal).toBeVisible();
-  for (const shortcut of ['k', 'Delete', 'Control+z', 'ArrowLeft']) await page.keyboard.press(shortcut);
+  for (const shortcut of ['k', 'Delete', 'Control+z', 'ArrowLeft', 'i']) await page.keyboard.press(shortcut);
   // A real Space on a focused dialog button retains its native action. This
   // synthetic stage event checks that the modal also suspends global Space.
   await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true, cancelable: true })));
   await expect(modal).toBeVisible(); await expect(frameInput(page)).toHaveValue('121');
+  await expect(rangeReadout(page)).toHaveText('未选区');
   await page.keyboard.press('Escape'); await expect(modal).toHaveCount(0);
   expect((await backup(page)).scene.project).toEqual(recorded.scene.project);
-  await frame(page, 120);
-  await expectStageValue(page, 'Root X 位移（米）', 2, .000005);
   await key(page, 'Space');
   await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeVisible();
   await key(page, 'Space'); await expect(page.getByRole('button', { name: '播放', exact: true })).toBeVisible();
@@ -267,14 +254,14 @@ test('@shortcuts recorded gestures allow immediate seeking and playback while op
 });
 
 test('@shortcuts composition, modified keys, repeated writes and native focused controls never trigger stage edits', async ({ page }) => {
-  await ready(page); await frame(page, 120); await rootKey(page);
+  await ready(page); await frame(page, 120); await cameraKey(page);
   const baseline = await backup(page);
   await stageFocus(page);
   await page.evaluate(() => {
     const events: KeyboardEventInit[] = [
       { key: 'k', repeat: true }, { key: 'Delete', repeat: true }, { key: ' ', code: 'Space', repeat: true },
-      { key: 'z', ctrlKey: true, repeat: true }, { key: 'k', isComposing: true },
-      { key: 'ArrowRight', altKey: true }, { key: 'ArrowRight', ctrlKey: true }, { key: 'k', metaKey: true },
+      { key: 'z', ctrlKey: true, repeat: true }, { key: 'k', isComposing: true }, { key: 'i', isComposing: true },
+      { key: 'ArrowRight', altKey: true }, { key: 'ArrowRight', ctrlKey: true }, { key: 'k', metaKey: true }, { key: 'o', ctrlKey: true },
     ];
     for (const options of events) window.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...options }));
     const prevented = new KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true });
@@ -282,15 +269,7 @@ test('@shortcuts composition, modified keys, repeated writes and native focused 
   });
   await expect(frameInput(page)).toHaveValue('120');
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeVisible();
-
-  const mirror = page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true });
-  await reveal(page, mirror);
-  await mirror.focus(); await page.keyboard.press('Space');
-  await expect(mirror).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByRole('button', { name: '播放', exact: true })).toBeVisible();
-  await key(page, 'k'); await key(page, 'Delete'); await key(page, 'ArrowRight'); await key(page, 'Control+z');
-  await expect(frameInput(page)).toHaveValue('120');
-  await mirror.click(); await expect(mirror).toHaveAttribute('aria-pressed', 'false');
+  await expect(rangeReadout(page)).toHaveText('未选区');
 
   await page.evaluate(() => {
     const editable = document.createElement('div');
@@ -301,24 +280,16 @@ test('@shortcuts composition, modified keys, repeated writes and native focused 
   await expect(page.locator('#shortcut-contenteditable')).toContainText('k');
   await expect(frameInput(page)).toHaveValue('120');
   await page.locator('#shortcut-contenteditable').evaluate(element => element.remove());
-
-  // Root is a selected timeline point even when no skeleton joint is selected.
-  // Select a body point first so the following blank-canvas click clears both.
-  await selectJoint(page, 'LeftUpperArm');
-  await page.getByRole('button', { name: '选择工具', exact: true }).click();
-  await selectJoint(page, ''); await key(page, 'k'); await key(page, 'Delete');
-  expect((await backup(page)).scene.project).toEqual(baseline.scene.project);
-  await selectJoint(page, 'LeftHandTip'); await key(page, 'k'); await key(page, 'Delete');
   expect((await backup(page)).scene.project).toEqual(baseline.scene.project);
 });
 
 test('@shortcuts Space uses the real music clock while playback locks frame writes and history', async ({ page }) => {
-  await ready(page); await frame(page, 120); await rootKey(page);
+  await ready(page); await frame(page, 120); await cameraKey(page);
   const baseline = await backup(page);
   const offset = current(baseline).countMap.sourceOffsetSeconds;
   await key(page, 'Space'); await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeVisible();
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.currentTime)).toBeGreaterThan(offset + 4.1);
-  await key(page, 'k'); await key(page, 'Delete'); await key(page, 'Control+z');
+  await key(page, 'k'); await key(page, 'Delete'); await key(page, 'Control+z'); await key(page, 'i');
   await page.locator('audio').evaluate((audio: HTMLAudioElement, sourceTime) => { audio.currentTime = sourceTime; }, offset + 7.2);
   await expect.poll(async () => Number(await frameInput(page).inputValue())).toBeGreaterThanOrEqual(216);
   await key(page, 'Space'); await expect(page.getByRole('button', { name: '播放', exact: true })).toBeVisible();
@@ -329,6 +300,7 @@ test('@shortcuts Space uses the real music clock while playback locks frame writ
   const paused = await backup(page);
   expect(paused.scene.viewer.time).toBeCloseTo(pausedFrame / 30, 9);
   expect(paused.scene.project).toEqual(baseline.scene.project);
+  await expect(rangeReadout(page)).toHaveText('未选区');
 });
 
 test('@shortcuts a real canvas reached by Tab advances editor frames without moving the camera', async ({ page }) => {
@@ -362,21 +334,19 @@ test('@shortcuts repeated Space and a new modal cancel pending audio resume befo
   expect((await backup(page)).scene.project).toEqual(baseline.scene.project);
 });
 
-test('@shortcuts seeking or an automatically recorded gesture cancels pending play and obsolete results cannot interrupt newer playback', async ({ page }) => {
+test('@shortcuts seeking or a recorded camera edit cancels pending play and obsolete results cannot interrupt newer playback', async ({ page }) => {
   await controlledPlayback(page); await ready(page); await frame(page, 120);
-  await page.getByRole('button', { name: '移动角色工具', exact: true }).click();
   await page.evaluate(() => { window.shortcutPlayback.hold = 'play'; });
   await key(page, 'Space'); await held(page, 'plays', 0);
   await frame(page, 180); await release(page, 'plays', 0);
   await expectPaused(page); await expect(frameInput(page)).toHaveValue('180'); await expectNoPlaybackError(page);
 
   await key(page, 'Space'); await held(page, 'plays', 1);
-  await number(page, 'Root X 位移（米）', 2);
-  await expect(draft(page)).toHaveCount(0); await expect(guard(page)).toHaveCount(0);
+  await cameraKey(page);
   await release(page, 'plays', 1, false);
   await expectPaused(page); await expectNoPlaybackError(page);
   const recorded = await backup(page);
-  expect(current(recorded).manual!.pointEdits!.find(edit => edit.time === 6)?.root?.[0]).toBeCloseTo(2, 5);
+  expect(current(recorded).cameraTrack!.keys.map(item => item.time)).toEqual([6]);
 
   await key(page, 'Space'); await held(page, 'plays', 2);
   await key(page, 'Space'); await expectPaused(page);
@@ -399,7 +369,7 @@ test('@shortcuts seeking or an automatically recorded gesture cancels pending pl
   expect((await backup(page)).scene.project).toEqual(recorded.scene.project);
 });
 
-test('@shortcuts Space restarts from the last frame and starts whole-scene looping without cancelling its own seek', async ({ page }) => {
+test('@shortcuts Space restarts from the last frame and loops the scene or the selected range', async ({ page }) => {
   await ready(page);
   const baseline = await backup(page);
   const end = Math.ceil(current(baseline).countMap.durationSeconds * 30);
@@ -408,10 +378,19 @@ test('@shortcuts Space restarts from the last frame and starts whole-scene loopi
   await key(page, 'Space'); await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeVisible();
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.currentTime)).toBeLessThan(offset + 1.5);
   await key(page, 'Space'); await expectPaused(page);
-  await clickRevealed(page, page.getByRole('button', { name: '循环整段', exact: true, includeHidden: true }));
-  await closeDisclosures(page, '.kf-more');
+  await page.getByRole('button', { name: '循环整段', exact: true }).click();
   await key(page, 'Space'); await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeVisible();
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.currentTime)).toBeGreaterThan(offset + 0.1);
   await key(page, 'Space'); await expectPaused(page);
+  // With a range, looping starts at its start and stays within it.
+  await frame(page, 30); await key(page, 'i'); await frame(page, 45); await key(page, 'o');
+  await expect(page.getByRole('button', { name: '循环选区', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await frame(page, 300);
+  await key(page, 'Space'); await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeVisible();
+  const seen: number[] = [];
+  for (let index = 0; index < 12; index++) { seen.push(Number(await timeline(page).getAttribute('data-time'))); await page.waitForTimeout(80); }
+  await key(page, 'Space'); await expectPaused(page);
+  expect(Math.min(...seen)).toBeGreaterThanOrEqual(1 - 1e-6);
+  expect(Math.max(...seen)).toBeLessThanOrEqual(1.5 + 1e-6);
   expect((await backup(page)).scene.project).toEqual(baseline.scene.project);
 });

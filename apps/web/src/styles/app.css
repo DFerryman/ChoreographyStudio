@@ -80,12 +80,6 @@
 .camera-options .disclosure-content > span { padding-top: 2px; color: var(--faint); font-size: 10px; }
 
 /* Edit tools, top left. The help line is read by assistive tech. */
-.stage-edit-tools { position: absolute; z-index: 12; top: 14px; left: 16px; padding: 4px; }
-.stage-tool-buttons { display: flex; align-items: center; gap: 3px; min-width: 0; }
-.stage-tool-buttons > button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 30px; padding: 5px 10px; border-radius: 6px; color: var(--muted); font-size: 11px; white-space: nowrap; }
-.stage-tool-buttons > button:hover:not(:disabled) { color: var(--text); background: var(--surface-hover); }
-.stage-tool-buttons > button.selected { color: var(--text); background: var(--surface-active); box-shadow: inset 0 1px #ffffff08; }
-.stage-tool-help { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* Stage information, realism and AI behind the last camera-cluster button. */
 .scene-extras { position: relative; color: var(--muted); }
@@ -103,8 +97,8 @@
 
 /* The Timeline is docked under the stage; the splitter resizes the split. */
 .timeline-dock { position: relative; display: flex; flex: none; flex-direction: column; height: var(--timeline-height, 300px); min-height: 0; border-top: 1px solid var(--line); background: var(--surface-1); }
-.timeline-dock:has(.kf-collapsed) { height: auto; }
-.timeline-dock:has(.kf-collapsed) > .timeline-splitter { display: none; }
+.timeline-dock:has(.tl-collapsed) { height: auto; }
+.timeline-dock:has(.tl-collapsed) > .timeline-splitter { display: none; }
 .timeline-splitter { position: relative; flex: none; height: 9px; margin-top: -5px; cursor: row-resize; touch-action: none; }
 .timeline-splitter::after { content: ''; position: absolute; top: 3px; left: 50%; width: 36px; height: 3px; border-radius: 2px; background: var(--line-strong); transform: translateX(-50%); transition: background .15s, width .15s; }
 .timeline-splitter:hover::after, .timeline-splitter:focus-visible::after, .timeline-splitter:active::after { width: 56px; background: var(--accent); }
@@ -138,11 +132,7 @@
 .play-button svg.lucide-play { margin-left: 2px; }
 .time-display { color: var(--text-2); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .time-display > span { color: var(--muted); }
-.playback-options { margin-top: 9px; border-top: 1px solid var(--line); }
-.playback-options > summary { min-height: 44px; color: var(--text-2); font-size: 11px; }
-.player-options { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 18px; padding: 0 0 5px; }
-.playback-extra-options { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
-.playback-extra-options .icon-button { width: auto; height: 40px; gap: 6px; padding: 0 8px; font-size: 11px; }
+.player-options { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 18px; padding: 0 0 8px; border-bottom: 1px solid var(--line); }
 .playback-rate-option { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; }
 .playback-rate-option select { height: 32px; padding: 0 6px; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--text); background: var(--field); font-size: 11px; cursor: pointer; }
 .option { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0; color: var(--muted); font-size: 11px; }
@@ -174,9 +164,6 @@
   .studio-more > summary, .scene-extras > summary { width: 44px; height: 44px; }
   .menu-item, .backup-menu > summary { min-height: 44px; }
 
-  .stage-edit-tools { top: auto; bottom: 8px; left: 8px; }
-  .stage-tool-buttons > button { min-height: 44px; padding: 6px 9px; }
-  .stage-tool-buttons > button > svg { width: 13px; height: 13px; }
   .viewer-toolbar { top: 8px; right: 8px; }
   .camera-toolbar .segmented { display: none; }
   .camera-toolbar > .icon-button, .camera-options > summary { width: 44px; height: 44px; min-height: 44px; }
@@ -186,5 +173,4 @@
   .missing-audio, .assist-candidate { right: 8px; left: 8px; }
 }
 @media (max-width: 360px) {
-  .stage-tool-buttons > button { padding-inline: 6px; }
 }

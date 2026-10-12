@@ -10,7 +10,7 @@ function maxHeight(): number {
   return Math.max(MIN_HEIGHT, window.innerHeight - top - MIN_STAGE);
 }
 function defaultHeight(): number {
-  return Math.round(window.innerHeight * (window.innerWidth <= 680 ? .42 : .34));
+  return Math.round(window.innerHeight * (window.innerWidth <= 680 ? .46 : .34));
 }
 function storedHeight(): number | null {
   try { const value = Number(window.localStorage.getItem(STORAGE_KEY)); return Number.isFinite(value) && value > 0 ? value : null; } catch { return null; }

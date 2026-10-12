@@ -59,11 +59,16 @@ async function ready(page: Page) {
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.readyState)).toBeGreaterThanOrEqual(2);
 }
 
-const timeline = (page: Page) => page.getByRole('region', { name: '手动关键帧时间线', exact: true });
-const clock = (page: Page) => timeline(page).getByRole('slider', { name: '关键帧时间线进度', exact: true });
+const timeline = (page: Page) => page.getByRole('region', { name: '场景时间线', exact: true });
+const clock = (page: Page) => timeline(page).getByRole('slider', { name: '时间线进度', exact: true });
 
-async function assertManualWorkspace(page: Page) {
+async function assertWorkspace(page: Page) {
   await expect(timeline(page)).toBeVisible();
+  // Only music and camera tracks; character motion is AI-generated, never hand-keyed.
+  expect(await timeline(page).locator('[data-track-id]').evaluateAll(rows => rows.map(row => row.getAttribute('data-track-id')))).toEqual(['counts', 'audio', 'camera']);
+  await expect(page.getByRole('group', { name: '舞台编辑工具', exact: true, includeHidden: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /旋转工具|移动角色工具|手脚 IK|撤去本点修改/, includeHidden: true })).toHaveCount(0);
+  await expect(page.getByRole('spinbutton', { name: /四元数|位置[XYZ]$/, includeHidden: true })).toHaveCount(0);
   await expect(page.getByRole('group', { name: '编舞模式', exact: true, includeHidden: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /八拍编排|手动 K帧|换一个八拍|试试更简单|生成模板初稿/, includeHidden: true })).toHaveCount(0);
   await expect(page.getByRole('list', { name: '八拍时间线', exact: true, includeHidden: true })).toHaveCount(0);
@@ -103,35 +108,35 @@ test('renders a nonblank 3D pose and advances audio time during playback', async
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.currentTime)).toBeGreaterThan(1);
   // The source timeline stores exact seconds, including nonuniform imported
   // timestamps; playback must advance the actual scene clock beside the audio.
-  await expect.poll(() => page.getByRole('slider', { name: '关键帧时间线进度', exact: true }).inputValue().then(Number)).toBeGreaterThan(1);
+  await expect.poll(() => page.getByRole('slider', { name: '时间线进度', exact: true }).inputValue().then(Number)).toBeGreaterThan(1);
   await page.getByRole('button', { name: '暂停', exact: true }).click();
   const movingFrame = await canvas.screenshot();
   expect(movingFrame.equals(initialFrame), 'Displayed pose should respond to playback time').toBe(false);
-  const paused = Number(await page.getByRole('slider', { name: '关键帧时间线进度', exact: true }).inputValue());
+  const paused = Number(await page.getByRole('slider', { name: '时间线进度', exact: true }).inputValue());
   await page.waitForTimeout(250);
-  expect(Number(await page.getByRole('slider', { name: '关键帧时间线进度', exact: true }).inputValue())).toBe(paused);
+  expect(Number(await page.getByRole('slider', { name: '时间线进度', exact: true }).inputValue())).toBe(paused);
 });
 
-test('the default workspace exposes manual editing directly without the removed arranging controls', async ({ page }) => {
+test('the default workspace has only music and camera tracks and no manual character editing', async ({ page }) => {
   await ready(page);
-  await assertManualWorkspace(page);
+  await assertWorkspace(page);
   await clickRevealed(page, page.getByRole('button', { name: '导入音乐', exact: true, includeHidden: true }));
   await page.getByRole('dialog', { name: '先把音乐和数拍准备好', exact: true }).press('Escape');
-  await assertManualWorkspace(page);
+  await assertWorkspace(page);
   const baseline = await backup(page);
   expect(current(baseline).take).toBeTruthy();
   expect(current(baseline).plan).toBeNull();
   expect(current(baseline).manual!.pointEdits ?? []).toEqual([]);
 });
 
-test('teaching preview keeps the manual Timeline and exact choreography accessible', async ({ page }) => {
+test('teaching preview keeps the Timeline and exact choreography accessible', async ({ page }) => {
   await openFixture(page);
   const before = await backup(page);
   await clickRevealed(page, page.getByRole('button', { name: '教学预览', exact: true, includeHidden: true }));
-  await assertManualWorkspace(page);
+  await assertWorkspace(page);
   expect((await backup(page)).scene.project).toEqual(before.scene.project);
-  await clickRevealed(page, page.getByRole('button', { name: '返回手动编辑', exact: true, includeHidden: true }));
-  await assertManualWorkspace(page);
+  await clickRevealed(page, page.getByRole('button', { name: '返回编辑', exact: true, includeHidden: true }));
+  await assertWorkspace(page);
   expect((await backup(page)).scene.project).toEqual(before.scene.project);
 });
 
@@ -147,7 +152,7 @@ test('uploads original fixture audio and restores saved project and identical au
   await dialog.getByLabel('选取几个完整八拍').fill('4');
   await dialog.getByLabel('第一数拍位置（秒）').fill('2');
   await dialog.getByRole('button', { name: '确认数拍，进入工作台' }).click();
-  await assertManualWorkspace(page);
+  await assertWorkspace(page);
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeEnabled();
   const prepared = await backup(page);
   expect(current(prepared).countMap.durationSeconds).toBe(16);
@@ -158,9 +163,9 @@ test('uploads original fixture audio and restores saved project and identical au
   await expect(page.locator('.save-state')).toHaveText('已保存到本机');
   await page.reload();
   await expect(page.locator('.project-title')).toContainText('保存恢复测试组合');
-  await expect(page.locator('.kf-audio-name')).toHaveText('original-fixture.wav');
+  await expect(page.locator('.tl-audio-name')).toHaveText('original-fixture.wav');
   await expect(page.locator('.save-state')).toHaveText('已保存到本机');
-  await assertManualWorkspace(page);
+  await assertWorkspace(page);
   expect((await backup(page)).scene.project).toEqual(prepared.scene.project);
   const restoredHash = await page.locator('audio').evaluate(async (audio: HTMLAudioElement) => {
     const bytes = await (await fetch(audio.src)).arrayBuffer();
@@ -177,7 +182,7 @@ test('uploads original fixture audio and restores saved project and identical au
   expect(sourceTime - relativeTime).toBeLessThan(2.5);
 });
 
-test('rejects invalid count ranges and starts an editable neutral take when CountMap changes', async ({ page }) => {
+test('rejects invalid count ranges and starts a neutral take when CountMap changes', async ({ page }) => {
   await ready(page);
   await closeDisclosures(page, '.studio-more');
   // The compact studio exposes the same music/count settings through More.
@@ -200,7 +205,7 @@ test('rejects invalid count ranges and starts an editable neutral take when Coun
   await confirm.click();
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeEnabled();
   await expect(page.getByRole('button', { name: '撤销', exact: true })).toBeDisabled();
-  await assertManualWorkspace(page);
+  await assertWorkspace(page);
   const rebuilt = current(await backup(page));
   expect(rebuilt.countMap.bpm).toBe(100);
   expect(rebuilt.countMap.octetCount).toBe(4);

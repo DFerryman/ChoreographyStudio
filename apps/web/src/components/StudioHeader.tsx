@@ -63,7 +63,7 @@ export function StudioHeader(props: Props) {
         <summary aria-label="更多工具" title="更多工具"><SlidersHorizontal size={14} /></summary>
         <div className="studio-more-content floating-panel">
           <button className="menu-item new-project" title="调整当前场景的音乐与数拍" onClick={props.onMusic} disabled={!ready || busy}><Music size={14} />导入音乐</button>
-          <button className="menu-item" onClick={props.onTeaching}><GraduationCap size={14} />{teaching.active ? '返回手动编辑' : '教学预览'}</button>
+          <button className="menu-item" onClick={props.onTeaching}><GraduationCap size={14} />{teaching.active ? '返回编辑' : '教学预览'}</button>
           {teaching.active && <>
             <button className="menu-item" onClick={() => props.onTeachingReview(true)} disabled={!teaching.canMark || teaching.checked} title="仅记录本版试看，不代表教学审核"><Check size={14} />{teaching.checked ? '已记录本版试看' : '标记本版已试看'}</button>
             {teaching.checked && <button className="menu-item" onClick={() => props.onTeachingReview(false)} disabled={!teaching.canUnmark}>撤销试看记录</button>}

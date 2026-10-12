@@ -64,7 +64,7 @@ function readBundle(bytes: Buffer) {
 async function clock(page: Page) {
   return page.evaluate(() => ({
     wall: performance.now(),
-    scene: Number(document.querySelector<HTMLInputElement>('input[aria-label="关键帧时间线进度"]')!.value),
+    scene: Number(document.querySelector<HTMLInputElement>('input[aria-label="时间线进度"]')!.value),
     audio: document.querySelector('audio')!.currentTime,
   }));
 }
@@ -77,7 +77,7 @@ for (const { rate, importFormat } of [{ rate: 0.25, importFormat: 'choreo' }, { 
     await reveal(page, rateSelect(page));
     expect(await rateSelect(page).locator('option').allTextContents()).toEqual(['1×', '0.75×', '0.5×', '0.25×', '0.1×']);
     await rateSelect(page).selectOption(String(rate));
-    await closeDisclosures(page, '.playback-options, .kf-more');
+    await closeDisclosures(page, '.tl-more');
     await page.getByRole('button', { name: '播放', exact: true }).click();
     await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.paused)).toBe(false);
     expect(await page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.playbackRate)).toBe(rate);

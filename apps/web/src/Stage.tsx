@@ -67,6 +67,10 @@ type StageProps = {
   ikTarget?: Vec3 | null;
   collisionFeedback?: string | null;
   onSelectJoint?: (joint: JointName | null) => void;
+  /** Arrow keys step the Timeline; the camera takes them only while its track is recorded. */
+  timelineKeys?: boolean;
+  /** When false, the body is view-only: no joint hover, picking or selection. */
+  jointPicking?: boolean;
   onCameraChange?: (camera: StageCamera) => void;
   onCameraInteraction?: () => void;
   onCameraGesture?: (camera: StageCamera, phase: 'start' | 'change' | 'end' | 'cancel') => void;
@@ -200,6 +204,11 @@ function StageFallback({ error }: { error: string }) {
   );
 }
 
+/** Camera arrow-key navigation, unless the editor's Timeline owns those keys. */
+function cameraOwnsKeys(state: StageProps): boolean {
+  return !!state.cameraTrackEditing || (!state.editMode && !state.timelineKeys);
+}
+
 export function Stage(props: StageProps) {
   const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selectedJoint, linkedJoints, gridVisible, axesVisible, poseOverride, editMode, playing, collisionPreview, transformTool = 'rotate', ikTarget } = props;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -249,9 +258,9 @@ export function Stage(props: StageProps) {
   const previewStatus = !previewActive ? null : previewFailure ? '碰撞预览失败 · 显示作者姿态' : previewState === 'loading' ? '碰撞预览准备中 · 显示作者姿态' : presentation.preview?.corrected ? '碰撞预览 · 近似修正' : '碰撞预览 · 近似检查';
   const guidanceWarning = <>
     {previewStatus && <span className="stage3d-author-warning" role="status" aria-label="碰撞预览" title={previewFailure ?? '碰撞修正仅用于预览，作者数据保持原值。'}>{previewStatus}</span>}
-    {hasCapsuleCollisions && <span className="stage3d-author-warning" role="status" aria-label="身体碰撞提示" title="近似求解仍有残余接触；选择相关部位后可编辑作者姿态。">残余接触 {capsuleCollisions!.selfCollisions.length} · 穿地 {capsuleCollisions!.floorPenetrations.length}</span>}
-    {poseGuidance.outsideSuggestedRange.length > 0 && <span className="stage3d-author-warning" role="status" aria-label="全身关节建议范围" title={poseGuidance.outsideSuggestedRange.map(joint => STAGE_JOINT_LABELS[joint]).join('、')}>超出标准人体建议 · {poseGuidance.outsideSuggestedRange.length} 处 · 保留老师姿态</span>}
-    {poseGuidance.shoulderCoupling.length > 0 && <span className="stage3d-author-warning" role="status" aria-label="肩部配合提示" title="大幅举臂请配合肩部，关键帧按老师原姿态保留。">举臂需检查肩部配合</span>}
+    {hasCapsuleCollisions && <span className="stage3d-author-warning" role="status" aria-label="身体碰撞提示" title="近似求解仍有残余接触；可用 AI 重新生成该段动作。">残余接触 {capsuleCollisions!.selfCollisions.length} · 穿地 {capsuleCollisions!.floorPenetrations.length}</span>}
+    {poseGuidance.outsideSuggestedRange.length > 0 && <span className="stage3d-author-warning" role="status" aria-label="全身关节建议范围" title={poseGuidance.outsideSuggestedRange.map(joint => STAGE_JOINT_LABELS[joint]).join('、')}>超出标准人体建议 · {poseGuidance.outsideSuggestedRange.length} 处</span>}
+    {poseGuidance.shoulderCoupling.length > 0 && <span className="stage3d-author-warning" role="status" aria-label="肩部配合提示" title="大幅举臂需检查肩部配合；动作数据保持原值。">举臂需检查肩部配合</span>}
   </>;
 
   function selectJoint(joint: JointName | null) {
@@ -297,7 +306,7 @@ export function Stage(props: StageProps) {
     controls.screenSpacePanning = true;
     controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
     controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
-    let cameraKeyboardEnabled = !current.current.editMode || !!current.current.cameraTrackEditing;
+    let cameraKeyboardEnabled = cameraOwnsKeys(current.current);
     if (cameraKeyboardEnabled) controls.listenToKeyEvents(canvas);
     const transform = new TransformControls(camera, canvas);
     transform.setMode('rotate');
@@ -786,7 +795,7 @@ export function Stage(props: StageProps) {
 
     function draw() {
       const state = current.current;
-      const nextKeyboardEnabled = !state.editMode || !!state.cameraTrackEditing;
+      const nextKeyboardEnabled = cameraOwnsKeys(state);
       if (cameraKeyboardEnabled !== nextKeyboardEnabled) {
         cameraKeyboardEnabled = nextKeyboardEnabled;
         if (cameraKeyboardEnabled) controls.listenToKeyEvents(canvas);
@@ -1101,7 +1110,7 @@ export function Stage(props: StageProps) {
         if (Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y) > 5) pointerStart.dragged = true;
         return;
       }
-      if (current.current.cameraTrackEditing) { clearHover(); return; }
+      if (current.current.cameraTrackEditing || current.current.jointPicking === false) { clearHover(); return; }
       if (event.pointerType === 'touch') return;
       if (transform.enabled && (transform.dragging || transform.axis !== null)) {
         clearHover();
@@ -1125,7 +1134,7 @@ export function Stage(props: StageProps) {
       const start = pointerStart;
       pointerStart = null;
       canvas.classList.remove('is-dragging');
-      if (!current.current.cameraTrackEditing && !start.dragged && !start.gizmo && !transform.dragging && start.button === 0 && activePointers.size === 0) {
+      if (!current.current.cameraTrackEditing && current.current.jointPicking !== false && !start.dragged && !start.gizmo && !transform.dragging && start.button === 0 && activePointers.size === 0) {
         selectJoint(pick(event, true));
       }
     }
@@ -1350,7 +1359,7 @@ export function Stage(props: StageProps) {
   }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selection, linkedJoints, gridVisible, axesVisible, poseOverride, editMode, playing, collisionPreview, feedbackPose, previewState, transformTool, ikTarget]);
 
   return (
-    <div className="stage3d" ref={containerRef} data-camera-offset-y="0" data-motion-presentation={previewActive ? 'collision-preview' : 'author'} data-collision-preview-state={previewState} tabIndex={editMode ? 0 : undefined} role="region" aria-label="3D 动画舞台" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined} aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y Alt+ArrowUp Alt+ArrowDown' : undefined} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }} onKeyDown={event => {
+    <div className="stage3d" ref={containerRef} data-camera-offset-y="0" data-motion-presentation={previewActive ? 'collision-preview' : 'author'} data-collision-preview-state={previewState} tabIndex={0} role="region" aria-label="3D 动画舞台" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined} aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y Alt+ArrowUp Alt+ArrowDown' : 'ArrowLeft ArrowRight Shift+ArrowLeft Shift+ArrowRight Home End I O Escape Space Delete Control+Z Meta+Z Control+Shift+Z Control+Y'} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }} onKeyDown={event => {
       if (!editMode || event.nativeEvent.isComposing || !event.altKey || event.ctrlKey || event.metaKey || !['ArrowUp', 'ArrowDown'].includes(event.key)
         || (event.target !== containerRef.current && !(event.target instanceof HTMLCanvasElement))) return;
       event.preventDefault();

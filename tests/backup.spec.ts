@@ -1,10 +1,10 @@
-import { editStageValue, selectStageJoint } from './stageInteractions';
 import { createHash } from 'node:crypto';
 import { deepStrictEqual } from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed, closeDisclosures, reveal } from './helpers';
+import { clickRevealed, closeDisclosures, reveal, seekSeconds } from './helpers';
+import { bakeKeyframeSequence, makeKeyframeSequence, sampleTake, upsertMotionPointChanges, type BakedTake } from '../packages/core/src';
 import { unpackScene } from '../apps/web/src/compactScene';
 
 // Independent legacy-compatible scene: a non-uniform base, moving Root and
@@ -22,7 +22,7 @@ type Quat = [number, number, number, number];
 type Pose = { root: Vec3; joints: Record<Joint, Quat> };
 type Take = { id: string; schemaVersion: string; planId: string; countMapId: string; durationSeconds: number; times: number[]; poses: Pose[]; provenance: string };
 type Sequence = { schema: 'manual-keyframes-1'; id: string; fps: 30; baseTake: Take; rotations: Partial<Record<Joint, { frame: number; rotation: Quat }[]>>; root: { frame: number; position: Vec3 }[]; pointEdits?: { time: number; root?: Vec3; joints?: Partial<Record<Joint, Quat>> }[] };
-type Snapshot = { title: string; countMap: { id: string; durationSeconds: number }; plan: unknown; take: Take; manual?: Sequence; operation?: { label: string; time?: number; tracks?: ('root' | Joint)[] } };
+type Snapshot = { title: string; countMap: { id: string; durationSeconds: number }; plan: unknown; take: Take; manual?: Sequence; cameraTrack?: { keys: { time: number }[] }; operation?: { label: string; time?: number; tracks?: ('root' | 'camera' | Joint)[] } };
 type Backup = { scene: { id: string; name: string; audioName: string; project: { historyIndex: number; history: Snapshot[]; revision: number; teacherCheckedRevision: number | null }; viewer: { time: number; selectedJoint: Joint | null; editorMode?: string; view: string; mirror: boolean; camera: { position: Vec3; target: Vec3; zoom?: number } } } };
 const current = (document: Backup) => document.scene.project.history[document.scene.project.historyIndex];
 const diagnostics = new WeakMap<Page, { errors: string[]; warnings: string[]; apiRequests: string[] }>();
@@ -54,12 +54,19 @@ function fixture() {
   };
   const times = [0, 0.7, 2.5, 4, 8, 12, 16];
   const poses = times.map((time): Pose => ({ root: [time / 80, 1.05, 0], joints: Object.fromEntries(joints.map(joint => [joint, joint === 'Head' ? [0, Math.sin(time / 160), 0, Math.cos(time / 160)] : [0, 0, 0, 1]])) as Record<Joint, Quat> }));
-  const take: Take = { id: 'backup-base-take', schemaVersion: 'preview-1', planId: plan.id, countMapId: countMap.id, durationSeconds: 16, times, poses, provenance: 'synthetic-demo' };
+  const base: Take = { id: 'backup-base-take', schemaVersion: 'preview-1', planId: plan.id, countMapId: countMap.id, durationSeconds: 16, times, poses, provenance: 'synthetic-demo' };
+  // Existing character authoring (from before the AI-only workflow) is hidden
+  // from the Timeline but must remain scene data through every local transfer.
+  let manual = makeKeyframeSequence(base as BakedTake, { pointInterpolation: 'hold-last-key-1' });
+  const before = sampleTake(base as BakedTake, 2.5), after = structuredClone(before);
+  after.joints.LeftUpperArm = [0, 0, Math.sin(.3), Math.cos(.3)]; after.root = [1.2, 1.05, 0];
+  manual = upsertMotionPointChanges(manual, 2.5, before, after, base as BakedTake);
+  const take = bakeKeyframeSequence(manual) as unknown as Take;
   const scene = {
     schema: 'choreo-scene-1', id: 'backup-local-scene', name: '场景备份回归场景', createdAt: '2026-10-07T06:00:00.000Z', updatedAt: '2026-10-07T06:00:00.000Z',
     coordinateSystem: { handedness: 'right', upAxis: '+Y', forwardAxis: '+Z', units: 'm', floorPlane: 'XZ', origin: [0, 0, 0] },
     actor: { id: 'actor-1', rigId: 'synthetic-skeleton-1', provenance: 'synthetic-demo', joints: [...joints] },
-    project: { history: [{ title: '场景备份回归场景', countMap, plan, take }], historyIndex: 0, revision: 1, audioDuration: 20, teacherCheckedRevision: 1 },
+    project: { history: [{ title: '场景备份回归场景', countMap, plan, take, manual }], historyIndex: 0, revision: 1, audioDuration: 20, teacherCheckedRevision: 1 },
     audioName: 'original-backup-local.wav',
     viewer: { camera: null, view: 'front', mirror: false, rate: 1, loop: false, countSound: false, selectedSlot: 0, selectedJoint: null, time: 0 },
   };
@@ -69,7 +76,7 @@ function fixture() {
   wave.writeUInt32LE(sampleRate, 24); wave.writeUInt32LE(sampleRate * 2, 28); wave.writeUInt16LE(2, 32); wave.writeUInt16LE(16, 34);
   wave.write('data', 36); wave.writeUInt32LE(samples * 2, 40);
   for (let i = 0; i < samples; i++) wave.writeInt16LE(Math.round(Math.sin(i / sampleRate * Math.PI * 2 * 440) * 1500), 44 + i * 2);
-  return { scene, take, wave };
+  return { scene, take, base, manual: manual as unknown as Sequence, wave };
 }
 async function ready(page: Page) {
   await expect(page.getByRole('button', { name: '播放', exact: true })).toBeEnabled();
@@ -99,8 +106,13 @@ async function openScene(page: Page) {
   }, { scene: source.scene, bytes: Array.from(source.wave) });
   await page.reload(); await ready(page);
   await expect(page.locator('.project-title h1')).toHaveText(source.scene.name);
-  deepStrictEqual(current(await backup(page)).take, source.take);
-  await expect(page.getByRole('region', { name: '手动关键帧时间线', exact: true })).toBeVisible();
+  const opened = current(await backup(page));
+  deepStrictEqual(opened.take, source.take);
+  deepStrictEqual(opened.manual, source.manual);
+  const timeline = page.getByRole('region', { name: '场景时间线', exact: true });
+  await expect(timeline).toBeVisible();
+  // Character channels are retained in the scene but never shown as tracks.
+  expect(await timeline.locator('[data-track-id]').evaluateAll(rows => rows.map(row => row.getAttribute('data-track-id')))).toEqual(['counts', 'audio', 'camera']);
   return source;
 }
 async function backup(page: Page): Promise<Backup> {
@@ -113,29 +125,18 @@ async function backup(page: Page): Promise<Backup> {
   await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
   return document;
 }
-async function numeric(page: Page, label: string, value: number) {
-  await editStageValue(page, label, value);
-}
 async function frame(page: Page, value: number) {
   await closeDisclosures(page);
-  const seconds = page.getByRole('region', { name: '手动关键帧时间线', exact: true }).getByRole('spinbutton', { name: '当前时间（秒）', exact: true, includeHidden: true });
-  await reveal(page, seconds);
-  await seconds.fill(String(value / 30)); await seconds.press('Tab');
-  expect(Number(await seconds.inputValue())).toBe(value / 30);
-  await closeDisclosures(page, '.kf-point-inspector');
+  await seekSeconds(page, value / 30);
+  await expect(page.getByRole('region', { name: '场景时间线', exact: true })).toHaveAttribute('data-time', String(value / 30));
 }
-async function joint(page: Page, value: Joint | '') { await selectStageJoint(page, value as Parameters<typeof selectStageJoint>[1]); }
-async function rotationPoint(page: Page, keyFrame: number, name: Joint, degrees: number) {
-  await frame(page, keyFrame); await joint(page, name); await numeric(page, '关节 Z 旋转（度）', degrees);
-  await expect(guard(page)).toHaveCount(0);
-  expect(current(await backup(page)).operation?.tracks).toEqual([name]);
+/** Record the current view as a Camera key: the remaining keyed edit. */
+async function cameraPoint(page: Page, keyFrame: number) {
+  await frame(page, keyFrame);
+  await page.getByRole('button', { name: '在当前时间记录镜头', exact: true }).click();
+  await expect(page.getByRole('region', { name: '场景时间线', exact: true }).locator(`.tl-key[data-time="${keyFrame / 30}"]`)).toHaveCount(1);
+  expect(current(await backup(page)).operation?.tracks).toEqual(['camera']);
 }
-async function rootPoint(page: Page, keyFrame: number, x: number) {
-  await frame(page, keyFrame); await numeric(page, 'Root X 位移（米）', x);
-  await expect(guard(page)).toHaveCount(0);
-  expect(current(await backup(page)).operation?.tracks).toEqual(['root']);
-}
-const guard = (page: Page) => page.getByRole('dialog', { name: '写入这份姿态草稿？', exact: true });
 const importDialog = (page: Page) => page.getByRole('dialog', { name: '导入场景备份', exact: true });
 const importConfirm = (page: Page) => importDialog(page).getByRole('button', { name: '作为新场景导入', exact: true });
 const unsaved = (page: Page) => page.getByRole('dialog', { name: '保留当前场景的修改？', exact: true });
@@ -215,18 +216,16 @@ async function capture(page: Page, name: string) {
   await page.screenshot({ path: join(process.env.CHOREO_SCREENSHOT_DIR, name), fullPage: true });
 }
 
-test('@backup compact full scene bundles round-trip automatic channel edits, exact original audio, non-uniform animation, history and camera into a new local scene', async ({ page }) => {
+test('@backup compact full scene bundles round-trip retained character data, camera edits, exact original audio, non-uniform animation, history and camera into a new local scene', async ({ page }) => {
   test.setTimeout(180_000);
   const source = await openScene(page);
-  await rotationPoint(page, 30, 'LeftUpperArm', 35); await rootPoint(page, 75, 1.2); await rotationPoint(page, 120, 'RightUpperArm', -35);
+  await cameraPoint(page, 30); await cameraPoint(page, 75); await cameraPoint(page, 120);
   await page.getByRole('button', { name: '撤销', exact: true }).click();
-  await frame(page, 75); await joint(page, 'LeftForeArm');
-  await expect(guard(page)).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /^K (完整姿态|当前关节|位移)$/, includeHidden: true })).toHaveCount(0);
+  await frame(page, 75);
   await page.getByRole('button', { name: '背面', exact: true }).click();
   const speed = page.getByRole('combobox', { name: '播放速度', exact: true, includeHidden: true });
   await reveal(page, speed); await speed.selectOption('0.5');
-  await closeDisclosures(page, '.kf-more, .kf-more-actions');
+  await closeDisclosures(page, '.tl-more');
   await clickRevealed(page, page.getByRole('button', { name: '教学预览', exact: true, includeHidden: true }));
   await page.getByRole('button', { name: '标记本版已试看', exact: true }).click();
   await save(page);
@@ -250,7 +249,9 @@ test('@backup compact full scene bundles round-trip automatic channel edits, exa
   expect(after.ids).toEqual([...savedState.ids, imported.scene.id].sort()); expect(after.currentId).toBe(imported.scene.id);
   deepStrictEqual(imported.scene.project, { ...original.scene.project, teacherCheckedRevision: null });
   deepStrictEqual(imported.scene.viewer, original.scene.viewer);
-  deepStrictEqual(current(imported).manual!.baseTake, source.take);
+  deepStrictEqual(current(imported).manual, source.manual);
+  deepStrictEqual(current(imported).take, source.take);
+  expect(current(imported).cameraTrack!.keys.map(key => key.time)).toEqual([1, 2.5]);
   expect(await audioHash(page)).toBe(createHash('sha256').update(source.wave).digest('hex'));
   await page.reload(); await ready(page);
   const restored = await backup(page); deepStrictEqual(restored.scene, imported.scene);
@@ -265,7 +266,7 @@ test('@backup compact full scene bundles round-trip automatic channel edits, exa
 test('@backup malformed, oversized-header, truncated and tampered bundles perform no writes; legacy JSON requires explicit original music relinking', async ({ page }) => {
   test.setTimeout(210_000);
   const source = await openScene(page);
-  await rotationPoint(page, 75, 'LeftUpperArm', 50); await save(page);
+  await cameraPoint(page, 75); await save(page);
   const original = await backup(page), bytes = await bundle(page), state = await localState(page);
   const oversizedHeader = Buffer.from(bytes); oversizedHeader.writeUInt32LE(32 * 1024 * 1024 + 1, 16);
   const badDigest = Buffer.from(bytes); badDigest[badDigest.length - 1] ^= 1;
@@ -296,7 +297,7 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
   const imported = await backup(page);
   expect(imported.scene.id).not.toBe(original.scene.id);
   deepStrictEqual(imported.scene.project, { ...original.scene.project, teacherCheckedRevision: null });
-  deepStrictEqual(current(imported).manual!.baseTake, source.take);
+  deepStrictEqual(current(imported).manual, source.manual);
   expect(await audioHash(page)).toBe(createHash('sha256').update(source.wave).digest('hex'));
 
   // Simulate an existing local scene whose music blob has become unavailable.
@@ -324,10 +325,9 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
   const missing = await backup(page);
   expect(missing.scene.id).toBe(imported.scene.id); deepStrictEqual(missing.scene.project, imported.scene.project);
   const beforeRecovery = await localState(page);
-  await numeric(page, 'Root X 位移（米）', 1.5); await expect(guard(page)).toHaveCount(0);
+  await cameraPoint(page, 120);
   const latest = await backup(page);
   expect(latest.scene.project.history).toHaveLength(imported.scene.project.history.length + 1);
-  expect(current(latest).operation?.tracks).toEqual(['root']);
   await page.getByRole('button', { name: '恢复原音乐', exact: true }).click();
   await expect(importDialog(page)).toBeVisible(); await expect(importConfirm(page)).toBeDisabled();
   const musicInput = importDialog(page).getByLabel('重新关联原音乐', { exact: true });
@@ -341,7 +341,6 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
   expect(await localState(page)).toEqual(beforeRecovery);
   await musicInput.setInputFiles({ name: 'original-backup-local.wav', mimeType: 'audio/wav', buffer: source.wave });
   await expect(importConfirm(page)).toBeEnabled(); await importConfirm(page).click();
-  await expect(guard(page)).toHaveCount(0);
   await expect(unsaved(page)).toBeVisible();
   await expect(unsaved(page).getByRole('button', { name: '保存后继续', exact: true })).toBeDisabled();
   await unsaved(page).getByRole('button', { name: '不保存，继续', exact: true }).click();
@@ -353,17 +352,11 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
   expect(recovered.scene.project.historyIndex).toBe(imported.scene.project.historyIndex + 1);
   expect(recovered.scene.project.revision).toBe(imported.scene.project.revision + 1); expect(recovered.scene.project.teacherCheckedRevision).toBeNull();
   expect(current(recovered).countMap).toEqual(current(imported).countMap); expect(current(recovered).plan).toEqual(current(imported).plan);
-  expect(current(recovered).take.id).not.toBe(current(imported).take.id); deepStrictEqual(current(recovered).manual!.baseTake, source.take);
-  expect(current(recovered).manual!.root).toEqual([]);
-  expect(current(recovered).manual!.rotations).toEqual({});
-  expect(current(recovered).manual!.pointEdits).toHaveLength(1);
-  expect(Object.keys(current(recovered).manual!.pointEdits![0].joints!)).toEqual(['LeftUpperArm']);
-  const recordedRoot = current(recovered).manual!.pointEdits![0].root!;
-  expect(recordedRoot[0]).toBeCloseTo(1.5, 5);
-  expect(recordedRoot.slice(1)).toEqual([1.05, 0]);
-  expect(current(recovered).take.poses[current(recovered).take.times.indexOf(2.5)].root).toEqual(recordedRoot);
+  // Recovery keeps the retained character data exactly; only the camera changed.
+  deepStrictEqual(current(recovered).take, source.take); deepStrictEqual(current(recovered).manual, source.manual);
+  expect(current(recovered).cameraTrack!.keys.map(key => key.time)).toEqual([2.5, 4]);
   deepStrictEqual(recovered.scene.project, { ...latest.scene.project, teacherCheckedRevision: null });
-  deepStrictEqual(recovered.scene.viewer, imported.scene.viewer);
+  deepStrictEqual(recovered.scene.viewer, { ...imported.scene.viewer, time: 4 });
   expect(await audioHash(page)).toBe(createHash('sha256').update(source.wave).digest('hex'));
   expect((await localState(page)).ids).toEqual([...beforeRecovery.ids, recovered.scene.id].sort());
   deepStrictEqual(await page.evaluate(async id => {
@@ -378,21 +371,19 @@ test('@backup malformed, oversized-header, truncated and tampered bundles perfor
   }, missing.scene.id), { audioMissing: true, project: imported.scene.project });
 });
 
-test('@backup mobile export captures automatic channel edits and preserves current scenes through import cancellation and quota failure, then retries once as a new scene', async ({ page }) => {
+test('@backup mobile export captures camera edits with retained character data and preserves current scenes through import cancellation and quota failure, then retries once as a new scene', async ({ page }) => {
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 390, height: 844 });
-  const source = await openScene(page); await frame(page, 75); await joint(page, 'LeftUpperArm');
-  await numeric(page, '关节 Z 旋转（度）', 45);
+  const source = await openScene(page); await cameraPoint(page, 75);
   const original = await backup(page);
-  expect(current(original).manual!.pointEdits).toHaveLength(1);
-  expect(Object.keys(current(original).manual!.pointEdits![0].joints!)).toEqual(['LeftUpperArm']);
+  deepStrictEqual(current(original).manual, source.manual);
+  expect(current(original).cameraTrack!.keys.map(key => key.time)).toEqual([2.5]);
   await save(page);
   const bytes = await bundle(page);
   deepStrictEqual(rawBundle(bytes).audio, source.wave);
   deepStrictEqual(rawBundle(bytes).header.scene.project, original.scene.project);
-  await expect(guard(page)).toHaveCount(0);
   await closeDisclosures(page, '.studio-more, .studio-more .backup-menu');
-  await numeric(page, 'Root X 位移（米）', 2);
+  await cameraPoint(page, 120);
   await openImport(page); await chooseBackup(page, bytes);
   await expect(importConfirm(page)).toBeEnabled();
   for (const width of [390, 320]) {
@@ -400,7 +391,7 @@ test('@backup mobile export captures automatic channel edits and preserves curre
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     expect((await importConfirm(page).boundingBox())!.height).toBeGreaterThanOrEqual(44);
   }
-  await importConfirm(page).click(); await expect(guard(page)).toHaveCount(0);
+  await importConfirm(page).click();
   await expect(unsaved(page)).toBeVisible();
   await unsaved(page).getByRole('button', { name: '取消', exact: true }).click();
   await expect(importDialog(page)).toBeVisible();

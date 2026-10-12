@@ -1,10 +1,10 @@
 import { expect, test, type Page } from '@playwright/test';
-import { clickRevealed, closeDisclosures, seekSeconds } from './helpers';
+import { closeDisclosures, seekSeconds } from './helpers';
 import { backup, diagnostics, openFixture, screenshot } from './realismHelpers';
 
-const timeline = (page: Page) => page.getByRole('region', { name: '手动关键帧时间线', exact: true });
-const viewport = (page: Page) => timeline(page).locator('.kf-lanes-viewport');
-const time = (page: Page) => timeline(page).locator('.kf-point-inspector summary code[data-time]');
+const timeline = (page: Page) => page.getByRole('region', { name: '场景时间线', exact: true });
+const viewport = (page: Page) => timeline(page).locator('.tl-viewport');
+const time = (page: Page) => timeline(page);
 const reports = new WeakMap<Page, ReturnType<typeof diagnostics>>();
 
 test.beforeEach(async ({ page }) => {
@@ -23,9 +23,9 @@ async function playbackSamples(page: Page) {
     for (let index = 0; index < 24; index++) {
       await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
       const bounds = element.getBoundingClientRect();
-      const label = element.querySelector('.kf-ruler-row > .kf-lane-label')!.getBoundingClientRect();
-      const cursor = element.querySelector('.kf-ruler-playhead')!.getBoundingClientRect();
-      const value = Number(document.querySelector('.kf-point-inspector summary code[data-time]')!.getAttribute('data-time'));
+      const label = element.querySelector('.tl-ruler-row > .tl-lane-label')!.getBoundingClientRect();
+      const cursor = element.querySelector('.tl-ruler-playhead')!.getBoundingClientRect();
+      const value = Number(document.querySelector('.tl-timeline')!.getAttribute('data-time'));
       samples.push({ scroll: element.scrollLeft, cursor: cursor.x + cursor.width / 2, left: label.right, right: bounds.right, time: value });
     }
     return samples;
@@ -40,8 +40,7 @@ function visible(samples: Awaited<ReturnType<typeof playbackSamples>>) {
 }
 
 async function loop(page: Page) {
-  await clickRevealed(page, page.getByRole('button', { name: '循环整段', exact: true, includeHidden: true }));
-  await closeDisclosures(page, '.kf-more, .playback-options');
+  await page.getByRole('button', { name: '循环整段', exact: true }).click();
 }
 
 for (const width of [1440, 390, 320]) {
@@ -65,9 +64,11 @@ for (const width of [1440, 390, 320]) {
 
     // Pausing hands the scroller back to the user; panning does not seek.
     const pausedTime = await time(page).getAttribute('data-time');
+    const cameraLane = timeline(page).locator('.tl-lane[data-track-id="camera"]');
+    await cameraLane.evaluate(element => element.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
     const start = await viewport(page).evaluate(element => element.scrollLeft);
     const bounds = (await viewport(page).boundingBox())!;
-    const row = (await timeline(page).locator('.kf-lane[data-track-id="body"]').boundingBox())!;
+    const row = (await cameraLane.boundingBox())!;
     const x = bounds.x + bounds.width * .7, y = row.y + row.height / 2;
     await page.mouse.move(x, y); await page.mouse.down();
     await page.mouse.move(x - 80, y, { steps: 6 }); await page.mouse.up();
@@ -85,11 +86,11 @@ for (const width of [1440, 390, 320]) {
     await loop(page);
     await seekSeconds(page, 15.7);
     await page.getByRole('button', { name: '播放', exact: true }).click();
-    // Loop playback intentionally starts at zero; wait for a real full wrap.
+    // Whole-scene looping continues from the cursor; wait for a real wrap.
     await expect.poll(async () => Number(await time(page).getAttribute('data-time')), { timeout: 20_000 }).toBeGreaterThan(15);
     await expect.poll(async () => Number(await time(page).getAttribute('data-time'))).toBeLessThan(1);
     const wrapped = await playbackSamples(page); visible(wrapped);
-    expect(wrapped.at(-1)!.scroll).toBeLessThan(await viewport(page).evaluate(element => element.scrollWidth * .2));
+    expect(wrapped[0].scroll, 'The follow scroll returns to the start right after the wrap').toBeLessThan(await viewport(page).evaluate(element => element.scrollWidth * .2));
     await page.getByRole('button', { name: '暂停', exact: true }).click();
 
     // The last authored time remains visible when playback stops at the end.

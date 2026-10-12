@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import type { BakedTake, CameraPose } from '../packages/core/src';
 import { unpackScene } from '../apps/web/src/compactScene';
-import { clickRevealed, closeDisclosures, reveal } from './helpers';
+import { clickRevealed, closeDisclosures, reveal, seekSeconds } from './helpers';
 import { backup, current, diagnostics, hiddenButton, openFixture, ready, save, screenshot, type Backup } from './realismHelpers';
 
 const reports = new WeakMap<Page, ReturnType<typeof diagnostics>>();
@@ -18,19 +18,15 @@ test.afterEach(async ({ page }, info) => {
   expect(report).toEqual({ errors: [], warnings: [], expectedHttpErrors: [], apiRequests: [] });
 });
 
-const timeline = (page: Page) => page.getByRole('region', { name: '手动关键帧时间线', exact: true });
-const cameraLane = (page: Page) => timeline(page).locator('.kf-lane[data-track-id="camera"]');
-const key = (page: Page, time: number) => cameraLane(page).locator(`.kf-camera-key[data-time="${time}"]`);
+const timeline = (page: Page) => page.getByRole('region', { name: '场景时间线', exact: true });
+const cameraLane = (page: Page) => timeline(page).locator('.tl-lane[data-track-id="camera"]');
+const key = (page: Page, time: number) => cameraLane(page).locator(`.tl-key[data-camera-key][data-time="${time}"]`);
 const stage = (page: Page) => page.getByRole('region', { name: '3D 动画舞台', exact: true });
-const seconds = (page: Page) => timeline(page).getByRole('spinbutton', { name: '当前时间（秒）', exact: true, includeHidden: true });
 
 async function atTime(page: Page, time: number) {
   await closeDisclosures(page);
-  await reveal(page, seconds(page));
-  await seconds(page).fill(String(time));
-  await seconds(page).press('Tab');
-  expect(Number(await seconds(page).inputValue())).toBe(time);
-  await closeDisclosures(page, '.kf-point-inspector');
+  await seekSeconds(page, time);
+  await expect(timeline(page)).toHaveAttribute('data-time', String(time));
   await twoFrames(page);
 }
 async function selectCamera(page: Page) {
@@ -106,8 +102,8 @@ async function undoRedo(page: Page, before: Backup, after: Backup, beforeCamera?
 async function inspectKey(page: Page, time: number) {
   await key(page, time).scrollIntoViewIfNeeded();
   await key(page, time).dblclick();
-  const inspector = timeline(page).locator('details.kf-point-inspector');
-  await expect(inspector).toHaveAttribute('open');
+  const inspector = timeline(page).locator('.tl-camera-popover');
+  await expect(inspector).toBeVisible();
   await expect(inspector.getByRole('spinbutton', { name: '镜头位置X', exact: true })).toBeVisible();
   return inspector;
 }
@@ -329,7 +325,7 @@ test('@camera exact numeric edits, key drag, retime and deletion undo losslessly
   expect(numericCamera).toEqual({ ...first.authored.camera, position: [changedX, ...first.authored.camera.position.slice(1)] });
   assertMotionUnchanged(numeric, second.after);
   await expectVisibleCamera(page, numericCamera);
-  await timeline(page).getByRole('button', { name: '选择整体位移轨道', exact: true }).click();
+  await timeline(page).getByRole('button', { name: '结束镜头录制', exact: true }).click();
   await expect(cameraLane(page)).not.toHaveClass(/selected/);
   await closeDisclosures(page);
   const directKey = key(page, .70391); await directKey.scrollIntoViewIfNeeded();
@@ -371,7 +367,7 @@ test('@camera exact numeric edits, key drag, retime and deletion undo losslessly
   assertMotionUnchanged(dragged, retimed);
   await undoRedo(page, retimed, dragged);
   inspector = await inspectKey(page, moved.time);
-  await inspector.getByRole('button', { name: '删除镜头关键帧', exact: true }).click();
+  await timeline(page).getByRole('button', { name: '删除镜头关键帧', exact: true }).click();
   const deleted = await backup(page);
   expect(current(deleted).cameraTrack!.keys).toEqual([second.authored]);
   expect(deleted.scene.project.historyIndex).toBe(dragged.scene.project.historyIndex + 1);
@@ -379,7 +375,7 @@ test('@camera exact numeric edits, key drag, retime and deletion undo losslessly
   await undoRedo(page, dragged, deleted);
   inspector = await inspectKey(page, 2.50391);
   const lastKeyView = await visibleCamera(page);
-  await inspector.getByRole('button', { name: '删除镜头关键帧', exact: true }).click();
+  await timeline(page).getByRole('button', { name: '删除镜头关键帧', exact: true }).click();
   const empty = await backup(page);
   expect(current(empty).cameraTrack).toBeUndefined();
   expect(empty.scene.project.historyIndex).toBe(deleted.scene.project.historyIndex + 1);
