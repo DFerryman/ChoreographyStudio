@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Focus, MousePointer2, Move3D, RotateCcw, Rotate3D, Scan, SlidersHorizontal, Waypoints } from 'lucide-react';
+import { Focus, MousePointer2, Move3D, RotateCcw, Rotate3D, Scan, Sparkles, SwitchCamera, Waypoints } from 'lucide-react';
 import type { StageTransformTool, StageView } from '../Stage';
 
 type PresetView = Exclude<StageView, 'free'>;
@@ -7,9 +7,9 @@ const PRIMARY_VIEWS: [PresetView, string][] = [['front', '正面'], ['back', '�
 const SECONDARY_VIEWS: [PresetView, string][] = [['left', '左侧'], ['right', '右侧'], ['top', '顶视']];
 
 /** Camera presets and framing only change the view, never the choreography. */
-export function CameraBar({ title, view, canFrame, canFocusJoint, onView, onFrame }: {
+export function CameraBar({ title, view, canFrame, canFocusJoint, onView, onFrame, children }: {
   title: string; view: StageView; canFrame: boolean; canFocusJoint: boolean;
-  onView: (view: PresetView) => void; onFrame: (kind: 'actor' | 'joint') => void;
+  onView: (view: PresetView) => void; onFrame: (kind: 'actor' | 'joint') => void; children?: ReactNode;
 }) {
   return <div className="viewer-toolbar">
     <span className="viewer-title">{title}<span className="muted-divider">/</span><span className="viewer-muted">{view === 'free' ? '自由视角' : '3D'}</span></span>
@@ -18,7 +18,7 @@ export function CameraBar({ title, view, canFrame, canFocusJoint, onView, onFram
         <button key={preset} className={view === preset ? 'selected' : ''} aria-pressed={view === preset} onClick={() => onView(preset)}>{label}</button>)}</div>
       <button className="icon-button" aria-label="全身取景" disabled={!canFrame} title="全身取景" onClick={() => onFrame('actor')}><Scan size={16} /></button>
       <details className="editor-disclosure camera-options">
-        <summary aria-label="相机选项" title="相机选项"><SlidersHorizontal size={16} /></summary>
+        <summary aria-label="相机选项" title="更多视角与聚焦"><SwitchCamera size={16} /></summary>
         <div className="disclosure-content floating-panel">
           <div className="segmented">{SECONDARY_VIEWS.map(([preset, label]) =>
             <button key={preset} aria-pressed={view === preset} onClick={() => onView(preset)}>{label}</button>)}</div>
@@ -27,6 +27,8 @@ export function CameraBar({ title, view, canFrame, canFocusJoint, onView, onFram
           <span>仅改变观看，不修改动作</span>
         </div>
       </details>
+      {children && <span className="toolbar-divider" aria-hidden="true" />}
+      {children}
     </div>
   </div>;
 }
@@ -49,10 +51,10 @@ export function StageEditTools({ tools, help, onTool }: { tools: ToolState; help
   </div>;
 }
 
-/** Coordinates, realism and AI stay folded behind one stage button. */
+/** Coordinates, realism and AI stay folded behind one button in the camera cluster. */
 export function SceneExtras({ children }: { children: ReactNode }) {
   return <details className="scene-extras">
-    <summary aria-label="场景辅助工具" title="舞台信息、真实感与 AI 辅助"><SlidersHorizontal size={15} /></summary>
+    <summary aria-label="场景辅助工具" title="舞台信息、真实感与 AI 辅助"><Sparkles size={15} /></summary>
     <div className="scene-extras-content floating-panel">{children}</div>
   </details>;
 }

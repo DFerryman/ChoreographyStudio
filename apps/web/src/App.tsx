@@ -33,6 +33,7 @@ import { blankSceneDocument, DEMO_AUDIO_NAME, FIRST_SCENE_NAME, initialSession, 
 import { downloadBlob, errorMessage, safeFileName } from './editor/format';
 import { StudioHeader, type SaveStatus } from './components/StudioHeader';
 import { CameraBar, SceneExtras, StageDiagnostics, StageEditTools } from './components/StageOverlays';
+import { TimelineDock } from './components/TimelineDock';
 import { PlaybackOptions, PlaybackTransport } from './components/Playback';
 import { AssistCandidatePanel } from './components/AssistCandidatePanel';
 import { ConfirmDialog, Dialog } from './dialogs/Dialog';
@@ -179,7 +180,7 @@ export default function App() {
   const toolHelp = describeTool();
 
   const timelineOverlayRef = useRef<HTMLDivElement>(null);
-  const timelineInset = useOverlayInset(timelineOverlayRef, !!manualSequence);
+  const timelineInset = useOverlayInset(timelineOverlayRef, !!manualSequence, 0);
   const timelinePlayback = useTimelinePlayback({
     restoreKey: `${currentScene.id}:${session.historyIndex}:${session.revision}`, audioRef, countMap: active.countMap, audioOffsetSeconds: active.audioOffsetSeconds ?? 0,
     rate, loopRange: loop ? { startSeconds: 0, endSeconds: duration } : null,
@@ -1064,42 +1065,45 @@ export default function App() {
       <section className="workspace-content">
         {ready && !audioBlob && <div className="missing-audio" role="alert"><strong>原音乐缺失</strong><p>编舞与数拍仍在。请关联原曲后恢复为新场景，当前作品会保留。</p><button className="button secondary compact" onClick={openAudioRecovery} disabled={!!busy || sceneActionBusy}>恢复原音乐</button></div>}
         <section className="viewer-panel" aria-label="3D动作预览">
-          <CameraBar title={stageTitle} view={view} canFrame={!!displayedTake && ready && !busy} canFocusJoint={!!displayedTake && !!selectedJoint && ready && !busy} onView={chooseView} onFrame={focusCamera} />
-          <div className="stage-wrap">
-            <Stage bottomOverlayInset={timelineInset} take={displayedTake} time={time} view={view} mirror={mirror}
-              cameraState={camera ?? undefined} cameraTrackState={cameraTrackState} cameraRestoreExact={cameraRestoreExact} cameraEditRevision={session.revision}
-              cameraCancelKey={cameraCancelKey} cameraTrackEditing={cameraSelected && cameraCanEdit()} onCameraGesture={handleCameraGesture}
-              cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} cameraFocus={cameraFocus ?? undefined}
-              onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction}
-              selectedJoint={selectedJoint} onSelectJoint={chooseJoint} onJointPositionChange={handleJointPosition}
-              poseOverride={manualEditing ? poseDraft : null} collisionPreview={collisionPreview || previewAssist || page === 'teaching'}
-              editMode={manualEditing && !cameraSelected && !workLocked} transformTool={activeTransformTool} playing={playing}
-              onJointRotationChange={handleJointRotation} onRootPositionChange={handleRootPosition} ikTarget={ikTarget} onIKTargetChange={handleIKTarget} onTransformCancel={cancelPointGesture} />
-            {manualSequence && <div ref={timelineOverlayRef} className="timeline-overlay">
-              <KeyframeTimeline
-                camera={{ track: active.cameraTrack, value: cloneCameraPose(cameraValue), selected: cameraSelected, onSelect: selectCameraPoint, onChange: changeCameraPoint, onMove: moveCameraPoint, onDelete: deleteCameraPoint }}
-                audio={{ name: audioName, offsetSeconds: active.audioOffsetSeconds ?? 0, durationSeconds: duration, waveform, onMove: moveAudio, disabled: !audioBlob }}
-                sequence={manualSequence} take={active.take ?? undefined} selectedJoint={selectedJoint} selectedPoint={selectedPoint} selectedTime={time}
-                onSelectPoint={selectMotionPoint} onSelectJoint={chooseJoint} onPointValueChange={changeMotionPointValue} onDeletePoint={deleteSelectedPoint}
-                frame={editorFrame} onFrame={frame => seek(frameTime(frame, duration))} playing={playing} mirror={mirror}
-                readOnly={!manualEditing || workLocked} dirty={!!poseDraft} onTime={seek} onTransferKeyframes={requestKeyframeTransfer}
-                transport={<PlaybackTransport playing={playing} disabled={!displayedTake || !ready || !audioBlob} time={time} duration={duration} onToggle={() => { void togglePlay(); }} />}
-                playbackOptions={<PlaybackOptions loop={loop} rate={rate} mirror={mirror} countSound={countSound}
-                  onLoop={() => { setLoop(!loop); markSceneDirty(); if (!loop) seek(0); }} onRate={value => { setRate(value); markSceneDirty(); }}
-                  onMirror={() => { setMirror(!mirror); markSceneDirty(); }} onCountSound={() => { setCountSound(!countSound); markSceneDirty(); }} />}
-              />
-            </div>}
+          <div className="stage-area">
+            <CameraBar title={stageTitle} view={view} canFrame={!!displayedTake && ready && !busy} canFocusJoint={!!displayedTake && !!selectedJoint && ready && !busy} onView={chooseView} onFrame={focusCamera}>
+              <SceneExtras>
+                <StageDiagnostics camera={camera?.position ?? null} jointLabel={selectedJoint ? STAGE_JOINT_LABELS[selectedJoint] : null} jointPosition={jointPosition} />
+                {manualSequence && editorPose && <RealismPanel pose={previewAssist && assistCandidate ? sampleTake(assistCandidate.take, time) : editorPose} sequence={manualSequence} frame={editorFrame} duration={duration}
+                  disabled={!manualEditing || playing || mirror || modalOpen || !!busy || !!assistBusy} ikResidual={ikResidual} motionState={motionIsDynamic(displayedTake, time) ? 'dynamic' : 'quasi-static'}
+                  onLock={lockFoot} onRemoveLock={unlockFoot} onPhysics={() => { void generateAssistance('physics'); }} onCancel={cancelAssistance} simulating={assistBusy === 'physics'} progress={assistProgress}
+                  stepReport={stepReport} onSteps={() => { void generateAssistance('steps'); }} onRemoveSteps={disableStepAssistance} calculatingSteps={assistBusy === 'steps'}
+                  stepCandidate={assistCandidate?.kind === 'steps' ? candidatePanel : null} />}
+                {page === 'studio' && <AIPanel onGenerate={prompt => { void generateAssistance('ai', prompt); }} onCancel={cancelAssistance} busy={assistBusy === 'ai'} disabled={!ready || !active.take || !!busy || !!assistBusy || modalOpen} error={assistError} />}
+              </SceneExtras>
+            </CameraBar>
+            <div className="stage-wrap">
+              <Stage take={displayedTake} time={time} view={view} mirror={mirror}
+                cameraState={camera ?? undefined} cameraTrackState={cameraTrackState} cameraRestoreExact={cameraRestoreExact} cameraEditRevision={session.revision}
+                cameraCancelKey={cameraCancelKey} cameraTrackEditing={cameraSelected && cameraCanEdit()} onCameraGesture={handleCameraGesture}
+                cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} cameraFocus={cameraFocus ?? undefined}
+                onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction}
+                selectedJoint={selectedJoint} onSelectJoint={chooseJoint} onJointPositionChange={handleJointPosition}
+                poseOverride={manualEditing ? poseDraft : null} collisionPreview={collisionPreview || previewAssist || page === 'teaching'}
+                editMode={manualEditing && !cameraSelected && !workLocked} transformTool={activeTransformTool} playing={playing}
+                onJointRotationChange={handleJointRotation} onRootPositionChange={handleRootPosition} ikTarget={ikTarget} onIKTargetChange={handleIKTarget} onTransformCancel={cancelPointGesture} />
+            </div>
+            <StageEditTools help={toolHelp} onTool={chooseTransformTool} tools={{ active: activeTransformTool, rotateUnavailable, translateDisabled: !active.take || !!busy, ikAvailable: !!getIKEffector(selectedJoint), previewing: previewAssist, hasTake: !!active.take }} />
           </div>
-          <StageEditTools help={toolHelp} onTool={chooseTransformTool} tools={{ active: activeTransformTool, rotateUnavailable, translateDisabled: !active.take || !!busy, ikAvailable: !!getIKEffector(selectedJoint), previewing: previewAssist, hasTake: !!active.take }} />
-          <SceneExtras>
-            <StageDiagnostics camera={camera?.position ?? null} jointLabel={selectedJoint ? STAGE_JOINT_LABELS[selectedJoint] : null} jointPosition={jointPosition} />
-            {manualSequence && editorPose && <RealismPanel pose={previewAssist && assistCandidate ? sampleTake(assistCandidate.take, time) : editorPose} sequence={manualSequence} frame={editorFrame} duration={duration}
-              disabled={!manualEditing || playing || mirror || modalOpen || !!busy || !!assistBusy} ikResidual={ikResidual} motionState={motionIsDynamic(displayedTake, time) ? 'dynamic' : 'quasi-static'}
-              onLock={lockFoot} onRemoveLock={unlockFoot} onPhysics={() => { void generateAssistance('physics'); }} onCancel={cancelAssistance} simulating={assistBusy === 'physics'} progress={assistProgress}
-              stepReport={stepReport} onSteps={() => { void generateAssistance('steps'); }} onRemoveSteps={disableStepAssistance} calculatingSteps={assistBusy === 'steps'}
-              stepCandidate={assistCandidate?.kind === 'steps' ? candidatePanel : null} />}
-            {page === 'studio' && <AIPanel onGenerate={prompt => { void generateAssistance('ai', prompt); }} onCancel={cancelAssistance} busy={assistBusy === 'ai'} disabled={!ready || !active.take || !!busy || !!assistBusy || modalOpen} error={assistError} />}
-          </SceneExtras>
+          {manualSequence && <TimelineDock ref={timelineOverlayRef}>
+            <KeyframeTimeline
+              camera={{ track: active.cameraTrack, value: cloneCameraPose(cameraValue), selected: cameraSelected, onSelect: selectCameraPoint, onChange: changeCameraPoint, onMove: moveCameraPoint, onDelete: deleteCameraPoint }}
+              audio={{ name: audioName, offsetSeconds: active.audioOffsetSeconds ?? 0, durationSeconds: duration, waveform, onMove: moveAudio, disabled: !audioBlob }}
+              sequence={manualSequence} take={active.take ?? undefined} selectedJoint={selectedJoint} selectedPoint={selectedPoint} selectedTime={time}
+              onSelectPoint={selectMotionPoint} onSelectJoint={chooseJoint} onPointValueChange={changeMotionPointValue} onDeletePoint={deleteSelectedPoint}
+              frame={editorFrame} onFrame={frame => seek(frameTime(frame, duration))} playing={playing} mirror={mirror}
+              readOnly={!manualEditing || workLocked} dirty={!!poseDraft} onTime={seek} onTransferKeyframes={requestKeyframeTransfer}
+              transport={<PlaybackTransport playing={playing} disabled={!displayedTake || !ready || !audioBlob} time={time} duration={duration} onToggle={() => { void togglePlay(); }} />}
+              playbackOptions={<PlaybackOptions loop={loop} rate={rate} mirror={mirror} countSound={countSound}
+                onLoop={() => { setLoop(!loop); markSceneDirty(); if (!loop) seek(0); }} onRate={value => { setRate(value); markSceneDirty(); }}
+                onMirror={() => { setMirror(!mirror); markSceneDirty(); }} onCountSound={() => { setCountSound(!countSound); markSceneDirty(); }} />}
+            />
+          </TimelineDock>}
         </section>
         {assistCandidate?.kind !== 'steps' && candidatePanel}
       </section>

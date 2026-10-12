@@ -99,7 +99,7 @@
 .stage3d-fallback span { max-width: 270px; color: #99a3b7; font-size: 13px; line-height: 1.6; }
 
 @media (max-width: 680px) {
-  .stage3d-edit-indicator { top: 87px; left: 8px; gap: 6px; max-width: calc(100% - 116px); }
+  .stage3d-edit-indicator { top: 8px; left: 8px; gap: 6px; max-width: calc(100% - 176px); }
 }
 
 @media (max-width: 430px) {

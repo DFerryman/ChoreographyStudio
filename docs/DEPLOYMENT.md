@@ -1,5 +1,9 @@
 # Cloudflare 预览部署
 
+## 2026-10-12 · 舞台／Timeline 双主区域布局（已推送 main，未部署）
+
+源码已提交并推送到 GitHub main。本会话没有 Cloudflare 凭据，未上传新版本；线上预览仍为上一条记录中的 native29 版本，需在有凭据的环境中执行部署并记录实际版本。
+
 ## 2026-10-12 · 拉取最新 main 并部署前端重构（已发布，有界公网检查通过）
 
 本次按用户要求拉取并快进到 [bb7245a5](https://github.com/DFerryman/ChoreographyStudio/commit/bb7245a5a3edb3d4ce4e82505dd36f9ad79e127e)，tree `da9bbac0a60e8fd36750ff8b70b4e710e546f23a`，无应用源码修改。Cloudflare [工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/) 已部署 native29／`32aff49d-cea4-4e1b-8def-e9f01522bc40`，版本创建 `2026-10-12T07:36:04.178429Z`；deployment `812b0c91-9603-4c2c-8fe9-1f4a8d50ccab` 创建 `07:36:04.794809Z`，原生读回单一新版本 100%。版本与部署 message 均绑定准确 bb7245a 源码／tree。保留 ASSETS、AI、API 20／60s、AI 2／60s、SPA 回退、`/api/*` Worker-first 与安全 headers；无 AI 推理或数据库写入。

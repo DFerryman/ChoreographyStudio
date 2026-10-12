@@ -2,7 +2,7 @@
 .kf-timeline button:disabled { opacity: .35; cursor: not-allowed; }
 .kf-timeline button:focus-visible, .kf-timeline summary:focus-visible, .kf-timeline input:focus-visible, .kf-lane-track:focus-visible { outline: 2px solid var(--kf-accent); outline-offset: -1px; }
 .kf-timeline-toolbar { display: flex; align-items: center; gap: 6px; min-height: 34px; }
-.kf-timeline-transport { flex: 1; min-width: 0; }
+.kf-timeline-transport { flex: none; min-width: 0; margin-right: 6px; }
 .kf-timeline-transport .player-main { display: flex; flex-wrap: nowrap; align-items: center; gap: 7px; min-width: 0; }
 .kf-timeline-transport .play-button { width: 30px; height: 30px; color: #1d2634; background: #e5ecf5; transition: background .15s, transform .1s; }
 .kf-timeline-transport .play-button:hover:not(:disabled) { background: #fff; }
@@ -56,7 +56,6 @@
 .kf-delete-point { display: flex; align-items: center; gap: 5px; min-height: 28px; margin-top: 8px; padding: 0 4px; color: var(--danger); font-size: 9px; }
 .kf-history-slot { display: flex; align-items: center; gap: 2px; }
 .kf-history-slot .icon-button { width: 26px; height: 30px; }
-.kf-timeline-viewbar { display: flex; align-items: center; gap: 12px; min-height: 26px; padding: 1px 2px; }
 .kf-timeline-legend { display: flex; align-items: center; gap: 10px; min-height: 18px; color: #8292a9; font-size: 9px; }
 .kf-timeline-legend > span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .kf-timeline-legend i { display: inline-block; width: 4px; height: 4px; border-radius: 50%; }
@@ -64,7 +63,7 @@
 .kf-timeline-legend .evaluated { width: 2px; height: 7px; border-radius: 0; background: #74879e; }
 .kf-timeline-legend > span:has(svg) { color: #8fb9e8; }
 .kf-auto-note { margin-left: auto; }
-.kf-zoom-controls { display: flex; align-items: center; gap: 3px; margin-left: auto; color: #9faec2; font-size: 9px; }
+.kf-zoom-controls { display: flex; align-items: center; gap: 3px; margin-left: auto; padding-right: 6px; border-right: 1px solid #ffffff12; color: #9faec2; font-size: 9px; }
 .kf-zoom-controls > button { display: grid; place-items: center; min-width: 23px; height: 24px; padding: 0 4px; border: 1px solid transparent; border-radius: 3px; color: #b4c1d4; }
 .kf-zoom-controls > button.active { color: #c7dfff; border-color: #8eb7eb33; background: #7da8df16; }
 .kf-zoom-controls > button:hover:not(:disabled) { color: #eaf2ff; background: #ffffff0a; }
@@ -73,8 +72,6 @@
 .kf-zoom-controls > input[type='range']::-moz-range-track { height: 3px; border-radius: 2px; background: #506078; }
 .kf-zoom-controls > input[type='range']::-webkit-slider-thumb { width: 9px; height: 9px; margin-top: -3px; appearance: none; border-radius: 50%; background: #d6e6fb; }
 .kf-zoom-controls > input[type='range']::-moz-range-thumb { width: 9px; height: 9px; border: 0; border-radius: 50%; background: #d6e6fb; }
-.kf-frame-spacing { display: flex; align-items: center; gap: 3px; white-space: nowrap; color: #8292a9; }
-.kf-frame-spacing input { width: 39px; height: 23px; padding: 0 3px; border: 1px solid #ffffff14; border-radius: 3px; color: #ced9e9; background: #1c222c; font-size: 9px; }
 .kf-lanes-viewport { max-height: 166px; overflow: auto; border: 1px solid #ffffff10; border-radius: 5px; background: #1c222c; scrollbar-width: thin; scrollbar-color: #53617a #1c222c; overscroll-behavior: contain; touch-action: pan-y; }
 .kf-lanes { min-width: 100%; }
 .kf-ruler-row, .kf-lane { display: grid; grid-template-columns: 91px minmax(0,1fr); }
@@ -148,14 +145,26 @@
   .kf-lane-label { padding-inline: 6px; font-size: 10px; }
   .kf-joint-lane > .kf-lane-label { padding-left: 18px; font-size: 9px; }
   .kf-lanes-viewport { max-height: 153px; }
-  .kf-timeline-viewbar { flex-wrap: wrap; gap: 0 8px; }
   .kf-timeline-legend { gap: 8px; font-size: 8px; }
   .kf-auto-note { display: none !important; }
   .kf-zoom-controls { margin-left: auto; gap: 1px; }
   .kf-zoom-controls input[type='range'] { width: 43px; }
-  .kf-frame-spacing { font-size: 8px; }
-  .kf-frame-spacing input { width: 33px; }
   .kf-more-popover, .kf-point-popover { max-height: 55vh; }
   .kf-point-popover input, .kf-point-popover button { min-height: 36px; }
   .kf-point-transfer-controls input, .kf-point-transfer-controls button { min-height: 44px; }
+}
+
+/* Docked under the stage: the Timeline fills its dock and lanes take the rest. */
+.timeline-dock > .kf-timeline { display: flex; flex: 1; flex-direction: column; min-height: 0; padding: 2px 12px 10px; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
+.timeline-dock .kf-timeline-toolbar { min-height: 42px; }
+.timeline-dock .kf-timeline-transport .play-button { width: 32px; height: 32px; }
+.timeline-dock .kf-lanes-viewport { flex: 1; min-height: 0; max-height: none; }
+.timeline-dock .kf-point-popover { right: auto; left: 12px; }
+.kf-more-popover > .kf-timeline-legend { flex-wrap: wrap; margin-bottom: 4px; font-size: 10px; }
+@media (max-width: 680px) {
+  .timeline-dock > .kf-timeline { padding: 0 6px 6px; }
+  .timeline-dock .kf-frame-controls label { gap: 0; font-size: 0; }
+  .timeline-dock .kf-zoom-controls > input[type='range'] { width: 36px; }
+  .timeline-dock .kf-zoom-controls { order: 1; padding-right: 0; border-right: 0; }
+  .timeline-dock .kf-point-popover { left: 6px; width: calc(100% - 12px); }
 }

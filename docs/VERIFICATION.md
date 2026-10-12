@@ -1,5 +1,13 @@
 # 预览验证记录
 
+## 2026-10-12 · 舞台／Timeline 双主区域布局（本地验证）
+
+- `npm run check`：660／660 基础测试（33 文件）、前端类型与 Vite 构建通过；`npm run typecheck:worker` 通过。
+- 完整浏览器套件（本地 Chromium，单 worker，15.5 分钟）：57 例中 51 通过、1 私有附件跳过、5 失败。5 例失败（backup.spec.ts 218／265／381、camera-track.spec.ts 418、point-editing.spec.ts 231）都在同一处：本环境下载的建议文件名为 `download` 而非 `.choreo`。在未修改的基线 7acdb5d 上单独重跑 backup.spec.ts:218，得到相同的 `download` 失败，因此属于既有环境问题，与本次布局无关；这些用例在该断言之后的步骤本地未执行。
+- 上一轮准确 CI 中 backup.spec.ts:265 失败于“原音乐缺失”提示遮住顶栏“下载项目备份”菜单项。本轮把提示层级降到顶栏菜单之下，并在缺失音乐状态下于 1440px 与 390px 用 elementFromPoint 实测命中菜单项本身；尚未经新的 CI 验证。
+- 桌面 1440 与手机 390 实际截图人工检查：Timeline 停靠在舞台下方且不遮挡人物，选中部位后轨道展开高亮，数值浮层、相机簇与辅助工具可达。
+- 本会话没有 Cloudflare 凭据，也未连接 Notion；本轮未部署 Cloudflare，也未同步 Notion 页面。
+
 ## 2026-10-12 · 拉取最新 main 并部署前端重构（已发布，有界公网检查通过）
 
 本次按用户要求拉取并快进到 [bb7245a5](https://github.com/DFerryman/ChoreographyStudio/commit/bb7245a5a3edb3d4ce4e82505dd36f9ad79e127e)，tree `da9bbac0a60e8fd36750ff8b70b4e710e546f23a`，无应用源码修改。Cloudflare [工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/) 已部署 native29／`32aff49d-cea4-4e1b-8def-e9f01522bc40`，版本创建 `2026-10-12T07:36:04.178429Z`；deployment `812b0c91-9603-4c2c-8fe9-1f4a8d50ccab` 创建 `07:36:04.794809Z`，原生读回单一新版本 100%。版本与部署 message 均绑定准确 bb7245a 源码／tree。保留 ASSETS、AI、API 20／60s、AI 2／60s、SPA 回退、`/api/*` Worker-first 与安全 headers；无 AI 推理或数据库写入。
