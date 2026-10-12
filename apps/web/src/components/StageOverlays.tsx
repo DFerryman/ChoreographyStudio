@@ -16,9 +16,9 @@ export function CameraBar({ title, view, canFrame, canFocusJoint, onView, onFram
     <div className="camera-toolbar floating-bar">
       <div className="segmented" aria-label="观看视角">{PRIMARY_VIEWS.map(([preset, label]) =>
         <button key={preset} className={view === preset ? 'selected' : ''} aria-pressed={view === preset} onClick={() => onView(preset)}>{label}</button>)}</div>
-      <button className="icon-button" aria-label="全身取景" disabled={!canFrame} title="全身取景" onClick={() => onFrame('actor')}><Scan size={16} /></button>
+      <button className="icon-button" aria-label="全身取景" disabled={!canFrame} title="全身取景" onClick={() => onFrame('actor')}><Scan size={13} /></button>
       <details className="editor-disclosure camera-options">
-        <summary aria-label="相机选项" title="更多视角与聚焦"><SwitchCamera size={16} /></summary>
+        <summary aria-label="相机选项" title="更多视角与聚焦"><SwitchCamera size={13} /></summary>
         <div className="disclosure-content floating-panel">
           <div className="segmented">{SECONDARY_VIEWS.map(([preset, label]) =>
             <button key={preset} aria-pressed={view === preset} onClick={() => onView(preset)}>{label}</button>)}</div>
@@ -42,10 +42,10 @@ export function StageEditTools({ tools, help, onTool }: { tools: ToolState; help
     <button aria-label={label} aria-pressed={active === tool} className={active === tool ? 'selected' : ''} disabled={disabled} onClick={() => onTool(tool)} title={title}>{icon}{text}</button>;
   return <div className="stage-edit-tools floating-bar">
     <div className="stage-tool-buttons" role="group" aria-label="舞台编辑工具">
-      {toolButton('select', '选择工具', '选择', <MousePointer2 size={15} />, false, '选择关节与移动相机；收起操作手柄')}
-      {toolButton('rotate', '旋转工具', '旋转', <Rotate3D size={15} />, !!rotateUnavailable, rotateUnavailable ?? (previewing ? '回原稿并编辑关节旋转' : '暂停并编辑关节局部旋转'))}
-      {toolButton('translate', '移动角色工具', '移动（整体）', <Move3D size={15} />, translateDisabled, !hasTake ? '请先新建或导入场景' : previewing ? '回原稿并移动整个角色' : '暂停并移动整个角色；不改变骨长')}
-      {ikAvailable && toolButton('ik', '手脚 IK', '手脚 IK', <Waypoints size={15} />, translateDisabled, '拖动手脚目标；关节限位与骨长保持，松开自动记录变化的关节')}
+      {toolButton('select', '选择工具', '选择', <MousePointer2 size={13} />, false, '选择关节与移动相机；收起操作手柄')}
+      {toolButton('rotate', '旋转工具', '旋转', <Rotate3D size={13} />, !!rotateUnavailable, rotateUnavailable ?? (previewing ? '回原稿并编辑关节旋转' : '暂停并编辑关节局部旋转'))}
+      {toolButton('translate', '移动角色工具', '移动（整体）', <Move3D size={13} />, translateDisabled, !hasTake ? '请先新建或导入场景' : previewing ? '回原稿并移动整个角色' : '暂停并移动整个角色；不改变骨长')}
+      {ikAvailable && toolButton('ik', '手脚 IK', '手脚 IK', <Waypoints size={13} />, translateDisabled, '拖动手脚目标；关节限位与骨长保持，松开自动记录变化的关节')}
     </div>
     <div className="stage-tool-help"><span>{help}</span></div>
   </div>;
@@ -54,7 +54,7 @@ export function StageEditTools({ tools, help, onTool }: { tools: ToolState; help
 /** Coordinates, realism and AI stay folded behind one button in the camera cluster. */
 export function SceneExtras({ children }: { children: ReactNode }) {
   return <details className="scene-extras">
-    <summary aria-label="场景辅助工具" title="舞台信息、真实感与 AI 辅助"><Sparkles size={15} /></summary>
+    <summary aria-label="场景辅助工具" title="舞台信息、真实感与 AI 辅助"><Sparkles size={13} /></summary>
     <div className="scene-extras-content floating-panel">{children}</div>
   </details>;
 }

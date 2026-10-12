@@ -1,5 +1,11 @@
 # Cloudflare 预览部署
 
+## 2026-10-12 · 黑白灰视觉与紧凑比例（本地验证完成，发布待记录）
+
+本轮从 GitHub main `8668e43c03b02b9ff0d79fe6d6149d08feb5311d` 快进更新，保留最新 Timeline／Stage 联动和手机44px命中区；仅修改前端视觉、HTML主题色、favicon和需求文档。660基础、前端／Worker类型与构建、dry-run、既有正式浏览器6／6＋独立手机Root1／1通过，320工具栏5px宽度问题修复后实际三尺寸3／3通过；范围和原始失败见[验证](VERIFICATION.md)。
+
+将以 `wrangler deploy --keep-vars --message` 部署 `choreo-studio-preview`，保留ASSETS、AI、两个限频绑定、SPA fallback、`/api/*` Worker-first及已有安全headers。运行commit／tree、远端main、原生version／deployment、100%流量和正常TLS资产检查将在实际发布后回填；此段不预先宣称上线。Notion需求同步因自动审批拒绝外部写入仍未完成。
+
 ## 2026-10-12 · 最新 main 轨道联动与手机触控版（已部署并核对）
 
 运行源码为 [7997b33c](https://github.com/DFerryman/ChoreographyStudio/commit/7997b33c7dbac120bc1467c2fe41b24a6c2095e8)，tree `101aed1c913ea186c55a5b36cc64994d66f20feb`；从干净 c3b7988 同步并切换到 main，push 返回已是最新，远端 SHA 精确读回。应用、测试与配置不改。本次发布包含轨头与舞台高亮联动、手机 44px 工具条及新版停靠布局断言。

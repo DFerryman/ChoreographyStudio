@@ -106,7 +106,7 @@ function createPreviewRig(): PreviewRig {
     (parent ? joints.get(parent)! : root).add(bone);
     joints.set(name, bone);
     const marker = new THREE.Mesh(sphereGeometry, new THREE.MeshStandardMaterial({
-      color: '#a4b7c8', roughness: .8, emissive: '#6285a4',
+      color: '#bdbdbd', roughness: .8, emissive: '#949494',
       emissiveIntensity: .12, depthTest: false, depthWrite: false,
     }));
     marker.scale.setScalar(name === 'Hips' ? .013 : name.includes('Tip') || name.endsWith('Toe') || name.endsWith('Heel') ? .006 : .008);
@@ -179,7 +179,7 @@ function createWorldAxes() {
     tip.quaternion.copy(axis.quaternion);
     group.add(tip);
   }
-  const origin = new THREE.Mesh(new THREE.SphereGeometry(0.019, 12, 8), new THREE.MeshBasicMaterial({ color: '#dbe2f2' }));
+  const origin = new THREE.Mesh(new THREE.SphereGeometry(0.019, 12, 8), new THREE.MeshBasicMaterial({ color: '#dedede' }));
   group.add(origin);
   return group;
 }
@@ -188,11 +188,11 @@ function StageFallback({ error }: { error: string }) {
   return (
     <div className="stage3d-fallback" role="status">
       <svg viewBox="0 0 180 240" aria-hidden="true">
-        <g stroke="#aeb8d1" strokeWidth="3" fill="none" strokeLinecap="round">
+        <g stroke="#bdbdbd" strokeWidth="3" fill="none" strokeLinecap="round">
           <circle cx="90" cy="34" r="17" strokeWidth="1.5" />
           <path d="M90 51 L90 120 M90 72 L58 79 L43 112 L35 139 M90 72 L122 79 L137 112 L145 139 M90 120 L75 130 L70 170 L65 211 M90 120 L105 130 L110 170 L115 211" />
         </g>
-        <g fill="#aabbff">{[[90, 55], [90, 72], [90, 93], [90, 120], [58, 79], [43, 112], [35, 139], [122, 79], [137, 112], [145, 139], [75, 130], [70, 170], [65, 211], [105, 130], [110, 170], [115, 211]].map(([cx, cy], i) => <circle key={i} cx={cx} cy={cy} r="4" />)}</g>
+        <g fill="#dedede">{[[90, 55], [90, 72], [90, 93], [90, 120], [58, 79], [43, 112], [35, 139], [122, 79], [137, 112], [145, 139], [75, 130], [70, 170], [65, 211], [105, 130], [110, 170], [115, 211]].map(([cx, cy], i) => <circle key={i} cx={cx} cy={cy} r="4" />)}</g>
       </svg>
       <p>3D 预览暂时不可用</p>
       <span>{error}</span>
@@ -285,8 +285,8 @@ export function Stage(props: StageProps) {
     container.appendChild(canvas);
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#171b24');
-    scene.fog = new THREE.Fog('#171b24', 9, 27);
+    scene.background = new THREE.Color('#161616');
+    scene.fog = new THREE.Fog('#161616', 9, 27);
     const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 80);
     const controls = new OrbitControls(camera, canvas);
     controls.enableDamping = false;
@@ -315,8 +315,8 @@ export function Stage(props: StageProps) {
     });
     transform.enabled = false;
     const transformHelper = transform.getHelper();
-    scene.add(new THREE.HemisphereLight('#edf2f7', '#1b2026', 1.5));
-    const keyLight = new THREE.DirectionalLight('#fff7ec', 3);
+    scene.add(new THREE.HemisphereLight('#ededed', '#202020', 1.5));
+    const keyLight = new THREE.DirectionalLight('#f7f7f7', 3);
     keyLight.position.set(-3, 6, 4);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(1024, 1024);
@@ -327,17 +327,17 @@ export function Stage(props: StageProps) {
     keyLight.shadow.normalBias = 0.025;
     keyLight.shadow.bias = -0.0003;
     scene.add(keyLight);
-    const rim = new THREE.DirectionalLight('#c9d9e6', 1.4);
+    const rim = new THREE.DirectionalLight('#e6e6e6', 1.4);
     rim.position.set(3, 3, -4);
     scene.add(rim);
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({ color: '#1c232c', roughness: 1 }));
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({ color: '#1c1c1c', roughness: 1 }));
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -0.004;
     floor.receiveShadow = true;
     scene.add(floor);
     const grid = new THREE.Group();
     for (const [divisions, opacity] of [[40, 0.14], [10, 0.32]]) {
-      const lines = new THREE.GridHelper(10, divisions, '#697690', '#697690');
+      const lines = new THREE.GridHelper(10, divisions, '#777777', '#777777');
       const materials = Array.isArray(lines.material) ? lines.material : [lines.material];
       for (const material of materials) { material.transparent = true; material.opacity = opacity; }
       grid.add(lines);
@@ -359,7 +359,7 @@ export function Stage(props: StageProps) {
     ikGoal.name = 'IKGoal';
     const ikMarker = new THREE.Mesh(
       new THREE.SphereGeometry(0.019, 16, 12),
-      new THREE.MeshBasicMaterial({ color: '#77d5de', depthTest: false, depthWrite: false }),
+      new THREE.MeshBasicMaterial({ color: '#dedede', depthTest: false, depthWrite: false }),
     );
     ikMarker.renderOrder = 24;
     ikGoal.add(ikMarker);
@@ -888,7 +888,7 @@ export function Stage(props: StageProps) {
         const linked = !!state.linkedJoints?.includes(name);
         const over = name === hovered || linked;
         marker.visible = !state.playing && ((!!state.editMode && selected) || over);
-        marker.material.color.set(selected ? '#85b6db' : over ? '#eef6ff' : '#a4b7c8');
+        marker.material.color.set(selected ? '#eeeeee' : over ? '#ffffff' : '#bdbdbd');
         marker.material.emissiveIntensity = selected ? 0.75 : over ? 0.45 : 0.16;
         const radius = name === 'Hips' ? .013 : name.includes('Tip') || name.endsWith('Toe') || name.endsWith('Heel') ? .006 : .008;
         marker.scale.setScalar(radius * (selected ? 1.38 : linked ? 1.9 : over ? 1.18 : 1));
@@ -923,7 +923,7 @@ export function Stage(props: StageProps) {
           } else ikGoal.position.copy(actual);
         }
         residual = actual.distanceTo(ikGoal.position);
-        ikMarker.material.color.set(residual > 0.015 ? '#e9bc80' : '#77d5de');
+        ikMarker.material.color.set(residual > 0.015 ? '#e9bc80' : '#dedede');
         const positions = ikLineGeometry.getAttribute('position') as THREE.BufferAttribute;
         positions.setXYZ(0, actual.x, actual.y, actual.z);
         positions.setXYZ(1, ikGoal.position.x, ikGoal.position.y, ikGoal.position.z);
@@ -1368,7 +1368,7 @@ export function Stage(props: StageProps) {
               <circle cx={axis.x} cy={axis.y} r="7.5" fill={axis.color} />
               <text x={axis.x} y={axis.y + 3.2} textAnchor="middle">{axis.name}</text>
             </g>)}
-            <circle cx="34" cy="34" r="2.3" fill="#c7d0e2" />
+            <circle cx="34" cy="34" r="2.3" fill="#dedede" />
           </svg>
         </div>}
         {hover && <div className="stage3d-joint-tooltip" style={{ left: hover.x, top: hover.y }} aria-hidden="true">{STAGE_JOINT_LABELS[hover.joint]}<span>点击选择</span></div>}
