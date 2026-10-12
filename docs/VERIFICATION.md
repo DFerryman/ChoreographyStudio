@@ -1,5 +1,12 @@
 # 预览验证记录
 
+## 2026-10-12 · 多音轨（本地验证；未部署 Cloudflare）
+
+- `npm run check` EXIT0：700/700 基础测试（含新增 `audioTracks.test.ts` 与 `sceneBackup.test.ts` 多音轨用例），前端类型与 Vite 1972 模块构建通过，既有大 chunk 提示保留。`npm run typecheck:worker` EXIT0。
+- 新增浏览器 `tests/audio-tracks.spec.ts` 1440/390 两例 2/2 通过：导入两个音频为独立音轨、整帧拖动与撤销/重做、静音、播放时附加音轨实际调用 play、保存重开后位置/静音/音频保持、完整场景包为 bundle-3 且字节数精确、删除与撤销；诊断 errors/warnings/API 为空。
+- 相关回归批次（backup、music、timeline-range、timeline-playback、scene、camera-track）24 例：20 通过、4 失败。4 例均在下载文件名断言 `/\.choreo$/` 处得到 `"download"`；在未修改的 main（c0617be）独立 worktree 复跑其中 backup.spec.ts:219 与 camera-track.spec.ts:414，同样失败于相同断言，属于既有环境下载文件名问题，不是本次改动引入，不声称全量浏览器通过。
+- 本会话无 Cloudflare 凭据，未部署；未运行公网检查。
+
 ## 2026-10-12 · 解除真实模型验证禁令，线上AI单次生成成功
 
 用户在上述只读AI检查后明确要求“帮我放开这个模型限制”，已取代此前开发/测试/上线验收必须零真实推理的工作规则。必要低频真实调用现获授权，无需仅因旧禁令重复确认；当前只做一次，自动化回归默认mock，无后台生成或自动重试。AI2/60s、API20/60s、同源校验、严格数据契约、候选明确采用和本机数据保护继续保留，不修改付费套餐。已更新AGENTS、手动编辑说明、接入清单、README、路线、实现状态和真实体验计划的当前规则，历史零调用收据保持。
