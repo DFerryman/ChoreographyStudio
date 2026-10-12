@@ -1,5 +1,21 @@
 # 预览验证记录
 
+## 2026-10-12 · 最新main多音轨发布（本地/公网限定检查与准确CI通过）
+
+按用户再次要求拉取并部署，从干净main98bbfdf快进到[6b59ee70](https://github.com/DFerryman/ChoreographyStudio/commit/6b59ee7022dd753911382c3be1bbb4f16f8992d1)，tree`9606f9c305484e2a5ba82c7be8180260296e6fa0`，包含多音轨feature293e828及其文档收据。push返回已是最新，远端完整SHA相等；本次没有应用、测试、配置或资产修改。
+
+- 已安装依赖与声明一致，Rapier0.21.0/lock保持，没有重复安装。`npm run check` EXIT0：700/700、35文件、51.89s；前端类型与Vite1972模块构建612ms通过，既有大chunk提示保留。Worker类型与原生Wrangler dry-run EXIT0。
+- 正式相关本地9/9，start`2026-10-12T16:29:44.295Z`/102.252958s，skip/unexpected/flaky0。新多音轨1440/390两例、非空渲染/真实主音频时钟/初始工作区/390与320音乐对话框四例、三宽Timeline静止视口/播放线/循环/终点三例；九份原生console/API诊断全部空。未重复全套浏览器，原远端多音轨会话related24的20通过/4既有下载名失败仍按下文历史保留。
+- 原生native37/version`399822d0-865d-4162-af15-e28f1b1d0b32`，created`2026-10-12T16:32:18.138168Z`；deployment`aac5113c-c2eb-44c8-a994-76dd09f53a94`，created`16:32:18.736823Z`，唯一100%。version/deployment注释准确绑定完整6b59 source/tree。上传HTML、`index-DhmSBbdN.js`、`index-Dp6zwYYg.css`三新资产；原生bindings/script_runtime与native36精确相等，保留AI/ASSETS/两限频、SPA、安全headers、API Worker-first，无D1。
+- 正常TLS单轮HTTP8/8，六静态HTML/mainJS/CSS/Rapier/默认GLB/favicon逐字节及SHA等于冻结dist，health/capabilities两只读GET200/ok；无重试/重定向/TLS绕过。AI与后端请求代码未变，沿用此前单次真实Qwen成功证据，本轮额外真实推理0。
+- 唯一公网1440/390首批2/2 EXIT0，`2026-10-12T16:33:09.498Z`–`16:33:26.646Z`，17.148s；两原生WAV导入各自独立轨，30fps整帧移动、撤销/重做、静音、附加HTMLMediaElement实际play调用、保存/重开、两clip80044B/48044B与SHA保持、原生bundle-3的附加音频逐字节/总大小/主音乐SHA、删除/撤销全部通过。原CountMap、全部packed动作take、manual、camera及主音轨offset精确不变。桌面/手机移动值分别1.9333333333333333s/8.533333333333333s，均为整数帧。
+- 公网28静态GET、每例七项诊断全空，无业务API/模型调用/服务端数据库写入；每例两次GLB响应（共4）均200/480376B/SHA等于dist。正常TLS与已离线核验的独立profile CA保持，清空仅任务profile的目标origin本机状态以隔离两合成场景，无额外应用导航。Root实际查看两张保存重开后桌面/390截图，确认模型/多音轨/停靠布局；手机轨名及clip名有正常局部裁切，临时本机下载提示可遮脚部，不宣称全部文字或人物始终无遮挡。
+- 准确6b源码[CI38276287407](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38276287407)/attempt1已实际completed/success，updated`2026-10-12T16:30:12Z`；不新增未核对的逐项CI计数。210tracked/26dist在全部检查后SHA不变，最终只提交Markdown收据，沿用native37，不重复部署/公网/推理。
+
+原始部署/HTTP/本地/公网/CI工件仅在ignored work；原有“未部署”及下载文件名失败均为历史观察，由本节实际发布状态更新。[打开多音轨工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+
+原五份已授权Notion页面已同步本轮多音轨需求和实际发布收据：五个原生异步任务全部succeeded，全文回读5/5确认新marker各一次、runtime6b/native37/local9/public2/准确CI成功及零新增推理字段准确，旧全文后缀逐字与SHA完整保持，原子页与上一轮AI解禁marker保留。最小收据仅留ignored work，无私有全文落盘。最终仅AGENTS/VERIFICATION/DEPLOYMENT三份Markdown提交push，其他207tracked与26dist哈希保持，不重复上传或线上验证。
+
 ## 2026-10-12 · 多音轨（本地验证；未部署 Cloudflare）
 
 - `npm run check` EXIT0：700/700 基础测试（含新增 `audioTracks.test.ts` 与 `sceneBackup.test.ts` 多音轨用例），前端类型与 Vite 1972 模块构建通过，既有大 chunk 提示保留。`npm run typecheck:worker` EXIT0。

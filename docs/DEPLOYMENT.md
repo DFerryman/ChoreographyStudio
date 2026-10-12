@@ -1,5 +1,17 @@
 # Cloudflare 预览部署
 
+## 2026-10-12 · 最新main多音轨（native37已上线，限定公网与准确CI通过）
+
+从干净98bbfdf拉取/快进到[6b59ee70](https://github.com/DFerryman/ChoreographyStudio/commit/6b59ee7022dd753911382c3be1bbb4f16f8992d1)，tree`9606f9c305484e2a5ba82c7be8180260296e6fa0`，应用/测试/配置原样，push已是最新并核对完整远端SHA。额外音频独立轨、整帧移动/静音/删除/撤销、本机保存及bundle-3现已在[工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)上线。
+
+`wrangler deploy --keep-vars --message` EXIT0：native37/version`399822d0-865d-4162-af15-e28f1b1d0b32`，created`2026-10-12T16:32:18.138168Z`；deployment`aac5113c-c2eb-44c8-a994-76dd09f53a94`，created`16:32:18.736823Z`，原生唯一100%。两处message完整source/tree准确，上传新HTML、`index-DhmSBbdN.js`和`index-Dp6zwYYg.css`三资产；bindings/script_runtime与native36相等，AI/ASSETS/限频/SPA/API先运行Worker/headers保持，无D1。
+
+本轮700/700基础35文件、前端/Worker类型、构建/dry-run通过；正式相关本地9/9（102.253s），九份诊断空。正常TLS单轮HTTP8/8，六静态bytes/SHA等于dist、两只读API200。唯一公网1440/390首批2/2（17.148s），新增两WAV独立轨、整帧拖动/撤销重做/静音/附加音轨实际play调用、本机保存重开clipSHA、bundle-3精确字节/总大小及删除撤销均通过，CountMap/全部动作take/manual/camera/主音乐位置不变。28静态GET、七项诊断每例空、四GLB响应精确，无业务API/真实AI/数据库写入；Root看两张实际保存重开图，保留手机局部文字裁切/临时提示遮脚限制。
+
+准确源码[CI38276287407](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38276287407)/attempt1实际completed/success，updated`2026-10-12T16:30:12Z`。旧related24的20pass/4环境下载名fail保持历史，限定复核不冒充那一轮全通过；详见[验证记录](VERIFICATION.md)。AI请求/后端不改，沿用此前真实单次成功，不重复推理；210tracked/26dist冻结SHA保持。最终Markdown收据另commit/pushmain，复用native37，不再次部署或公网循环。
+
+原五页Notion本轮需求/收据同步已实际5/5完成：五个原生任务succeeded，全文回读确认marker唯一、运行/验证字段准确、原全文后缀SHA及子页/旧AI解禁记录保持；无私有全文落盘。最终只提交上述三份Markdown记录，207未改tracked/26dist哈希再次核对保持，沿用native37，不重复发布或推理。
+
 ## 2026-10-12 · 真实模型验证已放行，线上单次AI生成成功
 
 用户明确解除此前真实推理验证禁令，必要低频Workers AI调用现获授权；当前只执行一次，无自动重试，默认回归仍mock，原AI2/60s/API20/60s限频、同源校验、候选明确采用及本机存储保持，不更改账单套餐。
