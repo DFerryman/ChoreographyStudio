@@ -63,7 +63,6 @@
 /* Camera presets, top right. */
 .viewer-toolbar { position: absolute; z-index: 12; top: 14px; right: 16px; display: flex; align-items: center; }
 .viewer-toolbar:has(.camera-options[open]) { z-index: 26; }
-.viewer-title { display: none; }
 .camera-toolbar { display: flex; align-items: center; gap: 3px; padding: 4px; color: var(--text-2); }
 .camera-toolbar .segmented { padding: 0; border: 0; background: transparent; }
 .camera-toolbar .segmented > button { min-height: 30px; padding-inline: 10px; font-size: 11px; }
@@ -171,6 +170,4 @@
   .timeline-splitter { height: 16px; margin-top: -8px; }
   .timeline-splitter::after { top: 6px; }
   .missing-audio, .assist-candidate { right: 8px; left: 8px; }
-}
-@media (max-width: 360px) {
 }

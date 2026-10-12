@@ -8,12 +8,11 @@ const SECONDARY_VIEWS: [PresetView, string][] = [['left', '左侧'], ['right', '
 const AXES = ['X', 'Y', 'Z'];
 
 /** Camera presets and framing only change the view, never the choreography. */
-export function CameraBar({ title, view, canFrame, camera, onView, onFrame, children }: {
-  title: string; view: StageView; canFrame: boolean; camera: readonly number[] | null;
+export function CameraBar({ view, canFrame, camera, onView, onFrame, children }: {
+  view: StageView; canFrame: boolean; camera: readonly number[] | null;
   onView: (view: PresetView) => void; onFrame: () => void; children?: ReactNode;
 }) {
   return <div className="viewer-toolbar">
-    <span className="viewer-title">{title}<span className="muted-divider">/</span><span className="viewer-muted">{view === 'free' ? '自由视角' : '3D'}</span></span>
     <div className="camera-toolbar floating-bar">
       <div className="segmented" aria-label="观看视角">{PRIMARY_VIEWS.map(([preset, label]) =>
         <button key={preset} className={view === preset ? 'selected' : ''} aria-pressed={view === preset} onClick={() => onView(preset)}>{label}</button>)}</div>

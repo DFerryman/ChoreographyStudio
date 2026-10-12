@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
-import { Camera, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Diamond, Maximize2, Minus, Music2, Plus, Repeat2, SkipBack, SkipForward, Trash2, X } from 'lucide-react';
+import { Camera, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Diamond, Maximize2, Music2, Plus, Repeat2, SkipBack, SkipForward, Trash2, X } from 'lucide-react';
 import { frameAtTime, frameTime, lastFrame, type CameraPose, type CameraTrack, type Vec3 } from '../../../packages/core/src';
-import { timelineAnchorAtFraction, timelineAnchorScroll, timelineEdgeScroll, timelineMajorTickFrames, timelineTimeAtX, timelineWidth, timelineXAtTime, timelineZoomAtWidth } from './timelineGeometry';
+import { timelineAnchorAtFraction, timelineEdgeScroll, timelineMajorTickFrames, timelineTimeAtX, timelineWidth, timelineXAtTime, timelineZoomAtWidth } from './timelineGeometry';
 import './Timeline.css';
 
 /** A frame-aligned time range; view state for playback and future AI edits. */
@@ -185,12 +185,8 @@ export function SceneTimeline(props: TimelineProps) {
     zoomAnchor.current = null;
   }, [timeWidth, geometry.visibleWidth, duration]);
   useLayoutEffect(() => {
-    if (!playing || !expanded || zoom === 0 || dragRef.current || panRef.current || scrubRef.current) return;
-    // Follow the playback clock with room ahead; clamp at the scene's ends.
-    if (viewport.current) viewport.current.scrollLeft = timelineAnchorScroll(time, timeWidth, duration, geometry.visibleWidth * .35, geometry.visibleWidth);
-  }, [playing, expanded, zoom, time, timeWidth, duration, geometry.visibleWidth, panning]);
-  useLayoutEffect(() => {
-    // Keep a paused, positioned playhead visible after keyboard/button navigation.
+    // Keep a paused, positioned playhead visible after keyboard/button
+    // navigation. Playback never scrolls the view: the playhead moves instead.
     const container = viewport.current;
     if (playing || !expanded || !container || dragRef.current || panRef.current || scrubRef.current) return;
     const x = timelineXAtTime(time, timeWidth, duration);
@@ -420,7 +416,6 @@ export function SceneTimeline(props: TimelineProps) {
   const shownRange = drag?.kind === 'range' && drag.moved ? drag.target : range;
   const rangeStyle = shownRange ? { left: `${position(shownRange.start)}%`, width: `${position(shownRange.end) - position(shownRange.start)}%` } : undefined;
   const rangeShade = shownRange && <span className="tl-range-shade" style={rangeStyle} aria-hidden="true" />;
-  const playhead = <span className="tl-row-playhead" style={{ left: `${position(time)}%` }} aria-hidden="true" />;
   const audioOffset = drag?.kind === 'audio' ? drag.targetOffset : audio.offsetSeconds;
   const audioLeft = timelineXAtTime(audioOffset, timeWidth, duration);
   const audioWidth = timelineXAtTime(audioOffset + audio.durationSeconds, timeWidth, duration) - audioLeft;
@@ -449,9 +444,7 @@ export function SceneTimeline(props: TimelineProps) {
       </div>
       {expanded && <div className="tl-zoom-controls" aria-label="时间线视图缩放">
         <button className={zoom === 0 ? 'active' : ''} aria-label="适合整段时间线" disabled={gestureActive} onClick={() => changeZoom(0)}>全段</button>
-        <button aria-label="缩小时间线" disabled={gestureActive || zoom === 0} onClick={() => changeZoom(zoom - 12.5)}><Minus size={11} /></button>
         <input aria-label="时间线缩放" aria-valuetext={`每帧间距 ${pixelsPerFrame.toFixed(2)} 像素`} type="range" min={0} max={100} step={.5} value={zoom} disabled={gestureActive} onChange={event => changeZoom(Number(event.target.value))} />
-        <button aria-label="放大时间线" disabled={gestureActive || zoom === 100} onClick={() => changeZoom(zoom + 12.5)}><Plus size={11} /></button>
         <button className={zoom === 100 ? 'active' : ''} aria-label="逐帧查看时间线" disabled={gestureActive} onClick={() => changeZoom(100)}>逐帧</button>
       </div>}
       <details ref={moreDisclosure} className="tl-more" aria-label="更多时间线选项"><summary title="时间线选项">时间线选项</summary><div className="tl-popover">
@@ -466,6 +459,7 @@ export function SceneTimeline(props: TimelineProps) {
       onPointerUp={event => { if (event.pointerId === panRef.current?.pointerId) finishPan(); }} onPointerCancel={event => { if (event.pointerId === panRef.current?.pointerId) finishPan(true); }}
       onScroll={() => { if (dragRef.current?.moved) updateDrag(dragRef.current); }}>
       <div className="tl-lanes" data-pixels-per-frame={pixelsPerFrame} style={{ width: `${geometry.labelWidth + timeWidth}px`, '--tl-minor-spacing': `${pixelsPerFrame >= 8 ? pixelsPerFrame : 1000000}px`, '--tl-major-spacing': `${pixelsPerFrame * tickStep}px` } as CSSProperties}>
+        <span className={`tl-playhead ${playing ? 'playing' : ''}`} style={{ left: `${geometry.labelWidth + timelineXAtTime(time, timeWidth, duration)}px` }} aria-hidden="true" />
         <div className="tl-ruler-row"><div ref={rulerLabel} className="tl-lane-label">时间</div><div className="tl-ruler">
           <div className="tl-ruler-ticks" aria-hidden="true">{ticks.map(tick => <span key={tick} style={{ left: `${tick / end * 100}%` }}>{tickStep < 30 ? `${tick}f` : `${Number((tick / 30).toFixed(2))}s`}</span>)}<span className="tl-end-tick" style={{ left: '100%' }}>{tickStep < 30 ? `${end}f` : `${duration}s`}</span></div>
           {rangeShade}
@@ -484,7 +478,6 @@ export function SceneTimeline(props: TimelineProps) {
               <button className="tl-range-handle start" aria-label="拖动选区起点" disabled={playing} onPointerDown={event => range && beginDrag(event, { kind: 'range', mode: 'start', anchor: range.end, source: range, target: range })} {...dragHandlers} />
               <button className="tl-range-handle end" aria-label="拖动选区终点" disabled={playing} onPointerDown={event => range && beginDrag(event, { kind: 'range', mode: 'end', anchor: range.start, source: range, target: range })} {...dragHandlers} />
             </span>}
-            {playhead}
           </div>
         </div>
         <div className="tl-lane tl-audio-lane" data-track-id="audio" aria-label="音乐轨道"><div className="tl-lane-label"><Music2 size={11} /><span>音乐</span></div>
@@ -495,7 +488,6 @@ export function SceneTimeline(props: TimelineProps) {
               <svg className="tl-waveform" viewBox={`0 0 ${Math.max(wave.length, 1)} 24`} preserveAspectRatio="none" aria-hidden="true">{wave.map((value, index) => { const amplitude = Math.max(.5, Math.min(1, Math.abs(value)) * 11); return <line key={index} x1={index + .5} x2={index + .5} y1={12 - amplitude} y2={12 + amplitude} />; })}</svg>
               <span className="tl-audio-name" style={{ left: `${audioWidth > 0 ? Math.max(0, -audioLeft) / audioWidth * 100 : 0}%` }}>{drag?.kind === 'audio' && drag.moved ? `${audioOffset > 0 ? '+' : ''}${audioOffset.toFixed(3)} s` : audio.name}</span>
             </button>
-            {playhead}
           </div>
         </div>
         <div className={`tl-lane tl-camera-lane ${camera.selected ? 'selected' : ''}`} data-track-id="camera" aria-label="镜头轨道">
@@ -513,15 +505,12 @@ export function SceneTimeline(props: TimelineProps) {
                 style={{ left: `${position(shownTime)}%` }} disabled={playing} onPointerDown={event => beginDrag(event, { kind: 'camera', sourceTime: key.time, targetTime: key.time })} {...dragHandlers}
                 onClick={event => { event.stopPropagation(); selectCamera(key.time); }} onDoubleClick={event => { event.stopPropagation(); selectCamera(key.time, true); }}><Diamond size={9} fill="currentColor" />{moving && drag.moved && <span className="tl-drag-time">{Number(shownTime.toFixed(6))} 秒</span>}</button>;
             })}
-            {playhead}
           </div>
         </div>
       </div>
     </div>}
     {camera.selected && <div className="tl-camera-bar" role="group" aria-label="镜头关键帧">
       <span className="tl-camera-status"><Camera size={12} />{playing ? '镜头轨 · 播放中' : cameraKey ? `镜头关键帧 ${cameraTimes.indexOf(time) + 1} / ${cameraTimes.length} · ${seconds(time)}` : `镜头录制 · ${seconds(time)} · 调整画面即记录`}</span>
-      <button aria-label="上一镜头关键帧" disabled={playing || !cameraTimes.some(key => key < time - 1e-9)} onClick={() => stepCamera(-1)}><ChevronLeft size={12} /></button>
-      <button aria-label="下一镜头关键帧" disabled={playing || !cameraTimes.some(key => key > time + 1e-9)} onClick={() => stepCamera(1)}><ChevronRight size={12} /></button>
       <button aria-label="编辑镜头数值" aria-expanded={inspectorOpen} disabled={playing} onClick={() => setInspectorOpen(!inspectorOpen)}>数值</button>
       {cameraKey && <button className="tl-danger" aria-label="删除镜头关键帧" disabled={locked} onClick={camera.onDelete}><Trash2 size={12} />删除</button>}
       <button aria-label="结束镜头录制" title="结束录制；之后调整画面只改变观看视角" onClick={() => { setInspectorOpen(false); camera.onDeselect(); }}>完成</button>

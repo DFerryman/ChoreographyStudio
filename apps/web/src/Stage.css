@@ -19,21 +19,7 @@
 .stage3d-canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .stage3d-model-loading { position: absolute; left: 14px; top: 46px; padding: 6px 9px; border-radius: var(--radius-s); background: #191919cc; color: var(--text-2); font-size: 11px; pointer-events: none; }
 
-.stage3d-gizmo {
-  display: none;
-  position: absolute;
-  bottom: 14px;
-  left: 14px;
-  width: 68px;
-  height: 68px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-m);
-  background: #101010b3;
-  pointer-events: none;
-}
 
-.stage3d-gizmo svg { display: block; width: 100%; height: 100%; }
-.stage3d-gizmo text { fill: #171717; font: 700 9px system-ui, sans-serif; }
 
 .stage3d-joint-tooltip {
   position: absolute;
@@ -74,6 +60,7 @@
   backdrop-filter: blur(12px);
 }
 .stage3d-edit-indicator span { padding-left: 10px; border-left: 1px solid var(--line-strong); color: var(--muted); }
+.stage3d-edit-indicator > span:first-child { padding-left: 0; border-left: 0; }
 .stage3d-selected-part { font-weight: 600; color: var(--text); }
 .stage3d-edit-indicator.is-ik { border-color: var(--line-strong); color: var(--text); }
 .stage3d-edit-indicator .stage3d-ik-residual { color: var(--warning); }
@@ -102,7 +89,4 @@
   .stage3d-edit-indicator { top: 8px; left: 8px; gap: 6px; max-width: calc(100% - 176px); }
 }
 
-@media (max-width: 430px) {
-  .stage3d-gizmo { width: 58px; height: 58px; bottom: 11px; left: 11px; }
-}
 .stage3d:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }

@@ -230,7 +230,8 @@ test('saved scenes independently restore audio, choreography and camera settings
   await closeDisclosures(page);
   await page.getByRole('button', { name: '背面', exact: true }).click();
   await drag(page, 'left', [0.75, 0.43], [0.83, 0.46]);
-  await expect(page.locator('.viewer-muted')).toHaveText('自由视角');
+  // A drag leaves the presets: neither primary view stays pressed.
+  for (const name of ['正面', '背面']) await expect(page.getByRole('button', { name, exact: true })).toHaveAttribute('aria-pressed', 'false');
   await playbackRate(page, '0.5');
   await clickRevealed(page, page.getByRole('button', { name: '镜像观看', exact: true, includeHidden: true }));
   await clickRevealed(page, page.getByRole('button', { name: '循环整段', exact: true, includeHidden: true }));

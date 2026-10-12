@@ -775,7 +775,6 @@ export default function App() {
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
-  const stageTitle = previewAssist ? 'AI 候选预览' : page === 'teaching' ? '教学预览' : '舞台';
 
   return <div className="app-shell studio" style={{ '--timeline-overlay-height': `${timelineInset}px` } as CSSProperties}>
     <audio ref={audioRef} src={audioUrl || undefined} preload="auto" onLoadedMetadata={timelinePlayback.syncAudio} onError={() => { if (ready && audioUrl) setNotice('音乐无法播放。请重新导入支持的音频格式。'); }} />
@@ -791,7 +790,7 @@ export default function App() {
         {ready && !audioBlob && <div className="missing-audio" role="alert"><strong>原音乐缺失</strong><p>动作与数拍仍在。请关联原曲后恢复为新场景，当前作品会保留。</p><button className="button secondary compact" onClick={openAudioRecovery} disabled={!!busy || sceneActionBusy}>恢复原音乐</button></div>}
         <section className="viewer-panel" aria-label="3D动作预览">
           <div className="stage-area">
-            <CameraBar title={stageTitle} view={view} canFrame={!!displayedTake && ready && !busy} camera={camera?.position ?? null} onView={chooseView} onFrame={frameActor}>
+            <CameraBar view={view} canFrame={!!displayedTake && ready && !busy} camera={camera?.position ?? null} onView={chooseView} onFrame={frameActor}>
               {page === 'studio' && <AIDock busy={assistBusy}>
                 <AIPanel onGenerate={prompt => { void generateAssistance(prompt); }} onCancel={cancelAssistance} busy={assistBusy} range={range} duration={duration}
                   disabled={!ready || !active.take || !!busy || assistBusy || modalOpen} error={assistError} />

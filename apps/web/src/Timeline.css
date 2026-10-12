@@ -47,13 +47,13 @@
 
 .tl-viewport { flex: 1; min-height: 0; overflow: auto; border: 1px solid var(--line); border-radius: 5px; background: var(--field); scrollbar-width: thin; scrollbar-color: #5b5b5b var(--field); overscroll-behavior: contain; touch-action: pan-y; }
 .tl-viewport.tl-panning { cursor: grabbing; }
-.tl-lanes { min-width: 100%; }
+.tl-lanes { position: relative; min-width: 100%; }
 .tl-ruler-row, .tl-lane { display: grid; grid-template-columns: 84px minmax(0, 1fr); }
 .tl-ruler-row { position: sticky; z-index: 7; top: 0; height: 23px; background: var(--surface-2); }
 .tl-lane { height: 30px; border-top: 1px solid var(--line); }
 .tl-count-lane { height: 22px; }
 .tl-lane.selected { background: #ffffff08; }
-.tl-lane-label { position: sticky; z-index: 5; left: 0; display: flex; align-items: center; gap: 4px; min-width: 0; padding: 0 8px; border-right: 1px solid var(--line); color: var(--text-2); background: var(--surface-2); user-select: none; }
+.tl-lane-label { position: sticky; z-index: 5; left: 0; display: flex; align-items: center; gap: 4px; min-width: 0; padding: 0 8px; border-right: 1px solid var(--line); color: var(--text-2); background: var(--surface-2); }
 .tl-ruler-row > .tl-lane-label, .tl-count-lane > .tl-lane-label { color: var(--muted); font-size: 9px; }
 .tl-lane.selected > .tl-lane-label { color: var(--text); background: var(--surface-active); }
 .tl-track-select { display: flex; flex: 1; align-items: center; gap: 4px; min-width: 0; height: 100%; padding: 0; color: inherit !important; font-size: inherit; text-align: left; white-space: nowrap; }
@@ -79,7 +79,8 @@
 .tl-key:hover { z-index: 6; background: var(--surface-hover); }
 .tl-key.dragging { z-index: 8; background: var(--surface-active); cursor: grabbing; }
 .tl-drag-time { position: absolute; z-index: 10; bottom: calc(100% + 3px); padding: 3px 5px; border-radius: 3px; color: var(--text); background: var(--surface-active); font-size: 9px; white-space: nowrap; pointer-events: none; }
-.tl-row-playhead { position: absolute; z-index: 4; top: 0; bottom: -1px; width: 1px; background: #eeeeee; transform: translateX(-50%); pointer-events: none; }
+/* One continuous playhead through every lane, under the sticky track labels. */
+.tl-playhead { position: absolute; z-index: 4; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--playhead); box-shadow: 0 0 0 1px #0000008c, 0 0 8px var(--playhead-glow); pointer-events: none; }
 
 .tl-ruler { position: relative; min-width: 0; }
 .tl-ruler > input { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; margin: 0; appearance: none; background: transparent; cursor: ew-resize; touch-action: none; }
@@ -90,7 +91,8 @@
 .tl-ruler-ticks { position: absolute; inset: 0; pointer-events: none; }
 .tl-ruler-ticks > span { position: absolute; top: 2px; padding-left: 4px; border-left: 1px solid var(--line-strong); color: var(--muted); font-size: 9px; line-height: 15px; white-space: nowrap; }
 .tl-ruler-ticks > .tl-end-tick { padding-right: 4px; border-right: 1px solid var(--line-strong); border-left: 0; transform: translateX(-100%); }
-.tl-ruler-playhead { position: absolute; z-index: 3; bottom: 0; width: 0; height: 0; border: 4px solid transparent; border-top-color: #eeeeee; transform: translateX(-50%); pointer-events: none; }
+.tl-ruler-playhead { position: absolute; z-index: 3; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--playhead); pointer-events: none; }
+.tl-ruler-playhead::before { content: ''; position: absolute; top: 1px; left: 50%; width: 11px; height: 13px; border-radius: 2px 2px 0 0; background: var(--playhead); clip-path: polygon(0 0, 100% 0, 100% 62%, 50% 100%, 0 62%); transform: translateX(-50%); }
 
 .tl-audio-content { overflow: hidden; }
 .tl-audio-clip { position: absolute; z-index: 2; top: 4px; height: 21px; overflow: hidden; min-width: 0; padding: 0; border: 1px solid #ffffff33; border-radius: 3px; background: #333333; text-align: left; cursor: grab; touch-action: none; }

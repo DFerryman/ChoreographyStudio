@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { EDITABLE_JOINT_NAMES, JOINT_NAMES, RIG_DEFINITIONS, ROOT_TRANSLATION_LIMITS, sampleTake, type BakedTake, type JointName, type Pose, type Quat, type SampledCameraPose, type Vec3 } from '../../../packages/core/src';
 import { fitPerspectiveBounds } from './cameraFraming';
+import { CharacterOrbitControls } from './characterOrbit';
 import { constrainJointRotation } from '../../../packages/core/src';
 import { initializeBodyCollisionBackend, isBodyCollisionBackendReady } from '../../../packages/core/src/rapierBackend';
 import { sampleCollisionPreview } from '../../../packages/core/src/collisionPreview';
@@ -92,7 +92,6 @@ type PreviewRig = {
   humanSurface: THREE.SkinnedMesh | null;
 };
 
-type GizmoAxis = { name: 'X' | 'Y' | 'Z'; color: string; x: number; y: number; depth: number };
 
 /** Canonical authoring bones retain the exact FK/IK and manipulation contract. */
 function createPreviewRig(): PreviewRig {
@@ -217,7 +216,6 @@ export function Stage(props: StageProps) {
   const [error, setError] = useState<string | null>(null);
   const [internalSelection, setInternalSelection] = useState<JointName | null>(null);
   const [hover, setHover] = useState<{ joint: JointName; x: number; y: number } | null>(null);
-  const [gizmo, setGizmo] = useState<GizmoAxis[]>([]);
   const [transformAxis, setTransformAxis] = useState<string | null>(null);
   const [ikResidual, setIKResidual] = useState<number | null>(null);
   const [humanLoaded, setHumanLoaded] = useState(false);
@@ -255,7 +253,8 @@ export function Stage(props: StageProps) {
   const previewFailure = presentation.error ?? collisionError;
   const previewState = !previewActive ? 'author' : previewFailure ? 'error' : !collisionReady || !presentation.preview ? 'loading' : 'ready';
   current.current = { ...props, renderPose: feedbackPose, previewState };
-  const previewStatus = !previewActive ? null : previewFailure ? '碰撞预览失败 · 显示作者姿态' : previewState === 'loading' ? '碰撞预览准备中 · 显示作者姿态' : presentation.preview?.corrected ? '碰撞预览 · 近似修正' : '碰撞预览 · 近似检查';
+  // Routine preview states are silent; only a failure needs a visible notice.
+  const previewStatus = previewActive && previewFailure ? '碰撞预览失败 · 显示作者姿态' : null;
   const guidanceWarning = <>
     {previewStatus && <span className="stage3d-author-warning" role="status" aria-label="碰撞预览" title={previewFailure ?? '碰撞修正仅用于预览，作者数据保持原值。'}>{previewStatus}</span>}
     {hasCapsuleCollisions && <span className="stage3d-author-warning" role="status" aria-label="身体碰撞提示" title="近似求解仍有残余接触；可用 AI 重新生成该段动作。">残余接触 {capsuleCollisions!.selfCollisions.length} · 穿地 {capsuleCollisions!.floorPenetrations.length}</span>}
@@ -297,12 +296,10 @@ export function Stage(props: StageProps) {
     scene.background = new THREE.Color('#161616');
     scene.fog = new THREE.Fog('#161616', 9, 27);
     const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 80);
-    const controls = new OrbitControls(camera, canvas);
+    const controls = new CharacterOrbitControls(camera, canvas);
     controls.enableDamping = false;
     controls.minDistance = 1.3;
     controls.maxDistance = 18;
-    controls.minPolarAngle = 0.015;
-    controls.maxPolarAngle = Math.PI - 0.015;
     controls.screenSpacePanning = true;
     controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
     controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
@@ -358,6 +355,16 @@ export function Stage(props: StageProps) {
     const rig = createPreviewRig();
     mirrorGroup.add(rig.root);
     scene.add(mirrorGroup);
+    // Rotation always orbits the visible character (its hips, mirror included),
+    // even after panning or framing has moved the look-at target elsewhere.
+    const orbitPivot = new THREE.Vector3();
+    controls.pivot = () => {
+      const hips = rig.joints.get('Hips');
+      if (!hips) return null;
+      mirrorGroup.updateMatrixWorld(true);
+      hips.getWorldPosition(orbitPivot);
+      return orbitPivot.toArray().every(Number.isFinite) ? orbitPivot : null;
+    };
     scene.add(transformHelper);
     const localAxes = new THREE.AxesHelper(0.14);
     localAxes.visible = false;
@@ -587,15 +594,6 @@ export function Stage(props: StageProps) {
       if (signature === cameraSignature) return;
       cameraSignature = signature;
       if (!current.current.cameraTrackState && !authoredCameraGesture) current.current.onCameraChange?.(readCamera());
-      const inverse = camera.quaternion.clone().invert();
-      setGizmo([
-        { name: 'X', color: '#f2727c', vector: new THREE.Vector3(1, 0, 0) },
-        { name: 'Y', color: '#68c69d', vector: new THREE.Vector3(0, 1, 0) },
-        { name: 'Z', color: '#739bfa', vector: new THREE.Vector3(0, 0, 1) },
-      ].map(({ name, color, vector }) => {
-        vector.applyQuaternion(inverse);
-        return { name: name as GizmoAxis['name'], color, x: 34 + vector.x * 23, y: 34 - vector.y * 23, depth: vector.z };
-      }).sort((a, b) => a.depth - b.depth));
     }
 
     function selectionFeedback() {
@@ -1370,16 +1368,6 @@ export function Stage(props: StageProps) {
     }}>
       {error ? <StageFallback error={error} /> : <>
         {!humanLoaded && <span className="stage3d-model-loading" role="status">人物模型载入中…</span>}
-        {axesVisible !== false && <div className="stage3d-gizmo" aria-label="世界坐标方向">
-          <svg viewBox="0 0 68 68" aria-hidden="true">
-            {gizmo.map(axis => <g key={axis.name} opacity={axis.depth < -0.1 ? 0.58 : 1}>
-              <line x1="34" y1="34" x2={axis.x} y2={axis.y} stroke={axis.color} strokeWidth="1.7" />
-              <circle cx={axis.x} cy={axis.y} r="7.5" fill={axis.color} />
-              <text x={axis.x} y={axis.y + 3.2} textAnchor="middle">{axis.name}</text>
-            </g>)}
-            <circle cx="34" cy="34" r="2.3" fill="#dedede" />
-          </svg>
-        </div>}
         {hover && <div className="stage3d-joint-tooltip" style={{ left: hover.x, top: hover.y }} aria-hidden="true">{STAGE_JOINT_LABELS[hover.joint]}<span>点击选择</span></div>}
         {editMode && <div className={`stage3d-edit-indicator${transformTool === 'ik' ? ' is-ik' : ''}`} aria-label={transformTool === 'translate' ? 'Root 世界位移' : transformTool === 'ik' ? 'IK 手脚目标' : transformTool === 'rotate' ? '关节局部旋转' : '关节选择'}>
           {(selection || transformTool === 'translate') && <output className="stage3d-selected-part" aria-label="选中姿态状态" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined}>{transformTool === 'translate' ? '角色' : STAGE_JOINT_LABELS[selection!]} · {previewActive ? '预览中' : poseOverride ? '编辑中' : '已记录'}</output>}
@@ -1387,7 +1375,7 @@ export function Stage(props: StageProps) {
           {guidanceWarning}
         </div>}
         {!editMode && cameraTrackEditing && <div className="stage3d-edit-indicator" aria-label="相机轨道编辑">{playing ? '相机轨道 · 播放中' : '相机 · 拖动画面，松手记录'}{guidanceWarning}</div>}
-        {!editMode && !cameraTrackEditing && (previewActive || poseGuidance.outsideSuggestedRange.length > 0 || poseGuidance.shoulderCoupling.length > 0) && <div className="stage3d-edit-indicator" aria-label="姿态建议提示">{guidanceWarning}</div>}
+        {!editMode && !cameraTrackEditing && (previewStatus || hasCapsuleCollisions || poseGuidance.outsideSuggestedRange.length > 0 || poseGuidance.shoulderCoupling.length > 0) && <div className="stage3d-edit-indicator" aria-label="姿态建议提示">{guidanceWarning}</div>}
         <span className="stage3d-selection-announcement" aria-live="polite">{selection ? `已选中${STAGE_JOINT_LABELS[selection]}` : '未选中关节'}</span>
       </>}
     </div>

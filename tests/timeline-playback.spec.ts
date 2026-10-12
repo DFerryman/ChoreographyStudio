@@ -24,7 +24,7 @@ async function playbackSamples(page: Page) {
       await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
       const bounds = element.getBoundingClientRect();
       const label = element.querySelector('.tl-ruler-row > .tl-lane-label')!.getBoundingClientRect();
-      const cursor = element.querySelector('.tl-ruler-playhead')!.getBoundingClientRect();
+      const cursor = element.querySelector('.tl-playhead')!.getBoundingClientRect();
       const value = Number(document.querySelector('.tl-timeline')!.getAttribute('data-time'));
       samples.push({ scroll: element.scrollLeft, cursor: cursor.x + cursor.width / 2, left: label.right, right: bounds.right, time: value });
     }
@@ -32,11 +32,9 @@ async function playbackSamples(page: Page) {
   });
 }
 
-function visible(samples: Awaited<ReturnType<typeof playbackSamples>>) {
-  for (const sample of samples) {
-    expect(sample.cursor, `Playback cursor at ${sample.time}s must remain after the sticky labels`).toBeGreaterThanOrEqual(sample.left - 2);
-    expect(sample.cursor, `Playback cursor at ${sample.time}s must remain inside the viewport`).toBeLessThanOrEqual(sample.right + 2);
-  }
+/** Playback never scrolls the Timeline: the view holds still and the playhead moves. */
+function stationary(samples: Awaited<ReturnType<typeof playbackSamples>>) {
+  expect(new Set(samples.map(sample => sample.scroll)).size, 'Playback must not scroll the Timeline').toBe(1);
 }
 
 async function loop(page: Page) {
@@ -44,7 +42,7 @@ async function loop(page: Page) {
 }
 
 for (const width of [1440, 390, 320]) {
-  test(`@timelineplayback ${width}px zoomed playback follows its cursor, respects pause, loop and fit without changing author data`, async ({ page }, info) => {
+  test(`@timelineplayback ${width}px playback moves the playhead without scrolling, across pause, loop and fit, without changing author data`, async ({ page }, info) => {
     test.setTimeout(120_000);
     await page.setViewportSize({ width, height: width === 1440 ? 1000 : 844 });
     await openFixture(page);
@@ -55,10 +53,19 @@ for (const width of [1440, 390, 320]) {
     await page.getByRole('button', { name: '播放', exact: true }).click();
     await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeVisible();
     const frames = await playbackSamples(page);
-    visible(frames);
-    expect(frames.at(-1)!.scroll).toBeGreaterThan(frames[0].scroll + 10);
+    stationary(frames);
     expect(frames.at(-1)!.time).toBeGreaterThan(frames[0].time);
-    await screenshot(page, info, `timeline-follow-${width}.png`);
+    expect(frames.at(-1)!.cursor, 'The playhead itself advances').toBeGreaterThan(frames[0].cursor + 2);
+    // The playhead is one continuous, clearly coloured line through every lane.
+    const head = await timeline(page).locator('.tl-playhead').evaluate(element => {
+      const style = getComputedStyle(element), line = element.getBoundingClientRect();
+      const lanes = element.parentElement!.getBoundingClientRect();
+      return { width: line.width, top: line.top - lanes.top, bottom: lanes.bottom - line.bottom, color: style.backgroundColor };
+    });
+    expect(head.width).toBeGreaterThanOrEqual(2);
+    expect(Math.abs(head.top) + Math.abs(head.bottom)).toBeLessThan(1);
+    expect(head.color).not.toMatch(/^rgb\((\d+), \1, \1\)$/);
+    await screenshot(page, info, `timeline-playhead-${width}.png`);
     await page.getByRole('button', { name: '暂停', exact: true }).click();
     await expect(page.getByRole('button', { name: '播放', exact: true })).toBeVisible();
 
@@ -77,7 +84,7 @@ for (const width of [1440, 390, 320]) {
     expect(new Set(paused.map(sample => sample.scroll)).size).toBe(1);
     await expect(time(page)).toHaveAttribute('data-time', pausedTime!);
 
-    // A manual intermediate zoom follows too, including the loop back to zero.
+    // A manual intermediate zoom stays put too, including the loop back to zero.
     await timeline(page).getByRole('slider', { name: '时间线缩放', exact: true }).evaluate((element: HTMLInputElement) => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(element, '75');
       element.dispatchEvent(new Event('input', { bubbles: true }));
@@ -88,23 +95,23 @@ for (const width of [1440, 390, 320]) {
     await page.getByRole('button', { name: '播放', exact: true }).click();
     // Whole-scene looping continues from the cursor; wait for a real wrap.
     await expect.poll(async () => Number(await time(page).getAttribute('data-time')), { timeout: 20_000 }).toBeGreaterThan(15);
+    const beforeWrap = await viewport(page).evaluate(element => element.scrollLeft);
     await expect.poll(async () => Number(await time(page).getAttribute('data-time'))).toBeLessThan(1);
-    const wrapped = await playbackSamples(page); visible(wrapped);
-    expect(wrapped[0].scroll, 'The follow scroll returns to the start right after the wrap').toBeLessThan(await viewport(page).evaluate(element => element.scrollWidth * .2));
+    const wrapped = await playbackSamples(page); stationary(wrapped);
+    expect(wrapped[0].scroll, 'The loop wrap does not scroll the Timeline').toBe(beforeWrap);
     await page.getByRole('button', { name: '暂停', exact: true }).click();
 
-    // The last authored time remains visible when playback stops at the end.
+    // Playback stops exactly at the end.
     await loop(page);
     await seekSeconds(page, 15.9);
     await page.getByRole('button', { name: '播放', exact: true }).click();
     await expect(page.getByRole('button', { name: '播放', exact: true })).toBeVisible();
     await expect(time(page)).toHaveAttribute('data-time', '16');
-    visible(await playbackSamples(page));
 
     await timeline(page).getByRole('button', { name: '适合整段时间线', exact: true }).click();
     await seekSeconds(page, 5);
     await page.getByRole('button', { name: '播放', exact: true }).click();
-    const fit = await playbackSamples(page); visible(fit);
+    const fit = await playbackSamples(page); stationary(fit);
     expect(fit.every(sample => sample.scroll === 0)).toBe(true);
     await page.getByRole('button', { name: '暂停', exact: true }).click();
     expect((await backup(page)).scene.project).toEqual(original);
