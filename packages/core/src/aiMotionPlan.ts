@@ -3,6 +3,7 @@
 import { AI_MOTION_MODEL, AI_MOTION_REQUEST_MAX_BYTES, AI_MOTION_RESULT_MAX_BYTES,
   validateAIMotionRequest, type AIMotionRequest, type AIMotionTarget } from './aiMotion';
 import { RIG_CALIBRATION_VERSION } from './humanoid';
+import { AIMotionPlanValidationError, type AIMotionPlanReasonCode } from './aiMotionPlanErrors';
 
 export const AI_MOTION_PLAN_PROTOCOL = 'ai-motion-plan-1' as const;
 export const AI_MOTION_PLAN_MAX_SEGMENTS = 32;
@@ -64,7 +65,9 @@ export interface AIMotionPlanResult extends AIMotionPlanOutput {
   sources: { clipId: string; sourceHash: string }[];
 }
 
-const fail = (message = 'AI 动作规划数据无效。'): never => { throw new Error(message); };
+const fail = (message = 'AI 动作规划数据无效。', reasonCode: AIMotionPlanReasonCode = 'PLAN_FORMAT_INVALID'): never => {
+  throw new AIMotionPlanValidationError(reasonCode, message);
+};
 const forbidden = new Set(['__proto__', 'constructor', 'prototype']);
 const bytes = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).byteLength;
 function record(input: unknown, keys: readonly string[]): Record<string, unknown> {
@@ -88,9 +91,18 @@ function text(input: unknown, max: number): string {
   if (typeof input !== 'string' || !input.trim() || input.length > max || /[\u0000-\u001f]/.test(input)) return fail();
   return input;
 }
-function number(input: unknown, min: number, max: number): number {
-  if (typeof input !== 'number' || !Number.isFinite(input) || input < min || input > max) return fail();
+function number(input: unknown, min: number, max: number, reasonCode: AIMotionPlanReasonCode = 'PLAN_FORMAT_INVALID'): number {
+  if (typeof input !== 'number' || !Number.isFinite(input) || input < min || input > max) return fail(undefined, reasonCode);
   return input;
+}
+// Error propagation for subtraction of decimal seconds represented as binary64.
+// Coverage and source bounds remain exact; only derived duration comparisons
+// account for endpoint representation and arithmetic roundoff, without snapping.
+function timeUlp(value: number): number {
+  return 2 ** (Math.floor(Math.log2(Math.max(.1, Math.abs(value)))) - 52);
+}
+function durationRoundoff(start: number, end: number): number {
+  return (timeUlp(start) + timeUlp(end) + timeUlp(end - start)) / 2;
 }
 function hash(input: unknown): string {
   if (typeof input !== 'string' || !/^[a-f0-9]{64}$/.test(input)) return fail();
@@ -132,29 +144,38 @@ export function makeAIMotionPlanRequest(motion: AIMotionRequest, catalog: AIMoti
 export function validateAIMotionPlanOutput(input: unknown, request: AIMotionPlanRequest): AIMotionPlanOutput {
   const expected = validateAIMotionPlanRequest(request);
   const value = record(input, ['summary', 'intentMatch', 'limitations', 'segments']);
-  if (value.intentMatch !== 'supported' && value.intentMatch !== 'partial' && value.intentMatch !== 'unsupported') return fail();
+  if (value.intentMatch !== 'supported' && value.intentMatch !== 'partial' && value.intentMatch !== 'unsupported') return fail(undefined, 'PLAN_INTENT_CONTRACT');
   const intentMatch = value.intentMatch;
-  const limitations = array(value.limitations, intentMatch === 'supported' ? 0 : 1, 8).map(item => text(item, 160));
+  const limitationItems = array(value.limitations, 0, 8), segmentItems = array(value.segments, 0, AI_MOTION_PLAN_MAX_SEGMENTS);
+  if (intentMatch !== 'supported' && limitationItems.length === 0 ||
+    (intentMatch === 'unsupported' ? segmentItems.length !== 0 : segmentItems.length === 0)) return fail(undefined, 'PLAN_INTENT_CONTRACT');
+  const limitations = limitationItems.map(item => text(item, 160));
   const { target } = expected.motion.context;
   let previous = target.startSeconds;
-  const segments = array(value.segments, intentMatch === 'unsupported' ? 0 : 1, intentMatch === 'unsupported' ? 0 : AI_MOTION_PLAN_MAX_SEGMENTS).map(inputSegment => {
+  const segments = segmentItems.map(inputSegment => {
     const segment = record(inputSegment, ['clipId', 'startSeconds', 'endSeconds', 'sourceStartSeconds', 'sourceEndSeconds', 'yawDegrees', 'travelXZ', 'transitionSeconds', 'contactHint']);
     const clipId = text(segment.clipId, 128), clip = expected.catalog.clips.find(clip => clip.id === clipId);
-    if (!clip) return fail('AI 只能选择已提供的真实动作来源。');
-    const startSeconds = number(segment.startSeconds, target.startSeconds, target.endSeconds);
-    const endSeconds = number(segment.endSeconds, target.startSeconds, target.endSeconds);
-    const sourceStartSeconds = number(segment.sourceStartSeconds, 0, clip.durationSeconds);
-    const sourceEndSeconds = number(segment.sourceEndSeconds, 0, clip.durationSeconds);
+    if (!clip) return fail('AI 只能选择已提供的真实动作来源。', 'PLAN_SOURCE_RANGE');
+    const startSeconds = number(segment.startSeconds, target.startSeconds, target.endSeconds, 'PLAN_COVERAGE');
+    const endSeconds = number(segment.endSeconds, target.startSeconds, target.endSeconds, 'PLAN_COVERAGE');
+    const sourceStartSeconds = number(segment.sourceStartSeconds, 0, clip.durationSeconds, 'PLAN_SOURCE_RANGE');
+    const sourceEndSeconds = number(segment.sourceEndSeconds, 0, clip.durationSeconds, 'PLAN_SOURCE_RANGE');
     const duration = endSeconds - startSeconds, sourceDuration = sourceEndSeconds - sourceStartSeconds;
-    if (startSeconds !== previous || !hasAIMotionPlanMinimumDuration(startSeconds, endSeconds) || sourceDuration <= 0 || duration / sourceDuration < 0.5 || duration / sourceDuration > 2) return fail('AI 动作规划必须连续覆盖目标且保持合理速度。');
+    if (startSeconds !== previous || !hasAIMotionPlanMinimumDuration(startSeconds, endSeconds)) return fail('AI 动作规划必须连续覆盖目标且保持合理速度。', 'PLAN_COVERAGE');
+    if (sourceDuration <= 0) return fail(undefined, 'PLAN_SOURCE_RANGE');
+    const durationError = durationRoundoff(startSeconds, endSeconds), sourceError = durationRoundoff(sourceStartSeconds, sourceEndSeconds);
+    if (duration + durationError < .5 * (sourceDuration - sourceError) ||
+      duration - durationError > 2 * (sourceDuration + sourceError)) return fail('AI 动作规划必须连续覆盖目标且保持合理速度。', 'PLAN_SPEED');
     previous = endSeconds;
     const travel = array(segment.travelXZ, 2, 2);
     if (!AI_MOTION_PLAN_CONTACT_HINTS.includes(segment.contactHint as AIMotionPlanContactHint)) return fail();
+    const transitionSeconds = number(segment.transitionSeconds, 0, 1, 'PLAN_TRANSITION');
+    if (transitionSeconds - duration / 3 > durationError / 3 + timeUlp(duration / 3) / 2 + timeUlp(transitionSeconds) / 2) return fail(undefined, 'PLAN_TRANSITION');
     return { clipId, startSeconds, endSeconds, sourceStartSeconds, sourceEndSeconds,
       yawDegrees: number(segment.yawDegrees, -180, 180), travelXZ: [number(travel[0], -2, 2), number(travel[1], -2, 2)] as [number, number],
-      transitionSeconds: number(segment.transitionSeconds, 0, Math.min(1, duration / 3)), contactHint: segment.contactHint as AIMotionPlanContactHint };
+      transitionSeconds, contactHint: segment.contactHint as AIMotionPlanContactHint };
   });
-  if (intentMatch !== 'unsupported' && previous !== target.endSeconds) return fail('AI 动作规划必须连续覆盖目标且保持合理速度。');
+  if (intentMatch !== 'unsupported' && previous !== target.endSeconds) return fail('AI 动作规划必须连续覆盖目标且保持合理速度。', 'PLAN_COVERAGE');
   const result: AIMotionPlanOutput = { summary: text(value.summary, 240), intentMatch, limitations, segments };
   if (bytes(result) > AI_MOTION_RESULT_MAX_BYTES) return fail('AI 动作规划结果超过大小限制。');
   return result;
@@ -191,15 +212,20 @@ export function aiMotionPlanOutputSchema(request: AIMotionPlanRequest) {
     intentMatch: { type: 'string', enum: ['supported', 'partial', 'unsupported'] },
     limitations: { type: 'array', minItems: 0, maxItems: 8, items: { type: 'string', minLength: 1, maxLength: 160 } },
     segments: { type: 'array', minItems: 0, maxItems: AI_MOTION_PLAN_MAX_SEGMENTS,
-      items: { type: 'object', additionalProperties: false,
+      items: { anyOf: expected.catalog.clips.map(clip => ({ type: 'object', additionalProperties: false,
         required: ['clipId', 'startSeconds', 'endSeconds', 'sourceStartSeconds', 'sourceEndSeconds', 'yawDegrees', 'travelXZ', 'transitionSeconds', 'contactHint'],
-        properties: { clipId: { type: 'string', enum: expected.catalog.clips.map(clip => clip.id) }, startSeconds: time, endSeconds: time,
-          sourceStartSeconds: { type: 'number', minimum: 0, maximum: Math.max(...expected.catalog.clips.map(clip => clip.durationSeconds)) },
-          sourceEndSeconds: { type: 'number', minimum: 0, maximum: Math.max(...expected.catalog.clips.map(clip => clip.durationSeconds)) },
+        properties: { clipId: { type: 'string', enum: [clip.id] }, startSeconds: time, endSeconds: time,
+          sourceStartSeconds: { type: 'number', minimum: 0, maximum: clip.durationSeconds,
+            description: 'Seconds local to this clip, starting at zero; original recording offsets in tags are not local times.' },
+          sourceEndSeconds: { type: 'number', minimum: 0, maximum: clip.durationSeconds,
+            description: 'Seconds local to this clip; greater than sourceStartSeconds, never an original recording timestamp.' },
           yawDegrees: { type: 'number', minimum: -180, maximum: 180 },
           travelXZ: { type: 'array', minItems: 2, maxItems: 2, items: { type: 'number', minimum: -2, maximum: 2 } },
-          transitionSeconds: { type: 'number', minimum: 0, maximum: 1 }, contactHint: { type: 'string', enum: AI_MOTION_PLAN_CONTACT_HINTS },
-        } },
+          transitionSeconds: { type: 'number', minimum: 0, maximum: Math.min(1,
+            (target.endSeconds - target.startSeconds + durationRoundoff(target.startSeconds, target.endSeconds)) / 3),
+            description: 'At most one third of this segment duration. Use zero when no incoming blend is needed.' },
+          contactHint: { type: 'string', enum: AI_MOTION_PLAN_CONTACT_HINTS },
+        } })) },
     },
   } };
 }

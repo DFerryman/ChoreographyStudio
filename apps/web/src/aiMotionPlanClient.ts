@@ -1,5 +1,6 @@
 import { AI_MOTION_REQUEST_MAX_BYTES, AI_MOTION_RESULT_MAX_BYTES, parseAIMotionJson } from '../../../packages/core/src/aiMotion';
 import { validateAIMotionPlanRequest, validateAIMotionPlanResult, type AIMotionPlanRequest, type AIMotionPlanResult } from '../../../packages/core/src/aiMotionPlan';
+import { AI_MOTION_PLAN_REASON_MESSAGES, type AIMotionPlanReasonCode } from '../../../packages/core/src/aiMotionPlanErrors';
 
 const invalidMessage = 'AI 返回了无法使用的动作规划，请稍后手动重试。';
 const errors: Record<string, string> = {
@@ -64,6 +65,12 @@ export async function requestAIMotionPlan(request: AIMotionPlanRequest, signal: 
   if (!response.ok) {
     if (response.status === 499) throw new DOMException('生成已取消。', 'AbortError');
     const code = value && typeof value === 'object' && Object.hasOwn(value, 'code') ? (value as { code: unknown }).code : null;
+    if (code === 'AI_OUTPUT_INVALID') {
+      const reason = value && typeof value === 'object' && Object.hasOwn(value, 'reasonCode') ? (value as { reasonCode: unknown }).reasonCode : null;
+      if (typeof reason === 'string' && Object.hasOwn(AI_MOTION_PLAN_REASON_MESSAGES, reason)) {
+        throw new Error(AI_MOTION_PLAN_REASON_MESSAGES[reason as AIMotionPlanReasonCode]);
+      }
+    }
     throw new Error(typeof code === 'string' && Object.hasOwn(errors, code) ? errors[code] : errors.AI_GENERATION_FAILED);
   }
   try { return validateAIMotionPlanResult(value, input); }

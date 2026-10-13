@@ -5,6 +5,16 @@ import { AI_MOTION_PLAN_MAX_SEGMENTS, aiMotionPlanOutputSchema, makeAIMotionPlan
 import { makeAIMotionPlanFixture, makeAIMotionPlanOutputFixture, makeAIMotionPlanResultFixture } from './aiMotionPlan.fixture';
 import { MOTION_PRIOR_CATALOG } from './motionPriors';
 import { JOINT_NAMES, type Pose, type Vec3 } from './motion-types';
+import { AIMotionPlanValidationError } from './aiMotionPlanErrors';
+
+function intervalRequest(start: number, end: number) {
+  const request = makeAIMotionPlanFixture('interval'), context = request.motion.context;
+  context.target = { mode: 'interval', startSeconds: start, endSeconds: end };
+  context.boundaries.start.time = start; context.boundaries.end.time = end;
+  context.before = [{ time: Math.max(0, start - 1), pose: structuredClone(context.initialPose) }];
+  context.after = [{ time: Math.min(32, end + .1), pose: structuredClone(context.boundaries.end.pose) }];
+  return request;
+}
 
 function largeIntervalMotion() {
   const motion = makeAIMotionPlanFixture('interval').motion, context = motion.context;
@@ -35,6 +45,48 @@ function largeIntervalMotion() {
 }
 
 describe('typed selective choreography planning over real motion priors', () => {
+  it('binds the ordinary4..9.5 Street request schema to each window local clock, not recording offsets', () => {
+    const request = intervalRequest(4, 9.5);
+    request.motion.prompt = '来段复杂街舞'; request.catalog = structuredClone(MOTION_PRIOR_CATALOG);
+    const output = makeAIMotionPlanOutputFixture(request);
+    output.segments[0] = { ...output.segments[0], clipId: 'cmu-85-12-d', sourceEndSeconds: 5.5, transitionSeconds: 0 };
+    const original = structuredClone(request);
+    expect(validateAIMotionPlanOutput(output, request)).toEqual(output);
+    const branches = aiMotionPlanOutputSchema(request).properties.segments.items.anyOf;
+    expect(branches).toHaveLength(request.catalog.clips.length);
+    for (const clip of request.catalog.clips) {
+      const branch = branches.find(item => item.properties.clipId.enum[0] === clip.id)!;
+      expect(branch.properties.sourceStartSeconds.maximum).toBe(clip.durationSeconds);
+      expect(branch.properties.sourceEndSeconds.maximum).toBe(clip.durationSeconds);
+    }
+    const globalRecordingTimes = { ...output, segments: [{ ...output.segments[0], sourceStartSeconds: 24, sourceEndSeconds: 29.5 }] };
+    expect(() => validateAIMotionPlanOutput(globalRecordingTimes, request)).toThrow(AIMotionPlanValidationError);
+    try { validateAIMotionPlanOutput(globalRecordingTimes, request); } catch (error) {
+      expect((error as AIMotionPlanValidationError).reasonCode).toBe('PLAN_SOURCE_RANGE');
+    }
+    expect(request).toEqual(original);
+  });
+
+  it.each([[4, 4.1, .2], [31.3, 31.4, .2], [4.1, 4.3, .1]])('accepts only represented speed-limit arithmetic at%s..%s source%s', (start, end, sourceDuration) => {
+    const request = intervalRequest(start, end), output = makeAIMotionPlanOutputFixture(request);
+    output.segments[0] = { ...output.segments[0], sourceEndSeconds: sourceDuration, transitionSeconds: 0 };
+    expect(validateAIMotionPlanOutput(output, request)).toEqual(output);
+    const segment = output.segments[0];
+    const trulyBeyond = sourceDuration === .1 ? sourceDuration - .0001 : sourceDuration + .0001;
+    expect(() => validateAIMotionPlanOutput({ ...output, segments: [{ ...segment, sourceEndSeconds: trulyBeyond }] }, request)).toThrow('合理速度');
+    expect(() => validateAIMotionPlanOutput({ ...output, segments: [{ ...segment, startSeconds: start + Number.EPSILON * Math.max(1, start) }] }, request)).toThrow();
+  });
+
+  it('accepts represented one-third transition arithmetic but rejects a real excess and preserves the exact curve endpoints', () => {
+    const request = intervalRequest(4, 4.3), output = makeAIMotionPlanOutputFixture(request);
+    output.segments[0] = { ...output.segments[0], sourceEndSeconds: .3, transitionSeconds: .1 };
+    expect(validateAIMotionPlanOutput(output, request)).toEqual(output);
+    expect(aiMotionPlanOutputSchema(request).properties.segments.items.anyOf[0].properties.transitionSeconds.maximum).toBeGreaterThanOrEqual(.1);
+    expect(() => validateAIMotionPlanOutput({ ...output, segments: [{ ...output.segments[0], transitionSeconds: .1001 }] }, request)).toThrow(AIMotionPlanValidationError);
+    const oneUlpGap = { ...output, segments: [{ ...output.segments[0], transitionSeconds: 0, endSeconds: 4.3 - Number.EPSILON * 4.3 }] };
+    expect(() => validateAIMotionPlanOutput(oneUlpGap, request)).toThrow('连续覆盖');
+  });
+
   it('rejects a planning interval shorter than the minimum segment while keeping legacy motion requests valid', () => {
     const request = makeAIMotionPlanFixture('interval');
     request.motion.context.target.endSeconds = 4.05;

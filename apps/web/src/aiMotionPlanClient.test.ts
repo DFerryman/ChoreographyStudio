@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { requestAIMotionPlan } from './aiMotionPlanClient';
 import { AI_MOTION_RESULT_MAX_BYTES } from '../../../packages/core/src/aiMotion';
 import { makeAIMotionPlanFixture, makeAIMotionPlanResultFixture } from '../../../packages/core/src/aiMotionPlan.fixture';
+import { AI_MOTION_PLAN_REASON_MESSAGES, type AIMotionPlanReasonCode } from '../../../packages/core/src/aiMotionPlanErrors';
 
 function fixture(response: Response = Response.json(makeAIMotionPlanResultFixture())) {
   const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(response); vi.stubGlobal('fetch', fetch); return fetch;
@@ -69,6 +70,23 @@ describe('selective AI motion planning client, fetch mocked', () => {
   it.each(['AI_RATE_LIMITED', 'AI_TIMEOUT', 'AI_OUTPUT_INVALID', 'AI_GENERATION_FAILED'])('maps %s safely without any retry', async code => {
     const fetch = fixture(Response.json({ code, message: 'private stack' }, { status: 502 }));
     await expect(requestAIMotionPlan(makeAIMotionPlanFixture(), new AbortController().signal)).rejects.not.toThrow('private');
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+  it.each(Object.keys(AI_MOTION_PLAN_REASON_MESSAGES) as AIMotionPlanReasonCode[])('explains %s using local product copy without reflecting server text or retrying', async reasonCode => {
+    const input = makeAIMotionPlanFixture(), original = structuredClone(input);
+    const fetch = fixture(Response.json({ code: 'AI_OUTPUT_INVALID', reasonCode, message: 'private provider token', reason: 'private source context' }, { status: 502 }));
+    await expect(requestAIMotionPlan(input, new AbortController().signal)).rejects.toThrow(AI_MOTION_PLAN_REASON_MESSAGES[reasonCode]);
+    expect(AI_MOTION_PLAN_REASON_MESSAGES[reasonCode]).toContain('原动作未改变');
+    expect(input).toEqual(original); expect(fetch).toHaveBeenCalledOnce();
+  });
+  it.each(['constructor', '__proto__', 'private provider token', '', null, { reasonCode: 'PLAN_SPEED' }])('retains the generic message for an unknown or hostile reason %j', async reasonCode => {
+    const fetch = fixture(Response.json({ code: 'AI_OUTPUT_INVALID', reasonCode, message: 'private provider token', reason: 'private source context' }, { status: 502 }));
+    await expect(requestAIMotionPlan(makeAIMotionPlanFixture(), new AbortController().signal)).rejects.toThrow('AI 返回了无法使用的动作规划，请稍后手动重试。');
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+  it('ignores an output classification attached to a different server error code', async () => {
+    const fetch = fixture(Response.json({ code: 'AI_RATE_LIMITED', reasonCode: 'PLAN_SPEED', message: 'private provider token' }, { status: 429 }));
+    await expect(requestAIMotionPlan(makeAIMotionPlanFixture(), new AbortController().signal)).rejects.toThrow('AI 生成每分钟最多两次，请稍后再试。');
     expect(fetch).toHaveBeenCalledOnce();
   });
 });

@@ -1,5 +1,11 @@
 # 八拍 · Choreo Studio
 
+## 2026-10-13 · 普通街舞描述规划报错修复（真实模型验证待完成）
+
+针对普通“来段复杂街舞”在32秒场景的4–9.5秒选区反复出现 `AI_OUTPUT_INVALID`，已修正规划数据的片段时间范围、非零选区的绝对时间说明，以及派生时长／过渡计算中的浮点端点误拒绝；界面可安全显示白名单中的具体错误原因。固定选区端点、原稿和3mm地面／250rad/s²角加速度标准保持，每次操作的模型请求次数不增加。
+
+新规划 Schema 对真实模型的兼容性，以及普通自由描述的实际成功率尚未取得成功实测证据。当前修复的最终本地验收、真实验证及新版发布状态以[验证记录](docs/VERIFICATION.md)和[部署记录](docs/DEPLOYMENT.md)为准；下方native45发布与原验证收据完整保留。
+
 ## 当前工作流 · 2026-10-13 · 选择性 AI 与自然动作候选（已实现并发布 native45）
 
 本轮运行源码 [`47ea623`](https://github.com/DFerryman/ChoreographyStudio/commit/47ea623d8bc50d36c39a2e4d14b42f02b1dae6e5) 对应的 [CI38409539714](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38409539714) 已成功，Cloudflare 已发布 native45。实际验证范围、失败历史及真实模型／公网观察以[验证记录](docs/VERIFICATION.md)和[部署记录](docs/DEPLOYMENT.md)的最新收据为准。

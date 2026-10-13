@@ -1,5 +1,11 @@
 # 阶段路线
 
+## 2026-10-13 · 普通街舞规划故障修复与待验证范围
+
+已处理32秒场景4–9.5秒选区中普通“来段复杂街舞”反复 `AI_OUTPUT_INVALID` 的规划边界问题：Schema按选中clip的实际本地时长限制来源范围，提示明确非零绝对选区，派生duration／transition兼容binary64端点算术，并通过六项白名单原因码提供安全反馈。精确目标端点及原3mm／250rad/s²物理门槛保持，不增加单次操作的AI请求或自动重试。
+
+后续仍须验证新Schema的真实模型兼容性和自由描述成功率；当前尚无修复后成功实测证据。本地浏览器、准确源码CI、真实验证及新版发布只按[验证记录](VERIFICATION.md)和[部署记录](DEPLOYMENT.md)最终实际收据更新，不沿用下方native45结果作为新修复验收。下方全部原文与历史保持。
+
 ## 当前实施状态 · 2026-10-13 · 选择性 AI 自然动作（已实现并发布 native45）
 
 本轮运行源码 [`47ea623`](https://github.com/DFerryman/ChoreographyStudio/commit/47ea623d8bc50d36c39a2e4d14b42f02b1dae6e5) 的 [CI38409539714](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38409539714) 已成功，Cloudflare 已发布 native45。验证范围、失败历史及真实模型／公网观察均按[验证记录](VERIFICATION.md)和[部署记录](DEPLOYMENT.md)的最新实际收据确认。

@@ -1,5 +1,11 @@
 # 实现状态
 
+## 2026-10-13 · 普通街舞规划校验修复（新版真实验证待完成）
+
+用户在32秒场景选择4–9.5秒，输入普通“来段复杂街舞”反复收到 `AI_OUTPUT_INVALID`。当前修复将规划source Schema从统一最大56.25秒改为逐clip本地范围，明确提示非零绝对目标时间；派生duration／transition的binary64端点误拒绝得到处理，目标精确端点不被舍入。六项白名单reasonCode只显示受控原因，不泄露模型原始输出。原稿、区间两端和3mm地面／250rad/s²角加速度标准保持，不增加AI请求或重试路径。
+
+修复后的Schema与真实模型兼容性、自由描述成功率尚未取得成功实测证据。已有本地专项与全单元检查不作为真实推理成功记录；最终浏览器批次、准确源码CI、真实验证和新版发布状态见[验证记录](VERIFICATION.md)、[部署记录](DEPLOYMENT.md)最终收据。下方native45及其全部原文收据保持，不将其改记为本次修复已发布。
+
 ## 当前实现 · 2026-10-13 · 语义编排、真人先验与候选门禁（已实现并发布 native45）
 
 本轮运行源码 [`47ea623`](https://github.com/DFerryman/ChoreographyStudio/commit/47ea623d8bc50d36c39a2e4d14b42f02b1dae6e5) 的 [CI38409539714](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38409539714) 已成功；Cloudflare native45／version `1f77133a-7b5d-4f3a-9130-d1347965eab9` 已发布，运行 tree 为 `e01a004f1540de6274dba5f70d6fada8917bb98b`。各批实际检查、默认检查的超时历史及真实模型／公网观察以[验证记录](VERIFICATION.md)和[部署记录](DEPLOYMENT.md)最新收据为准，不把部署或 CI 状态扩大为所有观察通过。

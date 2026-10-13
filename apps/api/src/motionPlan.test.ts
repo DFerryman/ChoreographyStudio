@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import worker from './index';
 import { AI_MOTION_MODEL, AI_MOTION_REQUEST_MAX_BYTES, AI_MOTION_RESULT_MAX_BYTES } from '../../../packages/core/src/aiMotion';
 import { AI_MOTION_PLAN_PROTOCOL, aiMotionPlanOutputSchema } from '../../../packages/core/src/aiMotionPlan';
+import { AI_MOTION_PLAN_REASON_MESSAGES, AIMotionPlanValidationError, getSafeAIMotionPlanReason, type AIMotionPlanReasonCode } from '../../../packages/core/src/aiMotionPlanErrors';
 import { makeAIMotionPlanFixture, makeAIMotionPlanOutputFixture, makeAIMotionPlanResultFixture } from '../../../packages/core/src/aiMotionPlan.fixture';
 
 function fixture() {
@@ -97,9 +98,29 @@ describe('Workers AI semantic motion planning (mock binding, no real inference)'
       { response: { summary: '直接角度', keyframes: [] } },
     ]) {
       run.mockResolvedValue(value); const response = await worker.fetch(request(), env);
-      expect(response.status).toBe(502); expect(await response.json()).toEqual({ code: 'AI_OUTPUT_INVALID', message: 'AI 返回了无法使用的动作规划，请稍后手动重试。' });
+      expect(response.status).toBe(502);
+      const body = await response.json() as { code: string; message: string; reasonCode: string };
+      expect(body).toEqual({ code: 'AI_OUTPUT_INVALID', message: 'AI 返回了无法使用的动作规划，请稍后手动重试。', reasonCode: expect.any(String) });
+      expect(Object.hasOwn(AI_MOTION_PLAN_REASON_MESSAGES, body.reasonCode)).toBe(true);
     }
     expect(run).toHaveBeenCalledTimes(8);
+  });
+  it.each([
+    ['PLAN_FORMAT_INVALID', (output: ReturnType<typeof makeAIMotionPlanOutputFixture>) => ({ ...output, privateProviderField: 'private provider token' })],
+    ['PLAN_SOURCE_RANGE', (output: ReturnType<typeof makeAIMotionPlanOutputFixture>) => ({ ...output, segments: [{ ...output.segments[0], sourceEndSeconds: 100 }] })],
+    ['PLAN_COVERAGE', (output: ReturnType<typeof makeAIMotionPlanOutputFixture>) => ({ ...output, segments: [{ ...output.segments[0], endSeconds: 31.5 }] })],
+    ['PLAN_SPEED', (output: ReturnType<typeof makeAIMotionPlanOutputFixture>) => ({ ...output, segments: [{ ...output.segments[0], sourceEndSeconds: 1 }] })],
+    ['PLAN_TRANSITION', (output: ReturnType<typeof makeAIMotionPlanOutputFixture>) => ({ ...output, segments: [{ ...output.segments[0], transitionSeconds: 2 }] })],
+    ['PLAN_INTENT_CONTRACT', (output: ReturnType<typeof makeAIMotionPlanOutputFixture>) => ({ ...output, intentMatch: 'partial', limitations: [] })],
+  ] as const)('reports only the safe %s category after one rejected model response', async (reasonCode, mutate) => {
+    const input = makeAIMotionPlanFixture(), original = structuredClone(input), { env, run, aiLimit } = fixture();
+    const output = mutate({ ...makeAIMotionPlanOutputFixture(input), summary: 'private provider token' });
+    run.mockResolvedValue({ response: output });
+    const response = await worker.fetch(request(input), env), body = await response.json();
+    expect(response.status).toBe(502);
+    expect(body).toEqual({ code: 'AI_OUTPUT_INVALID', message: 'AI 返回了无法使用的动作规划，请稍后手动重试。', reasonCode });
+    expect(JSON.stringify(body)).not.toContain('private provider token');
+    expect(input).toEqual(original); expect(run).toHaveBeenCalledOnce(); expect(aiLimit).toHaveBeenCalledOnce();
   });
   it('preserves cancellation and returns safe provider errors without automatic retry', async () => {
     const { env, run } = fixture(), controller = new AbortController(); controller.abort();
@@ -119,5 +140,23 @@ describe('Workers AI semantic motion planning (mock binding, no real inference)'
       semanticPlanning: true, realMotionPriors: true, requiresDeterministicCandidateValidation: true, physicalValidationLocation: 'client', articulatedDynamics: false, directBoneMotion: false, audioUnderstanding: false,
       immutableContext: true, explicitRequestOnly: true, maximumRequestsPerMinutePerIp: 2 } });
     expect(run).not.toHaveBeenCalled();
+  });
+});
+
+describe('trusted local planning failure classification', () => {
+  it('keeps traditional validation messages local and only exports whitelisted categories', () => {
+    const message = 'AI 动作规划必须连续覆盖目标且保持合理速度。';
+    const error = new AIMotionPlanValidationError('PLAN_SPEED', message);
+    expect(error.message).toBe(message); expect(getSafeAIMotionPlanReason(error)).toBe('PLAN_SPEED');
+    for (const untrusted of [new Error('private provider token'), { name: 'AIMotionPlanValidationError', reasonCode: 'PLAN_SPEED' },
+      Object.assign(new Error('private provider token'), { reasonCode: 'PLAN_SPEED' }),
+      new AIMotionPlanValidationError('constructor' as AIMotionPlanReasonCode, 'private provider token')]) {
+      expect(getSafeAIMotionPlanReason(untrusted)).toBe('PLAN_FORMAT_INVALID');
+    }
+  });
+  it('does not execute an accessor in an error that otherwise has the expected class', () => {
+    const error = new AIMotionPlanValidationError('PLAN_SPEED'), accessor = vi.fn(() => { throw new Error('private provider token'); });
+    Object.defineProperty(error, 'reasonCode', { get: accessor });
+    expect(getSafeAIMotionPlanReason(error)).toBe('PLAN_FORMAT_INVALID'); expect(accessor).not.toHaveBeenCalled();
   });
 });
