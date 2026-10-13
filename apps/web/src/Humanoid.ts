@@ -14,6 +14,20 @@ export const HUMANOID_RIG_ASSET_URL = '/models/neutral-quaternius-v1.json';
 export const MHR_HUMANOID_ASSET_URL = '/models/neutral-mhr-v1.glb';
 export const MHR_HUMANOID_RIG_ASSET_URL = '/models/neutral-mhr-v1.json';
 
+/** Characters that share the canonical 25-joint rig and can be swapped in place. */
+export type AvatarId = 'standard' | 'mhr';
+export const AVATARS: readonly { id: AvatarId; label: string; detail: string }[] = [
+  { id: 'standard', label: '标准', detail: 'Quaternius · CC0' },
+  { id: 'mhr', label: '中性', detail: 'MHR 人体 · Apache-2.0' },
+];
+export const DEFAULT_AVATAR: AvatarId = 'standard';
+export function isAvatarId(value: unknown): value is AvatarId { return AVATARS.some(avatar => avatar.id === value); }
+
+/** Only the surface changes: motion, joints and the authored take are shared. */
+export function loadAvatar(id: AvatarId, joints: ReadonlyMap<JointName, THREE.Bone>, signal: AbortSignal): Promise<THREE.SkinnedMesh> {
+  return id === 'mhr' ? loadMHRHumanoid(joints, signal) : loadHumanoid(joints, signal);
+}
+
 type SurfaceController = { update(): void; dispose(): void };
 const surfaceControllers = new WeakMap<THREE.SkinnedMesh, SurfaceController>();
 

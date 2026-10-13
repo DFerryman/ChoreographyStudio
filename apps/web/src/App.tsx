@@ -6,6 +6,7 @@ import {
   type ArrangementPlan, type BakedTake, type CameraPose, type CameraTrack, type SampledCameraPose,
 } from '../../../packages/core/src';
 import { Stage, type StageCamera, type StageCameraFocus, type StageView } from './Stage';
+import { DEFAULT_AVATAR, isAvatarId, type AvatarId } from './Humanoid';
 import { SceneTimeline, type TimelineRange } from './Timeline';
 import AIPanel from './AIPanel';
 import { requestAIArrangement } from './aiClient';
@@ -67,6 +68,8 @@ function withCameraKey(track: CameraTrack, time: number, camera: CameraPose, dur
   return next;
 }
 
+const AVATAR_STORAGE_KEY = 'choreo.avatar';
+
 export default function App() {
   // ── Scene, persistence and library ────────────────────────────────────────
   const [session, setSession] = useState<Session>(() => initialSession());
@@ -117,6 +120,12 @@ export default function App() {
 
   // ── Camera ────────────────────────────────────────────────────────────────
   const [view, setView] = useState<StageView>('front');
+  // The character is a per-viewer preference, never scene data.
+  const [avatar, setAvatar] = useState<AvatarId>(() => { try { const stored = window.localStorage.getItem(AVATAR_STORAGE_KEY); return isAvatarId(stored) ? stored : DEFAULT_AVATAR; } catch { return DEFAULT_AVATAR; } });
+  const chooseAvatar = useCallback((next: AvatarId) => {
+    setAvatar(next);
+    try { window.localStorage.setItem(AVATAR_STORAGE_KEY, next); } catch { /* storage is optional */ }
+  }, []);
   const [camera, setCamera] = useState<StageCamera | null>(null);
   const [cameraSelected, setCameraSelected] = useState(false);
   const [cameraViewOverride, setCameraViewOverride] = useState(false);
@@ -873,7 +882,7 @@ export default function App() {
         {ready && !audioBlob && <div className="missing-audio" role="alert"><strong>原音乐缺失</strong><p>动作与数拍仍在。请关联原曲后恢复为新场景，当前作品会保留。</p><button className="button secondary compact" onClick={openAudioRecovery} disabled={!!busy || sceneActionBusy}>恢复原音乐</button></div>}
         <section className="viewer-panel" aria-label="3D动作预览">
           <div className="stage-area">
-            <CameraBar view={view} canFrame={!!displayedTake && ready && !busy} camera={camera?.position ?? null} onView={chooseView} onFrame={frameActor}>
+            <CameraBar view={view} canFrame={!!displayedTake && ready && !busy} camera={camera?.position ?? null} avatar={avatar} onAvatar={chooseAvatar} onView={chooseView} onFrame={frameActor}>
               {page === 'studio' && <AIDock busy={assistBusy}>
                 <AIPanel onGenerate={prompt => { void generateAssistance(prompt); }} onCancel={cancelAssistance} busy={assistBusy} range={range} duration={duration}
                   disabled={!ready || !active.take || !!busy || assistBusy || modalOpen} error={assistError} />
@@ -885,7 +894,8 @@ export default function App() {
                 cameraCancelKey={cameraCancelKey} cameraTrackEditing={cameraSelected && cameraCanEdit()} onCameraGesture={handleCameraGesture}
                 cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} cameraFocus={cameraFocus ?? undefined}
                 onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction}
-                selectedJoint={null} jointPicking={false} timelineKeys editMode={false} transformTool="select" playing={playing} />
+                selectedJoint={null} jointPicking={false} timelineKeys editMode={false} transformTool="select" playing={playing}
+                avatar={avatar} onAvatarError={message => { setNotice(`人物更换失败：${message}`); chooseAvatar(DEFAULT_AVATAR); }} />
             </div>
           </div>
           {ready && <TimelineDock ref={timelineDockRef}>

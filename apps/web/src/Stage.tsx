@@ -7,8 +7,9 @@ import { CharacterOrbitControls } from './characterOrbit';
 import { constrainJointRotation } from '../../../packages/core/src';
 import { initializeBodyCollisionBackend, isBodyCollisionBackendReady } from '../../../packages/core/src/rapierBackend';
 import { sampleCollisionPreview } from '../../../packages/core/src/collisionPreview';
-import { disposeHumanoid, loadHumanoid, updateHumanoid } from './Humanoid';
+import { DEFAULT_AVATAR, disposeHumanoid, loadAvatar, updateHumanoid, type AvatarId } from './Humanoid';
 import { getPoseGuidance } from './poseGuidance';
+import { createStageSet } from './stageSet';
 import './Stage.css';
 
 export type StageView = 'front' | 'back' | 'left' | 'right' | 'top' | 'free';
@@ -62,6 +63,9 @@ type StageProps = {
   linkedJoints?: readonly JointName[] | null;
   gridVisible?: boolean;
   axesVisible?: boolean;
+  /** Which character surface to draw; a view choice that never changes motion. */
+  avatar?: AvatarId;
+  onAvatarError?: (message: string) => void;
   poseOverride?: Pose | null;
   editMode?: boolean;
   playing?: boolean;
@@ -223,6 +227,9 @@ export function Stage(props: StageProps) {
   const [transformAxis, setTransformAxis] = useState<string | null>(null);
   const [ikResidual, setIKResidual] = useState<number | null>(null);
   const [humanLoaded, setHumanLoaded] = useState(false);
+  const [avatarSwitching, setAvatarSwitching] = useState(false);
+  const avatarLoader = useRef<(id: AvatarId) => void>(() => {});
+  const avatar = props.avatar ?? DEFAULT_AVATAR;
   const [collisionReady, setCollisionReady] = useState(isBodyCollisionBackendReady);
   const [collisionError, setCollisionError] = useState<string | null>(null);
   const previewActive = !!collisionPreview;
@@ -297,8 +304,6 @@ export function Stage(props: StageProps) {
     container.appendChild(canvas);
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#161616');
-    scene.fog = new THREE.Fog('#161616', 9, 27);
     const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 80);
     const controls = new CharacterOrbitControls(camera, canvas);
     controls.enableDamping = false;
@@ -325,35 +330,9 @@ export function Stage(props: StageProps) {
     });
     transform.enabled = false;
     const transformHelper = transform.getHelper();
-    scene.add(new THREE.HemisphereLight('#ededed', '#202020', 1.5));
-    const keyLight = new THREE.DirectionalLight('#f7f7f7', 3);
-    keyLight.position.set(-3, 6, 4);
-    keyLight.castShadow = true;
-    keyLight.shadow.mapSize.set(1024, 1024);
-    keyLight.shadow.camera.left = -3;
-    keyLight.shadow.camera.right = 3;
-    keyLight.shadow.camera.top = 4;
-    keyLight.shadow.camera.bottom = -2;
-    keyLight.shadow.normalBias = 0.025;
-    keyLight.shadow.bias = -0.0003;
-    scene.add(keyLight);
-    const rim = new THREE.DirectionalLight('#e6e6e6', 1.4);
-    rim.position.set(3, 3, -4);
-    scene.add(rim);
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({ color: '#1c1c1c', roughness: 1 }));
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -0.004;
-    floor.receiveShadow = true;
-    scene.add(floor);
-    const grid = new THREE.Group();
-    for (const [divisions, opacity] of [[40, 0.14], [10, 0.32]]) {
-      const lines = new THREE.GridHelper(10, divisions, '#777777', '#777777');
-      const materials = Array.isArray(lines.material) ? lines.material : [lines.material];
-      for (const material of materials) { material.transparent = true; material.opacity = opacity; }
-      grid.add(lines);
-    }
-    scene.add(grid);
+    const { grid, keyLight, follow: followDancer } = createStageSet(scene);
     const axes = createWorldAxes();
+    axes.scale.setScalar(0.65);
     scene.add(axes);
     const mirrorGroup = new THREE.Group();
     const rig = createPreviewRig();
@@ -362,6 +341,7 @@ export function Stage(props: StageProps) {
     // Rotation always orbits the visible character (its hips, mirror included),
     // even after panning or framing has moved the look-at target elsewhere.
     const orbitPivot = new THREE.Vector3();
+    const dancerPosition = new THREE.Vector3();
     controls.pivot = () => {
       const hips = rig.joints.get('Hips');
       if (!hips) return null;
@@ -436,25 +416,43 @@ export function Stage(props: StageProps) {
       kind: 'pointer' | 'wheel' | 'keyboard'; before: StageCamera; up: Vec3; value: StageCamera;
       take: BakedTake | null; time: number; revision?: number; tool?: StageTransformTool;
     } | null = null;
-    const humanLoad = new AbortController();
 
     function schedule() {
       if (!stopped && !frame) frame = window.requestAnimationFrame(draw);
     }
     requestDraw.current = schedule;
-    void loadHumanoid(rig.joints, humanLoad.signal).then(mesh => {
-      if (stopped) {
-        disposeHumanoid(mesh);
-        mesh.geometry.dispose();
-        for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) material.dispose();
-        mesh.skeleton.dispose();
-        return;
-      }
-      rig.root.add(mesh); rig.framingMeshes.push(mesh); rig.humanSkeleton = mesh.skeleton; rig.humanSurface = mesh;
-      setHumanLoaded(true); schedule();
-    }).catch(error => {
-      if (!stopped && !humanLoad.signal.aborted) setError(error instanceof Error ? error.message : '人体模型暂时无法载入。');
-    });
+    let avatarLoad: AbortController | null = null;
+    function releaseSurface(mesh: THREE.SkinnedMesh) {
+      disposeHumanoid(mesh);
+      mesh.geometry.dispose();
+      for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) material.dispose();
+      mesh.skeleton.dispose();
+    }
+    // The previous surface stays visible until its replacement is ready.
+    avatarLoader.current = id => {
+      avatarLoad?.abort();
+      const load = avatarLoad = new AbortController();
+      if (rig.humanSurface) setAvatarSwitching(true);
+      void loadAvatar(id, rig.joints, load.signal).then(mesh => {
+        if (stopped || load.signal.aborted) { releaseSurface(mesh); return; }
+        const previous = rig.humanSurface;
+        if (previous) {
+          previous.removeFromParent();
+          rig.framingMeshes.splice(rig.framingMeshes.indexOf(previous), 1);
+          releaseSurface(previous);
+        }
+        rig.root.add(mesh); rig.framingMeshes.push(mesh); rig.humanSkeleton = mesh.skeleton; rig.humanSurface = mesh;
+        avatarLoad = null;
+        setHumanLoaded(true); setAvatarSwitching(false); poseNeedsApply = true; schedule();
+      }).catch(error => {
+        if (stopped || load.signal.aborted) return;
+        avatarLoad = null;
+        setAvatarSwitching(false);
+        const message = error instanceof Error ? error.message : '人体模型暂时无法载入。';
+        if (rig.humanSurface || (id !== DEFAULT_AVATAR && current.current.onAvatarError)) current.current.onAvatarError?.(message);
+        else setError(message);
+      });
+    };
 
     function fitDistance() {
       const halfHeight = Math.max(1.31, 1.31 / Math.max(camera.aspect, 0.2));
@@ -918,6 +916,8 @@ export function Stage(props: StageProps) {
       }
       updateHumanoid(rig.humanSurface);
       scene.updateMatrixWorld(true);
+      const followedHips = rig.joints.get('Hips');
+      followDancer(followedHips ? followedHips.getWorldPosition(dancerPosition) : null);
       // Publish the actual canonical rig after application, not merely React's
       // requested pose. Browser checks can inspect the same bones being drawn.
       const renderedPose: Pose = {
@@ -1286,7 +1286,8 @@ export function Stage(props: StageProps) {
       finishCameraGesture(true, true);
       cancelTransform(true);
       stopped = true;
-      humanLoad.abort();
+      avatarLoad?.abort();
+      avatarLoader.current = () => {};
       window.cancelAnimationFrame(frame);
       setError('浏览器暂停了 3D 显示，请刷新页面恢复预览。');
     }
@@ -1360,7 +1361,7 @@ export function Stage(props: StageProps) {
         if (drawable.material) for (const material of Array.isArray(drawable.material) ? drawable.material : [drawable.material]) materials.add(material);
       });
       for (const geometry of geometries) geometry.dispose();
-      for (const material of materials) material.dispose();
+      for (const material of materials) { (material as THREE.MeshBasicMaterial).map?.dispose(); material.dispose(); }
       disposeHumanoid(rig.humanSurface);
       rig.humanSkeleton?.dispose();
       keyLight.shadow.map?.dispose();
@@ -1368,6 +1369,8 @@ export function Stage(props: StageProps) {
       canvas.remove();
     };
   }, []);
+
+  useEffect(() => { avatarLoader.current(avatar); }, [avatar]);
 
   useEffect(() => {
     requestDraw.current();
@@ -1384,7 +1387,7 @@ export function Stage(props: StageProps) {
       selectJoint(JOINT_NAMES[(index + direction + JOINT_NAMES.length) % JOINT_NAMES.length]);
     }}>
       {error ? <StageFallback error={error} /> : <>
-        {!humanLoaded && <span className="stage3d-model-loading" role="status">人物模型载入中…</span>}
+        {(!humanLoaded || avatarSwitching) && <span className="stage3d-model-loading" role="status">{humanLoaded ? '正在更换人物…' : '人物模型载入中…'}</span>}
         {hover && <div className="stage3d-joint-tooltip" style={{ left: hover.x, top: hover.y }} aria-hidden="true">{STAGE_JOINT_LABELS[hover.joint]}<span>点击选择</span></div>}
         {editMode && <div className={`stage3d-edit-indicator${transformTool === 'ik' ? ' is-ik' : ''}`} aria-label={transformTool === 'translate' ? 'Root 世界位移' : transformTool === 'ik' ? 'IK 手脚目标' : transformTool === 'rotate' ? '关节局部旋转' : '关节选择'}>
           {(selection || transformTool === 'translate') && <output className="stage3d-selected-part" aria-label="选中姿态状态" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined}>{transformTool === 'translate' ? '角色' : STAGE_JOINT_LABELS[selection!]} · {previewActive ? '预览中' : poseOverride ? '编辑中' : '已记录'}</output>}

@@ -1,5 +1,9 @@
 # Working in Choreo Studio
 
+## Editor polish, stage set and avatar switching · 2026-10-13
+
+The user asked to refine and simplify layout, typography and visual styling (proportions, sizing, spacing) for a clean, spacious, polished, intuitive editor; scene upgrades are secondary: larger floor, quick character replacement, better default lighting/shadows/set dressing. Use the shared tokens in `apps/web/src/styles/tokens.css` (type scale `--fs-1..6`, 10px minimum visible text; spacing `--sp-*`; control heights `--control-*`); keep phone 44px targets, class names and accessible names. The stage set lives in `apps/web/src/stageSet.ts` (7.6 m platform covering legal Root range, fogged far floor, hips-following key light/shadow, contact shadow) and is view-only. "更换人物" swaps between the two bundled canonical-rig avatars (Quaternius default, MHR); the choice is per-viewer localStorage, never scene data, and the collision profile remains Quaternius-calibrated. See docs/EDITOR_INTERACTION_STANDARD.md. Pushed to main per the user's request; not deployed (no Cloudflare credentials in that session) and Notion not synced in that session.
+
 ## Playback smoothness and original motion · 2026-10-13
 
 The user reports severe jitter, forbids modifying scene files, and explicitly accepts body/floor penetration in favor of smooth original playback. This supersedes historical automatic collision projection during playback/scrubbing. Normal Stage now samples the original Take and Camera track from one live scene clock on each display RAF; React's lower-frequency transport updates do not gate rendering. Pause/seek stay exact and idle rendering remains request-driven. Do not smooth/rebake scene files or clamp stored motion. Collision/IK/physics core remains available, but ordinary playback must not force it. Actual verification/release receipts are in docs/VERIFICATION.md and docs/DEPLOYMENT.md.

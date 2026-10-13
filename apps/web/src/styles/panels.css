@@ -1,11 +1,11 @@
 /* AI motion generation, behind the "AI 动作" button in the camera cluster. */
-.ai-panel { display: flex; flex-direction: column; gap: 12px; padding: 12px 0 8px; color: var(--text-2); font-size: 11px; }
-.ai-panel-title { color: var(--text); font-size: 12px; font-weight: 550; }
+.ai-panel { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4) 0 var(--sp-2); color: var(--text-2); font-size: var(--fs-3); line-height: 1.6; }
+.ai-panel-title { color: var(--text); font-size: var(--fs-4); font-weight: 600; }
 .ai-panel .form-note { margin: 0; }
-.ai-range { margin: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius-s); color: var(--text); font-size: 11px; line-height: 1.7; }
-.ai-range > span { display: block; color: var(--muted); font-size: 10px; }
+.ai-range { margin: 0; padding: 10px var(--sp-3); border: 1px solid var(--line); border-radius: var(--radius-m); color: var(--text); background: #ffffff05; font-size: var(--fs-3); line-height: 1.6; }
+.ai-range > span { display: block; color: var(--muted); font-size: var(--fs-2); }
 .ai-panel .button-row { display: flex; flex-wrap: wrap; gap: 12px; }
-.ai-panel [role='status'] { margin: 0; color: var(--muted); font-size: 11px; }
-.ai-dock > summary { gap: 5px; width: auto !important; padding: 0 9px; color: var(--text-2); font-size: 11px; }
+.ai-panel [role='status'] { margin: 0; color: var(--muted); font-size: var(--fs-2); }
+.ai-dock > summary { gap: 6px; width: auto !important; padding: 0 var(--sp-3) 0 10px; color: var(--text); font-size: var(--fs-3); font-weight: 500; }
 .ai-dock-busy { width: 6px; height: 6px; border-radius: 50%; background: var(--text); animation: pulse 1s ease-in-out infinite alternate; }
 @keyframes pulse { from { opacity: .3; } to { opacity: 1; } }
