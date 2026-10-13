@@ -1,5 +1,20 @@
 # 预览验证记录
 
+## 2026-10-13 · GPT-OSS直接骨骼动作已上线，基本真实动作与准确CI通过（native43）
+
+本轮先部署最新f05界面／舞台／人物切换，再实施此前确认方案；最终新动作源码[ae2a92fb](https://github.com/DFerryman/ChoreographyStudio/commit/ae2a92fbcefa4b9b7de56c6fe482281d5aad9658)/tree`2d03fce21badfba0a9468c795409d6c72ca1d2cc`已push、远端完整SHA相等。native43/version`16a8d57f-c948-471e-b246-96283e2dae38`（2026-10-13T06:24:50.89332Z），初始唯一100% deployment`3b8364e5-7d98-4c44-8471-0aa66ab6373b`（06:24:51.374577Z）；两原生source/tree精确、绑定/runtime与native42相等。224tracked/26dist逐SHA冻结。最终Markdown收据沿用同版，以同版本部署message关联最终mainSHA，不重复上传或公网／模型循环。
+
+- 最终793/793、39文件、33.76s，前端类型/Vite1977模块532ms、Worker类型与dry-run通过。API59（完整单assistant Responses与14个不合法格式变体）、核心轨道20、协议/客户端/上下文61专项mock通过。新OSS页面同batch4/4、58.129s，6POST全mock；原Stage未改的播放/镜头/布局9/9、92.650s另批，共13不同相关流程，不称单batch13/13。严格原稿/非均匀区间外/完整音乐备份导入保持；静止和急动作分别提示，合法保持可明确采用/undo。
+- 第三次真实检查2026-10-13T06:26:03.530Z–06:26:26.347Z，正常TLS新profile、32秒公开示例，一次原生UI POST `/api/motion/generate`，HTTP200，真实 `@cf/openai/gpt-oss-120b` / `ai-motion-1` / 8个关键姿态；数据实际左臂45°、头部15°，满足专设物理转角门槛，动作语义基本检查通过。6静态响应逐SHA精确，七诊断数组空，1440/390同一候选、手机无横溢，Root查看两张实际抬臂图。
+- 12实际Stage姿态与同源码模型曲线最大组件误差0，返回原稿也匹配；整份project、takes、manual、CountMap和全部fresh IndexedDB SHA前后相等。原示例音频1,280,044B/SHA`a866a58de7bafb6e9bd655dc4d6325210f318a258d1f6bbd10628d36a3c79823`不变。没有采用、保存、用户场景访问、音频字节上传、自动重试或服务器写入。
+- 真实曲线962采样：最大相邻关节变化0.5208204°、最大相对起点偏移48.3333346°、最高角速度15.6246123°/s、角加速度13.9919424°/s²，技术诊断无警告。抬臂45°是模型关键姿态，连续插值有3.333°超调，不能称摘要中的“保持45°”完全精确，也不代表自然复杂编舞/音乐理解/真实区间模型输出/设备帧率验收。
+- 本轮真实生成总3次：前两Qwen失败分别为合法静止与HTTP502/无法读取响应并中断收尾，均保留，不因为第三次成功改写；每次只在实际修复后受控检查，没有自动重试或六模板回退。第二次未实际完成原稿SHA尾部检查，不补造保留性证据。当前错误reason只用白名单本地文案，不回显模型或provider异常。
+- 当前线上capabilities仅一次正常TLSGET确认新OSS模型/directBoneMotion/rangeGeneration=true、audioUnderstanding/uploadsAudio/serverProjectStorage=false；健康路由未改，复用此前已测health，不多发读API。原模型Qwen存量轨道恢复保留来源，主UI只使用新动作协议。
+
+准确运行源码[CI38356490910](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38356490910)现实际completed/success，updated2026-10-13T06:34:48Z；npm ci、离线拟合检查、check、Worker类型及完整浏览器步骤success，失败产物上传skipped。仅据实际步骤状态，不发明CI逐例计数。此前b093/3e35/f05准确CI也success，模型语义失败与CI通过仍分别记录。
+
+原五页Notion最新规格/实施/验收/工程进度已原生写入成功，全文回读5/5：新marker唯一、source/tree/运行版本/模型/失败事实准确，原完整raw正文后缀逐字、附件/子页/标题/icon/cover保持。私有全文仅工具内存，ignored work只保存task IDs/布尔读回收据。首读回helper的mention正规式跨越自闭合标签导致归一比较误报，但五原文raw后缀一开始均相同；只在内存修helper后5/5归一也通过，没有再次改页或放宽原文断言。CI最终终态另以小范围原生文本更新回填，不重发运行验证。
+
 ## 2026-10-13 · 继续改用 GPT-OSS120B：代码回归通过，真实动作仍待验证
 
 第二次受控调用在native42/source`3e35b42d68d1b7d21b2482d3946a4943f7ccd86c`/tree`e488599a337faef1e6f34b96132862fa9561789d`；version`d3fd0f0c-9ccd-4843-817c-7d0139f5272f`，唯一100% deployment`487f49b5-4590-4f2c-9e6f-75f778c05cc4`。原生两处source/tree准确，绑定/runtime保持，224源码和26dist冻结SHA相等。

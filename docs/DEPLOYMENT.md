@@ -1,5 +1,15 @@
 # Cloudflare 预览部署
 
+## 2026-10-13 · GPT-OSS直接骨骼动作正式发布并受控验证（native43）
+
+运行源[ae2a92fb](https://github.com/DFerryman/ChoreographyStudio/commit/ae2a92fbcefa4b9b7de56c6fe482281d5aad9658)，完整SHA`ae2a92fbcefa4b9b7de56c6fe482281d5aad9658`/tree`2d03fce21badfba0a9468c795409d6c72ca1d2cc`已推送并核对main。`wrangler deploy --keep-vars --message`EXIT0；native43/version`16a8d57f-c948-471e-b246-96283e2dae38`（2026-10-13T06:24:50.89332Z），初始单100%deployment`3b8364e5-7d98-4c44-8471-0aa66ab6373b`（06:24:51.374577Z）。两source/tree精确，绑定/runtime保持，无D1；224tracked/26dist冻结SHA相等。
+
+793基础及前端/Worker/dry-run通过；新AI4和原流程9分别通过。第三次受控真实OSS调用HTTP200/8实际姿态：左臂45°、头部15°，12个Stage观测等于模型曲线、原project/作者/音乐/IndexedDB保持。6静态SHA精确、七诊断空，桌面与390复用同一候选，无第二手机推理或自动采用。前两Qwen静止/结构失败保留；总3实际生成，不重复测试循环。自然复杂编舞、音乐理解和真实区间模型生成未据此验收，插值超调记录在[验证记录](VERIFICATION.md)。
+
+准确ae2 [CI38356490910](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38356490910)实际completed/success，updated2026-10-13T06:34:48Z。Notion原五页已原生更新/全文读回5/5，原正文/附件/子页及properties完整保持，私有全文未落盘。最后仅四份Markdown验证记录commit/push；复用此native43，使用同版部署message关联最终main文档SHA，无Worker/静态资产重复上传或新增线上/模型循环。
+
+[打开最新工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。此前“尚未实现/未部署/模型待验证”属于历史，本节为当前基本功能交付状态。
+
 ## 2026-10-13 · Qwen修复版已发布（native42）；真实校验失败后转为OSS开发
 
 源码`3e35b42d68d1b7d21b2482d3946a4943f7ccd86c`/tree`e488599a337faef1e6f34b96132862fa9561789d`已推送、remote完整SHA相等。native42/version`d3fd0f0c-9ccd-4843-817c-7d0139f5272f`（2026-10-13T05:55:55.3422Z），唯一100% deployment`487f49b5-4590-4f2c-9e6f-75f778c05cc4`（05:55:55.828994Z）；两处source/tree精确、绑定与runtime保持，224tracked/26dist冻结相等。
