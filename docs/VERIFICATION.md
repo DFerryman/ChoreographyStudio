@@ -1,5 +1,17 @@
 # 预览验证记录
 
+## 2026-10-13 · 继续改用 GPT-OSS120B：代码回归通过，真实动作仍待验证
+
+第二次受控调用在native42/source`3e35b42d68d1b7d21b2482d3946a4943f7ccd86c`/tree`e488599a337faef1e6f34b96132862fa9561789d`；version`d3fd0f0c-9ccd-4843-817c-7d0139f5272f`，唯一100% deployment`487f49b5-4590-4f2c-9e6f-75f778c05cc4`。原生两处source/tree准确，绑定/runtime保持，224源码和26dist冻结SHA相等。
+
+2026-10-13T05:59:50.726Z–05:59:58.048Z，Qwen JSON对象模式生成一次HTTP502，页面显示动作数据不可用。CDP原响应body丢失/请求ERR_ABORTED使harness在保留性收尾前失败；具体服务端校验原因未知，不能补造返回数据或称第二次原稿SHA已测。6静态资源SHA精确、1生成POST，无fallback/自动重试/采用/保存。修正ignored harness令原响应读取失败也继续只读核对原稿、音乐和本机存储，不新增第二POST；此前失败原样保留。
+
+新动作默认改为 Workers AI 内`@cf/openai/gpt-oss-120b`，当前官方ChatCompletions类型/模型文档支持messages、`response_format:{type:'json_schema',json_schema:{name,schema,strict:false}}`及`reasoning_effort:'low'`；只通过现有AI binding，没有外部OpenAI API凭据、支付或套餐变更。继续严格校验输出/原稿身份，不自动回退。已保存轨道仅兼容已知Qwen/OSS并保持原模型标签，新的生成响应必须匹配OSS；旧六动作Qwen兼容接口保持。
+
+最初`npm run check`791/791、39文件、33.01s通过；再完善官方Responses输出兼容后最终793/793、39文件、33.76s，前端类型/Vite1977模块532ms构建、Worker类型通过；API59/59、core20/20及协议/客户端/上下文61/61专项mock通过。Responses只取已完成的单assistant output_text，忽略reasoning；截断、refusal、tool或多message拒绝。新增旧Qwen和新OSS混合层JSON恢复保持测试；数值曲线/原Take/接缝不改。仅安全白名单本地校验文案可成为新error.reason，不返回模型文本/上下文或任意provider异常。当前OSS页面最终mock回归4/4、58.129s通过（6生成POST全mock），新模型按常量进入客户端/编译/持久化/完整备份导入，原稿/区间外/音乐严格保持；与未改变Stage求值的原流程9分批共13不同相关流程。原生部署及第三次真实动作结果待实际收据，当前两次真实调用均不计为成功编舞。
+
+准确首b093 [CI38352641136](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38352641136)已实际completed/success，updated2026-10-13T05:56:32Z；全部检查/浏览器步骤success、失败产物上传skipped。该CI不验证模型动作语义，也不代表当前OSS新源码CI已完成。
+
 ## 2026-10-13 · 真实骨骼接口已通；首次生成静止，修复后待动作语义复核
 
 运行源码`b093a1bc1e866819899f676073ed909c3a2a7fcb`/tree`76aa546dc98dfbaae664f6f548629f5ddd88a5ec`已推送main，远端完整SHA相等。native41/version`68214b11-8a2b-4fe9-b0ff-1ae29acc633a`（2026-10-13T05:41:15.079918Z），唯一100% deployment`0baf1574-c8bb-49c5-83d9-920ae26e2dfc`（05:41:15.563448Z）；两处source/tree精确，bindings/runtime与native40相等。健康/capabilities各一次正常TLS只读GET200，新协议/directBoneMotion/rangeGeneration=true、audioUnderstanding=false。

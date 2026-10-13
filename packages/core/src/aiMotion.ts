@@ -4,7 +4,11 @@ import { RIG_CALIBRATION_VERSION, RIG_DEFINITIONS } from './humanoid';
 import { JOINT_NAMES, type JointName, type Pose, type Quat, type Vec3 } from './motion-types';
 
 export const AI_MOTION_PROTOCOL = 'ai-motion-1' as const;
-export const AI_MOTION_MODEL = '@cf/qwen/qwen3-30b-a3b-fp8' as const;
+export const AI_MOTION_MODEL = '@cf/openai/gpt-oss-120b' as const;
+/** Historical motion layers retain their original model provenance. This list
+ * permits restoration, never automatic inference or provider fallback. */
+export const AI_MOTION_SUPPORTED_MODELS = [AI_MOTION_MODEL, '@cf/qwen/qwen3-30b-a3b-fp8'] as const;
+export type AIMotionModel = typeof AI_MOTION_SUPPORTED_MODELS[number];
 export const AI_MOTION_REQUEST_MAX_BYTES = 64 * 1024;
 export const AI_MOTION_RESULT_MAX_BYTES = 96 * 1024;
 export const AI_MOTION_MAX_OUTPUT_TOKENS = 8192;

@@ -1,5 +1,11 @@
 # Cloudflare 预览部署
 
+## 2026-10-13 · Qwen修复版已发布（native42）；真实校验失败后转为OSS开发
+
+源码`3e35b42d68d1b7d21b2482d3946a4943f7ccd86c`/tree`e488599a337faef1e6f34b96132862fa9561789d`已推送、remote完整SHA相等。native42/version`d3fd0f0c-9ccd-4843-817c-7d0139f5272f`（2026-10-13T05:55:55.3422Z），唯一100% deployment`487f49b5-4590-4f2c-9e6f-75f778c05cc4`（05:55:55.828994Z）；两处source/tree精确、绑定与runtime保持，224tracked/26dist冻结相等。
+
+该源码788基础/AI4 mock通过，但第二次真实Qwen调用HTTP502、页面拒绝输出；技术harness在CDP读响应失败处退出，未实际完成原稿收尾，不声明模型或整轮验收成功。当前转为同Workers AI binding中的GPT-OSS120B，已完成791基础及历史Qwen轨道兼容；新发布/模型结果待实际收据。详见[验证记录](VERIFICATION.md)。
+
 ## 2026-10-13 · 原生直接动作已发布（native41）；首次模型语义未通过，继续修复
 
 新动作源码`b093a1bc1e866819899f676073ed909c3a2a7fcb`/tree`76aa546dc98dfbaae664f6f548629f5ddd88a5ec`已推送并完整remoteSHA核对。`wrangler deploy --keep-vars --message` EXIT0，native41/version`68214b11-8a2b-4fe9-b0ff-1ae29acc633a`（2026-10-13T05:41:15.079918Z），唯一100% deployment`0baf1574-c8bb-49c5-83d9-920ae26e2dfc`（05:41:15.563448Z），原生两处source/tree精确，bindings/runtime与native40相同。

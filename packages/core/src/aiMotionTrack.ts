@@ -1,8 +1,8 @@
 import { rotationFromDegrees } from './keyframes';
 import { JOINT_NAMES, type JointName, type Pose, type Quat, type Vec3 } from './motion-types';
 import {
-  AI_MOTION_MODEL, AI_MOTION_MAX_KEYFRAMES, validateAIMotionRequest, validateAIMotionResult,
-  type AIMotionBoundary, type AIMotionRequest, type AIMotionResult, type AIMotionTarget,
+  AI_MOTION_SUPPORTED_MODELS, AI_MOTION_MAX_KEYFRAMES, validateAIMotionRequest, validateAIMotionResult,
+  type AIMotionBoundary, type AIMotionModel, type AIMotionRequest, type AIMotionResult, type AIMotionTarget,
 } from './aiMotion';
 
 /** A separate, immutable layer: author takes and their exact sample times stay intact. */
@@ -16,7 +16,7 @@ export interface AIMotionKnot {
 export interface AIMotionPatch {
   id: string;
   provider: 'cloudflare-workers-ai';
-  model: typeof AI_MOTION_MODEL;
+  model: AIMotionModel;
   requestId: string;
   sourceHash: string;
   target: AIMotionTarget;
@@ -160,7 +160,7 @@ export function validateAIMotionTrack(input: unknown, map: { id: string; duratio
     const patch = record(inputPatch, ['id', 'provider', 'model', 'requestId', 'sourceHash', 'target', 'knots']);
     text(patch.id); text(patch.requestId); text(patch.sourceHash);
     if (!/^[a-fA-F0-9]{64}$/.test(patch.sourceHash as string)) return fail('AI 动作轨道需要有效的原稿摘要。');
-    if (patch.provider !== 'cloudflare-workers-ai' || patch.model !== AI_MOTION_MODEL || ids.has(patch.id as string) || requests.has(patch.requestId as string)) return fail('AI 动作轨道来源或标识无效。');
+    if (patch.provider !== 'cloudflare-workers-ai' || !AI_MOTION_SUPPORTED_MODELS.includes(patch.model as AIMotionModel) || ids.has(patch.id as string) || requests.has(patch.requestId as string)) return fail('AI 动作轨道来源或标识无效。');
     ids.add(patch.id as string); requests.add(patch.requestId as string);
     const range = target(patch.target, map.durationSeconds);
     if (range.mode === 'full' && index !== 0) return fail('完整 AI 动作必须是轨道第一层。');

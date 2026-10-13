@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { AI_MOTION_MAX_KEYFRAMES, AI_MOTION_REQUEST_MAX_BYTES, AI_MOTION_RESULT_MAX_BYTES, aiMotionOutputSchema,
+import { AI_MOTION_MODEL, AI_MOTION_SUPPORTED_MODELS, AI_MOTION_MAX_KEYFRAMES, AI_MOTION_REQUEST_MAX_BYTES, AI_MOTION_RESULT_MAX_BYTES, aiMotionOutputSchema,
   parseAIMotionJson, validateAIMotionOutput, validateAIMotionRequest, validateAIMotionResult, type AIMotionRequest } from './aiMotion';
 import { makeAIMotionFixture, makeAIMotionResultFixture } from './aiMotion.fixture';
 import { JOINT_NAMES, type Pose } from './motion-types';
 
 describe('direct structured motion contract (no inference)', () => {
+  it('binds new generation to the current model while exposing historical provenance for stored layers', () => {
+    const request = makeAIMotionFixture(), response = makeAIMotionResultFixture(request);
+    expect(AI_MOTION_MODEL).toBe('@cf/openai/gpt-oss-120b');
+    expect(AI_MOTION_SUPPORTED_MODELS).toEqual(['@cf/openai/gpt-oss-120b', '@cf/qwen/qwen3-30b-a3b-fp8']);
+    expect(validateAIMotionResult(response, request).model).toBe(AI_MOTION_MODEL);
+    expect(() => validateAIMotionResult({ ...response, model: '@cf/qwen/qwen3-30b-a3b-fp8' }, request)).toThrow(/过期/);
+  });
+
   it('accepts direct sparse bone motion and preserves both input and independent result ownership', () => {
     const request = makeAIMotionFixture(), originalRequest = JSON.stringify(request);
     const response = makeAIMotionResultFixture(request), originalResponse = JSON.stringify(response);

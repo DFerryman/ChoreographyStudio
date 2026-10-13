@@ -128,8 +128,8 @@ describe('explicit direct bone Workers AI motion, mock binding only', () => {
     expect(aiLimit).toHaveBeenCalledWith({ key: 'choreo-ai:ip:192.0.2.1' });
     expect(run).toHaveBeenCalledOnce();
     expect(run.mock.calls[0]).toMatchObject([AI_MOTION_MODEL, {
-      stream: false, max_tokens: 8192, temperature: 0.45,
-      response_format: { type: 'json_object' },
+      stream: false, max_tokens: 8192, temperature: 0.45, reasoning_effort: 'low',
+      response_format: { type: 'json_schema', json_schema: { name: 'ai_motion', schema: aiMotionOutputSchema(input.context), strict: false } },
     }, { signal: expect.any(AbortSignal) }]);
     const modelInput = run.mock.calls[0][1] as { messages: { role: string; content: string }[] };
     expect(modelInput.messages[1].content).toContain(JSON.stringify(input.context));
@@ -143,7 +143,11 @@ describe('explicit direct bone Workers AI motion, mock binding only', () => {
     expect(modelInput.messages[0].content).toContain('Head 的正 Y 角');
     expect(modelInput.messages[0].content).toContain('没有变化的骨骼省略');
     expect(modelInput.messages[0].content).toContain('"rotations":{"LeftUpperArm":[0,0,35],"Head":[0,8,0]}');
-    expect((run.mock.calls[0][1] as { response_format: unknown }).response_format).toEqual({ type: 'json_object' });
+    expect((run.mock.calls[0][1] as { response_format: unknown }).response_format).toEqual({
+      type: 'json_schema', json_schema: { name: 'ai_motion', schema: aiMotionOutputSchema(input.context), strict: false },
+    });
+    expect(run.mock.calls[0][0]).toBe('@cf/openai/gpt-oss-120b');
+    expect(JSON.stringify(modelInput.messages)).not.toContain('/no_think');
     expect(modelInput.messages[0].content).not.toContain('动作表：');
     expect(JSON.stringify(modelInput)).not.toContain('side-reach');
     expect(fetch).not.toHaveBeenCalled();
@@ -161,6 +165,52 @@ describe('explicit direct bone Workers AI motion, mock binding only', () => {
     run.mockResolvedValue(providerOutput as Record<string, unknown>);
     expect((await worker.fetch(motionGeneration(input), env)).status).toBe(200);
     expect(run).toHaveBeenCalledOnce();
+  });
+
+  it('extracts one completed Responses assistant JSON message and excludes reasoning', async () => {
+    const input = makeAIMotionFixture(); const output = motionOutput(input);
+    const { env, run } = fixture();
+    run.mockResolvedValue({ object: 'response', status: 'completed', incomplete_details: null, error: null, tools: [],
+      output: [
+        { type: 'reasoning', summary: [{ type: 'summary_text', text: 'private model reasoning, not motion JSON' }] },
+        { type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: JSON.stringify(output) }] },
+      ],
+    });
+    const response = await worker.fetch(motionGeneration(input), env);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(makeAIMotionResultFixture(input));
+    expect(run).toHaveBeenCalledOnce();
+  });
+
+  it('rejects incomplete, failed, multiple, tool, refusal and oversized Responses without returning partial motion', async () => {
+    const input = makeAIMotionFixture(); const output = motionOutput(input);
+    const message = { type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: JSON.stringify(output) }] };
+    const envelope = { object: 'response', status: 'completed', output: [message] };
+    const invalid = [
+      { ...envelope, status: 'incomplete', incomplete_details: { reason: 'max_output_tokens' } },
+      { ...envelope, status: 'failed', error: { message: 'private provider failure' } },
+      { ...envelope, incomplete_details: { reason: 'max_output_tokens' } },
+      { ...envelope, finish_reason: 'length' },
+      { ...envelope, output: [message, message] },
+      { ...envelope, output: [{ type: 'function_call', name: 'private_tool', arguments: '{}' }, message] },
+      { ...envelope, output: [{ ...message, content: [{ type: 'refusal', refusal: 'private generated refusal' }] }] },
+      { ...envelope, output: [{ ...message, status: 'in_progress' }] },
+      { ...envelope, output: [{ ...message, finish_reason: 'length' }] },
+      { ...envelope, output: [{ ...message, role: 'user' }] },
+      { ...envelope, output: [{ type: 'reasoning', summary: [] }] },
+      { ...envelope, tools: [{ type: 'function', name: 'private_tool' }] },
+      { ...envelope, output: [{ ...message, content: [{ type: 'output_text', text: 'x'.repeat(AI_MOTION_RESULT_MAX_BYTES + 1) }] }] },
+      { ...envelope, response: output },
+    ];
+    const { env, run } = fixture();
+    for (const value of invalid) {
+      run.mockResolvedValue(value);
+      const response = await worker.fetch(motionGeneration(input), env);
+      expect(response.status).toBe(502);
+      expect(await response.json()).toEqual({ code: 'AI_OUTPUT_INVALID', message: 'AI 返回了无法使用的动作数据，请稍后手动重试。',
+        reason: '模型返回格式无效或输出已截断。' });
+    }
+    expect(run).toHaveBeenCalledTimes(invalid.length);
   });
 
   it('advertises actual direct-motion capabilities separately from legacy arrangement', async () => {
@@ -250,9 +300,27 @@ describe('explicit direct bone Workers AI motion, mock binding only', () => {
       run.mockResolvedValue(value);
       const response = await worker.fetch(motionGeneration(input), env);
       expect(response.status).toBe(502);
-      expect(await response.json()).toEqual({ code: 'AI_OUTPUT_INVALID', message: 'AI 返回了无法使用的动作数据，请稍后手动重试。' });
+      const body = await response.json() as { code: string; message: string; reason: string };
+      expect(body).toMatchObject({ code: 'AI_OUTPUT_INVALID', message: 'AI 返回了无法使用的动作数据，请稍后手动重试。' });
+      expect(body.reason.length).toBeLessThanOrEqual(160);
     }
     expect(run).toHaveBeenCalledTimes(invalid.length);
+  });
+
+  it('returns a safe local validation reason without leaking model text or serializer exceptions', async () => {
+    const input = makeAIMotionFixture('interval'); const output = motionOutput(input);
+    const { env, run } = fixture();
+    run.mockResolvedValue({ response: { ...output, keyframes: [{ ...output.keyframes[0], time: input.context.target.endSeconds }] } });
+    const boundary = await worker.fetch(motionGeneration(input), env);
+    expect(await boundary.json()).toMatchObject({ code: 'AI_OUTPUT_INVALID', reason: 'AI 只能修改固定区间内部且时间必须递增。' });
+    run.mockResolvedValue({ response: { toJSON() { throw new Error('private provider secret and context'); } } });
+    const untrusted = await worker.fetch(motionGeneration(input), env);
+    expect(await untrusted.json()).toEqual({ code: 'AI_OUTPUT_INVALID', message: 'AI 返回了无法使用的动作数据，请稍后手动重试。',
+      reason: '模型结果未通过动作数据校验。' });
+    run.mockResolvedValue({ choices: [{ message: { content: 'private generated payload' }, finish_reason: 'length' }] });
+    const truncated = await worker.fetch(motionGeneration(input), env);
+    expect(await truncated.json()).toMatchObject({ code: 'AI_OUTPUT_INVALID', reason: '模型返回格式无效或输出已截断。' });
+    expect(run).toHaveBeenCalledTimes(3);
   });
 
   it('does not retry provider failure and honors cancellation before/during inference', async () => {

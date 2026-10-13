@@ -4,7 +4,7 @@ import { makeCountMap, sampleTake } from './index';
 import { rotationFromDegrees } from './keyframes';
 import { JOINT_NAMES, type BakedTake, type Pose, type Quat, type Vec3 } from './motion-types';
 import { makeAIMotionFixture, makeAIMotionResultFixture } from './aiMotion.fixture';
-import type { AIMotionKeyframe, AIMotionRequest, AIMotionResult } from './aiMotion';
+import { AI_MOTION_MODEL, type AIMotionKeyframe, type AIMotionRequest, type AIMotionResult } from './aiMotion';
 import {
   AI_MOTION_STATIC_WARNING, analyzeAIMotionPatch, appendAIMotionPatch, compileAIMotionPatch, createAIMotionSampler,
   estimateAIMotionBoundary, MAX_AI_MOTION_PATCHES, validateAIMotionTrack,
@@ -209,6 +209,26 @@ describe('independent AI motion layers', () => {
     const changed = (time: number): Pose => { const value = poseAt(time); value.root[0] += .01; return value; };
     expect(() => compileAIMotionPatch(request, result, changed)).toThrow('原稿边界已变化');
     expect(JSON.stringify(request)).toBe(original);
+  });
+
+  it('restores historical Qwen provenance unchanged after selecting OSS and layers the new model separately', () => {
+    const timing = map(), times = [0, .071, .717, 3.97, 4, 4.13, 8, 8.17, 16];
+    const take: BakedTake = { id: 'old-qwen-source', schemaVersion: 'preview-1', planId: 'original', countMapId: timing.id, durationSeconds: 16, times, poses: times.map(poseAt), provenance: 'synthetic-demo' };
+    const originalSampler = (time: number) => sampleTake(take, time), { patch } = compile(originalSampler, timing);
+    expect(AI_MOTION_MODEL).toBe('@cf/openai/gpt-oss-120b');
+    patch.model = '@cf/qwen/qwen3-30b-a3b-fp8';
+    const oldTrack = appendAIMotionPatch(undefined, patch, timing), original = JSON.stringify({ take, oldTrack });
+    const restored = JSON.parse(original);
+    expect(validateAIMotionTrack(restored.oldTrack, timing, originalSampler)).toEqual(oldTrack);
+    expect(restored.take).toEqual(take);
+    expect(restored.oldTrack.patches[0].model).toBe('@cf/qwen/qwen3-30b-a3b-fp8');
+    const existingSampler = createAIMotionSampler(originalSampler, restored.oldTrack);
+    const next = compile(existingSampler, timing, 'interval', 5, 7), combined = appendAIMotionPatch(restored.oldTrack, next.patch, timing);
+    expect(combined.patches.map(value => value.model)).toEqual(['@cf/qwen/qwen3-30b-a3b-fp8', '@cf/openai/gpt-oss-120b']);
+    expect(validateAIMotionTrack(JSON.parse(JSON.stringify(combined)), timing, originalSampler)).toEqual(combined);
+    expect(combined.patches[0]).toEqual(oldTrack.patches[0]);
+    for (const time of [0, .613456, 4, 8, 8.991, 16]) expect(createAIMotionSampler(originalSampler, combined)(time)).toEqual(originalSampler(time));
+    expect(JSON.stringify({ take, oldTrack })).toBe(original);
   });
 
   it('checks restored seam authority against the source and prior AI layers when provided', () => {
