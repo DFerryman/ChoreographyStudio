@@ -1,5 +1,15 @@
 # 预览验证记录
 
+## 2026-10-13 · 最新音轨已发布，选择性 AI 方案已同步（native44）
+
+运行 source `153dcf70d3f996e29513094c175c3e96d17c73bf`／tree `e6fc75ad7968c0fa67838869b53585ac58ec5461`，方案提交 `fac676d2bd5070205af37b48d6b6dc4678c0a08a` 已 push。Wrangler deploy EXIT0，native44／version `5cf3be7c-f7d2-48c4-9780-5e4b49b08d65`（2026-10-13T07:59:24.752802Z），初始唯一100% deployment `1260df5a-f8a3-46b1-9478-0d4cb142824c`（07:59:25.280946Z），两处源码／tree／方案 main 注释匹配。新静态上传3文件，其余20复用；AI／两个限流／ASSETS 绑定保持，无新数据库。最终收据提交沿用同一运行版本，用同版本部署 message 关联最终文档 main，不再上传或重复检查。
+
+准确源码本机799/799、39文件、前端类型／Vite及Worker类型通过；[CI38363797878](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38363797878) completed/success（07:52:06Z），完整浏览器步骤success。唯一新390px公网音轨分割／边缘裁剪 case 实际1/1，2026-10-13T08:00:33.228Z开始、10.001648秒，无skip／unexpected／flaky；errors／warnings／expectedHTTP／API四诊断空，所有API拦截。它验证新音轨功能，不是人体／动作质量验收，也不测真实音频设备输出精度。
+
+正常TLS首批入口／新JS／新CSS三项200、逐SHA等于dist；随后health403使首harness未落盘。保留此前三项已执行成功的SHA断言，只对health添加正常Origin／浏览器UA头诊断一次，200／status ok，不重复静态GET，不更改TLS或应用保护；403具体来源未断定。独立HTTP共5GET，模型POST0；没有推理、用户音频／场景上传或服务器写入。
+
+Notion第二轮最小文本增补补齐最新音轨合并／CI／native44事实，原生5/5 succeeded，最终全文回读5/5：最初完整raw正文逐字为后缀，原附件／子页及标题／icon／cover保持，设计marker唯一，新AI可行性明确待实现。两轮共10任务，无整页替换或私有全文落盘。发布前220非本轮文档tracked文件等于153源码、26dist冻结；原上传街舞SHA保持。仅本轮四份Markdown有自主变化，AI计划／约束求解仍未实施。
+
 ## 2026-10-13 · 自然动作缺口与 AI 环节评估（只读审计／方案，未实施）
 
 本轮用户纠正方向：按实际收益选择 AI，不强制每个环节调用。已据当前代码与真人场景来源制定 [约束闭环和阶段计划](REALISM_PLAN.md)：AI 优先理解意图、规划动作；重定向、IK、碰撞与最终采用由程序负责；语义重规划、专用动作模型、音频语义和模型评审按证据启用。新增 pipeline、人体校准／求解和硬性采用门槛均待实现，不把文档更新当作质量修复交付。
@@ -10,7 +20,7 @@
 
 本轮自主修改只有四份 Markdown。交付同步发现远端 `153dcf70d3f996e29513094c175c3e96d17c73bf` 新增音轨切分／裁剪，先快进合并再恢复自己的方案增补，没有覆盖它。对新运行源码执行 check：799/799、39 文件，前端 TypeScript／Vite 构建通过；Worker 类型通过。准确 CI38363797878 completed/success，updated2026-10-13T07:52:06Z，拟合／check／Worker／完整浏览器步骤均 success；复用其浏览器验证，不杜撰逐例 CI 计数。不运行新模型推理、不上传用户音频／场景。发布前分别冻结新源码与 dist，而非把旧 native43 SHA 冒称新音轨版本。
 
-原五页 Notion 原生顶部增补任务 5/5 succeeded；完整回读 5/5，原 raw 正文仍逐字为后缀、新 marker 唯一、四契约与分工存在、标题／icon／cover 保持。原正文保留包含其原附件和子页，私有全文仅工具内存；ignored work 只保留 task IDs 和布尔收据。新 AI pipeline 明确待实现。主分工为语义规划／动作选择按需 AI，数值求解与最终验收程序负责，小偏差先求解器、必要语义失败再有界重规划。最终 GitHub／Cloudflare 收据随后补充。
+原五页 Notion 原生顶部增补任务 5/5 succeeded；完整回读 5/5，原 raw 正文仍逐字为后缀、新 marker 唯一、四契约与分工存在、标题／icon／cover 保持。原正文保留包含其原附件和子页，私有全文仅工具内存；ignored work 只保留 task IDs 和布尔收据。新 AI pipeline 明确待实现。主分工为语义规划／动作选择按需 AI，数值求解与最终验收程序负责，小偏差先求解器、必要语义失败再有界重规划。最终 GitHub／Cloudflare 事实见顶部 native44 交付收据。
 
 ## 2026-10-13 · 附加音轨分割与裁剪：本地验收，已推送 main；未部署 Cloudflare
 

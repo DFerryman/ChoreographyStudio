@@ -1,10 +1,14 @@
 # Cloudflare 预览部署
 
-## 2026-10-13 · 选择性 AI 方案与最新音轨提交同步（发布准备）
+## 2026-10-13 · 选择性 AI 方案与最新音轨提交同步（native44 已发布）
 
 更新 [方案](REALISM_PLAN.md) 为按实际收益选择 AI：意图／动作选择优先，数值约束与最终验收由程序执行，AI 修订和新动作／音频模型按对照证据启用。人体校准、离线轨迹求解、物理采用门槛和有界 AI 修订尚待实施；当前线上生成质量未因这次方案更新而改变。
 
-同步时发现远端新增音轨切分／裁剪源码 `153dcf70d3f996e29513094c175c3e96d17c73bf`／tree `e6fc75ad7968c0fa67838869b53585ac58ec5461`，已先快进合并再保留本轮四份 Markdown 增补。其准确 CI38363797878 completed/success（updated2026-10-13T07:52:06Z），完整浏览器步骤 success；本机 799/799、39 文件及前端构建／Worker 类型通过。因此发布最新音轨资产，而非用旧 native43 覆盖。原场景与用户音频不改，无新增模型推理。实际原生版本与部署结果在完成后补充。
+同步时发现远端新增音轨切分／裁剪源码 `153dcf70d3f996e29513094c175c3e96d17c73bf`／tree `e6fc75ad7968c0fa67838869b53585ac58ec5461`，已先快进合并再保留本轮四份 Markdown 增补。其准确 CI38363797878 completed/success（updated2026-10-13T07:52:06Z），完整浏览器步骤 success；本机 799/799、39 文件及前端构建／Worker 类型通过。因此发布最新音轨资产，而非用旧 native43 覆盖。原场景与用户音频不改，无新增模型推理。实际发布事实见下面的原生交付收据。
+
+原生发布实际成功：native44／version `5cf3be7c-f7d2-48c4-9780-5e4b49b08d65`，初始唯一100% deployment `1260df5a-f8a3-46b1-9478-0d4cb142824c`。版本与部署注释均关联上述153 source／tree与初次方案提交fac676d。三项入口／JS／CSS SHA、一次390px新增裁剪流程通过；health首403、唯一来源／UA诊断GET200均保留。原五页Notion两轮10任务成功、最终原全文后缀与properties保持5/5；新AI人体方案明确待实施。最后仅交付Markdown收据，复用此版本与资产，以同版本部署message关联最终main，不重复上传或模型／浏览器循环。详见[验证记录](VERIFICATION.md)。
+
+[打开最新工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
 
 ## 2026-10-13 · GPT-OSS直接骨骼动作正式发布并受控验证（native43）
 
