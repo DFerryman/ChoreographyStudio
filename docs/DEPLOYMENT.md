@@ -1,5 +1,15 @@
 # Cloudflare 预览部署
 
+## 2026-10-13 · 再次同步最新 main，复用并核验 native44
+
+本次从干净 `153dcf7` 快进到远端 `fac676d`，发布核验期间再同步文档提交 `8c614a8c9359027d025fb1941b5b20904c31de1b`。运行源码仍为 `153dcf70d3f996e29513094c175c3e96d17c73bf` / tree `e6fc75ad7968c0fa67838869b53585ac58ec5461`；205 个非 Markdown tracked 文件和 26 个 dist 文件冻结，业务代码没有新增修改。
+
+Cloudflare 已存在对应 native44/version `5cf3be7c-f7d2-48c4-9780-5e4b49b08d65`，初始单 100% deployment `1260df5a-f8a3-46b1-9478-0d4cb142824c`。原生 source/tree、五项 binding、兼容日期/flags 与工程一致。文档提交后复用该版本以 100% 发布，在原生 deployment message 中关联最终 main SHA；运行代码和资产复用本次已核验的版本。
+
+前端构建、Worker 类型和 dry-run 通过；正常 TLS 的 6 项静态文件逐字节/SHA 与 dist 相等，health/capabilities 两项只读 GET200。本地音轨浏览器 4/4、公网分割裁剪桌面1440/手机390两项 2/2 通过。准确运行源码 [CI38363797878](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38363797878) completed/success，完整浏览器步骤 success；本环境两轮单元测试分别 792/799、795/799，剩余均为超时，保留失败而不记作全通过。详见 [VERIFICATION.md](VERIFICATION.md)。
+
+[打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+
 ## 2026-10-13 · 选择性 AI 方案与最新音轨提交同步（native44 已发布）
 
 更新 [方案](REALISM_PLAN.md) 为按实际收益选择 AI：意图／动作选择优先，数值约束与最终验收由程序执行，AI 修订和新动作／音频模型按对照证据启用。人体校准、离线轨迹求解、物理采用门槛和有界 AI 修订尚待实施；当前线上生成质量未因这次方案更新而改变。

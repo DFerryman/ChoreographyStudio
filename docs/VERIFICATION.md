@@ -1,5 +1,19 @@
 # 预览验证记录
 
+## 2026-10-13 · 最新 main 再同步与 native44 有界核验
+
+运行代码 `153dcf70d3f996e29513094c175c3e96d17c73bf` 未变；最新远端文档 `8c614a8c9359027d025fb1941b5b20904c31de1b` 已快进。对应 native44/version `5cf3be7c-f7d2-48c4-9780-5e4b49b08d65`、初始 deployment `1260df5a-f8a3-46b1-9478-0d4cb142824c` 的 source/tree 与单100%流量已读回；AI、两个限频、ASSETS、阶段变量和 runtime 与配置一致。
+
+- `npm ci` 成功，预装 Rapier0.12.0 恢复到锁定0.21.0；前端 TypeScript/Vite1977模块构建、Worker类型/TypeScript、Wrangler4.147.0 dry-run EXIT0。保留既有 Vite 大chunk警告。
+- 本环境初次 `npm run check` 与浏览器并行，39文件/799测试实际792通过、7超时，181.78s。关闭浏览器后以 `npm run test -- --maxWorkers=1` 单独复核：37文件通过、2文件失败，795通过、4超时，246.66s；失败为 stepAssistance 三项和 compactScene 一项的既有时限，没有修改测试或放宽断言。单独执行构建通过；两次失败均不改写为全通过。
+- 运行源码准确 [CI38363797878](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38363797878) 原生状态 completed/success；npm ci、离线拟合/拟合测试、check、Worker类型及完整浏览器步骤均success，失败产物上传skipped。不据步骤状态杜撰CI逐例计数。
+- 本地原 `tests/audio-tracks.spec.ts` 同批4/4，219.095937s，skipped/unexpected/flaky均0；四份原生诊断 errors/warnings/expectedHttpErrors/apiRequests 都为空。涵盖既有多音轨及新增分割裁剪的1440/390流程。
+- 公网原分割裁剪用例仅一批桌面1440/手机390，CLI实际2 passed/51.8s，原业务和诊断断言通过；保存刷新、undo/redo、删除一片保留另一片、CountMap/主音乐/动作保持均已执行。Root查看两张本批实际截图。JSON reporter文件未生成，结果依据原生CLI、last-run和实际截图，未为报告缺失重跑。全部API由原spec拦截，没有实际推理或服务器场景写入。
+- 独立正常TLS HTTP一次有界8项通过：入口/主JS/CSS/Rapier/两个当前GLB六项字节和SHA精确，health/capabilities各只读GET200。公开能力仍为GPT-OSS直接骨骼动作、音频理解false；后续自然动作约束方案仍待实现。
+- 浏览器沿用原启动参数，任务profile按官方Chromium151 CertificateMetadata/Trusted(3)配置现有代理CA；离线原生证书管理器回读唯一trusted openai.com及SHA，正常TLS保持。首个离线metadata字段错误及原生文件选择器10s超时保留为准备失败，未据此发起公网应用重试。
+
+本轮仅增补部署/验证Markdown；205个非Markdown tracked文件、26个dist文件保持冻结。文档推送和同版100%发布使用最终mainSHA关联，复用此批资源和浏览器证据。
+
 ## 2026-10-13 · 最新音轨已发布，选择性 AI 方案已同步（native44）
 
 运行 source `153dcf70d3f996e29513094c175c3e96d17c73bf`／tree `e6fc75ad7968c0fa67838869b53585ac58ec5461`，方案提交 `fac676d2bd5070205af37b48d6b6dc4678c0a08a` 已 push。Wrangler deploy EXIT0，native44／version `5cf3be7c-f7d2-48c4-9780-5e4b49b08d65`（2026-10-13T07:59:24.752802Z），初始唯一100% deployment `1260df5a-f8a3-46b1-9478-0d4cb142824c`（07:59:25.280946Z），两处源码／tree／方案 main 注释匹配。新静态上传3文件，其余20复用；AI／两个限流／ASSETS 绑定保持，无新数据库。最终收据提交沿用同一运行版本，用同版本部署 message 关联最终文档 main，不再上传或重复检查。
