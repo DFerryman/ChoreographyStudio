@@ -1,6 +1,8 @@
 # 实现状态
 
-## 当前实现 · 2026-10-13 · 语义编排、真人先验与候选门禁
+## 当前实现 · 2026-10-13 · 语义编排、真人先验与候选门禁（已实现并发布 native45）
+
+本轮运行源码 [`47ea623`](https://github.com/DFerryman/ChoreographyStudio/commit/47ea623d8bc50d36c39a2e4d14b42f02b1dae6e5) 的 [CI38409539714](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38409539714) 已成功；Cloudflare native45／version `1f77133a-7b5d-4f3a-9130-d1347965eab9` 已发布，运行 tree 为 `e01a004f1540de6274dba5f70d6fada8917bb98b`。各批实际检查、默认检查的超时历史及真实模型／公网观察以[验证记录](VERIFICATION.md)和[部署记录](DEPLOYMENT.md)最新收据为准，不把部署或 CI 状态扩大为所有观察通过。
 
 主界面现以单次 `/api/motion/plan` 语义规划选择、组合真人动作，支持完整生成与固定选区修改。动作先验为 CMU 街舞和 Salsa 两条来源、两个完整参考及十二个子窗口，共十四个 SHA 固定片段；浏览器只加载选中素材，再在新候选内进行人物适配、连续 Foot 调理、密集曲线编译和真实 Root 支撑轨迹求解。旧六动作和直接角度 API 仅保留兼容，不作为主流程失败回退。
 

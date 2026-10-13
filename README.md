@@ -1,6 +1,8 @@
 # 八拍 · Choreo Studio
 
-## 当前工作流 · 2026-10-13 · 选择性 AI 与自然动作候选
+## 当前工作流 · 2026-10-13 · 选择性 AI 与自然动作候选（已实现并发布 native45）
+
+本轮运行源码 [`47ea623`](https://github.com/DFerryman/ChoreographyStudio/commit/47ea623d8bc50d36c39a2e4d14b42f02b1dae6e5) 对应的 [CI38409539714](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38409539714) 已成功，Cloudflare 已发布 native45。实际验证范围、失败历史及真实模型／公网观察以[验证记录](docs/VERIFICATION.md)和[部署记录](docs/DEPLOYMENT.md)的最新收据为准。
 
 舞台右上“AI 动作”支持完整生成和选区内修改：一次语义规划请求理解描述并选择、组合真人动作，再由本机程序适配人物、连续调理 Foot 姿态与求解 Root 支撑轨迹，经过独立门禁才提供候选。动作库含 CMU 街舞与 Salsa 两条真人动捕来源、两个完整参考和十二个子窗口，共十四个 SHA 固定片段；没有直接全身角度生成或六动作模板回退。Timeline 继续只显示音乐、镜头和只读节拍／选区。
 

@@ -1,5 +1,23 @@
 # AI 动作实现交接
 
+## 2026-10-13 · 续接已完成并发布 native45
+
+用户在新会话要求继续修改和发布。已确认上轮实现保存在 `baafe8891463fbe75c2e88a944606ddbfcefb076`，从旧工作区快进恢复，没有重新实现。下方13:30交接正文完整保留为历史；其中“停止／未发布／未同步／预检旧oracle”不再是当前状态。
+
+本轮源码 [47ea623](https://github.com/DFerryman/ChoreographyStudio/commit/47ea623d8bc50d36c39a2e4d14b42f02b1dae6e5)／tree `e01a004f1540de6274dba5f70d6fada8917bb98b`：固定端点预检共享最终 native Foot 地面 oracle 与原3mm容差，新增真实脚尖−22.32mm回归，在不调用模型时拒绝不合法源端点。旧编辑器、原文件、区间端点／切线／外部、播放数学和物理门槛不变。
+
+- 本地最终浏览器单批10/10，392.756秒，10次规划全部mock；单 worker 48文件922/922，242.64秒。首默认check912/922的10项超时保留，未改时限；前端构建、Worker类型／dry-run、人物拟合与6项Python回归通过。准确源码 [CI38409539714](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38409539714) completed/success，含完整浏览器步骤；不编造CI逐例计数。
+- native45/version `1f77133a-7b5d-4f3a-9130-d1347965eab9`，创建2026-10-13T14:19:10.232095Z；初始单100% deployment `1e84926e-96ba-4a99-b84c-b59b6e3b7c48`。原生source/tree精确，五项绑定／限流／runtime保持，18新资产上传／20复用。[线上工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/) health／capabilities正常TLS各一次GET200。
+- 真实模型总计一次：HTTP200／合法 `ai-motion-plan-1`，supported，CMU61_08源0–16秒／yaw0／travel0，实际产品候选门禁accepted。首观察整批失败于浏览器和Node分别重新求解的组件差异1.545125138946446e−12，仅有2个观察；第二冻结回放新增真实调用0，8次观察／7通过，组件差异4.554184529492744e−10导致整批失败。两批失败不能改写或拼成完整通过。
+- 最终独立观察2026-10-13T14:46:07.747Z–14:47:40.955Z通过，新增真实调用0／冻结结果mock一次。只读捕获实际浏览器冻结候选，核对来源身份／target／requestId，再以 `correct:false` 独立验收原曲线：2519几何样本＋480spans／960单侧stencils／1920额外姿态，两项coverage完整、0违规，最大角加速度199.7124rad/s²低于原250。12/12实际播放姿态按这份真实曲线以原1e−12比较，最大组件误差1.3877787807814457e−17；不是用另一引擎重新生成的轨迹作渲染标准。
+- 最终批15静态响应／9唯一资源逐字节及SHA匹配冻结dist；诊断错误／警告／失败请求为空。原项目／Take／manual／CountMap／相机及音乐hash保持，无采用或保存。Root查看本批桌面1440／手机390截图，无横溢、手机时间线68.5px、操作按钮至少44px；旧编辑参考提示和截断标题仍可见。有限姿态与截图不证明整个连续蒙皮、自然度或设备帧率。
+
+五个原Notion页面已更新实现与最终发布状态，原生任务及完整正文／属性／附件保护的最终读回收据见 [VERIFICATION.md](VERIFICATION.md)。源码238非Markdown文件与dist41文件冻结；最终文档提交复用同一native45，以deployment message关联最终main，不再上传、调用模型或重复公网观察。Markdown-only main不触发本仓库CI；准确运行代码CI是47ea623。
+
+剩余范围：一般SO(3)跨π接续没有通用修复；旧Street／Salsa首帧若不满足当前profile，固定起点完整生成仍预检拒绝，不能迁移原文件。两来源十四片段、较大人体适配、末尾最多1.5秒稳定收势及可选AI修订未启用均保持。Root6cm预算是**各次调理调用内部**共享网格细化的预算，后续solver修正相对其输入计量，不能宣称整条多阶段管线对最初draft全局仅6cm。工程关节／Quaternius代理／native Foot／有限曲率与汇总接触检查不等于临床范围、完整关节动力学、MHR校准、音乐理解或连续皮肤无穿插。
+
+新证据在ignored `work/resume-natural-20261013/`：`browser-report.json`、`check.log`、`check-single-worker.log`、`current-ci-final.json`、`deployment-receipt.json`、`public-real-once/receipt.json`、`public-frozen-replay/receipt.json`、`public-browser-curve-review/receipt.json`及真实浏览器曲线／截图。原先ignored scratch不随Git迁移，不冒称已恢复它们；持久结果在本文及验证／部署文档。下次先fetch并快进最新main，依最终交付收据确认部署；不要因历史pending段重复部署或模型调用。
+
 交接时间：2026-10-13 13:30 UTC。用户最新要求：**提交并 push 到 main，然后交接给其他 agent。** 本轮是开发交接，不是发布验收完成；不要继续启动推理或部署。提交前基线为 `25fc4b09ba202b9ffede44023cf1a0cb496f5571`，本文件随实现一起提交。最终提交 SHA 以 Git main 和本次回复为准。
 
 ## 目标和不可改变的约束

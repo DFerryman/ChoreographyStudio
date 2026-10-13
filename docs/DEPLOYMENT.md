@@ -1,5 +1,21 @@
 # Cloudflare 预览部署
 
+## 2026-10-13 · 选择性 AI 自然动作发布 · native45
+
+本轮运行源码 [`47ea623d8bc50d36c39a2e4d14b42f02b1dae6e5`](https://github.com/DFerryman/ChoreographyStudio/commit/47ea623d8bc50d36c39a2e4d14b42f02b1dae6e5)／tree `e01a004f1540de6274dba5f70d6fada8917bb98b` 已main并发布到[工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。Cloudflare native45／version `1f77133a-7b5d-4f3a-9130-d1347965eab9` 创建于14:19:10.232095 UTC；初始deployment `1e84926e-96ba-4a99-b84c-b59b6e3b7c48` 创建于14:19:10.998906 UTC，单版本100%。原生版本／部署收据准确绑定该source／tree；旧native44及其CI不作为本轮运行源码证据。
+
+准确 [CI38409539714](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38409539714)／job115337922308 实际completed／success，updated14:16:37 UTC，check、Worker、avatar及完整浏览器步骤成功。本地浏览器独立单批10／10、392.756246秒，十次mock规划POST、真实provider0；默认check912／922、10超时／175.82秒保留，未改源码／时限的单worker另922／922、242.64秒。前端类型／Vite1983模块862ms、Worker、dry-run、avatar17代理／8483顶点覆盖和Python6项通过；详细范围与失败见[验证记录](VERIFICATION.md)，不把独立复核合并成默认首轮全通过。
+
+发布冻结238个非Markdown tracked文件及41个dist文件，上传十八个新静态资产、复用二十个已有资产。AI、API20/min/IP与AI2/min/IP两个限频、ASSETS、RELEASE_STAGE共五项binding及runtime保持；无新provider、账号、账单或服务端项目存储。正常TLS的health／capabilities两个只读GET均200，新规划能力披露semanticPlanning、realMotionPriors、rangeGeneration、客户端确定性验收，articulatedDynamics和audioUnderstanding为false。
+
+本轮唯一真实provider规划请求获得HTTP200、supported，准确选择 `cmu-61-08` 源0–16秒、yaw0／travel `[0,0]`，产品候选accepted；但 `public-real-once` harness批次failed，只完成两个姿态观测后跨引擎重建误差 `1.545125138946446e-12` 超过原 `1e-12`。第二次仅冻结结果回放，provider0，八次比较七次通过，`4.554184529492744e-10` 超过该跨引擎诊断 `1e-10`，仍failed。两份失败原样保留，真实provider累计1，无自动重试或第二次推理；发布成功不覆盖这两个审计失败。
+
+最终独立公网批 `public-browser-curve-review` 于14:46:07.747–14:47:40.955 UTC实际passed，provider0／一次冻结结果mock交付。只读取得浏览器实际候选曲线，在实际舞台时刻按原 `1e-12` 容差比较：12／12，最大分量误差 `1.3877787807814457e-17`。该实际曲线由未改门禁以 `correct:false` 独立检查accepted：2519几何点、480 spans、960单侧模板／1920导数姿态，两个coverage均complete、违规0、修正0，最大角加速度 `199.7124148938945rad/s²`，原250门槛保持。十五个静态响应／九条唯一路径与冻结dist字节及SHA完全一致，含CMU素材和NOTICE；错误／警告／失败请求／HTTP错误／blockedRequests均空，owned原稿和音频originalPreserved true。公网仅安装本机owned fixture并预览，未采用或保存候选，未上传用户场景或音频。
+
+Root亲审本批1440／390px截图，手机Timeline68.5px、页面宽／scrollWidth390、44px命中区保持；五处legacy参考提示和标题截断仍保留。此次发布及固定任务验收仅支持已声明的Quaternius工程代理、有限轨迹／角曲率和汇总接触力范围，不证明完整人体动力学、连续蒙皮无穿插、MHR皮肤、设备帧率、音乐理解或任意任务自然度。一般跨π衔接与不兼容原起姿继续正确拒绝，来源仅两条且人物适配／末尾收势有保真代价；可选AI修订仍关闭。
+
+原五页Notion的实现与最终发布增补共10原生任务成功；最终完整读回5/5确认原正文后缀、标题／属性／icon／cover及附件／子页保持，新marker唯一，版本／源码／CI及失败和成功范围准确。私有全文仅工具内存，ignored `work/resume-natural-20261013/`只保留最小布尔收据，不提交原场景或音频。最终Markdown文档提交复用同一native45，以同版本100%部署message关联最终main SHA；不重复上传资产或模型／公网观察。Markdown-only main不触发新CI，准确运行代码CI仍是47ea623。本节下方native44及此前全部实际记录保持原文。
+
 ## 2026-10-13 · 再次同步最新 main，复用并核验 native44
 
 本次从干净 `153dcf7` 快进到远端 `fac676d`，发布核验期间再同步文档提交 `8c614a8c9359027d025fb1941b5b20904c31de1b`。运行源码仍为 `153dcf70d3f996e29513094c175c3e96d17c73bf` / tree `e6fc75ad7968c0fa67838869b53585ac58ec5461`；205 个非 Markdown tracked 文件和 26 个 dist 文件冻结，业务代码没有新增修改。

@@ -1,6 +1,8 @@
 # 阶段路线
 
-## 当前实施状态 · 2026-10-13 · 选择性 AI 自然动作
+## 当前实施状态 · 2026-10-13 · 选择性 AI 自然动作（已实现并发布 native45）
+
+本轮运行源码 [`47ea623`](https://github.com/DFerryman/ChoreographyStudio/commit/47ea623d8bc50d36c39a2e4d14b42f02b1dae6e5) 的 [CI38409539714](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38409539714) 已成功，Cloudflare 已发布 native45。验证范围、失败历史及真实模型／公网观察均按[验证记录](VERIFICATION.md)和[部署记录](DEPLOYMENT.md)的最新实际收据确认。
 
 完整生成与区间修改已接入当前主流程：一次语义规划 → 两条 CMU 真人动捕来源的十四个 SHA 固定片段 → 候选内人物适配和连续 Foot／Root 数值求解 → 独立轨迹门禁 → 预览、明确采用与可撤销保存。固定端点预检已与新门禁共享真实 Foot 凸包地面查询，使用原 3mm 容差，在调用模型前拒绝不兼容起姿或脚趾穿地。原 Take、manual、音乐、相机、区间两端姿态与切线、区间外及原播放保持；普通播放读取冻结曲线，不执行逐帧校正。
 

@@ -1,5 +1,27 @@
 # 预览验证记录
 
+## 2026-10-13 · 选择性 AI 自然动作 · native45 最终验收与保留失败
+
+本轮从已保存交接 `baafe8891463fbe75c2e88a944606ddbfcefb076` 继续，补齐固定端点的真实 Foot 凸包地面预检：与新候选门禁共用地面 oracle，保持原 3mm 容差，在模型调用前拒绝脚趾穿地或不兼容原起姿。一次语义规划选择、组合两条 CMU 来源的十四个固定素材，程序只在新候选内进行人物适配、连续 Foot 调理和 Root 支撑轨迹求解；完整／区间门禁、明确采用、保存与撤销保持。原文件、Take／manual、音乐、相机、区间两端及外部不修改，普通播放读取冻结曲线。
+
+运行源码 [`47ea623d8bc50d36c39a2e4d14b42f02b1dae6e5`](https://github.com/DFerryman/ChoreographyStudio/commit/47ea623d8bc50d36c39a2e4d14b42f02b1dae6e5)／tree `e01a004f1540de6274dba5f70d6fada8917bb98b` 已发布 Cloudflare native45／version `1f77133a-7b5d-4f3a-9130-d1347965eab9`；准确 [CI38409539714](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38409539714)／job115337922308 于13:59:37–14:16:36 UTC 实际 completed／success，终态 updated14:16:37 UTC，包含 check、Worker、avatar 与完整浏览器步骤。未从原生终态另推未读取的 CI 用例数量；native44 的旧收据与新源码证据分别保留。
+
+本地检查按实际批次记录：默认 `npm run check` 的48文件／922测试为912通过、10超时，175.82秒，失败保留；未修改源码、断言或时限的单 worker 复核另为48文件／922通过，242.64秒。前端 TypeScript／Vite1983模块、862ms构建、Worker类型及 dry-run 通过，保留大 chunk 提示。avatar fitter 实际17碰撞体、8483顶点全覆盖、maximumOutsideMeters0；Python6项通过。这些独立检查不改写为默认 check 首轮全通过。
+
+最终本地浏览器单批从13:40:13.060 UTC开始，实际10／10，392.756246秒，skip／unexpected／flaky均0；十份诊断errors／warnings均0，仅一项预期mock503。十次规划 POST 均mock，真实provider0。覆盖完整16／32秒、移动原稿的区间及Street、采用／撤销／保存重开／native备份、不可行原稿保持、取消和过期候选等；原交接v9的8／9及v10主动中断收据继续保留，未拼接为同一轮成功。
+
+公网只有一次真实 provider 调用：`public-real-once` 在14:22:38.020–14:24:06.058 UTC获得HTTP200、严格结构有效且intentMatch为supported，准确选择 `cmu-61-08` 源0–16秒、yaw0／travel `[0,0]`，产品候选门禁accepted。该审计 harness 实际failed：只保存两个观测姿态，随后浏览器与独立Node整条生成重建的分量比较出现 `1.545125138946446e-12`，超过原 `1e-12`，不能称整批公网通过。第二个 `public-frozen-replay` 在14:32:11.447–14:33:25.894 UTC仅重放已冻结真实结果、provider0；八次比较七次通过，最大 `4.554184529492744e-10` 超过其跨引擎诊断 `1e-10`，批次仍failed。两个失败及各自比较范围、容差完整保留；生产物理门槛未修改。
+
+独立的最终 `public-browser-curve-review` 在14:46:07.747–14:47:40.955 UTC实际passed，使用同一冻结真实规划响应的一次mock交付，provider0。本次只读捕获浏览器实际候选曲线，以观察到的舞台时刻采样该冻结曲线作比较基准，仍用原 `1e-12` 分量容差：12／12通过，最大误差 `1.3877787807814457e-17`。Node从头生成的跨引擎差异另存诊断，不作为舞台读取自身曲线的比较基准；此批未修订生产曲线、未采用或保存候选。
+
+对捕获的真实浏览器曲线使用未改门禁独立执行 `correct:false`，结果accepted、sourceUnchanged true：2519几何采样、480 spans、960单侧角曲率模板／1920额外姿态，几何及导数coverage均complete、违规0、修正0。最大关节角加速度 `199.7124148938945rad/s²` 低于原250上限；最小法向支撑力约81.13N，汇总摩擦超量0。检测仍是Quaternius工程包络、真实Foot凸包、有限采样／角曲率及汇总接触力，不证明连续数学成立、全人体关节动力学、肌肉能力、MHR皮肤或任意舞蹈自然度。
+
+最终公网批正常TLS、Chromium151.0.7922.173；十五个静态响应涉及九条唯一路径，响应字节与冻结dist SHA逐一相同，包含所选CMU素材及实际分发NOTICE。errors／warnings／httpErrors／failedRequests和blockedRequests数组全空。owned fixture 的project、CountMap、Take、manual及音频前后保持，originalPreserved true；本轮真实provider总计1，没有用户场景或音频上传、后台重试或服务端项目存储。
+
+Root亲审最终1440／390px实际截图。手机Timeline高68.5px，页面宽／scrollWidth均390，无横向溢出，44px操作命中区保持；此前Timeline5px布局问题已修复。界面仍可见五处legacy参考范围提示及标题截断，保留为限制。视觉检查不证明整个连续蒙皮、教师试跳、设备帧率或所有生成的自然度；来源仅街舞和Salsa两条，人物适配／最后收势的保真代价、一般跨π接缝与原参考起姿不兼容仍按原标准拒绝，P3可选AI修订未启用。
+
+本轮238个非Markdown tracked文件及41个dist文件已冻结，最终公网检查未改变运行源码／资产。原生部署和binding见[部署记录](DEPLOYMENT.md)，动作来源／许可见[MOTION_PRIORS](MOTION_PRIORS.md)。详细本机收据保存在ignored `work/resume-natural-20261013/`，不提交私有原场景、音频或Notion正文。原五页Notion实现与最终发布增补共10原生任务成功；最终全文读回5/5：实现后的整份正文和最初原文仍逐字为后缀，标题／属性／icon／cover、附件和子页保持，新marker唯一、无truncated或unknown，版本／CI／两次失败与最终成功字段准确。最小布尔收据为 `notion-implementation-receipt.json`、`notion-release-receipt.json`，私有全文仅工具内存。本节下方旧记录完整保留。
+
 ## 2026-10-13 · 最新 main 再同步与 native44 有界核验
 
 运行代码 `153dcf70d3f996e29513094c175c3e96d17c73bf` 未变；最新远端文档 `8c614a8c9359027d025fb1941b5b20904c31de1b` 已快进。对应 native44/version `5cf3be7c-f7d2-48c4-9780-5e4b49b08d65`、初始 deployment `1260df5a-f8a3-46b1-9478-0d4cb142824c` 的 source/tree 与单100%流量已读回；AI、两个限频、ASSETS、阶段变量和 runtime 与配置一致。
