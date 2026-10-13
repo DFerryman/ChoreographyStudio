@@ -22,6 +22,10 @@ AI调查在本轮只读执行：当前协议和prompt只允许六种actionId+amp
 
 最终测试更正验证：新两宽正式2/2通过，独立fixture定向1/1、3.8s通过，合计八个不同相关流程已有成功证据，分批计数不冒充单轮8/8。fixture保持React time=0不重渲染，实际canvas时间/Root继续前进、Take逐值保持、严格诊断空，完全不要求某设备超过30Hz。初版fixture用绝对`.5s`目标但首次绘制已晚于它，原失败保留；改成首次观测后的相对推进，又发现独立@fs HTML默认/favicon.ico404，已明确链接原/favicon.svg，最终正式通过。开发预加载和资源仅在tests/fixtures，不进入生产dist，不改运行代码。全部历史和原始日志留ignored work；仅测试/Markdown提交触发新CI，保留native39与26dist库存/SHA。
 
+测试更正main`dff16dec587d5abf387c406d420ff08f4ae0436d`已push、完整remoteSHA准确。[新CI38342097978](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38342097978)最后实际读取in_progress/null，updated`2026-10-13T03:31:18Z`，未声称终态成功。207未变tracked与26dist逐SHA核对保持；此更正不改变native39运行源码或重复任何公网/模型调用，旧失败CI与有界公网脚本仍按原结果保留。
+
+原五页Notion最终需求、播放发布、AI诊断和测试更正已实际同步：五原生任务全部succeeded，完整回读5/5确认唯一新marker、16收据字段准确、原完整正文suffix逐字与SHA及子页引用保持。明确播放已部署/AI新动作链路未实现/新CI尚在复核，历史失败不改写。最小原生收据仅在ignored work，私有全文未落盘；最后Markdown回执提交push，沿用native39，不追加线上/推理动作。
+
 ## 2026-10-13 · 拉取最新main并发布iPad选择修复（native38，本地/线上有界检查通过）
 
 本次运行源码为`9c14cb762de3e9991f115e69b900f2d6f9f72dba`，tree `2d08bf0883c2d0ffd18ef6b72d11ff081553ae6c`，远端main完整SHA实际相等。只部署已有修复，不改应用、测试、配置或公开资产源文件。
