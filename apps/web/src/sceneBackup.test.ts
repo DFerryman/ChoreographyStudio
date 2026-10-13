@@ -2,11 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { deepStrictEqual } from 'node:assert/strict';
 import { analyzeStepAssistance, bakeKeyframeSequence, bakeLegacyKeyframeSequence, createNeutralTake, JOINT_NAMES, lastFrame, makeCountMap, makeKeyframeSequence, makePlan, MAX_CAMERA_KEYS, rotationFromDegrees, sampleTake, setStepAssistance, upsertMotionPoint, upsertRootKeyframe, upsertRotationKeyframe, type BakedTake, type CameraTrack, type Pose } from '../../../packages/core/src';
 import { createScene, type SceneDocument } from './scene';
-import { decodeSceneBackup, encodeSceneBackup, encodeSceneJsonBackup, SCENE_BACKUP_LIMITS } from './sceneBackup';
+import { assertSceneBackupCapacity, decodeSceneBackup, encodeSceneBackup, encodeSceneJsonBackup, SCENE_BACKUP_LIMITS } from './sceneBackup';
 import type { SceneProject } from './sceneProject';
 import { addFootLock } from '../../../packages/core/src/keyframes';
 import { captureFootLock } from '../../../packages/core/src/footLocks';
 import { packScene, unpackScene } from './compactScene';
+import type { AIMotionKnot, AIMotionPatch, AIMotionTrack } from '../../../packages/core/src/aiMotionTrack';
 
 // Original nonuniform fixture: a short final 30 Hz interval and animated
 // readonly terminals make accidental rebaking, normalization and aliasing visible.
@@ -50,6 +51,84 @@ async function changeHeader(blob: Blob, mutate: (header: Record<string, any>) =>
   new DataView(prefix.buffer).setUint32(parts.magicLength, header.byteLength, true);
   return new Blob([prefix, header, parts.audio]);
 }
+
+describe('prospective backup capacity', () => {
+  it.each([false, true])('predicts exact JSON and full header bytes without reading audio (extra tracks: %s)', async extraTracks => {
+    const source = fixture();
+    if (extraTracks) {
+      source.project.history[0].audioTracks = [{ id: 'capacity-track', name: 'capacity.wav', offsetSeconds: 0, durationSeconds: 4 }];
+      source.audioClips = [{ id: 'capacity-track', blob: new Blob([new Uint8Array([3, 4, 5])], { type: 'audio/x-m4a' }) }];
+    }
+    const original = structuredClone(source.project), mainRead = vi.spyOn(source.audio!, 'arrayBuffer');
+    const clipRead = source.audioClips?.[0] && vi.spyOn(source.audioClips[0].blob, 'arrayBuffer');
+    const capacity = assertSceneBackupCapacity(source);
+    expect(mainRead).not.toHaveBeenCalled(); if (clipRead) expect(clipRead).not.toHaveBeenCalled();
+    expect(capacity.projectBytes).toBe(encodeSceneJsonBackup(source).size);
+    const full = await encodeSceneBackup(source), parts = await bundleParts(full);
+    expect(capacity.fullHeaderBytes).toBe(new DataView(parts.bytes.buffer).getUint32(parts.magicLength, true));
+    expect(parts.rawHeader.format).toBe(extraTracks ? 'choreo-scene-bundle-3' : 'choreo-scene-bundle-2');
+    const restored = (await decodeSceneBackup(full)).scene;
+    expect(restored.project).toEqual({ ...original, teacherCheckedRevision: null });
+    expect(await restored.audio!.arrayBuffer()).toEqual(await source.audio!.arrayBuffer());
+    expect(source.project).toEqual(original);
+  });
+
+  it('retains project-only capacity checks when primary audio is absent', async () => {
+    const source = fixture(); source.audio = null;
+    const capacity = assertSceneBackupCapacity(source), project = encodeSceneJsonBackup(source);
+    expect(capacity).toEqual({ projectBytes: project.size, fullHeaderBytes: null });
+    expect((await decodeSceneBackup(project)).needsAudio).toBe(true);
+  });
+
+  it('rejects valid but oversized prospective dense AI histories before the source changes', () => {
+    const map = makeCountMap({ bpm: 120, musicBeatsPerDanceCount: 1, firstCountSourceSeconds: 0, startOctet: 0, octetCount: 15, audioDurationSeconds: 65 });
+    const startPose: Pose = { root: [0, 1.05, 0], joints: Object.fromEntries(JOINT_NAMES.map((joint, index) => [joint, rotationFromDegrees([index * .123456789, index * .234567891, index * .345678912])])) as Pose['joints'] };
+    const take: BakedTake = { id: 'capacity-source', schemaVersion: 'preview-1', planId: 'capacity-plan', countMapId: map.id, durationSeconds: map.durationSeconds,
+      times: [0, map.durationSeconds], poses: [startPose, structuredClone(startPose)], provenance: 'synthetic-demo' };
+    const snapshot = { title: 'capacity original', countMap: map, plan: null, take };
+    const source = createScene<SceneProject>({ name: 'capacity source', audio: new Blob([new Uint8Array([1, 2, 3])], { type: 'audio/wav' }), audioName: 'capacity.wav',
+      project: { history: [snapshot], historyIndex: 0, revision: 1, audioDuration: 65, teacherCheckedRevision: null } });
+    const original = structuredClone(source.project), read = vi.spyOn(source.audio!, 'arrayBuffer');
+    const knots: AIMotionKnot[] = Array.from({ length: 1801 }, (_, index) => {
+      const time = index / 30, endpoint = index === 0 || index === 1800;
+      const pose: Pose = index === 0 ? structuredClone(startPose) : { root: [.123456789123 * Math.sin(time), 1.05 + .023456789123 * Math.sin(time / 2), .234567891234 * Math.cos(time)],
+        joints: Object.fromEntries(JOINT_NAMES.map((joint, jointIndex) => [joint, rotationFromDegrees([
+          12.3456789123 * Math.sin(time + jointIndex * .123456789), 23.4567891234 * Math.cos(time + jointIndex * .234567891), 34.5678912345 * Math.sin(time / 2 + jointIndex * .345678912),
+        ])])) as Pose['joints'] };
+      return { time, pose, linearVelocity: endpoint ? [0, 0, 0] : [.123456789123 * Math.cos(time), .0117283945615 * Math.cos(time / 2), -.234567891234 * Math.sin(time)],
+        angularVelocity: Object.fromEntries(JOINT_NAMES.map((joint, jointIndex) => [joint, endpoint ? [0, 0, 0] : [
+          .123456789123 * Math.cos(time + jointIndex * .123456789), .234567891234 * Math.sin(time + jointIndex * .234567891), .345678912345 * Math.cos(time / 2 + jointIndex * .345678912),
+        ]])) as AIMotionKnot['angularVelocity'] };
+    });
+    const patch: AIMotionPatch = { id: 'capacity-patch', provider: 'cloudflare-workers-ai', model: '@cf/openai/gpt-oss-120b', requestId: 'capacity-request', sourceHash: 'a'.repeat(64),
+      target: { mode: 'full', startSeconds: 0, endSeconds: map.durationSeconds }, knots,
+      motionOrigin: { kind: 'human-motion-prior', catalogVersion: 'capacity-fixture-1', sources: [{ clipId: 'capacity-capture', sourceHash: 'c'.repeat(64) }], segments: [{
+        clipId: 'capacity-capture', startSeconds: 0, endSeconds: map.durationSeconds, sourceStartSeconds: 0, sourceEndSeconds: map.durationSeconds,
+        yawDegrees: 0, travelXZ: [0, 0], transitionSeconds: .25, contactHint: 'unknown',
+      }] } };
+    const track = (index: number): AIMotionTrack => ({ schema: 'ai-motion-track-1', countMapId: map.id, durationSeconds: map.durationSeconds,
+      patches: [{ ...patch, id: `capacity-patch-${index}`, requestId: `capacity-request-${index}` }] });
+    const prospective = { ...source, project: { ...source.project,
+      history: Array.from({ length: 12 }, (_, index) => ({ ...snapshot, aiMotion: track(index) })), historyIndex: 11, revision: 12 } };
+    // A single curve remains exportable; distinct request provenance prevents
+    // merging twelve different generations just to hide an oversized history.
+    const small = { ...source, project: { ...source.project, history: [{ ...snapshot, aiMotion: track(0) }] } };
+    expect(assertSceneBackupCapacity(small).projectBytes).toBeLessThan(SCENE_BACKUP_LIMITS.headerBytes);
+    expect(() => assertSceneBackupCapacity(prospective)).toThrow(/资源|32 MiB/);
+    expect(read).not.toHaveBeenCalled(); expect(source.project).toEqual(original);
+  }, 45_000);
+
+  it('checks the total retained audio budget before reading any audio bytes', async () => {
+    class MetadataBlob extends Blob { override get size() { return SCENE_BACKUP_LIMITS.audioClipBytes; } }
+    const source = fixture();
+    source.project.history[0].audioTracks = Array.from({ length: 3 }, (_, index) => ({ id: `capacity-track-${index}`, name: `track-${index}.wav`, offsetSeconds: 0, durationSeconds: 4 }));
+    source.audioClips = source.project.history[0].audioTracks.map(track => ({ id: track.id, blob: new MetadataBlob(['metadata only'], { type: 'audio/wav' }) }));
+    const mainRead = vi.spyOn(source.audio!, 'arrayBuffer'), reads = source.audioClips.map(clip => vi.spyOn(clip.blob, 'arrayBuffer'));
+    expect(() => assertSceneBackupCapacity(source)).toThrow('200 MiB');
+    await expect(encodeSceneBackup(source)).rejects.toThrow('200 MiB');
+    expect(mainRead).not.toHaveBeenCalled(); for (const read of reads) expect(read).not.toHaveBeenCalled();
+  });
+});
 
 function lockedFixture() {
   const scene = fixture();

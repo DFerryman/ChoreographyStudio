@@ -1,13 +1,16 @@
 import { JOINT_NAMES, type BakedTake, type Pose, type Quat, type Vec3 } from '../../../packages/core/src/motion-types';
 import { validateProjectCameraTracks } from './sceneCameraTrack';
 import { validateProjectAIMotionTracks } from './sceneAIMotion';
+import { MAX_AI_MOTION_PATCHES, MAX_AI_MOTION_POSE_SAMPLES, MAX_AI_MOTION_TRACK_KNOTS, type AIMotionPatch } from '../../../packages/core/src/aiMotionTrack';
 
 /** Lossless wire storage only. Runtime scenes keep their ordinary full snapshots. */
-export const COMPACT_SCENE_LIMITS = { takes: 36, samplesPerTake: 6001, totalSamples: 150_000, history: 12 } as const;
+export const COMPACT_SCENE_LIMITS = { takes: 36, samplesPerTake: 6001, totalSamples: 150_000, history: 12,
+  motionPatches: 12 * MAX_AI_MOTION_PATCHES, totalMotionKnots: 12 * MAX_AI_MOTION_TRACK_KNOTS, wireBytes: 32 * 1024 * 1024 } as const;
 type TakeMetadata = Omit<BakedTake, 'times' | 'poses'>;
 type PoseChange = { index: number; root?: Vec3; joints?: Partial<Pose['joints']> };
 type PackedTake = { kind: 'full'; take: BakedTake } | { kind: 'delta'; reference: number; metadata: TakeMetadata; times?: number[]; changes: PoseChange[] };
-export type CompactScene = { schema: 'compact-scene-1'; scene: unknown; takes: PackedTake[] };
+export type CompactScene = { schema: 'compact-scene-1'; scene: unknown; takes: PackedTake[] }
+  | { schema: 'compact-scene-2'; scene: unknown; takes: PackedTake[]; motionPatches: AIMotionPatch[] };
 type ObjectValue = Record<string, unknown>;
 const fail = (): never => { throw new Error('场景压缩数据无效或超出资源范围。'); };
 const takeFields = ['id', 'schemaVersion', 'planId', 'countMapId', 'durationSeconds', 'times', 'poses', 'provenance'];
@@ -59,16 +62,40 @@ function equalTake(a: BakedTake, b: BakedTake): boolean {
 function takeMetadata(take: BakedTake): TakeMetadata {
   return { id: take.id, schemaVersion: take.schemaVersion, planId: take.planId, countMapId: take.countMapId, durationSeconds: take.durationSeconds, provenance: take.provenance };
 }
-function sceneHistory(value: unknown, validateMotionSource = true) {
+function sceneHistory(value: unknown, validateMotionSource = true, validateMotion = true) {
   const scene = object(value), project = object(scene.project), history = array(project.history, COMPACT_SCENE_LIMITS.history);
   if (!history.length) fail();
-  try { validateProjectCameraTracks(project); validateProjectAIMotionTracks(project, validateMotionSource); } catch { fail(); }
+  try { validateProjectCameraTracks(project); if (validateMotion) validateProjectAIMotionTracks(project, validateMotionSource); } catch { fail(); }
   return { scene, project, history: history.map(value => object(value)) };
+}
+
+/** Stable exact keys also recognize independently cloned immutable patches. */
+function motionKey(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(motionKey).join(',')}]`;
+  if (value && typeof value === 'object') return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${motionKey((value as ObjectValue)[key])}`).join(',')}}`;
+  // Avoid merging +0 and -0 in the in-memory codec. Ordinary JSON retains its
+  // existing signed-zero behavior; no coordinate or velocity is rounded here.
+  return typeof value === 'number' && Object.is(value, -0) ? '-0' : JSON.stringify(value);
+}
+function wireBudget(value: unknown): void {
+  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > COMPACT_SCENE_LIMITS.wireBytes) fail();
 }
 
 /** Sharing and deltas preserve exact numbers; they never resample or rebake motion. */
 export function packScene(value: unknown): CompactScene {
   const source = sceneHistory(value), takes: PackedTake[] = [], originals: BakedTake[] = [];
+  const motionPatches: AIMotionPatch[] = [], motionIdentities = new WeakMap<object, number>(), motionKeys = new Map<string, number>();
+  let tableMotionKnots = 0;
+  function motionReference(value: unknown): { $motionPatch: number } {
+    const patch = value as AIMotionPatch, known = motionIdentities.get(patch);
+    if (known !== undefined) return { $motionPatch: known };
+    const key = motionKey(patch), duplicate = motionKeys.get(key);
+    if (duplicate !== undefined) { motionIdentities.set(patch, duplicate); return { $motionPatch: duplicate }; }
+    tableMotionKnots += patch.knots.length;
+    if (motionPatches.length >= COMPACT_SCENE_LIMITS.motionPatches || tableMotionKnots > COMPACT_SCENE_LIMITS.totalMotionKnots) fail();
+    const index = motionPatches.length; motionPatches.push(patch); motionKeys.set(key, index); motionIdentities.set(patch, index);
+    return { $motionPatch: index };
+  }
   const identities = new WeakMap<object, number>();
   const frozenReferences = new Set<number>();
   let referencedSamples = 0, tableSamples = 0;
@@ -120,6 +147,10 @@ export function packScene(value: unknown): CompactScene {
   }
   const history = source.history.map(snapshot => {
     const result: ObjectValue = { ...snapshot, take: snapshot.take === null ? null : reference(snapshot.take) };
+    if (snapshot.aiMotion !== undefined) {
+      const track = object(snapshot.aiMotion);
+      result.aiMotion = { ...track, patches: (track.patches as unknown[]).map(motionReference) };
+    }
     if (snapshot.manual !== undefined) {
       const manual = object(snapshot.manual), next: ObjectValue = { ...manual, baseTake: reference(manual.baseTake) };
       if (manual.pointBaseTake !== undefined) {
@@ -134,13 +165,41 @@ export function packScene(value: unknown): CompactScene {
   // and expanded once rather than copied for every point-edit operation.
   for (const index of frozenReferences) referencedSamples += originals[index].times.length;
   if (referencedSamples > COMPACT_SCENE_LIMITS.totalSamples) fail();
-  return { schema: 'compact-scene-1', scene: { ...source.scene, project: { ...source.project, history } }, takes };
+  const scene = { ...source.scene, project: { ...source.project, history } };
+  const packed: CompactScene = motionPatches.length ? { schema: 'compact-scene-2', scene, takes, motionPatches } : { schema: 'compact-scene-1', scene, takes };
+  wireBudget(packed); return packed;
 }
 
 /** Decode a bounded, acyclic table, then let the ordinary scene validator run. */
 export function unpackScene(value: unknown): unknown {
-  const packed = object(value, ['schema', 'scene', 'takes']); if (packed.schema !== 'compact-scene-1') fail();
-  const source = sceneHistory(packed.scene, false), entries = array(packed.takes, COMPACT_SCENE_LIMITS.takes), lengths: number[] = [];
+  const raw = object(value), hasMotionTable = raw.schema === 'compact-scene-2';
+  const packed = object(value, hasMotionTable ? ['schema', 'scene', 'takes', 'motionPatches'] : ['schema', 'scene', 'takes']);
+  if (!hasMotionTable && packed.schema !== 'compact-scene-1') fail();
+  const source = sceneHistory(packed.scene, false, !hasMotionTable), entries = array(packed.takes, COMPACT_SCENE_LIMITS.takes), lengths: number[] = [];
+  const motionPatches = hasMotionTable ? array(packed.motionPatches, COMPACT_SCENE_LIMITS.motionPatches) : [];
+  let tableMotionKnots = 0;
+  const motionLengths = motionPatches.map(value => {
+    const patch = object(value, ['id', 'provider', 'model', 'requestId', 'sourceHash', 'target', 'knots', 'motionOrigin'], ['id', 'provider', 'model', 'requestId', 'sourceHash', 'target', 'knots']);
+    const knots = array(patch.knots, MAX_AI_MOTION_POSE_SAMPLES + 2);
+    if (knots.length < 3) fail();
+    tableMotionKnots += knots.length; if (tableMotionKnots > COMPACT_SCENE_LIMITS.totalMotionKnots) fail();
+    return knots.length;
+  });
+  const usedMotion = new Set<number>();
+  // Resolve only table references, with no expansion/copying of dense curves.
+  // All references and each track's aggregate budget precede deep validation.
+  const motionTracks = source.history.map(snapshot => {
+    if (!hasMotionTable || snapshot.aiMotion === undefined) return snapshot.aiMotion;
+    const track = object(snapshot.aiMotion, ['schema', 'countMapId', 'durationSeconds', 'patches']);
+    let total = 0;
+    const patches = array(track.patches, MAX_AI_MOTION_PATCHES).map(value => {
+      const reference = object(value, ['$motionPatch']), index = integer(reference.$motionPatch, motionPatches.length - 1);
+      total += motionLengths[index]; if (!motionLengths[index] || total > MAX_AI_MOTION_TRACK_KNOTS) fail();
+      usedMotion.add(index); return motionPatches[index];
+    });
+    return { ...track, patches };
+  });
+  if (hasMotionTable && (!motionPatches.length || usedMotion.size !== motionPatches.length)) fail();
   let tableSamples = 0;
   // Preflight every table allocation and every historical reference before
   // expanding deltas. Backward-only references rule out cycles and fanout bombs.
@@ -176,6 +235,10 @@ export function unpackScene(value: unknown): unknown {
   });
   for (const index of frozenReferences) referencedSamples += lengths[index];
   if (referencedSamples > COMPACT_SCENE_LIMITS.totalSamples) fail();
+  wireBudget(packed);
+  if (hasMotionTable) {
+    try { validateProjectAIMotionTracks({ ...source.project, history: source.history.map((snapshot, index) => ({ ...snapshot, ...(snapshot.aiMotion === undefined ? {} : { aiMotion: motionTracks[index] }) })) }, false); } catch { fail(); }
+  }
   const takes: BakedTake[] = [];
   for (const entry of entries) {
     const data = entry as ObjectValue;
@@ -207,7 +270,7 @@ export function unpackScene(value: unknown): unknown {
     });
     takes.push({ ...meta, times, poses });
   }
-  const history = source.history.map((snapshot, index) => ({ ...snapshot, take: snapshotReferences[index].take === null ? null : takes[snapshotReferences[index].take!], ...(snapshot.manual === undefined ? {} : { manual: { ...object(snapshot.manual), baseTake: takes[snapshotReferences[index].base!], ...(snapshotReferences[index].frozen === null ? {} : { pointBaseTake: takes[snapshotReferences[index].frozen!] }) } }) }));
+  const history = source.history.map((snapshot, index) => ({ ...snapshot, take: snapshotReferences[index].take === null ? null : takes[snapshotReferences[index].take!], ...(snapshot.aiMotion === undefined ? {} : { aiMotion: motionTracks[index] }), ...(snapshot.manual === undefined ? {} : { manual: { ...object(snapshot.manual), baseTake: takes[snapshotReferences[index].base!], ...(snapshotReferences[index].frozen === null ? {} : { pointBaseTake: takes[snapshotReferences[index].frozen!] }) } }) }));
   const project = { ...source.project, history };
   try { validateProjectAIMotionTracks(project); } catch { fail(); }
   return { ...source.scene, project };

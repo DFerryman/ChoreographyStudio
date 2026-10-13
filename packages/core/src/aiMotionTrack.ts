@@ -1,5 +1,7 @@
 import { rotationFromDegrees } from './keyframes';
 import { JOINT_NAMES, type JointName, type Pose, type Quat, type Vec3 } from './motion-types';
+import type { MotionPriorCompositionOrigin } from './motionPriors';
+import { hasAIMotionPlanMinimumDuration } from './aiMotionPlan';
 import {
   AI_MOTION_SUPPORTED_MODELS, AI_MOTION_MAX_KEYFRAMES, validateAIMotionRequest, validateAIMotionResult,
   type AIMotionBoundary, type AIMotionModel, type AIMotionRequest, type AIMotionResult, type AIMotionTarget,
@@ -21,6 +23,8 @@ export interface AIMotionPatch {
   sourceHash: string;
   target: AIMotionTarget;
   knots: AIMotionKnot[];
+  /** Local dense curves preserve their actual human-capture/plan provenance. */
+  motionOrigin?: MotionPriorCompositionOrigin;
 }
 export interface AIMotionTrack {
   schema: 'ai-motion-track-1';
@@ -30,7 +34,9 @@ export interface AIMotionTrack {
 }
 export type AIMotionPoseSampler = (time: number) => Pose;
 export const MAX_AI_MOTION_PATCHES = 12;
-export const MAX_AI_MOTION_TRACK_KNOTS = MAX_AI_MOTION_PATCHES * (AI_MOTION_MAX_KEYFRAMES + 2);
+/** Local motion data is independent of the model's sparse JSON/token budget. */
+export const MAX_AI_MOTION_POSE_SAMPLES = 1801;
+export const MAX_AI_MOTION_TRACK_KNOTS = 7208;
 export interface AIMotionQuality {
   samples: number;
   maxFrameRootDistanceMeters: number;
@@ -117,13 +123,63 @@ function rotationCurve(a: Quat, b: Quat, va: Vec3, vb: Vec3, amount: number, dur
   return result.map(component => component / norm) as Quat;
 }
 
-function record(input: unknown, required: readonly string[]): Record<string, unknown> {
+function record(input: unknown, required: readonly string[], optional: readonly string[] = []): Record<string, unknown> {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return fail();
   const prototype = Object.getPrototypeOf(input);
   if (prototype !== Object.prototype && prototype !== null) return fail();
   const value = input as Record<string, unknown>, keys = Object.keys(value);
-  if (keys.length !== required.length || keys.some(key => forbidden.has(key) || !required.includes(key))) return fail();
+  if (required.some(key => !Object.hasOwn(value, key)) || keys.some(key => forbidden.has(key) || !required.includes(key) && !optional.includes(key))) return fail();
   return value;
+}
+function validateMotionOrigin(input: unknown, range: AIMotionTarget): void {
+  const value = record(input, ['kind', 'catalogVersion', 'sources', 'segments'], ['adaptations', 'adaptationMetrics', 'endingAdaptation']);
+  if (value.kind !== 'human-motion-prior') return fail('AI 动作来源类型无效。');
+  text(value.catalogVersion, 128);
+  if (value.endingAdaptation !== undefined) {
+    const ending = record(value.endingAdaptation, ['kind', 'seconds']);
+    if (range.mode !== 'full' || ending.kind !== 'stable-hold' || typeof ending.seconds !== 'number' || !Number.isFinite(ending.seconds) ||
+      ending.seconds <= 0 || ending.seconds > range.endSeconds - range.startSeconds) return fail('动作收势适配记录无效。');
+  }
+  if (value.adaptations !== undefined) {
+    if (!Array.isArray(value.adaptations) || value.adaptations.length < 1 || value.adaptations.length > 12) return fail('动作适配来源数量无效。');
+    for (const adaptation of value.adaptations) text(adaptation, 128);
+    if (new Set(value.adaptations).size !== value.adaptations.length) return fail('动作适配来源重复。');
+  }
+  if (value.adaptationMetrics !== undefined) {
+    const metrics = record(value.adaptationMetrics, ['maxHandDisplacementMeters', 'rmsHandDisplacementMeters'],
+      ['maxSoleOrientationChangeRadians', 'maxSoleSmoothingRadians', 'maxFootMarkerDisplacementMeters', 'maxFootDisplacementMeters', 'rmsFootDisplacementMeters', 'maxKneeDisplacementMeters']);
+    const maximum = metrics.maxHandDisplacementMeters, rms = metrics.rmsHandDisplacementMeters;
+    if (typeof maximum !== 'number' || typeof rms !== 'number' || !Number.isFinite(maximum) || !Number.isFinite(rms) ||
+      maximum < 0 || maximum > 5 || rms < 0 || rms > maximum + 1e-10) return fail('动作比例适配记录无效。');
+    for (const [key, limit] of [['maxSoleOrientationChangeRadians', Math.PI], ['maxSoleSmoothingRadians', Math.PI], ['maxFootMarkerDisplacementMeters', 5],
+      ['maxFootDisplacementMeters', 5], ['rmsFootDisplacementMeters', 5], ['maxKneeDisplacementMeters', 5]] as const) {
+      const metric = metrics[key];
+      if (metric !== undefined && (typeof metric !== 'number' || !Number.isFinite(metric) || metric < 0 || metric > limit)) return fail('动作足部适配记录无效。');
+    }
+    if (metrics.rmsFootDisplacementMeters !== undefined && (metrics.maxFootDisplacementMeters === undefined ||
+      (metrics.rmsFootDisplacementMeters as number) > (metrics.maxFootDisplacementMeters as number) + 1e-10)) return fail('动作足部适配记录无效。');
+  }
+  if (!Array.isArray(value.sources) || value.sources.length < 1 || value.sources.length > 24 || !Array.isArray(value.segments) || value.segments.length < 1 || value.segments.length > 32) return fail('AI 动作来源数量超出范围。');
+  const ids = new Set<string>();
+  for (const inputSource of value.sources) {
+    const source = record(inputSource, ['clipId', 'sourceHash']); text(source.clipId, 128);
+    if (ids.has(source.clipId as string) || typeof source.sourceHash !== 'string' || !/^[a-f0-9]{64}$/.test(source.sourceHash)) return fail('AI 动作来源摘要无效。');
+    ids.add(source.clipId as string);
+  }
+  let previous = range.startSeconds;
+  const used = new Set<string>();
+  for (const inputSegment of value.segments) {
+    const segment = record(inputSegment, ['clipId', 'startSeconds', 'endSeconds', 'sourceStartSeconds', 'sourceEndSeconds', 'yawDegrees', 'travelXZ', 'transitionSeconds', 'contactHint']);
+    if (!ids.has(segment.clipId as string)) return fail('AI 动作段缺少来源。');
+    used.add(segment.clipId as string);
+    const values = ['startSeconds', 'endSeconds', 'sourceStartSeconds', 'sourceEndSeconds', 'yawDegrees', 'transitionSeconds'].map(key => segment[key]);
+    if (values.some(v => typeof v !== 'number' || !Number.isFinite(v))) return fail();
+    const [start, end, sourceStart, sourceEnd, yaw, transition] = values as number[];
+    const duration = end - start, sourceDuration = sourceEnd - sourceStart;
+    if (start !== previous || end > range.endSeconds || !hasAIMotionPlanMinimumDuration(start, end) || sourceStart < 0 || sourceEnd > 600 || sourceDuration <= 0 || duration / sourceDuration < .5 || duration / sourceDuration > 2 || Math.abs(yaw) > 180 || transition < 0 || transition > Math.min(1, duration / 3) || !['standing', 'floor', 'airborne', 'mixed', 'unknown'].includes(segment.contactHint as string)) return fail('保存的 AI 编排时间或来源无效。');
+    vector(segment.travelXZ, 2, 2); previous = end;
+  }
+  if (previous !== range.endSeconds || used.size !== ids.size) return fail('AI 动作来源与目标覆盖不一致。');
 }
 function vector(input: unknown, size = 3, limit = 1e4): void {
   if (!Array.isArray(input) || input.length !== size || Array.from(input).some(value => typeof value !== 'number' || !Number.isFinite(value) || Math.abs(value) > limit)) return fail('AI 动作轨道坐标或速度超过数值范围。');
@@ -157,14 +213,16 @@ export function validateAIMotionTrack(input: unknown, map: { id: string; duratio
   let totalKnots = 0;
   const ids = new Set<string>(), requests = new Set<string>();
   for (const [index, inputPatch] of track.patches.entries()) {
-    const patch = record(inputPatch, ['id', 'provider', 'model', 'requestId', 'sourceHash', 'target', 'knots']);
+    const patch = record(inputPatch, ['id', 'provider', 'model', 'requestId', 'sourceHash', 'target', 'knots'], ['motionOrigin']);
     text(patch.id); text(patch.requestId); text(patch.sourceHash);
     if (!/^[a-fA-F0-9]{64}$/.test(patch.sourceHash as string)) return fail('AI 动作轨道需要有效的原稿摘要。');
     if (patch.provider !== 'cloudflare-workers-ai' || !AI_MOTION_SUPPORTED_MODELS.includes(patch.model as AIMotionModel) || ids.has(patch.id as string) || requests.has(patch.requestId as string)) return fail('AI 动作轨道来源或标识无效。');
     ids.add(patch.id as string); requests.add(patch.requestId as string);
     const range = target(patch.target, map.durationSeconds);
+    if (patch.motionOrigin !== undefined) validateMotionOrigin(patch.motionOrigin, range);
     if (range.mode === 'full' && index !== 0) return fail('完整 AI 动作必须是轨道第一层。');
-    if (!Array.isArray(patch.knots) || patch.knots.length < 3 || patch.knots.length > AI_MOTION_MAX_KEYFRAMES + (range.mode === 'full' ? 1 : 2)) return fail('AI 动作曲线关键姿态数量无效。');
+    const maxKnots = (patch.motionOrigin === undefined ? AI_MOTION_MAX_KEYFRAMES : MAX_AI_MOTION_POSE_SAMPLES) + (range.mode === 'full' ? 1 : 2);
+    if (!Array.isArray(patch.knots) || patch.knots.length < 3 || patch.knots.length > maxKnots) return fail('AI 动作曲线关键姿态数量无效。');
     totalKnots += patch.knots.length;
     if (totalKnots > MAX_AI_MOTION_TRACK_KNOTS) return fail(`AI 动作轨道最多保存 ${MAX_AI_MOTION_TRACK_KNOTS} 个关键姿态。`);
     let previous = -Infinity;
@@ -266,8 +324,47 @@ export function compileAIMotionPatch(inputRequest: AIMotionRequest, inputResult:
   return patch;
 }
 
+/** Compile locally sampled real motion without routing dense poses through an LLM.
+ * Both interval seams are injected from the unchanged effective source sampler. */
+export function compileAIMotionPosePatch(
+  inputRequest: AIMotionRequest,
+  metadata: Pick<AIMotionResult, 'provider' | 'model' | 'requestId' | 'sourceHash' | 'target'>,
+  samples: readonly { time: number; pose: Pose }[],
+  baseSampler: AIMotionPoseSampler,
+  motionOrigin: MotionPriorCompositionOrigin,
+): AIMotionPatch {
+  const request = validateAIMotionRequest(inputRequest), { target: range, timing } = request.context;
+  if (metadata.provider !== 'cloudflare-workers-ai' || metadata.requestId !== request.context.requestId || metadata.sourceHash !== request.context.sourceHash || metadata.target.mode !== range.mode || metadata.target.startSeconds !== range.startSeconds || metadata.target.endSeconds !== range.endSeconds) return fail('AI 编排与原稿目标不一致。');
+  validateMotionOrigin(motionOrigin, range);
+  if (!Array.isArray(samples) || samples.length < (range.mode === 'full' ? 2 : 1) || samples.length > MAX_AI_MOTION_POSE_SAMPLES) return fail('本地动作采样数量超出范围。');
+  const start = estimateAIMotionBoundary(baseSampler, range.startSeconds, 'before', timing.durationSeconds);
+  const end = estimateAIMotionBoundary(baseSampler, range.endSeconds, 'after', timing.durationSeconds);
+  if (!exactPose(start.pose, request.context.initialPose) || !exactPose(start.pose, request.context.boundaries.start.pose) || !exactPose(end.pose, request.context.boundaries.end.pose)) return fail('AI 候选的原稿边界已变化，请重新生成。');
+  const knots = [boundaryKnot(start)];
+  let previousTime = range.startSeconds;
+  for (const sample of samples) {
+    if (!sample || !Number.isFinite(sample.time) || sample.time <= previousTime || sample.time > range.endSeconds || range.mode === 'interval' && sample.time === range.endSeconds) return fail('本地动作时间必须位于固定可写区间。');
+    pose(sample.pose); previousTime = sample.time;
+    knots.push({ time: sample.time, pose: copyPose(sample.pose), linearVelocity: [0, 0, 0], angularVelocity: zeros() });
+  }
+  if (range.mode === 'interval') knots.push(boundaryKnot(end));
+  else if (previousTime !== range.endSeconds) return fail('完整动作必须采样到精确结束时间。');
+  for (let index = 1; index < knots.length - 1; index++) interiorVelocities(knots, index);
+  const patch: AIMotionPatch = { id: `ai-patch-${metadata.requestId}`, provider: metadata.provider, model: metadata.model,
+    requestId: metadata.requestId, sourceHash: metadata.sourceHash, target: { ...range }, knots, motionOrigin: structuredClone(motionOrigin) };
+  validateAIMotionTrack({ schema: 'ai-motion-track-1', countMapId: timing.id, durationSeconds: timing.durationSeconds, patches: [patch] }, timing);
+  return patch;
+}
+
+/** An offline numerical repair may change interior poses, never either seam tangent. */
+export function recomputeAIMotionPatchTangents(patch: AIMotionPatch): AIMotionPatch {
+  const updated = clonePatch(patch);
+  for (let index = 1; index < updated.knots.length - 1; index++) interiorVelocities(updated.knots, index);
+  return updated;
+}
+
 function clonePatch(patch: AIMotionPatch): AIMotionPatch {
-  return { ...patch, target: { ...patch.target }, knots: patch.knots.map(knot => ({ time: knot.time, pose: copyPose(knot.pose), linearVelocity: copyVector(knot.linearVelocity), angularVelocity: Object.fromEntries(JOINT_NAMES.map(joint => [joint, copyVector(knot.angularVelocity[joint])])) as Record<JointName, Vec3> })) };
+  return { ...patch, ...(patch.motionOrigin ? { motionOrigin: structuredClone(patch.motionOrigin) } : {}), target: { ...patch.target }, knots: patch.knots.map(knot => ({ time: knot.time, pose: copyPose(knot.pose), linearVelocity: copyVector(knot.linearVelocity), angularVelocity: Object.fromEntries(JOINT_NAMES.map(joint => [joint, copyVector(knot.angularVelocity[joint])])) as Record<JointName, Vec3> })) };
 }
 /** A full regeneration replaces AI layers; the caller's original take stays separate. */
 export function appendAIMotionPatch(existing: AIMotionTrack | undefined, patch: AIMotionPatch, map: { id: string; durationSeconds: number }): AIMotionTrack {

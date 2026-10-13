@@ -2,8 +2,8 @@ import { ArrowUpRight } from 'lucide-react';
 import { Dialog } from './Dialog';
 
 const STAGES = [
-  { title: '交互与播放预览', current: true, text: '音乐与镜头两轨 Timeline、节拍选区、AI 生成人物动作候选、碰撞预览、操作记录、3D 播放与本机保存。' },
-  { title: '接入真实动作与原工程契约', text: '取得合法素材、人物和过渡记录，运行 Python 动作处理与接触检查。' },
+  { title: '真人动作编排与候选检查', current: true, text: '音乐与镜头 Timeline、节拍选区、AI 编排真人动作、关节与碰撞检查、明确预览和采用、撤销与本机保存。' },
+  { title: '扩展动作覆盖', text: '按实际质量与费用评估更多动作素材、专用动作模型及音乐理解。' },
   { title: '接入生产服务', text: '账号、私有项目、版本事务、持久任务、取消与权限检查。' },
   { title: '高精度烘焙与教师验证', text: '编舞完成后，基于动作与相机 Timeline 计算高精度碰撞、骨骼与蒙皮，产出稳定无抖动的只读视频；此阶段尚未实现。' },
 ];
@@ -26,7 +26,8 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
       <h3>键盘快捷键</h3>
       <dl>{SHORTCUTS.map(([keys, action]) => <div key={keys}><dt><kbd>{keys}</kbd></dt><dd>{action}</dd></div>)}</dl>
     </section>
-    <div className="form-note">人物动作只由 AI 生成：Workers AI 选择原创程序化动作与幅度，点击生成才调用模型，预览后再采用。按时间线选区只修改该段的 AI 生成是下一步功能。旧场景里的人物关键帧数据完整保留，只是不在时间线上显示或手动编辑。碰撞、IK 与物理计算仍在底层运行；仍需真实动作与教师验证。保存只在本机。完整场景包包含原音乐，可导入为新场景；项目 JSON 不含音乐。当前不提供 MP4 或真实动作库。</div>
+    <div className="form-note">点击生成后，AI 根据描述、数拍与原动作上下文编排真人动捕片段；新轨迹经过关节、身体碰撞与接触检查，合格后才可预览和采用。当前素材以街舞和 Salsa 为主，未覆盖的动作会说明限制。选区两端和区间外保持，原场景动作与音乐不改，采用可撤销。检查使用简化身体模型，尚未验证完整人体力量与关节动力学；音乐字节不发送给模型。场景与音乐保存在本机，完整场景包保留原音乐，项目 JSON 不含音乐；当前不提供 MP4。</div>
+    <a className="form-note" href="/motion-priors/NOTICE.txt" target="_blank" rel="noreferrer">真人动作来源与许可：CMU 动捕，可纳入商业产品，不可直接转售动作数据本身。</a>
     <a className="button primary full" href="https://github.com/DFerryman/ChoreographyStudio" target="_blank" rel="noreferrer">查看源码与阶段任务 <ArrowUpRight size={16} /></a>
   </Dialog>;
 }

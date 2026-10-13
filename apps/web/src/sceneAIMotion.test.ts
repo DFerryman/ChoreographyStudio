@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { IDBFactory } from 'fake-indexeddb';
 import { makeAIMotionFixture, makeAIMotionResultFixture } from '../../../packages/core/src/aiMotion.fixture';
-import { appendAIMotionPatch, compileAIMotionPatch, createAIMotionSampler } from '../../../packages/core/src/aiMotionTrack';
+import { appendAIMotionPatch, compileAIMotionPatch, createAIMotionSampler, type AIMotionKnot } from '../../../packages/core/src/aiMotionTrack';
 import { makeKeyframeSequence, rotationFromDegrees, sampleTake, type BakedTake } from '../../../packages/core/src';
 import { createScene } from './scene';
 import type { SceneProject } from './sceneProject';
@@ -35,6 +35,65 @@ async function motionScene() {
 }
 
 describe('model motion scene persistence', () => {
+  it('roundtrips dense prior curves and twelve snapshots through compact JSON and complete audio without rounding seams', async () => {
+    const { scene, original } = await motionScene(), active = scene.project.history[1];
+    const patch = active.aiMotion!.patches[0], start = patch.target.startSeconds, end = patch.target.endSeconds;
+    const base = (time: number) => sampleTake(active.take!, time), originalCurve = createAIMotionSampler(base, active.aiMotion);
+    const boundaryStart = structuredClone(patch.knots[0]), boundaryEnd = structuredClone(patch.knots.at(-1)!);
+    patch.knots = Array.from({ length: 1801 }, (_, index): AIMotionKnot => {
+      if (index === 0) return boundaryStart;
+      if (index === 1800) return boundaryEnd;
+      const time = start + (end - start) * index / 1800;
+      return { time, pose: originalCurve(time), linearVelocity: [0, 0, 0],
+        angularVelocity: Object.fromEntries(Object.keys(boundaryStart.angularVelocity).map(joint => [joint, [0, 0, 0]])) as AIMotionKnot['angularVelocity'] };
+    });
+    patch.motionOrigin = { kind: 'human-motion-prior', catalogVersion: 'test-dense-catalog-1', sources: [{ clipId: 'capture-fixture', sourceHash: 'c'.repeat(64) }], segments: [{
+      clipId: 'capture-fixture', startSeconds: start, endSeconds: end, sourceStartSeconds: 0, sourceEndSeconds: end - start,
+      yawDegrees: 0, travelXZ: [0, 0], transitionSeconds: .25, contactHint: 'standing',
+    }] };
+    scene.project.history = [scene.project.history[0], ...Array.from({ length: 11 }, (_, index) => ({ ...active,
+      aiMotion: structuredClone(active.aiMotion), operation: { label: `相机查看 ${index + 1}`, time: 4.1, tracks: ['camera' as const] },
+    }))];
+    scene.project.historyIndex = 11; scene.project.revision = 12;
+    const before = structuredClone(scene.project), jsonFile = encodeSceneJsonBackup(scene), fullFile = await encodeSceneBackup(scene);
+    const json = JSON.parse(await jsonFile.text());
+    expect(json.scene.schema).toBe('compact-scene-2');
+    expect(json.scene.motionPatches).toHaveLength(1);
+    expect(json.scene.motionPatches[0].knots).toHaveLength(1801);
+    expect(jsonFile.size).toBeLessThan(32 * 1024 * 1024);
+    for (const file of [jsonFile, fullFile]) {
+      const restored = (await decodeSceneBackup(file)).scene, snapshot = restored.project.history[11];
+      expect(restored.project).toEqual(before);
+      expect(snapshot.aiMotion!.patches[0].knots).toEqual(patch.knots);
+      expect(snapshot.take).toEqual(original.take); expect(snapshot.manual).toEqual(original.manual);
+      const sample = createAIMotionSampler(time => sampleTake(snapshot.take!, time), snapshot.aiMotion);
+      for (const time of [0, .7, start - .0000001, start, end, end + .0000001, 12.12345]) expect(sample(time)).toEqual(base(time));
+      if (restored.audio) expect(await restored.audio.arrayBuffer()).toEqual(await scene.audio!.arrayBuffer());
+    }
+    expect(scene.project).toEqual(before);
+
+    // Old compact v1 JSON and complete bundles carried inline AI layers. Use
+    // one old snapshot so compatibility is tested below the original byte cap.
+    const legacyJson = structuredClone(json); legacyJson.scene.schema = 'compact-scene-1'; delete legacyJson.scene.motionPatches;
+    legacyJson.scene.scene.project.history = [legacyJson.scene.scene.project.history[11]];
+    legacyJson.scene.scene.project.historyIndex = 0;
+    legacyJson.scene.scene.project.history[0].aiMotion = structuredClone(active.aiMotion);
+    const oldJsonFile = new Blob([JSON.stringify(legacyJson)]);
+    const fullBytes = new Uint8Array(await fullFile.arrayBuffer()), magicLength = new TextEncoder().encode('CHOREO-BUNDLE-1\n').length;
+    const prefixLength = magicLength + 4, headerLength = new DataView(fullBytes.buffer).getUint32(magicLength, true);
+    const oldHeader = JSON.parse(new TextDecoder().decode(fullBytes.slice(prefixLength, prefixLength + headerLength)));
+    oldHeader.scene = legacyJson.scene;
+    const header = new TextEncoder().encode(JSON.stringify(oldHeader)), prefix = fullBytes.slice(0, prefixLength);
+    new DataView(prefix.buffer).setUint32(magicLength, header.byteLength, true);
+    const oldFullFile = new Blob([prefix, header, fullBytes.slice(prefixLength + headerLength)]);
+    for (const file of [oldJsonFile, oldFullFile]) {
+      const restored = (await decodeSceneBackup(file)).scene;
+      expect(restored.project.history[0].aiMotion).toEqual(active.aiMotion);
+      expect(restored.project.history[0].take).toEqual(original.take);
+      if (restored.audio) expect(await restored.audio.arrayBuffer()).toEqual(await scene.audio!.arrayBuffer());
+    }
+  }, 45_000);
+
   it('keeps original nonuniform motion and authors through storage, compact JSON and complete audio bundles', async () => {
     const { scene, original } = await motionScene();
     const saved = await saveScene(scene), loaded = await loadScene<SceneProject>(saved.id);
@@ -88,8 +147,8 @@ describe('model motion scene persistence', () => {
   it('rejects valid-looking compact layers whose seam no longer matches the expanded original take', async () => {
     const { scene } = await motionScene();
     const packed = structuredClone(packScene({ ...scene, audio: null }));
-    const encoded = packed.scene as { project: SceneProject };
-    encoded.project.history[1].aiMotion!.patches[0].knots[0].pose.root[0] += .01;
+    if (packed.schema !== 'compact-scene-2') throw new Error('AI history must use its patch dictionary');
+    packed.motionPatches[0].knots[0].pose.root[0] += .01;
     expect(() => unpackScene(packed)).toThrow();
   });
 

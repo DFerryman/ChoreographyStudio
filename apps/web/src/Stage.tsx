@@ -271,7 +271,7 @@ export function Stage(props: StageProps) {
   const guidanceWarning = <>
     {previewStatus && <span className="stage3d-author-warning" role="status" aria-label="碰撞预览" title={previewFailure ?? '碰撞修正仅用于预览，作者数据保持原值。'}>{previewStatus}</span>}
     {hasCapsuleCollisions && <span className="stage3d-author-warning" role="status" aria-label="身体碰撞提示" title="近似求解仍有残余接触；可用 AI 重新生成该段动作。">残余接触 {capsuleCollisions!.selfCollisions.length} · 穿地 {capsuleCollisions!.floorPenetrations.length}</span>}
-    {poseGuidance.outsideSuggestedRange.length > 0 && <span className="stage3d-author-warning" role="status" aria-label="全身关节建议范围" title={poseGuidance.outsideSuggestedRange.map(joint => STAGE_JOINT_LABELS[joint]).join('、')}>超出标准人体建议 · {poseGuidance.outsideSuggestedRange.length} 处</span>}
+    {poseGuidance.outsideSuggestedRange.length > 0 && <span className="stage3d-author-warning" role="status" aria-label="全身关节建议范围" title={`超出编辑参考范围：${poseGuidance.outsideSuggestedRange.map(joint => STAGE_JOINT_LABELS[joint]).join('、')}。此提示不影响播放，AI 候选使用单独的人体功能约束检查。`}>超出编辑参考范围 · {poseGuidance.outsideSuggestedRange.length} 处</span>}
     {poseGuidance.shoulderCoupling.length > 0 && <span className="stage3d-author-warning" role="status" aria-label="肩部配合提示" title="大幅举臂需检查肩部配合；动作数据保持原值。">举臂需检查肩部配合</span>}
   </>;
 

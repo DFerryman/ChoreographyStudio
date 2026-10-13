@@ -3,7 +3,7 @@ import type { SceneDocument, SceneViewer } from './scene';
 import type { SceneOperation, SceneProject, SceneSnapshot } from './sceneProject';
 import { validateAIMotionTrack } from '../../../packages/core/src/aiMotionTrack';
 import { MAX_FOOT_LOCKS, type FootLock } from '../../../packages/core/src/footLocks';
-import { packScene, unpackScene } from './compactScene';
+import { packScene, unpackScene, type CompactScene } from './compactScene';
 import { SCENE_CAMERA_TRACK_LIMITS, validateProjectCameraTracks } from './sceneCameraTrack';
 import { PLAYBACK_RATES } from './playbackRates';
 import { AUDIO_TRACK_LIMITS, pruneAudioClips, referencedAudioClipIds, validateAudioTracks, type SceneAudioClip, type SceneAudioTrack } from './audioTracks';
@@ -444,6 +444,51 @@ async function digest(blob: Blob): Promise<string> {
   return Array.from(new Uint8Array(hash), byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
+type BackupAudioMetadata = { byteLength: number; mimeType: string; sha256: string };
+type BackupClipMetadata = BackupAudioMetadata & { id: string };
+const capacityHash = '0'.repeat(64);
+function backupAudioMetadata(blob: Blob, primary: boolean): BackupAudioMetadata {
+  if (!(blob instanceof Blob) || blob.size < 1 || blob.size > (primary ? SCENE_BACKUP_LIMITS.audioBytes : SCENE_BACKUP_LIMITS.audioClipBytes)) fail(primary ? '完整备份需要不超过 100 MiB 的原音频。' : '每条音轨需为不超过 100 MiB 的音频。');
+  const mimeType = blob.type || 'application/octet-stream';
+  if (!safeAudioType(mimeType)) fail(primary ? '音频 MIME 类型不受支持。' : '音轨 MIME 类型不受支持。');
+  return { byteLength: blob.size, mimeType, sha256: capacityHash };
+}
+function backupClipMetadata(clips: readonly SceneAudioClip[]): BackupClipMetadata[] {
+  if (clips.length > SCENE_BACKUP_LIMITS.audioClips) fail('音轨数量超出备份范围。');
+  let bytes = 0;
+  const ids = new Set<string>();
+  const metadata = clips.map(clip => {
+    if (ids.has(clip.id)) fail('音轨 ID 不能重复。');
+    ids.add(clip.id);
+    const audio = backupAudioMetadata(clip.blob, false); bytes += audio.byteLength;
+    return { id: clip.id, ...audio };
+  });
+  if (bytes > SCENE_BACKUP_LIMITS.totalAudioClipBytes) fail('全部音轨合计超过 200 MiB。');
+  return metadata;
+}
+function fullBundleHeader(scene: CompactScene, audio: BackupAudioMetadata, audioTracks: BackupClipMetadata[]) {
+  return audioTracks.length ? { format: 'choreo-scene-bundle-3', scene, audio, audioTracks }
+    : { format: 'choreo-scene-bundle-2', scene, audio };
+}
+export interface SceneBackupCapacity { projectBytes: number; fullHeaderBytes: number | null }
+/** Before adoption, ensure the complete future history remains exportable. No
+ * audio is read/hashed and no source object, precision or history is changed. */
+export function assertSceneBackupCapacity(scene: SceneDocument<SceneProject>): SceneBackupCapacity {
+  const { audio: _audio, ...document } = validateScene(scene, { strict: false });
+  const packed = packScene(document);
+  const projectBytes = new TextEncoder().encode(JSON.stringify({ format: 'choreo-scene-backup-2', scene: packed, audioIncluded: false })).byteLength;
+  if (projectBytes > SCENE_BACKUP_LIMITS.headerBytes) fail('场景数据超过 32 MiB，请减少历史或采样数据。');
+  let fullHeaderBytes: number | null = null;
+  if (scene.audio !== null && scene.audio !== undefined) {
+    const audio = backupAudioMetadata(scene.audio, true);
+    const clips = pruneAudioClips(scene.audioClips ?? [], document.project);
+    const audioTracks = backupClipMetadata(clips);
+    fullHeaderBytes = new TextEncoder().encode(JSON.stringify(fullBundleHeader(packed, audio, audioTracks))).byteLength;
+    if (fullHeaderBytes > SCENE_BACKUP_LIMITS.headerBytes) fail('场景数据超过 32 MiB，请减少历史或采样数据。');
+  }
+  return { projectBytes, fullHeaderBytes };
+}
+
 /** Full local backup: a bounded JSON header followed by the original audio bytes. */
 export async function encodeSceneBackup(scene: SceneDocument<SceneProject>): Promise<Blob> {
   if (!(scene.audio instanceof Blob) || scene.audio.size < 1 || scene.audio.size > SCENE_BACKUP_LIMITS.audioBytes) fail('完整备份需要不超过 100 MiB 的原音频。');
@@ -453,23 +498,15 @@ export async function encodeSceneBackup(scene: SceneDocument<SceneProject>): Pro
   // Explicit reconstructed fields leave editor-only state outside the container.
   const sanitized = validateScene(scene, { strict: false });
   const { audio: _audio, ...document } = sanitized;
-  const audio = { byteLength: audioBlob.size, mimeType, sha256: await digest(audioBlob) };
+  const audio = { byteLength: audioBlob.size, mimeType, sha256: capacityHash };
   // Only clips referenced by retained history travel with the scene.
   const clips = pruneAudioClips(scene.audioClips ?? [], document.project);
-  if (clips.length > SCENE_BACKUP_LIMITS.audioClips) fail('音轨数量超出备份范围。');
-  let clipBytes = 0;
-  const audioTracks = await Promise.all(clips.map(async clip => {
-    if (!(clip.blob instanceof Blob) || clip.blob.size < 1 || clip.blob.size > SCENE_BACKUP_LIMITS.audioClipBytes) fail('每条音轨需为不超过 100 MiB 的音频。');
-    clipBytes += clip.blob.size;
-    const type = clip.blob.type || 'application/octet-stream';
-    if (!safeAudioType(type)) fail('音轨 MIME 类型不受支持。');
-    return { id: clip.id, byteLength: clip.blob.size, mimeType: type, sha256: await digest(clip.blob) };
-  }));
-  if (clipBytes > SCENE_BACKUP_LIMITS.totalAudioClipBytes) fail('全部音轨合计超过 200 MiB。');
+  const audioTracks = backupClipMetadata(clips);
+  // Check aggregate clip bytes before allocating any audio hash buffers.
+  audio.sha256 = await digest(audioBlob);
+  for (const [index, clip] of clips.entries()) audioTracks[index].sha256 = await digest(clip.blob);
   // Scenes without extra tracks keep the original bundle-2 layout byte for byte.
-  const header = new TextEncoder().encode(JSON.stringify(audioTracks.length
-    ? { format: 'choreo-scene-bundle-3', scene: packScene(document), audio, audioTracks }
-    : { format: 'choreo-scene-bundle-2', scene: packScene(document), audio }));
+  const header = new TextEncoder().encode(JSON.stringify(fullBundleHeader(packScene(document), audio, audioTracks)));
   if (header.byteLength > SCENE_BACKUP_LIMITS.headerBytes) fail('场景数据超过 32 MiB，请减少历史或采样数据。');
   const prefix = new Uint8Array(prefixBytes); prefix.set(magic); new DataView(prefix.buffer).setUint32(magic.length, header.byteLength, true);
   return new Blob([prefix, header, audioBlob, ...clips.map(clip => clip.blob)], { type: 'application/octet-stream' });

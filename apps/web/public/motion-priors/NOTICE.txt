@@ -1,0 +1,60 @@
+Carnegie Mellon University Graphics Lab Motion Capture Database
+
+The data used in this project was obtained from mocap.cs.cmu.edu.
+The database was created with funding from NSF EIA-0196217.
+
+Sources: CMU subject 85 trial 12 and subject 61 trial 08, via the previously
+published retargeted motion-only portions of Choreography Studio's public
+complex-street-dance and salsa-dance companion packs. No source audio,
+scene project, editing history, or private uploaded file is included here.
+
+CMU homepage: http://mocap.cs.cmu.edu/
+"This data is free for use in research projects. You may include this data
+in commercially-sold products, but you may not resell this data directly,
+even in converted form."
+
+CMU FAQ: http://mocap.cs.cmu.edu/faqs.php
+"The motion capture data may be copied, modified, or redistributed
+without permission."
+
+BVH converter: Bruce Hahne, MotionBuilder-friendly BVH conversion 2010.
+The converter adds no restrictions to the original CMU data.
+https://github.com/una-dinosauria/cmu-mocap/blob/master/READMEFIRST.txt
+
+These derivatives are included as internal motion priors in the editor,
+not offered as a standalone commercial motion-data resale product.
+CMU does not guarantee the quality of the original motion data.
+
+Processing: canonical neutral-rig-2 retarget; original published source
+anomaly repair and support-height adaptation; 30 Hz plus exact end time;
+float32 coordinates/quaternions; fixed +/-30-degree forearm carrying
+frame redistributed into upper-arm axial twist; wrist longitudinal-Y
+pronation reassigned to forearm within +/-110 degrees. The carrying-frame
+change preserves forearm/hand world transforms. Pronation redistribution
+then changes forearm axial orientation while preserving hand world
+position/orientation and hand-tip transforms. These mathematical frame
+changes are not a physical feasibility certificate.
+
+Ankle longitudinal-Y excess is smoothly transferred to tibial axial-Y
+within the existing +/-25-degree tibial budget, toward the unchanged
++/-30-degree ankle envelope. The paired inverse rotations preserve foot,
+toe and heel world transforms while changing shin skin axial orientation.
+Residual excess in advanced floor-motion frames remains for the physical
+gate; this is engineering retargeting with knee-flexion dependence, not
+clinical range certification or a guarantee every reference is feasible.
+
+New generated trajectories may further adapt arm targets to the pinned
+avatar's body/hand geometry and condition noisy arm rotation curves.
+Those changes are versioned and their measured hand-path displacement
+is retained in generation provenance; original scene and source motion
+files are never changed by generation or playback.
+
+CMU61 Salsa new-candidate stance calibration also reduces donor hip axial
+twist and adds a measured outward stance to prevent actual target-avatar
+thigh skin crossings. Source timing/knee hinge motion is retained; ankle
+paths and sole orientation are explicit soft goals with measured maximum
+and RMS displacement recorded in provenance. This runtime retargeting does
+not modify these static source derivatives or waive anatomy/collision gates.
+
+Build and provenance details: docs/MOTION_PRIORS.md and
+infra/build_motion_priors.py in the ChoreographyStudio repository.

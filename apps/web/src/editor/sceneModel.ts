@@ -9,7 +9,16 @@ export const UNTITLED_SCENE_NAME = '未命名场景';
 
 export const initialCountMap = () => makeCountMap({ bpm: 120, musicBeatsPerDanceCount: 1, firstCountSourceSeconds: 0, startOctet: 0, octetCount: 8, audioDurationSeconds: 40 });
 
-const neutralPose = (): Pose => ({ root: [0, 1.05, 0], joints: Object.fromEntries(JOINT_NAMES.map(joint => [joint, [0, 0, 0, 1]])) as Pose['joints'] });
+// New scenes start with a relaxed 15-degree arm clearance. The old vertical
+// arm rest intersects the fitted hand/thigh proxies; saved takes are never
+// migrated or repaired here. This is a fresh-scene seed, not playback correction.
+const neutralPose = (): Pose => {
+  const pose: Pose = { root: [0, 1.05, 0], joints: Object.fromEntries(JOINT_NAMES.map(joint => [joint, [0, 0, 0, 1]])) as Pose['joints'] };
+  const halfAngle = 15 * Math.PI / 360;
+  pose.joints.LeftUpperArm = [0, 0, Math.sin(halfAngle), Math.cos(halfAngle)];
+  pose.joints.RightUpperArm = [0, 0, -Math.sin(halfAngle), Math.cos(halfAngle)];
+  return pose;
+};
 
 /** Empty manual scenes have a valid neutral animation before the first gesture. */
 export function neutralSnapshot(countMap: CountMap, title: string, planId?: string): SceneSnapshot {

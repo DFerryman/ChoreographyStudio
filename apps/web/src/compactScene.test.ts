@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { JOINT_NAMES, type BakedTake, type Pose, type Quat } from '../../../packages/core/src/motion-types';
-import { packScene, unpackScene, type CompactScene } from './compactScene';
+import { COMPACT_SCENE_LIMITS, packScene, unpackScene, type CompactScene } from './compactScene';
 import type { CameraTrack } from '../../../packages/core/src/cameraTrack';
+import { makeAIMotionFixture, makeAIMotionResultFixture } from '../../../packages/core/src/aiMotion.fixture';
+import { appendAIMotionPatch, compileAIMotionPatch, createAIMotionSampler, MAX_AI_MOTION_TRACK_KNOTS, type AIMotionPatch } from '../../../packages/core/src/aiMotionTrack';
 
 function take(id: string, times = [0, 0.008337038683859493, 0.0219137159934, 1.137]): BakedTake {
   return { id, schemaVersion: 'preview-1', planId: 'plan', countMapId: 'map', durationSeconds: times.at(-1)!, times, poses: times.map((time, index): Pose => ({
@@ -14,7 +16,84 @@ function scene(takes: BakedTake[], base = takes[0]) {
 }
 const wire = (value: unknown) => JSON.parse(JSON.stringify(value));
 
+function denseMotionScene(historyLength = 12) {
+  const request = makeAIMotionFixture(), map = request.context.timing;
+  const base = take('original-ai-base', [0, map.durationSeconds]); base.countMapId = map.id;
+  base.poses = base.times.map(() => structuredClone(request.context.initialPose));
+  const sample = () => structuredClone(request.context.initialPose);
+  const patch = compileAIMotionPatch(request, makeAIMotionResultFixture(request), sample);
+  const sampler = createAIMotionSampler(sample, appendAIMotionPatch(undefined, patch, map));
+  const dense: AIMotionPatch = { ...patch, knots: Array.from({ length: 1801 }, (_, index) => {
+    const time = index === 1800 ? map.durationSeconds : index * map.durationSeconds / 1800;
+    return { time, pose: sampler(time), linearVelocity: [0, 0, 0], angularVelocity: structuredClone(patch.knots.at(-1)!.angularVelocity) };
+  }), motionOrigin: { kind: 'human-motion-prior', catalogVersion: 'test-catalog-1', sources: [{ clipId: 'test-capture', sourceHash: 'c'.repeat(64) }], segments: [{
+    clipId: 'test-capture', startSeconds: 0, endSeconds: map.durationSeconds, sourceStartSeconds: 0, sourceEndSeconds: map.durationSeconds,
+    yawDegrees: 0, travelXZ: [0, 0], transitionSeconds: .25, contactHint: 'standing',
+  }] } };
+  const track = appendAIMotionPatch(undefined, dense, map);
+  return { schema: 'choreo-scene-1', project: { history: Array.from({ length: historyLength }, (_, index) => ({
+    title: `camera edit ${index}`, countMap: map, take: base, aiMotion: structuredClone(track),
+    cameraTrack: { schema: 'camera-track-1', baseCamera: { position: [4, 3, -5], target: [0, 1, 0] }, keys: [] } as CameraTrack,
+  })), historyIndex: historyLength - 1, revision: historyLength } };
+}
+
 describe('lossless compact scene history', () => {
+  it('deduplicates independently cloned dense AI curves across twelve histories without changing their data or provenance', () => {
+    const original = denseMotionScene(), before = structuredClone(original), packed = packScene(original);
+    expect(packed.schema).toBe('compact-scene-2');
+    if (packed.schema !== 'compact-scene-2') throw new Error('Missing dense motion dictionary');
+    expect(packed.motionPatches).toHaveLength(1);
+    expect(packed.motionPatches[0].knots).toHaveLength(1801);
+    const encoded = JSON.stringify(packed);
+    expect(new TextEncoder().encode(encoded).byteLength).toBeLessThan(32 * 1024 * 1024);
+    expect(encoded.length).toBeLessThan(JSON.stringify(original).length / 8);
+    const restored = unpackScene(JSON.parse(encoded)) as typeof original;
+    expect(restored).toEqual(before);
+    expect(new Set(restored.project.history.map(snapshot => snapshot.aiMotion.patches[0])).size).toBe(1);
+    expect(original).toEqual(before);
+  }, 15_000);
+
+  it('keeps distinct dense patch payloads with the same ID and preserves old compact inline layers', () => {
+    const original = denseMotionScene(2);
+    original.project.history[1].aiMotion.patches[0].knots[500].pose.root[0] += .00197136527919;
+    const packed = packScene(original);
+    if (packed.schema !== 'compact-scene-2') throw new Error('Missing dense motion dictionary');
+    expect(packed.motionPatches).toHaveLength(2);
+    expect(unpackScene(wire(packed))).toEqual(original);
+    // v1 stored AI curves inline. Existing saves remain readable with their
+    // original model provenance, even though new saves use a shared table.
+    const legacy = wire(packed); legacy.schema = 'compact-scene-1'; delete legacy.motionPatches;
+    legacy.scene.project.history.forEach((snapshot: any, index: number) => { snapshot.aiMotion = wire(original.project.history[index].aiMotion); });
+    expect(unpackScene(legacy)).toEqual(original);
+  });
+
+  it.each(['missing-reference', 'extra-reference-field', 'inline-patch', 'unused-table-entry', 'duplicate-track-reference', 'invalid-quaternion', 'bad-source', 'oversized-patch', 'oversized-table', 'total-table-knots', 'total-track-knots'] as const)('rejects corrupt or unbounded AI dictionary data: %s', kind => {
+    const packed = wire(packScene(denseMotionScene(1)));
+    const references = packed.scene.project.history[0].aiMotion.patches;
+    if (kind === 'missing-reference') references[0].$motionPatch = 4;
+    if (kind === 'extra-reference-field') references[0].other = true;
+    if (kind === 'inline-patch') references[0] = packed.motionPatches[0];
+    if (kind === 'unused-table-entry') packed.motionPatches.push(structuredClone(packed.motionPatches[0]));
+    if (kind === 'duplicate-track-reference') references.push({ $motionPatch: 0 });
+    if (kind === 'invalid-quaternion') packed.motionPatches[0].knots[50].pose.joints.Head = [0, 0, 0, 0];
+    if (kind === 'bad-source') packed.motionPatches[0].motionOrigin.sources[0].sourceHash = 'invalid';
+    if (kind === 'oversized-patch') packed.motionPatches[0].knots.push(...Array.from({ length: 3 }, () => packed.motionPatches[0].knots[0]));
+    if (kind === 'oversized-table') packed.motionPatches = Array.from({ length: COMPACT_SCENE_LIMITS.motionPatches + 1 }, () => packed.motionPatches[0]);
+    if (kind === 'total-table-knots') packed.motionPatches = Array.from({ length: Math.floor(COMPACT_SCENE_LIMITS.totalMotionKnots / 1801) + 1 }, () => packed.motionPatches[0]);
+    if (kind === 'total-track-knots') {
+      packed.motionPatches = Array.from({ length: Math.floor(MAX_AI_MOTION_TRACK_KNOTS / 1801) + 1 }, (_, index) => ({ ...packed.motionPatches[0], id: `patch-${index}`, requestId: `request-${index}` }));
+      packed.motionPatches.forEach((patch: any, index: number) => { if (index > 0) patch.target.mode = 'interval'; });
+      packed.scene.project.history[0].aiMotion.patches = packed.motionPatches.map((_: unknown, index: number) => ({ $motionPatch: index }));
+    }
+    expect(() => unpackScene(packed)).toThrow('场景压缩数据无效');
+  });
+
+  it('enforces the unchanged 32 MiB serialized cap before restoring dense dictionary data', () => {
+    const packed = packScene(denseMotionScene(1));
+    (packed.scene as any).oversizedMetadata = '测'.repeat(Math.ceil(COMPACT_SCENE_LIMITS.wireBytes / 3));
+    expect(() => unpackScene(packed)).toThrow('场景压缩数据无效');
+  });
+
   it('preserves twelve camera-only operations and exact off-grid keys while storing unchanged Take and base only once', () => {
     const source = take('source'), original = scene(Array.from({ length: 12 }, () => source));
     const withCamera = { ...original, project: { ...original.project, historyIndex: 6, history: original.project.history.map((snapshot, index) => ({ ...snapshot, countMap: { durationSeconds: source.durationSeconds }, cameraTrack: {

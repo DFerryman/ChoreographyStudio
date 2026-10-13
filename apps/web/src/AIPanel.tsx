@@ -19,7 +19,7 @@ export default function AIPanel({ onGenerate, onCancel, busy, disabled, range, d
   const [prompt, setPrompt] = useState('');
   return <div className="ai-panel">
     <strong className="ai-panel-title">AI 生成人物动作</strong>
-    <p className="form-note">描述想要的节奏和动作。AI 接收文字、数拍和动作上下文，音乐保留在本机。</p>
+    <p className="form-note">描述想要的节奏和动作。AI 按数拍与上下文编排真人动作，生成后检查关节、碰撞与接触。音乐保留在本机。</p>
     <p className="ai-range" aria-label="AI 目标区间">{range
       ? <>时间线选区 {seconds(range.start)}–{seconds(range.end)}。<span>只生成这一段，两端和区间外的原动作保留。</span></>
       : <>整段 0–{seconds(duration)}。<span>在时间线节拍行拖动可选择区间。</span></>}</p>

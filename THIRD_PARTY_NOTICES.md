@@ -1,5 +1,11 @@
 # Third-party software notices
 
+## 2026-10-13 · 产品内真人动作先验
+
+新编舞链路纳入 CMU Motion Capture Database 的 85_12 街舞和 61_08 Salsa 动作衍生素材，经固定骨架重定向、功能关节轴适配和 30 Hz 采样；不包含原始 `.choreo` 场景文件或演出／用户音频。它们用于产品内新动作编排，不是通用文本模型原创角度或六种程序化动作。来源、源数据 SHA、处理误差、适用范围与可复现脚本见 [动作素材说明](docs/MOTION_PRIORS.md)；随素材分发 [NOTICE](apps/web/public/motion-priors/NOTICE.txt)。
+
+[CMU 官方来源](http://mocap.cs.cmu.edu/)及 [FAQ](http://mocap.cs.cmu.edu/faqs.php)允许复制、修改、再分发及纳入商业产品，禁止直接转售动作数据本身（包括转换形式）。致谢 Carnegie Mellon University 与资助 NSF EIA-0196217；Bruce Hahne 的 BVH 转换没有增加限制。以下“无第三方动作”的声明属于纳入真人动作前的历史范围，不再代表当前产品内容；软件 MIT、人物和依赖许可各自继续保留。
+
 ## v17 · 用户选定的 Quaternius 默认人物（已上线，准确源码CI通过）
 
 默认人物为用户明确选择的 **06 Quaternius Superhero Male 力量型**，来源官方Universal Base Characters标准免费包，CC0；无付费购买、不将其它候选一起发布。源65骨／几何／TRS／inverse bind／四权重保持原始值，运行时独立克隆inverse binds做display-2统一body G及固定肢段／脚底校准，原始GLB权重在实际Loader中恢复bitexact。来源、完整许可、六资产SHA及独立可复现检查见[人物资产](apps/web/public/models/README.md)；其21099B/SHA14a040b5正文已冻结，不写发布结果。

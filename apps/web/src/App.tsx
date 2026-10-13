@@ -5,18 +5,24 @@ import {
   makeCameraTrack, moveCameraKeyframe, removeCameraKeyframe, sameCameraPose, upsertCameraKeyframe, validateCameraPose, validateCameraTrack,
   type CameraPose, type CameraTrack, type SampledCameraPose,
 } from '../../../packages/core/src';
-import { analyzeAIMotionPatch, appendAIMotionPatch, compileAIMotionPatch, createAIMotionSampler, type AIMotionQuality, type AIMotionTrack } from '../../../packages/core/src/aiMotionTrack';
+import { analyzeAIMotionPatch, appendAIMotionPatch, compileAIMotionPosePatch, createAIMotionSampler, type AIMotionQuality, type AIMotionTrack } from '../../../packages/core/src/aiMotionTrack';
+import { makeAIMotionPlanRequest } from '../../../packages/core/src/aiMotionPlan';
+import { composeMotionPriorPlanAsync, MOTION_PRIOR_CATALOG } from '../../../packages/core/src/motionPriors';
+import { CANONICAL_MOTION_FEASIBILITY_PROFILE, solveAIMotionFeasibility, type MotionContactHint, type MotionFeasibilityReport } from '../../../packages/core/src/motionFeasibility';
+import { conditionMotionGroundingCurve, conditionMotionLegContacts } from '../../../packages/core/src/motionGrounding';
 import type { AIMotionTarget } from '../../../packages/core/src/aiMotion';
 import { Stage, type StageCamera, type StageCameraFocus, type StageView } from './Stage';
 import { DEFAULT_AVATAR, isAvatarId, type AvatarId } from './Humanoid';
 import { SceneTimeline, type TimelineRange } from './Timeline';
 import AIPanel from './AIPanel';
-import { requestAIMotion } from './aiClient';
+import { requestAIMotionPlan } from './aiMotionPlanClient';
+import { loadMotionPriorClips } from './motionPriors';
+import { checkAIMotionSourceBoundaries, INFEASIBLE_MOTION_SOURCE } from './motionSourcePreflight';
 import { buildAIMotionRequest, sourceStampForAIMotion } from './aiMotionContext';
 import { demoAudio } from './demoAudio';
 import { deleteScene, duplicateScene, listScenes, loadCurrentScene, loadScene, renameScene, saveScene, setCurrentScene as selectStoredScene } from './storage';
 import { createScene, type SceneDocument, type SceneMetadata, type SceneViewer } from './scene';
-import { decodeSceneBackup, encodeSceneBackup, encodeSceneJsonBackup } from './sceneBackup';
+import { assertSceneBackupCapacity, decodeSceneBackup, encodeSceneBackup, encodeSceneJsonBackup } from './sceneBackup';
 import type { SceneSnapshot as Snapshot, SceneProject as Session } from './sceneProject';
 import { snapAudioOffset } from './audioTimeline';
 import { AUDIO_TRACK_LIMITS, audioTrackName, fitAudioTracks, pruneAudioClips, removeAudioSegment, snapAudioTrackOffset, splitAudioTrack, trimAudioSegment, type SceneAudioClip, type SceneAudioTrack } from './audioTracks';
@@ -48,7 +54,7 @@ type ResetAction = 'music' | 'adoptAssist';
 /** Any action that must first resolve an in-progress camera gesture. */
 type GuardedAction = AudioMoveAction | { type: 'seek'; time: number } | { type: 'scene'; action: SceneAction } | { type: 'history'; direction: -1 | 1 }
   | { type: 'play' | 'save' | 'music' | 'teaching' | 'backup' | 'projectBackup' | 'adoptAssist' | 'previewAssist' } | { type: 'assist'; prompt: string };
-type AssistCandidate = { aiMotion: AIMotionTrack; target: AIMotionTarget; summary: string; quality: AIMotionQuality; sceneId: string; countMapId: string; baseRevision: number; sourceStamp: string };
+type AssistCandidate = { aiMotion: AIMotionTrack; target: AIMotionTarget; summary: string; limitations: string[]; maxHandAdaptationMeters: number; maxSoleAdaptationRadians: number; maxFootMarkerAdaptationMeters: number; maxFootAdaptationMeters: number; maxRetargetSoleRadians: number; endingAdaptationSeconds?: number; quality: AIMotionQuality; feasibility: MotionFeasibilityReport; sceneId: string; countMapId: string; baseRevision: number; sourceStamp: string };
 type CameraGesture = { sceneId: string; revision: number; time: number; snapshot: Snapshot; before: CameraPose; latest: CameraPose; status: SaveStatus; version: number; override: boolean };
 type NamedTarget = { id: string; name: string };
 
@@ -611,23 +617,73 @@ export default function App() {
     assistRun.current = run; setAssistBusy(true);
     const valid = () => assistRun.current === run && !run.controller.signal.aborted && sceneIdRef.current === run.sceneId && sessionRef.current.revision === run.revision &&
       sourceStampForAIMotion(activeRef.current, audioBlobRef.current, audioClipsRef.current) === run.sourceStamp;
+    // One explicit operation has a total deadline across hashing, inference,
+    // selected local motion loading and offline solving; never a retry loop.
+    const deadline = window.setTimeout(() => {
+      if (!valid()) return;
+      const message = '动作生成与检查超时，原动作未改变，请稍后手动重试。';
+      setAssistError(message); setNotice(message); run.controller.abort();
+    }, 120_000);
     try {
       const request = await buildAIMotionRequest({ prompt, sceneId: run.sceneId, baseRevision: run.revision, snapshot: source,
         range: targetRange, audioBlob, audioName, audioDurationSeconds: session.audioDuration, audioClips, signal: run.controller.signal });
       if (!valid()) return;
-      const response = await requestAIMotion(request, run.controller.signal);
+      await checkAIMotionSourceBoundaries(request, run.controller.signal);
+      if (!valid()) return;
+      const planRequest = makeAIMotionPlanRequest(request, MOTION_PRIOR_CATALOG);
+      const response = await requestAIMotionPlan(planRequest, run.controller.signal);
       if (!valid() || !currentMotionSampler) return;
-      const patch = compileAIMotionPatch(request, response, currentMotionSampler);
+      if (response.intentMatch === 'unsupported') throw new Error('当前动作素材无法支持这段描述，请调整描述。原动作未改变。');
+      const clips = await loadMotionPriorClips(response.sources.map(source => source.clipId), { signal: run.controller.signal });
+      if (!valid()) return;
+      const composition = await composeMotionPriorPlanAsync(planRequest, response, clips, currentMotionSampler, { signal: run.controller.signal });
+      if (!valid()) return;
+      const conditionedFeet = await conditionMotionLegContacts(composition.samples, { target: request.context.target,
+        boundaries: request.context.boundaries, sourceHash: request.context.sourceHash, signal: run.controller.signal });
+      if (!valid()) return;
+      const origin = { ...composition.origin, adaptations: [...(composition.origin.adaptations ?? []), 'motion-leg-contact-conditioning-1', 'motion-curve-grounding-1'],
+        adaptationMetrics: { ...composition.origin.adaptationMetrics!,
+          maxSoleSmoothingRadians: conditionedFeet.report.maxSoleOrientationChangeRadians,
+          maxFootMarkerDisplacementMeters: conditionedFeet.report.maxFootMarkerPositionChangeMeters } };
+      const draft = compileAIMotionPosePatch(request, response, conditionedFeet.samples, currentMotionSampler, origin);
+      const contacts: MotionContactHint[] = response.segments.map(segment => ({ startSeconds: segment.startSeconds, endSeconds: segment.endSeconds,
+        mode: segment.contactHint === 'standing' || segment.contactHint === 'floor' ? 'supported' : segment.contactHint === 'airborne' ? 'airborne' : 'unknown' }));
+      setNotice('正在处理完整播放曲线的支撑；原动作保持。');
+      const grounded = await conditionMotionGroundingCurve(draft, { sourceSampler: currentMotionSampler,
+        durationSeconds: source.countMap.durationSeconds, contacts, signal: run.controller.signal });
+      if (!valid()) return;
+      setNotice('正在检查关节、身体碰撞与支撑；原动作保持。');
+      const solved = await solveAIMotionFeasibility(grounded.patch, { sourceSampler: currentMotionSampler, durationSeconds: source.countMap.durationSeconds,
+        contacts, profile: CANONICAL_MOTION_FEASIBILITY_PROFILE, signal: run.controller.signal,
+        conditionCandidate: async (patch, signal) => (await conditionMotionGroundingCurve(patch, {
+          sourceSampler: currentMotionSampler, durationSeconds: source.countMap.durationSeconds, contacts, signal,
+        })).patch });
+      if (!valid()) return;
+      if (!solved.patch || solved.report.status !== 'accepted' || !solved.report.coverage.complete || !solved.report.derivativeCoverage.complete || solved.report.totalViolations !== 0) {
+        const first = solved.report.violations[0];
+        if (first?.code === 'locked-boundary') throw new Error(INFEASIBLE_MOTION_SOURCE);
+        throw new Error(`候选未通过动作约束检查${first ? `（${Number(first.startSeconds.toFixed(2))} 秒：${first.message}）` : ''}。原动作未改变，请调整描述或选区。`);
+      }
+      const patch = solved.patch;
       const quality = analyzeAIMotionPatch(patch);
       const aiMotion = appendAIMotionPatch(source.aiMotion, patch, source.countMap);
-      setAssistCandidate({ aiMotion, target: request.context.target, summary: response.summary, quality, sceneId: run.sceneId,
-        countMapId: run.countMapId, baseRevision: run.revision, sourceStamp: run.sourceStamp });
+      const candidate: AssistCandidate = { aiMotion, target: request.context.target, summary: response.summary, limitations: response.limitations,
+        maxHandAdaptationMeters: composition.adaptation.maxHandDisplacementMeters,
+        maxSoleAdaptationRadians: conditionedFeet.report.maxSoleOrientationChangeRadians,
+        maxFootMarkerAdaptationMeters: conditionedFeet.report.maxFootMarkerPositionChangeMeters,
+        maxFootAdaptationMeters: origin.adaptationMetrics.maxFootDisplacementMeters ?? 0,
+        maxRetargetSoleRadians: origin.adaptationMetrics.maxSoleOrientationChangeRadians ?? 0, endingAdaptationSeconds: origin.endingAdaptation?.seconds, quality, feasibility: solved.report, sceneId: run.sceneId,
+        countMapId: run.countMapId, baseRevision: run.revision, sourceStamp: run.sourceStamp };
+      assertSceneBackupCapacity(assistAdoptionDocument(candidate));
+      if (!valid()) return;
+      setAssistCandidate(candidate);
       setNotice('候选已就绪。预览和采用分开操作，原稿尚未改变。');
     } catch (error) { if (valid()) { setAssistError(errorMessage(error)); setNotice(errorMessage(error)); } }
-    finally { if (assistRun.current === run) { assistRun.current = null; setAssistBusy(false); } }
+    finally { window.clearTimeout(deadline); if (assistRun.current === run) { assistRun.current = null; setAssistBusy(false); } }
   }
   function validAssistCandidate() {
-    return !!assistCandidate && assistCandidate.sceneId === currentScene.id && assistCandidate.countMapId === active.countMap.id && assistCandidate.baseRevision === session.revision &&
+    return !!assistCandidate && assistCandidate.feasibility.status === 'accepted' && assistCandidate.feasibility.coverage.complete && assistCandidate.feasibility.derivativeCoverage.complete && assistCandidate.feasibility.totalViolations === 0 &&
+      assistCandidate.feasibility.profileId === CANONICAL_MOTION_FEASIBILITY_PROFILE.id && assistCandidate.sceneId === currentScene.id && assistCandidate.countMapId === active.countMap.id && assistCandidate.baseRevision === session.revision &&
       sourceStampForAIMotion(active, audioBlob, audioClips) === assistCandidate.sourceStamp;
   }
   const STALE_CANDIDATE = '作品已经改变，请重新生成候选。';
@@ -645,11 +701,23 @@ export default function App() {
   function performAdoptAssistance() {
     if (!validAssistCandidate() || !assistCandidate) { setNotice(STALE_CANDIDATE); return; }
     const start = assistCandidate.target.startSeconds;
-    commit({ ...active, aiMotion: assistCandidate.aiMotion }, {
-      label: assistCandidate.target.mode === 'interval' ? '采用 AI 区间动作' : '采用 AI 整段动作', time: start, tracks: ['root', ...JOINT_NAMES],
-    });
+    let prepared: SceneDocument<Session>;
+    try { prepared = assistAdoptionDocument(assistCandidate); assertSceneBackupCapacity(prepared); }
+    catch (error) { const message = `无法采用候选：${errorMessage(error)} 原动作未改变。`; setAssistError(message); setNotice(message); return; }
+    const next = prepared.project.history.at(-1)!;
+    commit(next, next.operation);
     setAssistCandidate(null); setPreviewAssist(false); seekDirect(start);
     setNotice('已采用 AI 动作；原动作保留在撤销历史中。');
+  }
+  /** Check the exact prospective retained history before exposing/adopting a
+   * dense candidate. A saved scene must still support both lossless backups. */
+  function assistAdoptionDocument(candidate: AssistCandidate): SceneDocument<Session> {
+    const previous = sessionRef.current, start = candidate.target.startSeconds;
+    const next: Snapshot = { ...activeRef.current, aiMotion: candidate.aiMotion,
+      operation: { label: candidate.target.mode === 'interval' ? '采用 AI 区间动作' : '采用 AI 整段动作', time: start, tracks: ['root', ...JOINT_NAMES] } };
+    const history = [...previous.history.slice(0, previous.historyIndex + 1), next].slice(-12);
+    const project = { ...previous, history, historyIndex: history.length - 1, revision: previous.revision + 1, teacherCheckedRevision: null };
+    return { ...currentScene, project, audio: audioBlob, audioName, audioClips: pruneAudioClips(audioClips, project), viewer: captureViewer(start) };
   }
   function closeAssistCandidate() { pause(); setPreviewAssist(false); setAssistCandidate(null); }
   function toggleAssistPreview() { if (previewAssist) { pause(); setPreviewAssist(false); } else showAssistCandidate(); }
@@ -947,7 +1015,7 @@ export default function App() {
             </div>
           </div>
           {ready && <TimelineDock ref={timelineDockRef}>
-            {assistCandidate && <AssistCandidatePanel summary={assistCandidate.summary} target={assistCandidate.target} quality={assistCandidate.quality} previewing={previewAssist} valid={validAssistCandidate()}
+            {assistCandidate && <AssistCandidatePanel summary={assistCandidate.summary} target={assistCandidate.target} quality={assistCandidate.quality} feasibility={assistCandidate.feasibility} limitations={assistCandidate.limitations} maxHandAdaptationMeters={assistCandidate.maxHandAdaptationMeters} maxSoleAdaptationRadians={assistCandidate.maxSoleAdaptationRadians} maxFootMarkerAdaptationMeters={assistCandidate.maxFootMarkerAdaptationMeters} maxFootAdaptationMeters={assistCandidate.maxFootAdaptationMeters} maxRetargetSoleRadians={assistCandidate.maxRetargetSoleRadians} endingAdaptationSeconds={assistCandidate.endingAdaptationSeconds} previewing={previewAssist} valid={validAssistCandidate()}
               onTogglePreview={toggleAssistPreview} onAdopt={adoptAssistance} onClose={closeAssistCandidate} />}
             <SceneTimeline duration={duration} time={time} playing={playing} readOnly={!editing || workLocked || mirror}
               countTimes={active.countMap.countTimesSeconds} range={shownRange} onRange={changeRange} onTime={seek}

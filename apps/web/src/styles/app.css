@@ -132,6 +132,9 @@
 .assist-candidate-summary { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .assist-candidate p.assist-candidate-warning { color: var(--warning); }
 .assist-candidate small { color: var(--muted); font-size: var(--fs-2); line-height: 1.5; }
+.assist-candidate-details { margin-top: 3px; color: var(--muted); font-size: var(--fs-2); }
+.assist-candidate-details > summary { cursor: pointer; padding-block: 3px; line-height: 1.5; }
+.assist-candidate-details[open] small { display: block; }
 .assist-actions { display: flex; flex-shrink: 0; align-items: center; gap: var(--sp-2); }
 .assist-actions > .text-button { min-height: var(--control-m); padding: 0 var(--sp-2); white-space: nowrap; }
 
@@ -192,6 +195,6 @@
   .timeline-splitter { height: 16px; margin-top: -8px; }
   .timeline-splitter::after { top: 6px; }
   .missing-audio { top: 64px; width: calc(100% - 16px); }
-  .timeline-dock:has(.assist-candidate):not(:has(.tl-collapsed)) { min-height: min(340px, calc(100dvh - var(--topbar-height) - 220px)); }
+  .timeline-dock:has(.assist-candidate):not(:has(.tl-collapsed)) { min-height: min(420px, calc(100dvh - var(--topbar-height) - 220px)); }
   .assist-actions > .button, .assist-actions > .text-button { flex: 1; min-height: 44px; padding-inline: var(--sp-2); }
 }
