@@ -1,7 +1,7 @@
 import { JOINT_NAMES, sampleTake, type Pose, type Vec3 } from '../../../packages/core/src';
 import { clonePose, evaluatePose, RIG_CALIBRATION_VERSION, RIG_DEFINITIONS } from '../../../packages/core/src/humanoid';
 import { AI_MOTION_PROTOCOL, validateAIMotionRequest, type AIMotionAudio, type AIMotionBoundary, type AIMotionRequest, type AIMotionSample, type AIMotionTarget } from '../../../packages/core/src/aiMotion';
-import type { SceneAudioClip } from './audioTracks';
+import { audioTrackSegments, type SceneAudioClip } from './audioTracks';
 import { createAIMotionSampler, estimateAIMotionBoundary, validateAIMotionTrack } from '../../../packages/core/src/aiMotionTrack';
 import type { SceneSnapshot } from './sceneProject';
 
@@ -43,7 +43,7 @@ export function sourceStampForAIMotion(snapshot: SceneSnapshot, audioBlob: Blob 
   return JSON.stringify([
     objectIdentity(snapshot.countMap), objectIdentity(snapshot.take), objectIdentity(snapshot.manual), objectIdentity(snapshot.aiMotion),
     snapshot.audioOffsetSeconds ?? 0, objectIdentity(audioBlob),
-    (snapshot.audioTracks ?? []).map(track => [track.id, track.name, track.offsetSeconds, track.durationSeconds, !!track.muted, objectIdentity(clips.get(track.id))]),
+    (snapshot.audioTracks ?? []).map(track => [track.id, track.name, track.offsetSeconds, track.durationSeconds, !!track.muted, JSON.stringify(track.segments ?? null), objectIdentity(clips.get(track.id))]),
   ]);
 }
 
@@ -179,10 +179,11 @@ export async function buildAIMotionRequest(options: BuildAIMotionRequestOptions)
   const blobs: (Blob | null)[] = [options.audioBlob ?? null];
   const clips = new Map((options.audioClips ?? []).map(clip => [clip.id, clip.blob]));
   for (const track of snapshot.audioTracks ?? []) {
-    const blob = clips.get(track.id) ?? null;
+    const blob = clips.get(track.id) ?? null, audible = audioTrackSegments(track);
     audio.push({ id: track.id, name: track.name, hash: null, durationSeconds: track.durationSeconds,
       offsetSeconds: track.offsetSeconds, sourceOffsetSeconds: 0, muted: !!track.muted,
-      availability: blob ? 'available' : 'missing', coverage: coverage(track.offsetSeconds, 0, track.durationSeconds, track.durationSeconds, duration) });
+      // Split/trimmed tracks report the scene span from their first to last audible piece.
+      availability: blob ? 'available' : 'missing', coverage: coverage(track.offsetSeconds + audible[0].startSeconds, 0, audible.at(-1)!.endSeconds - audible[0].startSeconds, audible.at(-1)!.endSeconds - audible[0].startSeconds, duration) });
     blobs.push(blob);
   }
   // Sequential hashing bounds transient ArrayBuffer memory to one local clip.

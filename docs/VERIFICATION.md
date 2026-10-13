@@ -1,5 +1,13 @@
 # 预览验证记录
 
+## 2026-10-13 · 附加音轨分割与裁剪：本地验收，已推送 main；未部署 Cloudflare
+
+- 需求与行为见 [EDITOR_INTERACTION_STANDARD](EDITOR_INTERACTION_STANDARD.md) 同日“附加音轨：分割与裁剪”。
+- `npm run check`：39 个文件 799/799 单元测试通过（含新增分割／裁剪／删片段／严格校验／空白区暂停同步用例），前端 TypeScript 与 Vite 构建通过（保留既有大 chunk 警告）；`npm run typecheck:worker` 通过。
+- 本地浏览器（预装 Chromium、Mock 下 `/api` 全部拦截）：`tests/audio-tracks.spec.ts` 4/4（既有多音轨 1440/390 + 新增分割裁剪 1440/390；最终批次为既有 2 例与新增 2 例分别运行），`tests/music.spec.ts` + `tests/preview.spec.ts` 14/14。新增用例核对：播放头处分割为两段且源时序不变、边缘拖动按整帧裁剪、撤销／重做、保存刷新保留、删除单段其余保持原位，数拍／主音乐／动作不变；诊断 errors/warnings/API 为空。
+- 首次 390px 运行发现宽触控裁剪手柄遮挡片段拖动区，导致既有“拖动移动音轨”用例失败；已改为手机端选中音轨后才显示裁剪手柄，原断言未改。新增用例首次在 390px 用固定像素拖动使片段缩到一帧，改为按片段宽度比例拖动。
+- 裁剪边界的实际“不出声”由单元测试（`audioTrackSourceTime`／`syncAudioTrackElement`）和每显示帧同步保证；未在真实设备上测量音频输出边缘精度。完整 CI、Cloudflare 部署（本会话无凭据）与 Notion 同步未在本会话完成。
+
 ## 2026-10-13 · GPT-OSS直接骨骼动作已上线，基本真实动作与准确CI通过（native43）
 
 本轮先部署最新f05界面／舞台／人物切换，再实施此前确认方案；最终新动作源码[ae2a92fb](https://github.com/DFerryman/ChoreographyStudio/commit/ae2a92fbcefa4b9b7de56c6fe482281d5aad9658)/tree`2d03fce21badfba0a9468c795409d6c72ca1d2cc`已push、远端完整SHA相等。native43/version`16a8d57f-c948-471e-b246-96283e2dae38`（2026-10-13T06:24:50.89332Z），初始唯一100% deployment`3b8364e5-7d98-4c44-8471-0aa66ab6373b`（06:24:51.374577Z）；两原生source/tree精确、绑定/runtime与native42相等。224tracked/26dist逐SHA冻结。最终Markdown收据沿用同版，以同版本部署message关联最终mainSHA，不重复上传或公网／模型循环。

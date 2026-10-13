@@ -19,7 +19,7 @@ import { createScene, type SceneDocument, type SceneMetadata, type SceneViewer }
 import { decodeSceneBackup, encodeSceneBackup, encodeSceneJsonBackup } from './sceneBackup';
 import type { SceneSnapshot as Snapshot, SceneProject as Session } from './sceneProject';
 import { snapAudioOffset } from './audioTimeline';
-import { AUDIO_TRACK_LIMITS, audioTrackName, fitAudioTracks, pruneAudioClips, snapAudioTrackOffset, type SceneAudioClip, type SceneAudioTrack } from './audioTracks';
+import { AUDIO_TRACK_LIMITS, audioTrackName, fitAudioTracks, pruneAudioClips, removeAudioSegment, snapAudioTrackOffset, splitAudioTrack, trimAudioSegment, type SceneAudioClip, type SceneAudioTrack } from './audioTracks';
 import { useAudioClipWaveforms, useAudioTrackMixer } from './useAudioTrackMixer';
 import { useModalFocus } from './useModalFocus';
 import { useEditorShortcuts } from './useEditorShortcuts';
@@ -362,7 +362,7 @@ export default function App() {
     if (sceneIdRef.current !== target.sceneId || snapshot.countMap.id !== target.countMapId) { setNotice('场景已经改变，音轨未添加。'); return; }
     if ((snapshot.audioTracks?.length ?? 0) >= AUDIO_TRACK_LIMITS.tracks) { setNotice(`最多只能添加 ${AUDIO_TRACK_LIMITS.tracks} 条音轨。`); return; }
     const id = crypto.randomUUID();
-    const offsetSeconds = snapAudioTrackOffset(target.time, durationSeconds, snapshot.countMap.durationSeconds);
+    const offsetSeconds = snapAudioTrackOffset(target.time, { durationSeconds }, snapshot.countMap.durationSeconds);
     setAudioClips(previous => [...previous, { id, blob: file }]);
     finishCameraGesture();
     const current = sessionRef.current.history[sessionRef.current.historyIndex];
@@ -373,7 +373,7 @@ export default function App() {
     editAudioTracks('移动音轨', tracks => {
       const track = tracks.find(item => item.id === id);
       if (!track) return null;
-      const snapped = snapAudioTrackOffset(offsetSeconds, track.durationSeconds, duration);
+      const snapped = snapAudioTrackOffset(offsetSeconds, track, duration);
       return snapped === track.offsetSeconds ? null : tracks.map(item => item.id === id ? { ...item, offsetSeconds: snapped } : item);
     });
   }
@@ -385,6 +385,29 @@ export default function App() {
       const { muted: _muted, ...rest } = item;
       return item.muted ? rest : { ...rest, muted: true };
     }));
+  }
+  /** Split the selected track's audible piece under the playhead into two. */
+  function splitAudioTrackAt(id: string) {
+    const track = audioTracks.find(item => item.id === id);
+    if (!track || !audioTracksEditable()) return;
+    if (!splitAudioTrack(track, time)) { setNotice('播放头需位于该音轨的片段内部（不在片段边缘）才能分割。'); return; }
+    editAudioTracks('分割音轨', tracks => {
+      const current = tracks.find(item => item.id === id), next = current && splitAudioTrack(current, time);
+      return next ? tracks.map(item => item.id === id ? next : item) : null;
+    });
+  }
+  /** Move one edge of one audible piece; audio outside the pieces never plays. */
+  function trimAudioTrack(id: string, index: number, edge: 'start' | 'end', sourceSeconds: number) {
+    editAudioTracks('裁剪音轨', tracks => {
+      const current = tracks.find(item => item.id === id), next = current && trimAudioSegment(current, index, edge, sourceSeconds, duration);
+      return next ? tracks.map(item => item.id === id ? next : item) : null;
+    });
+  }
+  function removeAudioTrackSegment(id: string, index: number) {
+    editAudioTracks('删除音轨片段', tracks => {
+      const current = tracks.find(item => item.id === id), next = current && removeAudioSegment(current, index, duration);
+      return next ? tracks.map(item => item.id === id ? next : item) : null;
+    });
   }
   function removeAudioTrack(id: string) {
     if (!audioTracksEditable()) return;
@@ -931,7 +954,7 @@ export default function App() {
               loop={loop} onLoop={() => { setLoop(!loop); markSceneDirty(); }}
               camera={{ track: active.cameraTrack, value: cloneCameraPose(cameraValue), selected: cameraSelected, onSelect: selectCameraPoint, onAdd: addCameraPoint, onChange: changeCameraPoint, onMove: moveCameraPoint, onDelete: deleteCameraPoint, onDeselect: deselectCamera }}
               audio={{ name: audioName, offsetSeconds: active.audioOffsetSeconds ?? 0, durationSeconds: duration, waveform, onMove: moveAudio, disabled: !audioBlob }}
-              audioTracks={{ tracks: audioTrackLanes, canAdd: audioTracks.length < AUDIO_TRACK_LIMITS.tracks && !busy, onAdd: file => { void addAudioTrack(file); }, onMove: moveAudioTrack, onToggleMute: toggleAudioTrackMute, onRemove: removeAudioTrack }}
+              audioTracks={{ tracks: audioTrackLanes, canAdd: audioTracks.length < AUDIO_TRACK_LIMITS.tracks && !busy, onAdd: file => { void addAudioTrack(file); }, onMove: moveAudioTrack, onSplit: splitAudioTrackAt, onTrim: trimAudioTrack, onRemoveSegment: removeAudioTrackSegment, onToggleMute: toggleAudioTrackMute, onRemove: removeAudioTrack }}
               transport={<PlaybackTransport playing={playing} disabled={!displayedTake || !ready || !audioBlob} time={time} duration={duration} count={`${countPosition.octet}-${countPosition.count}`} onToggle={() => { void togglePlay(); }} />}
               playbackOptions={<PlaybackOptions rate={rate} mirror={mirror} countSound={countSound}
                 onRate={value => { setRate(value); markSceneDirty(); }} onMirror={() => { setMirror(!mirror); markSceneDirty(); }} onCountSound={() => { setCountSound(!countSound); markSceneDirty(); }} />}

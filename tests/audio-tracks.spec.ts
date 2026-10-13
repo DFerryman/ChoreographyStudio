@@ -118,3 +118,75 @@ for (const width of [1440, 390]) {
     await expect(lanes(page)).toHaveCount(2);
   });
 }
+
+const piece = (page: Page, number: number, index: number, count: number) => timeline(page).getByRole('button', { name: `移动音轨 ${number} 片段 ${index}/${count}`, exact: true });
+
+for (const width of [1440, 390]) {
+  test(`@audiotracks ${width}px splits an added track at the playhead and trims piece edges`, async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width, height: width === 1440 ? 1000 : 844 });
+    await page.goto('/'); await ready(page);
+    const before = current(await backup(page));
+    await addTrack(page, 'beat.wav', wave(5, 330), 1);
+
+    // Split at frame 60 (2 s): one track, two pieces that keep the source timing.
+    await timeline(page).getByLabel('时间线进度', { exact: true }).fill('2');
+    await expect(timeline(page)).toHaveAttribute('data-frame', '60');
+    await timeline(page).getByRole('button', { name: '选择音轨 2', exact: true }).click();
+    await page.getByRole('button', { name: '在播放头处分割所选音轨', exact: true }).click();
+    await expect(piece(page, 2, 1, 2)).toHaveAttribute('data-segment-end', '2');
+    await expect(piece(page, 2, 2, 2)).toHaveAttribute('data-segment-start', '2');
+    let snapshot = current(await backup(page));
+    expect(snapshot.audioTracks).toHaveLength(1);
+    expect(snapshot.audioTracks![0].segments).toEqual([{ startSeconds: 0, endSeconds: 2 }, { startSeconds: 2, endSeconds: snapshot.audioTracks![0].durationSeconds }]);
+    // Splitting exactly on a piece edge is not offered.
+    await expect(page.getByRole('button', { name: '在播放头处分割所选音轨', exact: true })).toBeDisabled();
+
+    // Drag the first piece's start edge right: the trimmed head becomes silent.
+    const handle = timeline(page).getByRole('button', { name: '裁剪音轨 2 片段 1/2起点', exact: true });
+    const box = (await handle.boundingBox())!, firstWidth = (await piece(page, 2, 1, 2).boundingBox())!.width;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + firstWidth * .4, box.y + box.height / 2, { steps: 8 }); await page.mouse.up();
+    await expect.poll(async () => Number(await piece(page, 2, 1, 2).getAttribute('data-segment-start'))).toBeGreaterThan(0);
+    const trimmed = Number(await piece(page, 2, 1, 2).getAttribute('data-segment-start'));
+    expect(trimmed).toBeLessThan(2);
+    expect(Math.abs(trimmed * 30 - Math.round(trimmed * 30))).toBeLessThan(1e-9);
+    await expect(piece(page, 2, 1, 2)).toHaveAttribute('data-offset-seconds', '0');
+
+    // Drag the second piece's end edge left.
+    const endHandle = timeline(page).getByRole('button', { name: '裁剪音轨 2 片段 2/2终点', exact: true });
+    const endBox = (await endHandle.boundingBox())!, secondWidth = (await piece(page, 2, 2, 2).boundingBox())!.width;
+    await page.mouse.move(endBox.x + endBox.width / 2, endBox.y + endBox.height / 2); await page.mouse.down();
+    await page.mouse.move(endBox.x + endBox.width / 2 - secondWidth * .3, endBox.y + endBox.height / 2, { steps: 8 }); await page.mouse.up();
+    await expect.poll(async () => Number(await piece(page, 2, 2, 2).getAttribute('data-segment-end'))).toBeLessThan(snapshot.audioTracks![0].durationSeconds);
+    const ended = Number(await piece(page, 2, 2, 2).getAttribute('data-segment-end'));
+    expect(ended).toBeGreaterThan(2);
+
+    snapshot = current(await backup(page));
+    expect(snapshot.audioTracks![0].segments).toEqual([{ startSeconds: trimmed, endSeconds: 2 }, { startSeconds: 2, endSeconds: ended }]);
+    expect(snapshot.audioTracks![0].offsetSeconds).toBe(0);
+    // Editing audio pieces never touches CountMap, primary music or motion.
+    expect(snapshot.countMap).toEqual(before.countMap);
+    expect(snapshot.take).toEqual(before.take);
+    expect(snapshot.audioOffsetSeconds ?? 0).toBe(before.audioOffsetSeconds ?? 0);
+
+    // Each edit is one undoable step.
+    await page.getByRole('button', { name: '撤销', exact: true }).click();
+    await expect(piece(page, 2, 2, 2)).toHaveAttribute('data-segment-end', String(snapshot.audioTracks![0].durationSeconds));
+    await page.getByRole('button', { name: '重做', exact: true }).click();
+    await expect(piece(page, 2, 2, 2)).toHaveAttribute('data-segment-end', String(ended));
+
+    // Pieces survive save and reload.
+    await page.getByRole('button', { name: '关闭音轨设置', exact: true }).click();
+    await save(page);
+    await page.reload(); await ready(page);
+    await expect(piece(page, 2, 1, 2)).toHaveAttribute('data-segment-start', String(trimmed));
+    await expect(piece(page, 2, 2, 2)).toHaveAttribute('data-segment-end', String(ended));
+
+    // Deleting one piece keeps the other in place.
+    await piece(page, 2, 1, 2).click();
+    await page.getByRole('button', { name: '删除所选片段', exact: true }).click();
+    await expect(clip(page, 2)).toHaveAttribute('data-segment-start', '2');
+    await expect(clip(page, 2)).toHaveAttribute('data-offset-seconds', '0');
+  });
+}

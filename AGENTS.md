@@ -1,5 +1,9 @@
 # Working in Choreo Studio
 
+## Audio track split and trim · 2026-10-13 · pushed to main; not deployed (no Cloudflare credentials in that session)
+
+The user asked to split an audio clip at a selected point and to drag clip start/end edges so audio outside the range never plays. This applies to added "音轨 N" tracks; the CountMap-bound primary music is unchanged. A track may carry optional `segments` (sorted, non-overlapping clip-source ranges; starts on whole 30 fps frames, ends on a frame or the exact clip duration); untouched tracks omit it and keep the old format. Split acts at the playhead from the selected track's bar; edge handles trim (phones show them only on the selected track so they do not cover the move area); a piece can be deleted while others stay. Each edit is one undoable history entry; the mixer syncs every display frame during playback so trimmed edges stop on time. See docs/EDITOR_INTERACTION_STANDARD.md and docs/VERIFICATION.md.
+
 ## Direct AI motion delivered · 2026-10-13 · native43
 
 The approved direct motion/context/immutable interval/candidate/history/persistence scope is implemented, pushed and deployed. Runtime source ae2a92fbcefa4b9b7de56c6fe482281d5aad9658/tree2d03fce21badfba0a9468c795409d6c72ca1d2cc is native43/version16a8d57f-c948-471e-b246-96283e2dae38; the original single100% release is deployment3b8364e5-7d98-4c44-8471-0aa66ab6373b, source/tree annotations and unchanged bindings/runtime verified. Final Markdown receipts reuse this exact version and assets; same-version deployment metadata links the final main SHA without another Worker/static upload or public/inference loop.

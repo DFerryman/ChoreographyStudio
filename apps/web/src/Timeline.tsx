@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
-import { Camera, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Diamond, Maximize2, Music2, Plus, Repeat2, SkipBack, SkipForward, Trash2, Volume2, VolumeX, X } from 'lucide-react';
+import { Camera, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Diamond, Maximize2, Music2, Plus, Repeat2, Scissors, SkipBack, SkipForward, Trash2, Volume2, VolumeX, X } from 'lucide-react';
 import { frameAtTime, frameTime, lastFrame, type CameraPose, type CameraTrack, type Vec3 } from '../../../packages/core/src';
-import { audioTrackOffsetBounds } from './audioTracks';
+import { audioSegmentTrimBounds, audioTrackOffsetBounds, audioTrackSegments, splitAudioTrack, trimAudioSegment, type AudioTrackSegment } from './audioTracks';
 import { timelineAnchorAtFraction, timelineEdgeScroll, timelineMajorTickFrames, timelineTimeAtX, timelineWidth, timelineXAtTime, timelineZoomAtWidth } from './timelineGeometry';
 import './Timeline.css';
 
@@ -25,12 +25,17 @@ export type CameraTimelineProps = {
 export type AudioTimelineProps = { name: string; offsetSeconds: number; durationSeconds: number; waveform: number[]; onMove: (offsetSeconds: number) => void; disabled?: boolean };
 
 /** One additional imported audio file on its own track. */
-export type AudioTrackLane = { id: string; name: string; offsetSeconds: number; durationSeconds: number; waveform: number[]; muted: boolean; missing: boolean };
+export type AudioTrackLane = { id: string; name: string; offsetSeconds: number; durationSeconds: number; segments?: AudioTrackSegment[]; waveform: number[]; muted: boolean; missing: boolean };
 export type AudioTracksTimelineProps = {
   tracks: AudioTrackLane[];
   canAdd: boolean;
   onAdd: (file: File) => void;
   onMove: (id: string, offsetSeconds: number) => void;
+  /** Split the track's audible piece under the playhead into two. */
+  onSplit: (id: string) => void;
+  /** Move one edge of one audible piece to a clip source time. */
+  onTrim: (id: string, index: number, edge: 'start' | 'end', sourceSeconds: number) => void;
+  onRemoveSegment: (id: string, index: number) => void;
   onToggleMute: (id: string) => void;
   onRemove: (id: string) => void;
 };
@@ -125,10 +130,12 @@ function CameraValues({ time, value, keyTime, duration, disabled, onChange, onMo
 type DragBase = { pointerId: number; element: HTMLElement; startX: number; pointerX: number; startContentX: number; moved: boolean };
 type CameraDrag = DragBase & { kind: 'camera'; sourceTime: number; targetTime: number };
 /** trackId is absent for the primary CountMap music. */
-type AudioDrag = DragBase & { kind: 'audio'; trackId?: string; trackDuration: number; sourceOffset: number; targetOffset: number };
+type AudioDrag = DragBase & { kind: 'audio'; trackId?: string; sourceOffset: number; targetOffset: number };
+/** Drag one edge of one audible piece of an added track; values are clip source seconds. */
+type TrimDrag = DragBase & { kind: 'trim'; trackId: string; index: number; edge: 'start' | 'end'; sourceValue: number; targetValue: number };
 /** create: drag a new range from an anchor; start/end: move one edge; move: shift the whole range. */
 type RangeDrag = DragBase & { kind: 'range'; mode: 'create' | 'start' | 'end' | 'move'; anchor: number; source: TimelineRange | null; target: TimelineRange | null };
-type Drag = CameraDrag | AudioDrag | RangeDrag;
+type Drag = CameraDrag | AudioDrag | TrimDrag | RangeDrag;
 
 /**
  * Music (plus any added audio tracks) and camera over one shared time axis. A count row
@@ -147,6 +154,7 @@ export function SceneTimeline(props: TimelineProps) {
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
+  const [selectedSegment, setSelectedSegment] = useState(0);
   const trackFile = useRef<HTMLInputElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const rulerLabel = useRef<HTMLDivElement>(null);
@@ -262,8 +270,17 @@ export function SceneTimeline(props: TimelineProps) {
     } else if (active.kind === 'audio') {
       const sourceX = timelineXAtTime(active.sourceOffset, laneWidth, duration);
       const bound = Math.max(0, end - 1) / 30;
-      const { min, max } = active.trackId ? audioTrackOffsetBounds(active.trackDuration, duration) : { min: -bound, max: bound };
+      const lane = active.trackId ? audioTracks.tracks.find(track => track.id === active.trackId) : undefined;
+      const { min, max } = lane ? audioTrackOffsetBounds(lane, duration) : { min: -bound, max: bound };
       active.targetOffset = Math.max(min, Math.min(max, Math.round(timelineTimeAtX(sourceX + delta, laneWidth, duration) * 30) / 30));
+    } else if (active.kind === 'trim') {
+      const lane = audioTracks.tracks.find(track => track.id === active.trackId);
+      if (lane) {
+        const sceneEdge = lane.offsetSeconds + active.sourceValue;
+        const pointer = timelineTimeAtX(timelineXAtTime(sceneEdge, laneWidth, duration) + delta, laneWidth, duration) - lane.offsetSeconds;
+        const next = trimAudioSegment(lane, active.index, active.edge, pointer, duration);
+        active.targetValue = next ? audioTrackSegments(next)[active.index][active.edge === 'start' ? 'startSeconds' : 'endSeconds'] : active.sourceValue;
+      }
     } else {
       const pointer = Math.max(0, Math.min(duration, timelineTimeAtX(contentX, laneWidth, duration)));
       const snapped = snapToCounts(pointer, laneWidth);
@@ -292,9 +309,10 @@ export function SceneTimeline(props: TimelineProps) {
     }
     scrollAnimation.current = requestAnimationFrame(scrollWhileDragging);
   }
-  function beginDrag(event: ReactPointerEvent<HTMLElement>, payload: Omit<CameraDrag, keyof DragBase> | Omit<AudioDrag, keyof DragBase> | Omit<RangeDrag, keyof DragBase>) {
+  function beginDrag(event: ReactPointerEvent<HTMLElement>, payload: Omit<CameraDrag, keyof DragBase> | Omit<AudioDrag, keyof DragBase> | Omit<TrimDrag, keyof DragBase> | Omit<RangeDrag, keyof DragBase>) {
     if (event.button !== 0 || !event.isPrimary || (payload.kind === 'range' ? playing : locked) || dragRef.current || panRef.current || scrubRef.current) return;
     if (payload.kind === 'audio' && (payload.trackId ? audioTracks.tracks.find(track => track.id === payload.trackId)?.missing !== false : audio.disabled)) return;
+    if (payload.kind === 'trim' && audioTracks.tracks.find(track => track.id === payload.trackId)?.missing !== false) return;
     event.stopPropagation();
     const active = { ...payload, pointerId: event.pointerId, element: event.currentTarget, startX: event.clientX, pointerX: event.clientX, startContentX: laneContentX(event.currentTarget, event.clientX), moved: false } as Drag;
     event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = active; setDrag(active);
@@ -324,6 +342,7 @@ export function SceneTimeline(props: TimelineProps) {
     }
     if (active.kind === 'camera' && active.sourceTime !== active.targetTime) camera.onMove(active.sourceTime, active.targetTime);
     else if (active.kind === 'audio' && active.trackId) { if (active.sourceOffset !== active.targetOffset) audioTracks.onMove(active.trackId, active.targetOffset); }
+    else if (active.kind === 'trim') { if (active.sourceValue !== active.targetValue) audioTracks.onTrim(active.trackId, active.index, active.edge, active.targetValue); }
     else if (active.kind === 'audio' && !audio.disabled && active.sourceOffset !== active.targetOffset) audio.onMove(active.targetOffset);
     else if (active.kind === 'range') props.onRange(active.target);
   }
@@ -333,9 +352,10 @@ export function SceneTimeline(props: TimelineProps) {
     onPointerCancel: () => finishDrag(true),
     onLostPointerCapture: (event: ReactPointerEvent<HTMLElement>) => { if (event.pointerId === dragRef.current?.pointerId) finishDrag(true); },
   };
-  const trackSignature = audioTracks.tracks.map(track => `${track.id}:${track.offsetSeconds}:${track.missing}`).join('|');
+  const trackSignature = audioTracks.tracks.map(track => `${track.id}:${track.offsetSeconds}:${track.missing}:${audioTrackSegments(track).map(segment => `${segment.startSeconds}-${segment.endSeconds}`).join(',')}`).join('|');
   useEffect(() => { finishDrag(true); }, [locked, audio.offsetSeconds, audio.name, audio.disabled, trackSignature, camera.track, duration]);
   useEffect(() => { if (selectedTrack && !audioTracks.tracks.some(track => track.id === selectedTrack)) setSelectedTrack(null); }, [audioTracks.tracks, selectedTrack]);
+  function selectTrack(id: string | null, segment = 0) { setSelectedTrack(id); setSelectedSegment(segment); }
   useEffect(() => () => { const active = dragRef.current; if (active?.element.hasPointerCapture(active.pointerId)) active.element.releasePointerCapture(active.pointerId); if (scrollAnimation.current !== null) cancelAnimationFrame(scrollAnimation.current); }, []);
 
   function beginRange(event: ReactPointerEvent<HTMLDivElement>) {
@@ -442,6 +462,10 @@ export function SceneTimeline(props: TimelineProps) {
   const inRange = !!range && time >= range.start - 1e-9 && time <= range.end + 1e-9;
   const trackIndex = selectedTrack ? audioTracks.tracks.findIndex(track => track.id === selectedTrack) : -1;
   const shownTrack = trackIndex >= 0 ? audioTracks.tracks[trackIndex] : null;
+  const shownSegments = shownTrack ? audioTrackSegments(shownTrack) : [];
+  const shownSegmentIndex = Math.min(selectedSegment, Math.max(0, shownSegments.length - 1));
+  const shownSegment = shownSegments[shownSegmentIndex];
+  const canSplit = !!shownTrack && !shownTrack.missing && !!splitAudioTrack(shownTrack, time);
   const navigate = (next: number) => { if (!playing) props.onTime(Math.max(0, Math.min(duration, next))); };
 
   return <section className={`tl-timeline ${expanded ? '' : 'tl-collapsed'}`} aria-label="场景时间线" data-time={time} data-frame={frame}>
@@ -472,7 +496,7 @@ export function SceneTimeline(props: TimelineProps) {
       <details ref={moreDisclosure} className="tl-more" aria-label="更多时间线选项"><summary title="时间线选项">时间线选项</summary><div className="tl-popover">
         {props.playbackOptions}
         <p>时间线包含音乐（可添加多条音轨）与镜头轨。人物动作由 AI 生成；在节拍行拖动可选择起止时间，双击某个八拍可整段选中，选区用于循环播放，并将作为 AI 只修改这一段的范围。</p>
-        <p>拖动音乐片段对齐节拍；音乐轨的“＋”可导入更多音频，每个文件放在独立音轨上，可分别拖动、静音或删除。选中镜头轨后拖动画面会在当前时间记录镜头，“＋”在当前时间记录当前视角，菱形可拖动改时间。</p>
+        <p>拖动音乐片段对齐节拍；音乐轨的“＋”可导入更多音频，每个文件放在独立音轨上，可分别拖动、静音或删除。选中音轨后可在播放头处“分割”，拖动片段两端可裁剪，裁掉的部分不会播放。选中镜头轨后拖动画面会在当前时间记录镜头，“＋”在当前时间记录当前视角，菱形可拖动改时间。</p>
         <p>快捷键：Space 播放，←/→ 逐帧，Shift+←/→ 逐拍，Home/End 起止，I/O 设选区，Esc 清除选区，Delete 删除选中镜头关键帧，Ctrl/⌘+滚轮缩放。</p>
       </div></details>
       <button className="tl-collapse" aria-label={expanded ? '收起时间线' : '展开时间线'} aria-expanded={expanded} title={expanded ? '收起时间线' : '展开时间线'} onClick={() => { finishDrag(true); finishPan(true); finishScrub(); setExpanded(!expanded); }}>{expanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}</button>
@@ -509,7 +533,7 @@ export function SceneTimeline(props: TimelineProps) {
           <div className="tl-lane-track tl-pannable tl-audio-content" onClick={seekLane}>
             {rangeShade}
             <button className={`tl-audio-clip ${drag?.kind === 'audio' && drag.moved ? 'dragging' : ''}`} aria-label="移动音频片段" title={`${audio.name} · 拖动对齐音乐`} disabled={locked || audio.disabled} data-offset-seconds={audioOffset} data-duration-seconds={audio.durationSeconds}
-              style={{ left: `${audioLeft / timeWidth * 100}%`, width: `${audioWidth / timeWidth * 100}%` }} onPointerDown={event => beginDrag(event, { kind: 'audio', trackDuration: audio.durationSeconds, sourceOffset: audio.offsetSeconds, targetOffset: audio.offsetSeconds })} {...dragHandlers} onClick={event => event.stopPropagation()}>
+              style={{ left: `${audioLeft / timeWidth * 100}%`, width: `${audioWidth / timeWidth * 100}%` }} onPointerDown={event => beginDrag(event, { kind: 'audio', sourceOffset: audio.offsetSeconds, targetOffset: audio.offsetSeconds })} {...dragHandlers} onClick={event => event.stopPropagation()}>
               <svg className="tl-waveform" viewBox={`0 0 ${Math.max(wave.length, 1)} 24`} preserveAspectRatio="none" aria-hidden="true">{wave.map((value, index) => { const amplitude = Math.max(.5, Math.min(1, Math.abs(value)) * 11); return <line key={index} x1={index + .5} x2={index + .5} y1={12 - amplitude} y2={12 + amplitude} />; })}</svg>
               <span className="tl-audio-name" style={{ left: `${audioWidth > 0 ? Math.max(0, -audioLeft) / audioWidth * 100 : 0}%` }}>{drag?.kind === 'audio' && drag.moved ? `${audioOffset > 0 ? '+' : ''}${audioOffset.toFixed(3)} s` : audio.name}</span>
             </button>
@@ -517,24 +541,47 @@ export function SceneTimeline(props: TimelineProps) {
         </div>
         {audioTracks.tracks.map((track, index) => {
           const moving = drag?.kind === 'audio' && drag.trackId === track.id;
+          const trimming = drag?.kind === 'trim' && drag.trackId === track.id ? drag : null;
           const offset = moving ? drag.targetOffset : track.offsetSeconds;
-          const left = timelineXAtTime(offset, timeWidth, duration);
-          const width = timelineXAtTime(offset + track.durationSeconds, timeWidth, duration) - left;
+          const segments = audioTrackSegments(track).map((segment, at) => trimming?.index === at ? { ...segment, [trimming.edge === 'start' ? 'startSeconds' : 'endSeconds']: trimming.targetValue } : segment);
+          const percent = (at: number) => timelineXAtTime(at, timeWidth, duration) / timeWidth * 100;
           const trackWave = track.waveform.filter(Number.isFinite).slice(0, 160);
           const number = index + 2;
+          const trimmed = segments.length > 1 || segments[0].startSeconds > 0 || segments[0].endSeconds < track.durationSeconds;
           return <div key={track.id} className={`tl-lane tl-audio-lane tl-extra-audio ${selectedTrack === track.id ? 'selected' : ''} ${track.muted ? 'muted' : ''}`} data-track-id={`audio-${track.id}`} aria-label={`音轨 ${number}`}>
             <div className="tl-lane-label">
-              <button className="tl-track-select" aria-label={`选择音轨 ${number}`} aria-pressed={selectedTrack === track.id} title={`${track.name}${track.missing ? ' · 音频缺失' : ''}`} onClick={() => setSelectedTrack(selectedTrack === track.id ? null : track.id)}><Music2 size={11} /><span>音轨{number}</span></button>
+              <button className="tl-track-select" aria-label={`选择音轨 ${number}`} aria-pressed={selectedTrack === track.id} title={`${track.name}${track.missing ? ' · 音频缺失' : ''}`} onClick={() => selectTrack(selectedTrack === track.id ? null : track.id)}><Music2 size={11} /><span>音轨{number}</span></button>
               <button className="tl-add-key" aria-label={track.muted ? `取消静音音轨 ${number}` : `静音音轨 ${number}`} aria-pressed={track.muted} title={track.muted ? '取消静音' : '静音'} disabled={locked} onClick={() => audioTracks.onToggleMute(track.id)}>{track.muted ? <VolumeX size={11} /> : <Volume2 size={11} />}</button>
             </div>
             <div className="tl-lane-track tl-pannable tl-audio-content" onClick={seekLane}>
               {rangeShade}
-              <button className={`tl-audio-clip ${moving && drag.moved ? 'dragging' : ''} ${track.missing ? 'missing' : ''}`} aria-label={`移动音轨 ${number} 片段`} title={`${track.name}${track.missing ? ' · 音频缺失，请删除后重新添加' : ' · 拖动调整位置'}`} disabled={locked || track.missing}
-                data-offset-seconds={offset} data-duration-seconds={track.durationSeconds}
-                style={{ left: `${left / timeWidth * 100}%`, width: `${width / timeWidth * 100}%` }} onPointerDown={event => beginDrag(event, { kind: 'audio', trackId: track.id, trackDuration: track.durationSeconds, sourceOffset: track.offsetSeconds, targetOffset: track.offsetSeconds })} {...dragHandlers} onClick={event => { event.stopPropagation(); setSelectedTrack(track.id); }}>
-                <svg className="tl-waveform" viewBox={`0 0 ${Math.max(trackWave.length, 1)} 24`} preserveAspectRatio="none" aria-hidden="true">{trackWave.map((value, bin) => { const amplitude = Math.max(.5, Math.min(1, Math.abs(value)) * 11); return <line key={bin} x1={bin + .5} x2={bin + .5} y1={12 - amplitude} y2={12 + amplitude} />; })}</svg>
-                <span className="tl-audio-name" style={{ left: `${width > 0 ? Math.max(0, -left) / width * 100 : 0}%` }}>{moving && drag.moved ? `${offset > 0 ? '+' : ''}${offset.toFixed(3)} s` : `${track.name}${track.missing ? '（缺失）' : ''}`}</span>
-              </button>
+              {trimmed && <span className="tl-audio-ghost" style={{ left: `${percent(offset)}%`, width: `${percent(offset + track.durationSeconds) - percent(offset)}%` }} aria-hidden="true" />}
+              {segments.map((segment, at) => {
+                const left = percent(offset + segment.startSeconds), right = percent(offset + segment.endSeconds);
+                const bins = trackWave.length, from = bins * segment.startSeconds / track.durationSeconds, span = Math.max(bins * (segment.endSeconds - segment.startSeconds) / track.durationSeconds, 1e-3);
+                const piece = segments.length > 1 ? ` ${at + 1}/${segments.length}` : '';
+                const label = `${track.name}${track.missing ? '（缺失）' : ''}`;
+                const sceneStart = offset + segment.startSeconds, sceneEnd = offset + segment.endSeconds;
+                const handle = (edge: 'start' | 'end') => {
+                  const value = edge === 'start' ? segment.startSeconds : segment.endSeconds;
+                  const canTrim = !!audioSegmentTrimBounds(track, at, edge, duration);
+                  return <button key={edge} className={`tl-trim-handle ${edge} ${trimming?.index === at && trimming.edge === edge && trimming.moved ? 'dragging' : ''}`} data-edge={edge} data-source-seconds={value}
+                    aria-label={`裁剪音轨 ${number} 片段${piece}${edge === 'start' ? '起点' : '终点'}`} title={edge === 'start' ? '拖动裁剪开头；之前的音频不会播放' : '拖动裁剪结尾；之后的音频不会播放'}
+                    disabled={locked || track.missing || !canTrim} style={{ left: `${edge === 'start' ? left : right}%` }}
+                    onPointerDown={event => beginDrag(event, { kind: 'trim', trackId: track.id, index: at, edge, sourceValue: value, targetValue: value })} {...dragHandlers}
+                    onClick={event => { event.stopPropagation(); selectTrack(track.id, at); }} />;
+                };
+                return [
+                  <button key={`clip-${at}`} className={`tl-audio-clip ${moving && drag.moved ? 'dragging' : ''} ${trimming?.index === at && trimming.moved ? 'trimming' : ''} ${track.missing ? 'missing' : ''} ${selectedTrack === track.id && shownSegmentIndex === at ? 'selected' : ''}`}
+                    aria-label={`移动音轨 ${number} 片段${piece}`} title={`${track.name}${track.missing ? ' · 音频缺失，请删除后重新添加' : ' · 拖动调整位置，拖动两端裁剪'}`} disabled={locked || track.missing}
+                    data-offset-seconds={offset} data-duration-seconds={track.durationSeconds} data-segment-start={segment.startSeconds} data-segment-end={segment.endSeconds}
+                    style={{ left: `${left}%`, width: `${right - left}%` }} onPointerDown={event => beginDrag(event, { kind: 'audio', trackId: track.id, sourceOffset: track.offsetSeconds, targetOffset: track.offsetSeconds })} {...dragHandlers} onClick={event => { event.stopPropagation(); selectTrack(track.id, at); }}>
+                    <svg className="tl-waveform" viewBox={`${from} 0 ${span} 24`} preserveAspectRatio="none" aria-hidden="true">{trackWave.map((value, bin) => { const amplitude = Math.max(.5, Math.min(1, Math.abs(value)) * 11); return <line key={bin} x1={bin + .5} x2={bin + .5} y1={12 - amplitude} y2={12 + amplitude} />; })}</svg>
+                    <span className="tl-audio-name" style={{ left: `${right > left ? Math.max(0, -left) / (right - left) * 100 : 0}%` }}>{moving && drag.moved ? `${offset > 0 ? '+' : ''}${offset.toFixed(3)} s` : trimming?.index === at && trimming.moved ? `${seconds(sceneStart)}–${seconds(sceneEnd)}` : label}</span>
+                  </button>,
+                  handle('start'), handle('end'),
+                ];
+              })}
             </div>
           </div>;
         })}
@@ -558,10 +605,12 @@ export function SceneTimeline(props: TimelineProps) {
       </div>
     </div>}
     {shownTrack && <div className="tl-camera-bar tl-track-bar" role="group" aria-label="音轨设置">
-      <span className="tl-camera-status"><Music2 size={12} />{`音轨 ${trackIndex + 2} · ${shownTrack.name} · 起点 ${seconds(shownTrack.offsetSeconds)} · 时长 ${seconds(shownTrack.durationSeconds)}${shownTrack.missing ? ' · 音频缺失' : ''}`}</span>
+      <span className="tl-camera-status"><Music2 size={12} />{`音轨 ${trackIndex + 2} · ${shownTrack.name}${shownSegments.length > 1 ? ` · 片段 ${shownSegmentIndex + 1}/${shownSegments.length}` : ''} · ${seconds(shownTrack.offsetSeconds + shownSegment.startSeconds)}–${seconds(shownTrack.offsetSeconds + shownSegment.endSeconds)}${shownTrack.missing ? ' · 音频缺失' : ''}`}</span>
+      <button aria-label="在播放头处分割所选音轨" title={canSplit ? '在播放头处把片段分成两段' : '把播放头移到该音轨片段内部后可分割'} disabled={locked || !canSplit} onClick={() => audioTracks.onSplit(shownTrack.id)}><Scissors size={12} />分割</button>
+      {shownSegments.length > 1 && <button className="tl-danger" aria-label="删除所选片段" title="只删除这一段；其余片段保持原位" disabled={locked || shownTrack.missing} onClick={() => audioTracks.onRemoveSegment(shownTrack.id, shownSegmentIndex)}><Trash2 size={12} />删片段</button>}
       <button aria-label={shownTrack.muted ? '取消静音所选音轨' : '静音所选音轨'} aria-pressed={shownTrack.muted} disabled={locked} onClick={() => audioTracks.onToggleMute(shownTrack.id)}>{shownTrack.muted ? <VolumeX size={12} /> : <Volume2 size={12} />}{shownTrack.muted ? '取消静音' : '静音'}</button>
       <button className="tl-danger" aria-label="删除所选音轨" disabled={locked} onClick={() => audioTracks.onRemove(shownTrack.id)}><Trash2 size={12} />删除</button>
-      <button aria-label="关闭音轨设置" onClick={() => setSelectedTrack(null)}>完成</button>
+      <button aria-label="关闭音轨设置" onClick={() => selectTrack(null)}>完成</button>
     </div>}
     {camera.selected && <div className="tl-camera-bar" role="group" aria-label="镜头关键帧">
       <span className="tl-camera-status"><Camera size={12} />{playing ? '镜头轨 · 播放中' : cameraKey ? `镜头关键帧 ${cameraTimes.indexOf(time) + 1} / ${cameraTimes.length} · ${seconds(time)}` : `镜头录制 · ${seconds(time)} · 调整画面即记录`}</span>

@@ -39,16 +39,25 @@ export function useAudioTrackMixer({ clips, tracks, time, playing, rate, sceneDu
     for (const [id, current] of owned.current) if (!live.has(id)) { release(current); owned.current.delete(id); }
   }, [clips]);
   useEffect(() => () => { for (const current of owned.current.values()) release(current); owned.current.clear(); }, []);
+  const getTimeRef = useRef(getTime); getTimeRef.current = getTime;
   useEffect(() => {
-    const at = playing ? getTime() : time, active = new Set<string>();
-    for (const track of tracks) {
-      const current = owned.current.get(track.id);
-      if (!current) continue;
-      active.add(track.id);
-      syncAudioTrackElement(current.element, track, { time: at, playing, rate, sceneDuration });
-    }
-    // Tracks removed from the current snapshot (undo, delete) fall silent.
-    for (const [id, current] of owned.current) if (!active.has(id) && !current.element.paused) current.element.pause();
+    const sync = () => {
+      const at = playing ? getTimeRef.current() : time, active = new Set<string>();
+      for (const track of tracks) {
+        const current = owned.current.get(track.id);
+        if (!current) continue;
+        active.add(track.id);
+        syncAudioTrackElement(current.element, track, { time: at, playing, rate, sceneDuration });
+      }
+      // Tracks removed from the current snapshot (undo, delete) fall silent.
+      for (const [id, current] of owned.current) if (!active.has(id) && !current.element.paused) current.element.pause();
+    };
+    sync();
+    if (!playing) return;
+    // React time updates trail the scene clock; follow it every display frame so
+    // split and trimmed edges start and stop where the Timeline shows them.
+    let frame = requestAnimationFrame(function follow() { sync(); frame = requestAnimationFrame(follow); });
+    return () => cancelAnimationFrame(frame);
   }, [tracks, time, playing, rate, sceneDuration, clips]);
 }
 
