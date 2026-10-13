@@ -1,5 +1,11 @@
 # Cloudflare 预览部署
 
+## 2026-10-13 · 结构化动作方案与价格调研（仅文档，沿用 native39）
+
+本轮记录通用文本模型直接生成骨骼关键姿态、只读首尾上下文与程序锁定区间边界，补齐 HY/Say 价格和质量证据，见[研究设计](REALISM_PLAN.md)。新 AI 动作协议尚未上线，本轮没有场景修改、模型切换、真实推理、付费调用或资产上传；继续使用下文 native39/version `6fab32e8-8204-47cf-b700-7b3dc52928ff` 的已验证运行代码，不重复部署或公网验证。
+
+前轮测试更正准确 dff16dec 的 [CI38342097978](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38342097978)已实际读回 completed/success、updated `2026-10-13T03:45:04Z`；保留原 e0 CI 失败和既有线上证据的范围。新需求与价格简结原五份 Notion 已 5/5 原生写入并完整回读，历史内容及引用保持。
+
 ## 2026-10-13 · 原动作顺滑播放（native39已上线）
 
 用户允许身体/地面穿插，优先顺滑与原动作，并要求不改场景文件。运行source [e0b2c880](https://github.com/DFerryman/ChoreographyStudio/commit/e0b2c880e66102270f2048f6e6bc22d52a3bf2ff)/tree`ce033b321294a9db2a34dc4d03deeb528d3d4a69`已pushmain、完整远端SHA一致。本次App/Stage移除普通播放/定位强制碰撞修正，每屏幕RAF按实时场景钟采样原动作和相机；碰撞/IK/物理核心保留，场景/原动作/音频/格式不改。
