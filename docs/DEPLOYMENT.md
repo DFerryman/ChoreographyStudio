@@ -1,5 +1,11 @@
 # Cloudflare 预览部署
 
+## 2026-10-13 · 选择性 AI 方案与最新音轨提交同步（发布准备）
+
+更新 [方案](REALISM_PLAN.md) 为按实际收益选择 AI：意图／动作选择优先，数值约束与最终验收由程序执行，AI 修订和新动作／音频模型按对照证据启用。人体校准、离线轨迹求解、物理采用门槛和有界 AI 修订尚待实施；当前线上生成质量未因这次方案更新而改变。
+
+同步时发现远端新增音轨切分／裁剪源码 `153dcf70d3f996e29513094c175c3e96d17c73bf`／tree `e6fc75ad7968c0fa67838869b53585ac58ec5461`，已先快进合并再保留本轮四份 Markdown 增补。其准确 CI38363797878 completed/success（updated2026-10-13T07:52:06Z），完整浏览器步骤 success；本机 799/799、39 文件及前端构建／Worker 类型通过。因此发布最新音轨资产，而非用旧 native43 覆盖。原场景与用户音频不改，无新增模型推理。实际原生版本与部署结果在完成后补充。
+
 ## 2026-10-13 · GPT-OSS直接骨骼动作正式发布并受控验证（native43）
 
 运行源[ae2a92fb](https://github.com/DFerryman/ChoreographyStudio/commit/ae2a92fbcefa4b9b7de56c6fe482281d5aad9658)，完整SHA`ae2a92fbcefa4b9b7de56c6fe482281d5aad9658`/tree`2d03fce21badfba0a9468c795409d6c72ca1d2cc`已推送并核对main。`wrangler deploy --keep-vars --message`EXIT0；native43/version`16a8d57f-c948-471e-b246-96283e2dae38`（2026-10-13T06:24:50.89332Z），初始单100%deployment`3b8364e5-7d98-4c44-8471-0aa66ab6373b`（06:24:51.374577Z）。两source/tree精确，绑定/runtime保持，无D1；224tracked/26dist冻结SHA相等。
