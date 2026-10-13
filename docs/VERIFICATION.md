@@ -1,5 +1,19 @@
 # 预览验证记录
 
+## 2026-10-13 · 拉取最新main并发布iPad选择修复（native38，本地/线上有界检查通过）
+
+本次运行源码为`9c14cb762de3e9991f115e69b900f2d6f9f72dba`，tree `2d08bf0883c2d0ffd18ef6b72d11ff081553ae6c`，远端main完整SHA实际相等。只部署已有修复，不改应用、测试、配置或公开资产源文件。
+
+- 初次默认sandbox fetch因环境proxy连接失败；获执行权限后正常fetch成功，没有采用旧origin/main缓存。预装Rapier0.12.0与lock不符，下载0.21.0并逐SHA-512核对lock成功；跨文件系统rename旧包返回EXDEV，随后解包覆盖，实际package版本0.21.0，源码/lock未修改。
+- `npm run check` EXIT0：700/700、35文件，测试38.31s；前端类型与Vite1972模块构建773ms通过，既有大chunk提示保留。`npm run typecheck:worker`和原生dry-run EXIT0。
+- 正式本地`tests/playback-rates.spec.ts`2/2、44.1s，包含0.25×真实音频/场景时钟、保存/重开/完整.choreo导入，0.1×/JSON重新关联音乐，原project与音乐SHA不变。两份browser-console-and-api诊断空。未重复全套浏览器；旧环境download文件名失败不改写为通过。
+- 原生native38/version `4b07fc50-f4e0-441b-ada4-5862ad164bb9`，唯一100% deployment `3cdf4db5-0d76-4e36-a3f5-64115e3748d9`。两份source/tree注释精确相同；HTML和主JS两新资产上传成功，原有绑定、限频与静态/API路由保持。
+- 正常TLS单轮HTTP8/8（收据`2026-10-13T02:29:18.399590Z`）：HTML、mainJS、CSS、Rapier、默认GLB、favicon六文件逐字节/SHA等于dist，health/capabilities两只读GET200。AI/backend未变化，无真实推理或服务器数据库写入。
+- 唯一公网1440×1000与820×1180 DOM检查2/2：3D画布可见、播放可用、页面无横向溢出，场景→导入备份入口可打开，新accept精确为`.choreo,.json,application/json,application/octet-stream`，每例GLB响应200且字节/SHA等于dist。任务独立Chromium profile、正常系统CA/TLS、ignoreHTTPSErrors=false；13静态GET，errors/warnings/failedRequests/badHttp/apiRequests五数组每例空。两截图已查看，但捕获在弹层过渡中，不作为稳定视觉验收依据；820px只是iPad尺寸，未操作Safari原生文件选择器。真机iPad确认仍待完成。
+- 准确源码[CI38335987743](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38335987743)实际completed/success，updated`2026-10-13T02:29:56Z`；未手动rerun，不新增未经核对的CI逐项计数。
+
+原生版本/部署/HTTP/公网/CI收据留ignored work。最终只提交AGENTS/VERIFICATION/DEPLOYMENT三份Markdown并pushmain，沿用同一native38，不再次部署或公网验证。[打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。下文无凭据/未部署记录保留为历史。
+
 ## 2026-10-13 · iPad Safari场景包选择修复（本地检查通过；未部署Cloudflare，本会话无凭据）
 
 用户报告iPad Safari导入场景时，支持的`.choreo`文件在文件选择器中灰色不可选，PC正常。原因：iOS/iPadOS把`accept`每一项映射为系统文件类型（UTI），`.choreo`无注册类型，因此`accept=".choreo,.json"`在iPad上过滤掉场景包。修复仅改`BackupImportDialog`：`accept`增加`application/json,application/octet-stream`（后者映射为通用数据类型，使`.choreo`可选）；解码器`decodeSceneBackup`本就按字节魔数/JSON内容校验，不依赖文件名或MIME，严格校验不变。

@@ -1,5 +1,15 @@
 # Cloudflare 预览部署
 
+## 2026-10-13 · 最新main与iPad场景包选择修复（native38已上线）
+
+按用户要求拉取最新提交，干净work/dc065fa同步到main [9c14cb76](https://github.com/DFerryman/ChoreographyStudio/commit/9c14cb762de3e9991f115e69b900f2d6f9f72dba)，tree `2d08bf0883c2d0ffd18ef6b72d11ff081553ae6c`。push返回Everything up-to-date，远端完整SHA核对一致。发布已有iPad Safari场景包文件类型修复，应用/测试/部署配置未另修改。
+
+`wrangler deploy --keep-vars --message` EXIT0，上传HTML和`index-B5aqYZJn.js`两新资产、21已上传资产复用。native38/version `4b07fc50-f4e0-441b-ada4-5862ad164bb9`于`2026-10-13T02:28:19.918832Z`创建，deployment `3cdf4db5-0d76-4e36-a3f5-64115e3748d9`于`02:28:20.425762Z`创建，新版唯一100%。version/deployment两份注释均绑定准确完整source/tree；AI/ASSETS/API20/60s/AI2/60s/RELEASE_STAGE及原SPA、安全headers、API先运行Worker和兼容日期保留，无D1绑定。
+
+700/700基础、35文件，前端/Worker类型、构建和dry-run通过；相关本地浏览器2/2通过。正常TLS HTTP8/8，六静态资源逐字节/SHA与dist相同、health/capabilities只读GET200。单轮公网1440/820检查2/2通过，新输入accept类型正确、模型字节精确、五项诊断全空，13静态GET，无业务API/真实AI/服务器写入。准确源码[CI38335987743](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38335987743)实际completed/success，updated`2026-10-13T02:29:56Z`。浏览器不是Safari真机，不能据此宣称原生iPad选择器已验收；详细边界见[验证记录](VERIFICATION.md)。本轮只有三份Markdown收据提交push，不重复上传或线上循环。
+
+[打开最新版工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。此前“未部署”属于上一次无凭据会话的历史状态，由本节实际发布结果更新。
+
 ## 2026-10-12 · 最新main多音轨（native37已上线，限定公网与准确CI通过）
 
 从干净98bbfdf拉取/快进到[6b59ee70](https://github.com/DFerryman/ChoreographyStudio/commit/6b59ee7022dd753911382c3be1bbb4f16f8992d1)，tree`9606f9c305484e2a5ba82c7be8180260296e6fa0`，应用/测试/配置原样，push已是最新并核对完整远端SHA。额外音频独立轨、整帧移动/静音/删除/撤销、本机保存及bundle-3现已在[工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)上线。

@@ -1,5 +1,9 @@
 # Working in Choreo Studio
 
+## Latest main sync and iPad picker deployment · 2026-10-13 · native38 published
+
+User requested pulling latest, pushing and deploying to Cloudflare. Clean work/dc065fa synchronized to main9c14cb762de3e9991f115e69b900f2d6f9f72dba/tree2d08bf0883c2d0ffd18ef6b72d11ff081553ae6c; push and remote full SHA verified. Locked Rapier0.21.0 tarball SHA-512 verified and restored; current700/35, frontend build/types, Worker types and dry-run passed. Formal local playback-rates2/2 passed44.1s, including .choreo/JSON import and original audio SHA. Native38/version4b07fc50-f4e0-441b-ada4-5862ad164bb9 is single100% deployment3cdf4db5-0d76-4e36-a3f5-64115e3748d9; both source/tree messages exact. Two new HTML/mainJS assets uploaded, original bindings and static/API routing retained. Normal-TLS HTTP8/8 matches six local static files and two read-only APIs. Sole public1440/820 DOM checks2/2 passed, no horizontal overflow, exact new accept tokens, both GLB bytes exact and five diagnostic arrays empty each;13 staticGET/noAPI/realAI/serverwrites. Screenshots were captured during modal transitions and do not establish settled visual acceptance or native iPad picker behavior. Exact-source CI38335987743 completed/success, updated2026-10-13T02:29:56Z. Real-iPad confirmation and old environment download-name failures remain pending/history. Only three Markdown delivery records changed; reuse native38 without another upload or online test loop.
+
 ## iPad Safari scene-pack picker · 2026-10-13 · pushed to main; not deployed (no Cloudflare credentials)
 
 iPad Safari greyed out `.choreo` files because iOS maps each `accept` token to a system file type and `.choreo` has none. The backup input now also accepts `application/json,application/octet-stream`; keep a generic type there and keep format detection content-based in `decodeSceneBackup`. Real-iPad confirmation is pending. See docs/VERIFICATION.md.
