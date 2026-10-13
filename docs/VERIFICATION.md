@@ -1,5 +1,23 @@
 # 预览验证记录
 
+## 2026-10-13 · 直接 AI 骨骼动作实现：本地验收，发布和真实调用待核对
+
+本轮由用户明确授权在拉取、推送和部署最新 main 后开始已确认开发计划。主 UI 已切换 `/api/motion/generate` / `ai-motion-1`，输出 Root 与局部关节稀疏姿态；旧六动作接口仅兼容，不回退。必要上下文和技术边界见 [方案](REALISM_PLAN.md)。原场景文件、原 Take/manual、相机及音乐没有通过此开发改写；候选明确采用才新增独立 AI 层和一次撤销历史。
+
+最终 `npm run check` EXIT0：785/785、39文件、33.21s；前端 TypeScript 与 Vite1977模块构建499ms通过，既有大chunk提示保留。Worker类型/TypeScript与原生dry-run通过，配置/绑定/限频不变，无新增D1。Worker提示补充局部角速度/旋转短路径约定后API回归56/56、1.16s通过，不声明真实模型成功。
+
+正式新AI浏览器同batch3/3通过，59.927s：整段直接骨骼候选、固定区间及前后/两端上下文、非均匀原Take和区间外含非整帧采样保持、采用/撤销/重做、本机重开、JSON和完整原音乐bundle导入；错误拒绝/来源变更清候选/不自动回退或重试。5次POST全部mock。合法快速候选会提示较急变化，未夹紧姿态。桌面/390候选条在Timeline，不遮人物，全页无横向溢出，手机操作44px且Timeline保持可滚动。Root实际看过两图；手机镜头行需内部滚动，备份临时toast位于脚下。本地回归不等同于音乐理解、自然舞蹈质量或设备帧率验收。
+
+原始失败保留：第一次新持久化169pass/1fail仅派生速度负零经JSON变正零；只规范新派生速度，原姿态不动。新增源接缝校验后同组又169pass/1fail，因为compact预检尚为`$take`引用；改为先有界预检、展开后核对原动作，后续170/170通过。最终785已覆盖新增压缩接缝篡改拒绝和重复整段生成保存恢复；整段起点只锁姿态，区间仍锁两端姿态与速度。浏览器初版2pass/1fail缺fixture baseCamera，区间复核又因undo/redo真实revision累增与期望不符失败；仅修fixture/测试期望后定向1/1，再最终3/3。均没有以放宽原Take/音乐保持断言掩盖失败。
+
+### 本轮先行部署最新 main：native40 已完成
+
+干净b27246b快进远端`f05ed91cd72c974d032dba8584d054489e3bdae5`，tree`537e9ffe094f19a50d32aef7d29ac92d849da717`；push已最新、完整remoteSHA相等。部署该远端已有的排版/舞台/人物切换后才开始新AI开发。原700/35、前端/Worker类型与build/dry-run通过；正式相关原浏览器9/9通过。原生native40/version`4e84a570-c84f-4e04-bcce-42f0d72c68ee`，唯一100% deployment`00d5279d-7ef8-4a3b-93a9-3ab2dd9f8e23`，两处source/tree注释准确、绑定与native39相等，三新HTML/JS/CSS资产上传，其余复用。
+
+公网首avatar脚本在MHR静态资源真正完成前重开，14静态请求/11完成字节检查后失败；保留且不称整轮成功。定向完成2026-10-13T05:01:00.045Z–05:01:20.698Z，1440/390均通过：等待资源真正完成后标准→MHR→重开保持→标准；34静态GET/34bytes与冻结SHA匹配，六诊断为空，原project/take/原音乐7,200,044B SHA保持，API/真实AI/服务器写入0。两轮共48静态请求。Root查看两张实际图；窄屏标题裁切和临时提示保留，非Safari真机验收。
+
+准确f05 [CI38347446857](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38347446857)实际completed/success，updated2026-10-13T04:53:54Z。此前测试更正dff16 [CI38342097978](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38342097978)也实际completed/success，updated03:45:04Z；e0原失败仍保持历史。
+
 ## 2026-10-13 · 结构化动作设计、价格核实与前轮 CI 终态
 
 本轮只读核实当前六模板协议、25 骨骼/显式时间契约、官方托管动作价格和编辑接口，完成[研究与新设计](REALISM_PLAN.md)。价格情景与年付算术已复核；Say API 价格是公开官方前端配置参考而非合作合同报价，没有付费生成质量实测。只修改 Markdown，未改变场景、运行代码、模型配置或发布资产，新增真实推理/服务器数据库写入 0，不重跑已完成的播放/public 验证。

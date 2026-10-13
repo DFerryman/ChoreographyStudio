@@ -3,6 +3,8 @@ import worker from './index';
 import { AI_MODEL, makeAIRequest } from '../../../packages/core/src/aiChoreography';
 import { makeCountMap } from '../../../packages/core/src/index';
 import { workerMetadata } from '../../../infra/worker-metadata.mjs';
+import { AI_MOTION_MODEL, AI_MOTION_PROTOCOL, AI_MOTION_REQUEST_MAX_BYTES, AI_MOTION_RESULT_MAX_BYTES } from '../../../packages/core/src/aiMotion';
+import { makeAIMotionFixture, makeAIMotionResultFixture } from '../../../packages/core/src/aiMotion.fixture';
 
 function fixture(success = true) {
   const limit = vi.fn<RateLimit['limit']>().mockResolvedValue({ success });
@@ -99,6 +101,179 @@ describe('public preview API rate protection', () => {
     }
     expect(fetch).toHaveBeenCalledTimes(3);
     expect(limit).not.toHaveBeenCalled();
+  });
+});
+
+function motionGeneration(body: unknown = makeAIMotionFixture(), init: RequestInit = {}) {
+  return new Request('https://preview.example/api/motion/generate', {
+    method: 'POST', body: JSON.stringify(body), headers: { 'cf-connecting-ip': '192.0.2.1', origin: 'https://preview.example', 'content-type': 'application/json' }, ...init,
+  });
+}
+function motionOutput(input = makeAIMotionFixture()) {
+  const result = makeAIMotionResultFixture(input);
+  return { summary: result.summary, keyframes: result.keyframes };
+}
+
+describe('explicit direct bone Workers AI motion, mock binding only', () => {
+  it.each(['full', 'interval'] as const)('sends complete immutable %s context and returns server-bound motion without action templates', async mode => {
+    const input = makeAIMotionFixture(mode);
+    const original = structuredClone(input);
+    const { env, run, aiLimit, limit, fetch } = fixture();
+    run.mockResolvedValue({ choices: [{ message: { role: 'assistant', content: JSON.stringify(motionOutput(input)) }, finish_reason: 'stop' }] });
+    const response = await worker.fetch(motionGeneration(input), env);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(makeAIMotionResultFixture(input));
+    expect(input).toEqual(original);
+    expect(limit).toHaveBeenCalledOnce();
+    expect(aiLimit).toHaveBeenCalledWith({ key: 'choreo-ai:ip:192.0.2.1' });
+    expect(run).toHaveBeenCalledOnce();
+    expect(run.mock.calls[0]).toMatchObject([AI_MOTION_MODEL, {
+      stream: false, max_tokens: 8192, temperature: 0.45,
+      response_format: { type: 'json_schema', json_schema: { properties: { keyframes: { maxItems: 48 } } } },
+    }, { signal: expect.any(AbortSignal) }]);
+    const modelInput = run.mock.calls[0][1] as { messages: { role: string; content: string }[] };
+    expect(modelInput.messages[1].content).toContain(JSON.stringify(input.context));
+    expect(modelInput.messages[1].content).toContain(JSON.stringify(input.prompt));
+    expect(modelInput.messages[0].content).toContain('before、after、boundaries');
+    expect(modelInput.messages[0].content).toContain('audioUnderstanding=false');
+    expect(modelInput.messages[0].content).not.toContain('动作表：');
+    expect(JSON.stringify(modelInput)).not.toContain('side-reach');
+    expect(fetch).not.toHaveBeenCalled();
+    expect(response.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it.each(['response-object', 'response-text', 'text-choice', 'bare-json'] as const)('accepts documented completion shapes once (%s)', async shape => {
+    const input = makeAIMotionFixture();
+    const output = motionOutput(input);
+    const providerOutput = shape === 'response-object' ? { response: output }
+      : shape === 'response-text' ? { response: JSON.stringify(output) }
+        : shape === 'text-choice' ? { choices: [{ text: JSON.stringify(output), finish_reason: 'stop' }] }
+          : JSON.stringify(output);
+    const { env, run } = fixture();
+    run.mockResolvedValue(providerOutput as Record<string, unknown>);
+    expect((await worker.fetch(motionGeneration(input), env)).status).toBe(200);
+    expect(run).toHaveBeenCalledOnce();
+  });
+
+  it('advertises actual direct-motion capabilities separately from legacy arrangement', async () => {
+    const { env, run } = fixture();
+    expect(await (await worker.fetch(request('/api/capabilities'), env)).json()).toMatchObject({
+      protocol: 'preview-1', serverProjectStorage: false,
+      aiArrangement: { legacy: true, protocol: 'ai-arrangement-1' },
+      aiMotion: { protocol: AI_MOTION_PROTOCOL, directBoneMotion: true, rangeGeneration: true, immutableContext: true,
+        audioUnderstanding: false, uploadsAudio: false, explicitRequestOnly: true, maximumRequestsPerMinutePerIp: 2 },
+    });
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it.each(['https://evil.example', 'null', ''])('rejects a foreign or missing origin before inference (%s)', async origin => {
+    const { env, run, aiLimit } = fixture();
+    const req = motionGeneration(); req.headers.set('origin', origin);
+    expect((await worker.fetch(req, env)).status).toBe(403);
+    expect(run).not.toHaveBeenCalled(); expect(aiLimit).not.toHaveBeenCalled();
+  });
+
+  it('rejects cross-site, content-type, untrusted extra fields and dangerous JSON before AI allowance', async () => {
+    const { env, run, aiLimit } = fixture();
+    const crossSite = motionGeneration(); crossSite.headers.set('sec-fetch-site', 'cross-site');
+    expect((await worker.fetch(crossSite, env)).status).toBe(403);
+    const wrongType = motionGeneration(); wrongType.headers.set('content-type', 'text/plain');
+    expect((await worker.fetch(wrongType, env)).status).toBe(415);
+    const input = makeAIMotionFixture();
+    for (const invalid of [{ ...input, model: 'other' }, { ...input, audioBytes: 'private bytes' }, { ...input, prompt: '' },
+      { ...input, context: { ...input.context, audioUnderstanding: true } },
+      { ...input, context: { ...input.context, target: { ...input.context.target, endSeconds: 1000 } } }]) {
+      expect((await worker.fetch(motionGeneration(invalid), env)).status).toBe(400);
+    }
+    for (const body of ['{"protocol":"ai-motion-1","protocol":"ai-motion-1"}', '{"__proto__":{}}', new Uint8Array([0xc3, 0x28])]) {
+      expect((await worker.fetch(motionGeneration(undefined, { body }), env)).status).toBe(400);
+    }
+    expect(run).not.toHaveBeenCalled(); expect(aiLimit).not.toHaveBeenCalled();
+  });
+
+  it('accepts necessary context above the legacy limit and rejects advertised/streamed oversized context', async () => {
+    const input = makeAIMotionFixture();
+    expect(new TextEncoder().encode(JSON.stringify(input)).byteLength).toBeGreaterThan(4096);
+    const { env, run } = fixture();
+    run.mockResolvedValue({ response: motionOutput(input) });
+    expect((await worker.fetch(motionGeneration(input), env)).status).toBe(200);
+    const advertised = motionGeneration(input); advertised.headers.set('content-length', String(AI_MOTION_REQUEST_MAX_BYTES + 1));
+    expect((await worker.fetch(advertised, env)).status).toBe(413);
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) { controller.enqueue(new Uint8Array(40_000)); controller.enqueue(new Uint8Array(40_000)); },
+      cancel() { cancelled = true; },
+    });
+    expect((await worker.fetch(motionGeneration(undefined, { body, duplex: 'half' } as RequestInit), env)).status).toBe(413);
+    expect(cancelled).toBe(true); expect(run).toHaveBeenCalledOnce();
+  });
+
+  it('shares global and AI rate protection with the legacy route and fails closed on missing/failed bindings', async () => {
+    const global = fixture(false);
+    expect((await worker.fetch(motionGeneration(), global.env)).status).toBe(429);
+    expect(global.aiLimit).not.toHaveBeenCalled(); expect(global.run).not.toHaveBeenCalled();
+    const { env, run, aiLimit } = fixture(); aiLimit.mockResolvedValue({ success: false });
+    const response = await worker.fetch(motionGeneration(), env);
+    expect(response.status).toBe(429); expect(response.headers.get('retry-after')).toBe('60');
+    expect(await response.json()).toMatchObject({ code: 'AI_RATE_LIMITED' });
+    aiLimit.mockRejectedValue(new Error('private allowance failure'));
+    expect((await worker.fetch(motionGeneration(), env)).status).toBe(503);
+    Reflect.deleteProperty(env, 'AI');
+    expect((await worker.fetch(motionGeneration(), env)).status).toBe(503);
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('rejects edited boundaries, outside keys, stale envelope fields and truncation without template fallback', async () => {
+    const input = makeAIMotionFixture('interval');
+    const output = motionOutput(input);
+    const { env, run } = fixture();
+    const key = output.keyframes[0];
+    const invalid = [
+      { response: { ...output, keyframes: [{ ...key, time: input.context.target.startSeconds }] } },
+      { response: { ...output, keyframes: [{ ...key, time: input.context.target.endSeconds }] } },
+      { response: { ...output, keyframes: [{ ...key, time: input.context.target.startSeconds - 0.1 }] } },
+      { response: { ...output, requestId: 'model-overrides-snapshot' } },
+      { response: { summary: '模板', slots: [{ actionId: 'side-reach', amplitude: 1 }] } },
+      { choices: [{ message: { content: JSON.stringify(output) }, finish_reason: 'length' }] },
+      { response: 'x'.repeat(AI_MOTION_RESULT_MAX_BYTES + 1) },
+      { response: '{"summary":"a","summary":"b","keyframes":[]}' },
+    ];
+    for (const value of invalid) {
+      run.mockResolvedValue(value);
+      const response = await worker.fetch(motionGeneration(input), env);
+      expect(response.status).toBe(502);
+      expect(await response.json()).toEqual({ code: 'AI_OUTPUT_INVALID', message: 'AI 返回了无法使用的动作数据，请稍后手动重试。' });
+    }
+    expect(run).toHaveBeenCalledTimes(invalid.length);
+  });
+
+  it('does not retry provider failure and honors cancellation before/during inference', async () => {
+    const { env, run } = fixture();
+    run.mockRejectedValue(new Error('private provider secret'));
+    expect(await (await worker.fetch(motionGeneration(), env)).json()).toEqual({ code: 'AI_GENERATION_FAILED', message: 'AI 生成失败，请稍后手动重试。' });
+    const before = new AbortController(); before.abort();
+    expect((await worker.fetch(motionGeneration(undefined, { signal: before.signal }), env)).status).toBe(499);
+    const active = new AbortController();
+    run.mockImplementation(async (_model, _input, options) => {
+      active.abort(); expect(options?.signal?.aborted).toBe(true);
+      return { response: motionOutput() };
+    });
+    expect((await worker.fetch(motionGeneration(undefined, { signal: active.signal }), env)).status).toBe(499);
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses a 90 second abort deadline and ignores a result arriving after timeout', async () => {
+    const { env, run } = fixture(); const deadline = new AbortController();
+    const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValueOnce(deadline.signal);
+    try {
+      run.mockImplementation(async (_model, _input, options) => {
+        deadline.abort(); expect(options?.signal?.aborted).toBe(true);
+        return { response: motionOutput() };
+      });
+      const response = await worker.fetch(motionGeneration(), env);
+      expect(response.status).toBe(504); expect(await response.json()).toMatchObject({ code: 'AI_TIMEOUT' });
+      expect(timeout).toHaveBeenCalledWith(90_000); expect(run).toHaveBeenCalledOnce();
+    } finally { timeout.mockRestore(); }
   });
 });
 

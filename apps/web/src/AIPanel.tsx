@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AI_PROMPT_MAX_LENGTH } from '../../../packages/core/src/aiChoreography';
+import { AI_MOTION_PROMPT_MAX_LENGTH } from '../../../packages/core/src/aiMotion';
 import type { TimelineRange } from './Timeline';
 
 export interface AIPanelProps {
@@ -19,12 +19,12 @@ export default function AIPanel({ onGenerate, onCancel, busy, disabled, range, d
   const [prompt, setPrompt] = useState('');
   return <div className="ai-panel">
     <strong className="ai-panel-title">AI 生成人物动作</strong>
-    <p className="form-note">描述想要的节奏和动作。AI 只接收文字与已确认数拍，音乐保留在本机。</p>
+    <p className="form-note">描述想要的节奏和动作。AI 接收文字、数拍和动作上下文，音乐保留在本机。</p>
     <p className="ai-range" aria-label="AI 目标区间">{range
-      ? <>时间线选区 {seconds(range.start)}–{seconds(range.end)}。<span>按区间只改这一段是下一步功能；当前仍生成整段候选。</span></>
+      ? <>时间线选区 {seconds(range.start)}–{seconds(range.end)}。<span>只生成这一段，两端和区间外的原动作保留。</span></>
       : <>整段 0–{seconds(duration)}。<span>在时间线节拍行拖动可选择区间。</span></>}</p>
     <label className="field">动作描述
-      <textarea aria-label="动作描述" rows={3} maxLength={AI_PROMPT_MAX_LENGTH}
+      <textarea aria-label="动作描述" rows={3} maxLength={AI_MOTION_PROMPT_MAX_LENGTH}
         value={prompt} onChange={event => setPrompt(event.target.value)} disabled={busy || disabled}
         placeholder="例如：轻柔舒展，前半段侧向律动，最后自然收势" />
     </label>

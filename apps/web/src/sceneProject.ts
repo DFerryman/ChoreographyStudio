@@ -1,4 +1,5 @@
 import type { SceneAudioTrack } from './audioTracks';
+import type { AIMotionTrack } from '../../../packages/core/src/aiMotionTrack';
 import type { ArrangementPlan, BakedTake, CameraTrack, CountMap, JointName, KeyframeSequence } from '../../../packages/core/src';
 
 /** A committed operation; older snapshots may omit this without being rewritten. */
@@ -15,6 +16,8 @@ export type SceneSnapshot = {
   plan: ArrangementPlan | null;
   take: BakedTake | null;
   manual?: KeyframeSequence;
+  /** Model-authored continuous motion, layered over the unchanged source take. */
+  aiMotion?: AIMotionTrack;
   /** Authored camera motion is independent of every dance and audio channel. */
   cameraTrack?: CameraTrack;
   /** Placement of the unchanged selected music segment on the scene timeline. */

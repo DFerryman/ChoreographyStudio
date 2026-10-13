@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { AlertTriangle, CheckCircle2, LoaderCircle, Save, X } from 'lucide-react';
 import {
-  buildAICandidate, cloneCameraPose, countAt, createCameraTrackSampler, frameAtTime, frameTime, getKeyframeCount, lastFrame,
+  cloneCameraPose, countAt, createCameraTrackSampler, frameAtTime, frameTime, getKeyframeCount, JOINT_NAMES, lastFrame, sampleTake,
   makeCameraTrack, moveCameraKeyframe, removeCameraKeyframe, sameCameraPose, upsertCameraKeyframe, validateCameraPose, validateCameraTrack,
-  type ArrangementPlan, type BakedTake, type CameraPose, type CameraTrack, type SampledCameraPose,
+  type CameraPose, type CameraTrack, type SampledCameraPose,
 } from '../../../packages/core/src';
+import { analyzeAIMotionPatch, appendAIMotionPatch, compileAIMotionPatch, createAIMotionSampler, type AIMotionQuality, type AIMotionTrack } from '../../../packages/core/src/aiMotionTrack';
+import type { AIMotionTarget } from '../../../packages/core/src/aiMotion';
 import { Stage, type StageCamera, type StageCameraFocus, type StageView } from './Stage';
 import { DEFAULT_AVATAR, isAvatarId, type AvatarId } from './Humanoid';
 import { SceneTimeline, type TimelineRange } from './Timeline';
 import AIPanel from './AIPanel';
-import { requestAIArrangement } from './aiClient';
+import { requestAIMotion } from './aiClient';
+import { buildAIMotionRequest, sourceStampForAIMotion } from './aiMotionContext';
 import { demoAudio } from './demoAudio';
 import { deleteScene, duplicateScene, listScenes, loadCurrentScene, loadScene, renameScene, saveScene, setCurrentScene as selectStoredScene } from './storage';
 import { createScene, type SceneDocument, type SceneMetadata, type SceneViewer } from './scene';
@@ -45,8 +48,7 @@ type ResetAction = 'music' | 'adoptAssist';
 /** Any action that must first resolve an in-progress camera gesture. */
 type GuardedAction = AudioMoveAction | { type: 'seek'; time: number } | { type: 'scene'; action: SceneAction } | { type: 'history'; direction: -1 | 1 }
   | { type: 'play' | 'save' | 'music' | 'teaching' | 'backup' | 'projectBackup' | 'adoptAssist' | 'previewAssist' } | { type: 'assist'; prompt: string };
-type AssistPayload = { plan: ArrangementPlan | null; take: BakedTake; summary: string };
-type AssistCandidate = AssistPayload & { sceneId: string; countMapId: string; baseRevision: number };
+type AssistCandidate = { aiMotion: AIMotionTrack; target: AIMotionTarget; summary: string; quality: AIMotionQuality; sceneId: string; countMapId: string; baseRevision: number; sourceStamp: string };
 type CameraGesture = { sceneId: string; revision: number; time: number; snapshot: Snapshot; before: CameraPose; latest: CameraPose; status: SaveStatus; version: number; override: boolean };
 type NamedTarget = { id: string; name: string };
 
@@ -147,7 +149,7 @@ export default function App() {
   const [previewAssist, setPreviewAssist] = useState(false);
   const [assistBusy, setAssistBusy] = useState(false);
   const [assistError, setAssistError] = useState('');
-  const assistRun = useRef<{ controller: AbortController; sceneId: string; revision: number; countMapId: string } | null>(null);
+  const assistRun = useRef<{ controller: AbortController; sceneId: string; revision: number; countMapId: string; sourceStamp: string } | null>(null);
 
   // ── Derived state ─────────────────────────────────────────────────────────
   const storedActive = session.history[session.historyIndex];
@@ -157,21 +159,30 @@ export default function App() {
     const neutral = neutralSnapshot(storedActive.countMap, storedActive.title, storedActive.plan?.id);
     return { ...storedActive, take: neutral.take, manual: storedActive.manual ?? neutral.manual };
   }, [storedActive]);
+  const activeRef = useRef(active); activeRef.current = active;
+  const audioBlobRef = useRef(audioBlob); audioBlobRef.current = audioBlob;
+  const audioClipsRef = useRef(audioClips); audioClipsRef.current = audioClips;
   const duration = active.countMap.durationSeconds;
   const cameraSampler = useMemo(() => active.cameraTrack ? createCameraTrackSampler(active.cameraTrack, duration) : null, [active.cameraTrack, duration]);
   const sampledCamera = useMemo(() => cameraSampler?.(time) ?? null, [cameraSampler, time]);
-  const cameraTrackState = !cameraViewOverride && !previewAssist ? sampledCamera : null;
+  const cameraTrackState = !cameraViewOverride ? sampledCamera : null;
   const cameraValue = cameraTrackState ?? camera ?? DEFAULT_CAMERA;
   const editorFrame = frameAtTime(time, duration);
   const legacyKeyCount = useMemo(() => active.manual ? getKeyframeCount(active.manual) : 0, [active.manual]);
   const hasLegacyAuthoring = legacyKeyCount > 0 || !!active.manual?.footLocks?.length || !!active.manual?.steps;
-  const displayedTake = previewAssist && assistCandidate ? assistCandidate.take : active.take;
+  const displayedTake = active.take;
+  const currentMotionSampler = useMemo(() => active.take ? createAIMotionSampler(at => sampleTake(active.take!, at), active.aiMotion) : undefined, [active.take, active.aiMotion]);
+  const displayedMotionSampler = useMemo(() => active.take && previewAssist && assistCandidate && assistCandidate.baseRevision === session.revision
+    ? createAIMotionSampler(at => sampleTake(active.take!, at), assistCandidate.aiMotion) : currentMotionSampler,
+  [active.take, previewAssist, assistCandidate, session.revision, currentMotionSampler]);
   const editing = page === 'studio' && !previewAssist;
   const modalOpen = libraryOpen || importOpen || music.open || aboutOpen || !!renameTarget || !!deleteTarget || !!pendingSceneAction || !!pendingResetAction;
   /** Work-level locks: a dialog, a long operation or a save in progress. */
   const workLocked = modalOpen || !!busy || sceneActionBusy || saveStatus === 'saving';
   const countPosition = countAt(active.countMap, time);
-  const loopRange = useMemo(() => loop ? range ? { startSeconds: range.start, endSeconds: range.end } : { startSeconds: 0, endSeconds: duration } : null, [loop, range, duration]);
+  const shownRange = useMemo(() => previewAssist && assistCandidate
+    ? { start: assistCandidate.target.startSeconds, end: assistCandidate.target.endSeconds } : range, [previewAssist, assistCandidate, range]);
+  const loopRange = useMemo(() => loop ? shownRange ? { startSeconds: shownRange.start, endSeconds: shownRange.end } : { startSeconds: 0, endSeconds: duration } : null, [loop, shownRange, duration]);
 
   const timelineDockRef = useRef<HTMLDivElement>(null);
   const timelineInset = useOverlayInset(timelineDockRef, ready, 0);
@@ -304,8 +315,8 @@ export default function App() {
     if (guard({ type: 'play' })) return;
     if (!displayedTake || !audioRef.current || !ready || !audioBlob) return;
     setCameraViewOverride(false);
-    const start = loop && range
-      ? time >= range.start && time < range.end - .01 ? time : range.start
+    const start = loop && shownRange
+      ? time >= shownRange.start && time < shownRange.end - .01 ? time : shownRange.start
       : time >= duration - .01 ? 0 : time;
     await timelinePlayback.play(start);
   }
@@ -570,37 +581,51 @@ export default function App() {
     if (guard({ type: 'assist', prompt })) return;
     if (!active.take || assistRun.current || busy || !ready) return;
     pause(); setAssistError(''); setAssistCandidate(null); setPreviewAssist(false);
-    const run = { controller: new AbortController(), sceneId: currentScene.id, revision: session.revision, countMapId: active.countMap.id };
+    const source = active;
+    const targetRange = range ? { start: range.start, end: range.end } : null;
+    const run = { controller: new AbortController(), sceneId: currentScene.id, revision: session.revision, countMapId: source.countMap.id,
+      sourceStamp: sourceStampForAIMotion(source, audioBlob, audioClips) };
     assistRun.current = run; setAssistBusy(true);
-    const valid = () => assistRun.current === run && !run.controller.signal.aborted && sessionRef.current.revision === run.revision;
+    const valid = () => assistRun.current === run && !run.controller.signal.aborted && sceneIdRef.current === run.sceneId && sessionRef.current.revision === run.revision &&
+      sourceStampForAIMotion(activeRef.current, audioBlobRef.current, audioClipsRef.current) === run.sourceStamp;
     try {
-      const response = await requestAIArrangement(prompt, active.countMap, run.controller.signal);
+      const request = await buildAIMotionRequest({ prompt, sceneId: run.sceneId, baseRevision: run.revision, snapshot: source,
+        range: targetRange, audioBlob, audioName, audioDurationSeconds: session.audioDuration, audioClips, signal: run.controller.signal });
       if (!valid()) return;
-      const generated = buildAICandidate(active.countMap, response);
-      setAssistCandidate({ plan: generated.plan, take: generated.take, summary: response.arrangement.summary, sceneId: run.sceneId, countMapId: run.countMapId, baseRevision: run.revision });
+      const response = await requestAIMotion(request, run.controller.signal);
+      if (!valid() || !currentMotionSampler) return;
+      const patch = compileAIMotionPatch(request, response, currentMotionSampler);
+      const quality = analyzeAIMotionPatch(patch);
+      const aiMotion = appendAIMotionPatch(source.aiMotion, patch, source.countMap);
+      setAssistCandidate({ aiMotion, target: request.context.target, summary: response.summary, quality, sceneId: run.sceneId,
+        countMapId: run.countMapId, baseRevision: run.revision, sourceStamp: run.sourceStamp });
       setNotice('候选已就绪。预览和采用分开操作，原稿尚未改变。');
     } catch (error) { if (valid()) { setAssistError(errorMessage(error)); setNotice(errorMessage(error)); } }
     finally { if (assistRun.current === run) { assistRun.current = null; setAssistBusy(false); } }
   }
   function validAssistCandidate() {
-    return !!assistCandidate && assistCandidate.sceneId === currentScene.id && assistCandidate.countMapId === active.countMap.id && assistCandidate.baseRevision === session.revision;
+    return !!assistCandidate && assistCandidate.sceneId === currentScene.id && assistCandidate.countMapId === active.countMap.id && assistCandidate.baseRevision === session.revision &&
+      sourceStampForAIMotion(active, audioBlob, audioClips) === assistCandidate.sourceStamp;
   }
   const STALE_CANDIDATE = '作品已经改变，请重新生成候选。';
   function showAssistCandidate() {
     if (guard({ type: 'previewAssist' })) return;
     if (!validAssistCandidate()) { setNotice(STALE_CANDIDATE); return; }
-    pause(); setPreviewAssist(true); seekDirect(range?.start ?? 0);
+    pause(); setPreviewAssist(true); seekDirect(assistCandidate!.target.startSeconds);
   }
   function adoptAssistance() {
     if (!validAssistCandidate()) { setNotice(STALE_CANDIDATE); return; }
     if (guard({ type: 'adoptAssist' })) return;
-    if (hasLegacyAuthoring) { setPendingResetAction('adoptAssist'); return; }
+    if (hasLegacyAuthoring && assistCandidate!.target.mode === 'full') { setPendingResetAction('adoptAssist'); return; }
     performAdoptAssistance();
   }
   function performAdoptAssistance() {
     if (!validAssistCandidate() || !assistCandidate) { setNotice(STALE_CANDIDATE); return; }
-    commit({ ...active, plan: assistCandidate.plan, take: assistCandidate.take, manual: undefined }, { label: '采用 AI 动作' });
-    setAssistCandidate(null); setPreviewAssist(false); seekDirect(range?.start ?? 0);
+    const start = assistCandidate.target.startSeconds;
+    commit({ ...active, aiMotion: assistCandidate.aiMotion }, {
+      label: assistCandidate.target.mode === 'interval' ? '采用 AI 区间动作' : '采用 AI 整段动作', time: start, tracks: ['root', ...JOINT_NAMES],
+    });
+    setAssistCandidate(null); setPreviewAssist(false); seekDirect(start);
     setNotice('已采用 AI 动作；原动作保留在撤销历史中。');
   }
   function closeAssistCandidate() { pause(); setPreviewAssist(false); setAssistCandidate(null); }
@@ -889,8 +914,8 @@ export default function App() {
               </AIDock>}
             </CameraBar>
             <div className="stage-wrap">
-              <Stage take={displayedTake} time={time} getPlaybackTime={timelinePlayback.getTime} view={view} mirror={mirror}
-                cameraState={camera ?? undefined} cameraTrackState={cameraTrackState} cameraTrackSampler={!cameraViewOverride && !previewAssist ? cameraSampler ?? undefined : undefined} cameraRestoreExact={cameraRestoreExact} cameraEditRevision={session.revision}
+              <Stage take={displayedTake} poseSampler={displayedMotionSampler} time={time} getPlaybackTime={timelinePlayback.getTime} view={view} mirror={mirror}
+                cameraState={camera ?? undefined} cameraTrackState={cameraTrackState} cameraTrackSampler={!cameraViewOverride ? cameraSampler ?? undefined : undefined} cameraRestoreExact={cameraRestoreExact} cameraEditRevision={session.revision}
                 cameraCancelKey={cameraCancelKey} cameraTrackEditing={cameraSelected && cameraCanEdit()} onCameraGesture={handleCameraGesture}
                 cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} cameraFocus={cameraFocus ?? undefined}
                 onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction}
@@ -899,8 +924,10 @@ export default function App() {
             </div>
           </div>
           {ready && <TimelineDock ref={timelineDockRef}>
+            {assistCandidate && <AssistCandidatePanel summary={assistCandidate.summary} target={assistCandidate.target} quality={assistCandidate.quality} previewing={previewAssist} valid={validAssistCandidate()}
+              onTogglePreview={toggleAssistPreview} onAdopt={adoptAssistance} onClose={closeAssistCandidate} />}
             <SceneTimeline duration={duration} time={time} playing={playing} readOnly={!editing || workLocked || mirror}
-              countTimes={active.countMap.countTimesSeconds} range={range} onRange={changeRange} onTime={seek}
+              countTimes={active.countMap.countTimesSeconds} range={shownRange} onRange={changeRange} onTime={seek}
               loop={loop} onLoop={() => { setLoop(!loop); markSceneDirty(); }}
               camera={{ track: active.cameraTrack, value: cloneCameraPose(cameraValue), selected: cameraSelected, onSelect: selectCameraPoint, onAdd: addCameraPoint, onChange: changeCameraPoint, onMove: moveCameraPoint, onDelete: deleteCameraPoint, onDeselect: deselectCamera }}
               audio={{ name: audioName, offsetSeconds: active.audioOffsetSeconds ?? 0, durationSeconds: duration, waveform, onMove: moveAudio, disabled: !audioBlob }}
@@ -911,8 +938,6 @@ export default function App() {
             />
           </TimelineDock>}
         </section>
-        {assistCandidate && <AssistCandidatePanel summary={assistCandidate.summary} previewing={previewAssist} valid={validAssistCandidate()}
-          onTogglePreview={toggleAssistPreview} onAdopt={adoptAssistance} onClose={closeAssistCandidate} />}
       </section>
     </main>
 
@@ -922,7 +947,7 @@ export default function App() {
       onName={setImportName} onChooseBackup={file => { void chooseSceneBackup(file); }} onChooseAudio={file => { void associateBackupAudio(file); }} onConfirm={confirmSceneImport} onClose={closeBackupImport} />}
     {pendingResetAction && <ConfirmDialog titleId="reset-keys-title" confirmLabel="确认并继续" onCancel={() => setPendingResetAction(null)} onConfirm={confirmResetAction}
       title={pendingResetAction === 'adoptAssist' ? '采用 AI 候选并替换当前动作？' : '替换当前动作与镜头并继续？'}
-      intro={pendingResetAction === 'adoptAssist' ? '采用候选会替换整段人物动作；旧场景中的手动关键帧数据不再保留在新版本中。原动作保留在撤销历史中，可撤销恢复。' : '调整音乐与数拍会清空当前人物动作和镜头关键帧，并创建新的中立姿态场景。请先保存或复制场景以保留原作品。'} />}
+      intro={pendingResetAction === 'adoptAssist' ? '采用候选会替换整段人物播放内容；原始动作与作者数据保留，可撤销恢复。镜头与音乐不变。' : '调整音乐与数拍会清空当前人物动作和镜头关键帧，并创建新的中立姿态场景。请先保存或复制场景以保留原作品。'} />}
     {libraryOpen && <SceneLibraryDialog scenes={sceneList} currentId={currentScene.id} currentName={currentScene.name} loading={libraryBusy} busy={sceneActionBusy} importDisabled={!!busy}
       onClose={() => setLibraryOpen(false)} onImport={openBackupImport} onNew={() => requestSceneAction({ type: 'new' })}
       onOpen={id => requestSceneAction({ type: 'open', id })} onCopy={id => requestSceneAction({ type: 'copy', id })}

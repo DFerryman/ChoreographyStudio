@@ -67,6 +67,8 @@ type StageProps = {
   avatar?: AvatarId;
   onAvatarError?: (message: string) => void;
   poseOverride?: Pose | null;
+  /** Continuous model motion; evaluated on the same clock as the original take. */
+  poseSampler?: (time: number) => Pose;
   editMode?: boolean;
   playing?: boolean;
   /** Display-only collision correction; author data and gesture baselines stay raw. */
@@ -217,7 +219,7 @@ function cameraOwnsKeys(state: StageProps): boolean {
 }
 
 export function Stage(props: StageProps) {
-  const { take, time, getPlaybackTime, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackSampler, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selectedJoint, linkedJoints, gridVisible, axesVisible, poseOverride, editMode, playing, collisionPreview, transformTool = 'rotate', ikTarget } = props;
+  const { take, time, getPlaybackTime, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackSampler, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selectedJoint, linkedJoints, gridVisible, axesVisible, poseOverride, poseSampler, editMode, playing, collisionPreview, transformTool = 'rotate', ikTarget } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const current = useRef<StageProps & { renderPose: Pose | null; previewState: 'author' | 'loading' | 'ready' | 'error' }>({ ...props, renderPose: null, previewState: 'author' });
   const requestDraw = useRef<() => void>(() => {});
@@ -248,7 +250,7 @@ export function Stage(props: StageProps) {
     return () => { active = false; };
   }, [previewActive, collisionReady]);
   const presentation = useMemo<{ pose: Pose | null; preview: ReturnType<typeof sampleCollisionPreview> | null; error: string | null }>(() => {
-    const authored = !previewActive && !playing && poseOverride ? poseOverride : take ? sampleTake(take, time) : null;
+    const authored = !previewActive && !playing && poseOverride ? poseOverride : take ? poseSampler?.(time) ?? sampleTake(take, time) : null;
     if (!previewActive || !take || !collisionReady) return { pose: authored, preview: null, error: null };
     try {
       const preview = sampleCollisionPreview(take, time);
@@ -256,7 +258,7 @@ export function Stage(props: StageProps) {
     } catch (error) {
       return { pose: authored, preview: null, error: error instanceof Error ? error.message : '碰撞预览无法计算。' };
     }
-  }, [previewActive, playing, poseOverride, take, time, collisionReady]);
+  }, [previewActive, playing, poseOverride, poseSampler, take, time, collisionReady]);
   const feedbackPose = presentation.pose;
   const poseGuidance = useMemo(() => getPoseGuidance(feedbackPose), [feedbackPose]);
   const capsuleCollisions = presentation.preview?.collisions ?? null;
@@ -671,7 +673,7 @@ export function Stage(props: StageProps) {
         const position = rig.root.position;
         if (![position.x, position.y, position.z].every(Number.isFinite)) {
           const state = current.current;
-          position.set(...((state.poseOverride ?? (state.take ? sampleTake(state.take, state.time) : null))?.root ?? [0, 1.05, 0]));
+          position.set(...((state.poseOverride ?? (state.take ? state.poseSampler?.(state.time) ?? sampleTake(state.take, state.time) : null))?.root ?? [0, 1.05, 0]));
           return;
         }
         // Native limits constrain the object itself; keep emitted draft data in
@@ -800,7 +802,7 @@ export function Stage(props: StageProps) {
       const latest = current.current;
       const state = latest.playing ? { ...latest, time: latest.getPlaybackTime?.() ?? latest.time } : latest;
       if (state.playing) {
-        state.renderPose = state.take ? sampleTake(state.take, state.time) : null;
+        state.renderPose = state.take ? state.poseSampler?.(state.time) ?? sampleTake(state.take, state.time) : null;
         if (state.collisionPreview && state.take && state.previewState === 'ready') {
           try { state.renderPose = sampleCollisionPreview(state.take, state.time).pose; }
           catch { /* Keep the authored pose if optional preview projection fails. */ }
@@ -1374,7 +1376,7 @@ export function Stage(props: StageProps) {
 
   useEffect(() => {
     requestDraw.current();
-  }, [take, time, getPlaybackTime, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackSampler, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selection, linkedJoints, gridVisible, axesVisible, poseOverride, editMode, playing, collisionPreview, feedbackPose, previewState, transformTool, ikTarget]);
+  }, [take, time, getPlaybackTime, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackSampler, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selection, linkedJoints, gridVisible, axesVisible, poseOverride, poseSampler, editMode, playing, collisionPreview, feedbackPose, previewState, transformTool, ikTarget]);
 
   return (
     <div className="stage3d" ref={containerRef} data-camera-offset-y="0" data-motion-presentation={previewActive ? 'collision-preview' : 'author'} data-collision-preview-state={previewState} tabIndex={0} role="region" aria-label="3D 动画舞台" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined} aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y Alt+ArrowUp Alt+ArrowDown' : 'ArrowLeft ArrowRight Shift+ArrowLeft Shift+ArrowRight Home End I O Escape Space Delete Control+Z Meta+Z Control+Shift+Z Control+Y'} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }} onKeyDown={event => {

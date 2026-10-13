@@ -1,5 +1,6 @@
 import { AI_REQUEST_MAX_BYTES, AI_RESULT_MAX_BYTES, makeAIRequest, parseAIJson, validateAIResult, type AIChoreographyResult } from '../../../packages/core/src/aiChoreography';
 import type { CountMap } from '../../../packages/core/src/index';
+import { AI_MOTION_REQUEST_MAX_BYTES, AI_MOTION_RESULT_MAX_BYTES, parseAIMotionJson, validateAIMotionRequest, validateAIMotionResult, type AIMotionRequest, type AIMotionResult } from '../../../packages/core/src/aiMotion';
 
 const errorMessages: Record<string, string> = {
   AI_RATE_LIMITED: 'AI 生成每分钟最多两次，请稍后再试。',
@@ -10,17 +11,22 @@ const errorMessages: Record<string, string> = {
   AI_OUTPUT_INVALID: 'AI 返回了无法使用的编排，请稍后手动重试。',
   AI_TIMEOUT: 'AI 生成超时，请稍后手动重试。',
   INVALID_GENERATION_REQUEST: '请检查描述和已确认的完整八拍。',
+  INVALID_MOTION_REQUEST: '请检查动作描述、生成区间和原动作上下文。',
   BODY_TOO_LARGE: '生成请求超过大小限制。',
   FEATURE_NOT_ENABLED: '当前部署尚未启用 AI 生成，本机编辑仍可使用。',
 };
 function cancelled(signal: AbortSignal): void {
   if (signal.aborted) throw new DOMException('生成已取消。', 'AbortError');
 }
-async function readResult(response: Response, signal: AbortSignal): Promise<unknown> {
+async function readResult(response: Response, signal: AbortSignal, maximumBytes = AI_RESULT_MAX_BYTES,
+  parse: (source: string) => unknown = parseAIJson, invalidMessage = errorMessages.AI_OUTPUT_INVALID): Promise<unknown> {
   const length = response.headers.get('content-length');
-  if (length && (!/^\d+$/.test(length) || Number(length) > AI_RESULT_MAX_BYTES)) throw new Error(errorMessages.AI_OUTPUT_INVALID);
-  if (!response.body) throw new Error(errorMessages.AI_OUTPUT_INVALID);
+  if (length && (!/^\d+$/.test(length) || Number(length) > maximumBytes)) throw new Error(invalidMessage);
+  if (!response.body) throw new Error(invalidMessage);
   const reader = response.body.getReader();
+  // Also release a pending body read when a user cancels after headers arrive.
+  const abort = () => { void reader.cancel().catch(() => {}); };
+  signal.addEventListener('abort', abort, { once: true });
   const chunks: Uint8Array[] = [];
   let bytes = 0;
   try {
@@ -30,15 +36,15 @@ async function readResult(response: Response, signal: AbortSignal): Promise<unkn
       cancelled(signal);
       if (done) break;
       bytes += value.byteLength;
-      if (bytes > AI_RESULT_MAX_BYTES) { await reader.cancel(); throw new Error(errorMessages.AI_OUTPUT_INVALID); }
+      if (bytes > maximumBytes) { await reader.cancel(); throw new Error(invalidMessage); }
       chunks.push(value);
     }
-  } finally { reader.releaseLock(); }
+  } finally { signal.removeEventListener('abort', abort); reader.releaseLock(); }
   const merged = new Uint8Array(bytes);
   let offset = 0;
   for (const chunk of chunks) { merged.set(chunk, offset); offset += chunk.byteLength; }
-  try { return parseAIJson(new TextDecoder('utf-8', { fatal: true }).decode(merged)); }
-  catch { throw new Error(errorMessages.AI_OUTPUT_INVALID); }
+  try { return parse(new TextDecoder('utf-8', { fatal: true }).decode(merged)); }
+  catch { throw new Error(invalidMessage); }
 }
 
 /** One explicit request. No startup calls, retries, audio or scene uploads. */
@@ -68,4 +74,37 @@ export async function requestAIArrangement(prompt: string, map: CountMap, signal
   }
   try { return validateAIResult(value, map); }
   catch { throw new Error(errorMessages.AI_OUTPUT_INVALID); }
+}
+
+/** Direct sparse bone motion. The supplied context is one immutable snapshot.
+ * Never fall back to a template when validation or the provider fails. */
+export async function requestAIMotion(request: AIMotionRequest, signal: AbortSignal): Promise<AIMotionResult> {
+  cancelled(signal);
+  const input = validateAIMotionRequest(request);
+  const body = JSON.stringify(input);
+  if (new TextEncoder().encode(body).byteLength > AI_MOTION_REQUEST_MAX_BYTES) throw new Error(errorMessages.BODY_TOO_LARGE);
+  let response: Response;
+  try {
+    response = await fetch('/api/motion/generate', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body,
+      credentials: 'same-origin', cache: 'no-store', redirect: 'error', signal,
+    });
+  } catch {
+    cancelled(signal);
+    throw new Error('无法连接 AI 服务，请稍后手动重试。');
+  }
+  cancelled(signal);
+  const invalidMessage = 'AI 返回了无法使用的动作数据，请稍后手动重试。';
+  let value: unknown;
+  try { value = await readResult(response, signal, AI_MOTION_RESULT_MAX_BYTES, parseAIMotionJson, invalidMessage); }
+  catch { cancelled(signal); throw new Error(invalidMessage); }
+  cancelled(signal);
+  if (!response.ok) {
+    if (response.status === 499) throw new DOMException('生成已取消。', 'AbortError');
+    const code = value && typeof value === 'object' && 'code' in value ? (value as { code: unknown }).code : null;
+    if (code === 'AI_OUTPUT_INVALID') throw new Error(invalidMessage);
+    throw new Error(typeof code === 'string' && Object.hasOwn(errorMessages, code) ? errorMessages[code] : 'AI 生成失败，请稍后手动重试。');
+  }
+  try { return validateAIMotionResult(value, input); }
+  catch { throw new Error(invalidMessage); }
 }

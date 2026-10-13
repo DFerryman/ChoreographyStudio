@@ -1,13 +1,22 @@
+import type { AIMotionTarget } from '../../../../packages/core/src/aiMotion';
+import type { AIMotionQuality } from '../../../../packages/core/src/aiMotionTrack';
+
 /** An AI candidate is previewed and adopted explicitly; the original stays authoritative until then. */
-export function AssistCandidatePanel({ summary, previewing, valid, onTogglePreview, onAdopt, onClose }: {
-  summary: string; previewing: boolean; valid: boolean;
+export function AssistCandidatePanel({ summary, target, quality, previewing, valid, onTogglePreview, onAdopt, onClose }: {
+  summary: string; target: AIMotionTarget; quality?: AIMotionQuality; previewing: boolean; valid: boolean;
   onTogglePreview: () => void; onAdopt: () => void; onClose: () => void;
 }) {
   return <section className="assist-candidate" aria-label="AI 候选">
-    <div>
-      <strong>AI 动作候选</strong>
-      <p>{summary}</p>
-      <small>Workers AI 选择原创动作与幅度，姿态受关节限位；碰撞与接触由预览自动处理。</small>
+    <div className="assist-candidate-copy">
+      <div className="assist-candidate-heading">
+        <strong>AI 动作候选</strong>
+        <small aria-label="候选目标区间">{target.mode === 'interval'
+          ? `仅替换 ${Number(target.startSeconds.toFixed(2))}–${Number(target.endSeconds.toFixed(2))} 秒；两端与区间外保持。`
+          : `替换整段 0–${Number(target.endSeconds.toFixed(2))} 秒人物动作。`} 原动作可撤销恢复。</small>
+      </div>
+      <p className="assist-candidate-summary" title={summary}>{summary}</p>
+      {!!quality?.warnings.length && <p className="assist-candidate-warning" role="status">候选包含较急的移动或转动，先预览再决定是否采用。</p>}
+      {!valid && <small role="status">作品已改变，请重新生成候选。</small>}
     </div>
     <div className="assist-actions">
       <button className="button secondary compact" onClick={onTogglePreview}>{previewing ? '返回原稿' : '预览候选'}</button>

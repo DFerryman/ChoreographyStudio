@@ -1,5 +1,6 @@
 import { JOINT_NAMES, type BakedTake, type Pose, type Quat, type Vec3 } from '../../../packages/core/src/motion-types';
 import { validateProjectCameraTracks } from './sceneCameraTrack';
+import { validateProjectAIMotionTracks } from './sceneAIMotion';
 
 /** Lossless wire storage only. Runtime scenes keep their ordinary full snapshots. */
 export const COMPACT_SCENE_LIMITS = { takes: 36, samplesPerTake: 6001, totalSamples: 150_000, history: 12 } as const;
@@ -58,10 +59,10 @@ function equalTake(a: BakedTake, b: BakedTake): boolean {
 function takeMetadata(take: BakedTake): TakeMetadata {
   return { id: take.id, schemaVersion: take.schemaVersion, planId: take.planId, countMapId: take.countMapId, durationSeconds: take.durationSeconds, provenance: take.provenance };
 }
-function sceneHistory(value: unknown) {
+function sceneHistory(value: unknown, validateMotionSource = true) {
   const scene = object(value), project = object(scene.project), history = array(project.history, COMPACT_SCENE_LIMITS.history);
   if (!history.length) fail();
-  try { validateProjectCameraTracks(project); } catch { fail(); }
+  try { validateProjectCameraTracks(project); validateProjectAIMotionTracks(project, validateMotionSource); } catch { fail(); }
   return { scene, project, history: history.map(value => object(value)) };
 }
 
@@ -139,7 +140,7 @@ export function packScene(value: unknown): CompactScene {
 /** Decode a bounded, acyclic table, then let the ordinary scene validator run. */
 export function unpackScene(value: unknown): unknown {
   const packed = object(value, ['schema', 'scene', 'takes']); if (packed.schema !== 'compact-scene-1') fail();
-  const source = sceneHistory(packed.scene), entries = array(packed.takes, COMPACT_SCENE_LIMITS.takes), lengths: number[] = [];
+  const source = sceneHistory(packed.scene, false), entries = array(packed.takes, COMPACT_SCENE_LIMITS.takes), lengths: number[] = [];
   let tableSamples = 0;
   // Preflight every table allocation and every historical reference before
   // expanding deltas. Backward-only references rule out cycles and fanout bombs.
@@ -207,5 +208,7 @@ export function unpackScene(value: unknown): unknown {
     takes.push({ ...meta, times, poses });
   }
   const history = source.history.map((snapshot, index) => ({ ...snapshot, take: snapshotReferences[index].take === null ? null : takes[snapshotReferences[index].take!], ...(snapshot.manual === undefined ? {} : { manual: { ...object(snapshot.manual), baseTake: takes[snapshotReferences[index].base!], ...(snapshotReferences[index].frozen === null ? {} : { pointBaseTake: takes[snapshotReferences[index].frozen!] }) } }) }));
-  return { ...source.scene, project: { ...source.project, history } };
+  const project = { ...source.project, history };
+  try { validateProjectAIMotionTracks(project); } catch { fail(); }
+  return { ...source.scene, project };
 }

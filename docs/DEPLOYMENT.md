@@ -1,5 +1,15 @@
 # Cloudflare 预览部署
 
+## 2026-10-13 · 最新远端 UI/舞台/人物切换已先部署（native40）；随后实施直接 AI 动作
+
+用户要求的顺序已执行：从干净b27246b拉取并快进 main 到`f05ed91cd72c974d032dba8584d054489e3bdae5`/tree`537e9ffe094f19a50d32aef7d29ac92d849da717`，push及远端完整SHA核对，然后发布已有排版/舞台/人物切换，再开始批准的AI开发计划。
+
+`wrangler deploy --keep-vars --message` EXIT0，三新HTML/JS/CSS资产，20资产复用；native40/version`4e84a570-c84f-4e04-bcce-42f0d72c68ee`，created2026-10-13T04:45:59.225056Z；唯一100% deployment`00d5279d-7ef8-4a3b-93a9-3ab2dd9f8e23`，created04:45:59.928484Z。两处message完整source/tree精确匹配，bindings/runtime与native39相等。
+
+700/35/check/Worker/dry-run及相关本地9/9通过；公网首次avatar等待不完整导致脚本失败，定向完成两宽通过、34静态逐SHA相等，原项目/原音乐保持，六诊断空。两轮48静态请求，无API/推理/服务器写入。准确f05 CI38347446857实际completed/success。详细失败和范围见[验证记录](VERIFICATION.md)。
+
+新`ai-motion-1`动作链路已实现并完成785项基础和3项新AI mock浏览器验收；源码推送、新版原生Cloudflare版本及唯一真实模型调用由后续实际收据补充，不能用native40替代新AI发布验收。
+
 ## 2026-10-13 · 结构化动作方案与价格调研（仅文档，沿用 native39）
 
 本轮记录通用文本模型直接生成骨骼关键姿态、只读首尾上下文与程序锁定区间边界，补齐 HY/Say 价格和质量证据，见[研究设计](REALISM_PLAN.md)。新 AI 动作协议尚未上线，本轮没有场景修改、模型切换、真实推理、付费调用或资产上传；继续使用下文 native39/version `6fab32e8-8204-47cf-b700-7b3dc52928ff` 的已验证运行代码，不重复部署或公网验证。

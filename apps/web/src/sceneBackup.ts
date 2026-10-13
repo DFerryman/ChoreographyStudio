@@ -1,6 +1,7 @@
-import { ACTIONS, bakeKeyframeSequence, bakeLegacyKeyframeSequence, EDITABLE_JOINT_NAMES, getKeyframeCount, JOINT_NAMES, makeCountMap, MAX_KEYFRAME_COUNT, MAX_TAKE_SAMPLES, ROOT_TRANSLATION_LIMITS, type ArrangementPlan, type BakedTake, type CameraTrack, type CountMap, type JointName, type KeyframeSequence, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
+import { ACTIONS, bakeKeyframeSequence, bakeLegacyKeyframeSequence, EDITABLE_JOINT_NAMES, getKeyframeCount, JOINT_NAMES, makeCountMap, MAX_KEYFRAME_COUNT, MAX_TAKE_SAMPLES, ROOT_TRANSLATION_LIMITS, sampleTake, type ArrangementPlan, type BakedTake, type CameraTrack, type CountMap, type JointName, type KeyframeSequence, type Pose, type Quat, type Vec3 } from '../../../packages/core/src';
 import type { SceneDocument, SceneViewer } from './scene';
 import type { SceneOperation, SceneProject, SceneSnapshot } from './sceneProject';
+import { validateAIMotionTrack } from '../../../packages/core/src/aiMotionTrack';
 import { MAX_FOOT_LOCKS, type FootLock } from '../../../packages/core/src/footLocks';
 import { packScene, unpackScene } from './compactScene';
 import { SCENE_CAMERA_TRACK_LIMITS, validateProjectCameraTracks } from './sceneCameraTrack';
@@ -301,7 +302,7 @@ function validateProject(value: unknown, context: ValidationContext): SceneProje
   const audioDuration = finite(object.audioDuration, '原音频时长');
   if (audioDuration < 16 || audioDuration > 600) fail('原音频必须是 16 秒至 10 分钟。');
   const history: SceneSnapshot[] = array(object.history, 1, SCENE_BACKUP_LIMITS.history, '历史').map(value => {
-    const snapshot = record(value, ['title', 'countMap', 'plan', 'take'], ['manual', 'cameraTrack', 'audioOffsetSeconds', 'audioTracks', 'operation'], '历史条目', context);
+    const snapshot = record(value, ['title', 'countMap', 'plan', 'take'], ['manual', 'aiMotion', 'cameraTrack', 'audioOffsetSeconds', 'audioTracks', 'operation'], '历史条目', context);
     const countMap = validateCountMap(snapshot.countMap, audioDuration, context);
     let audioOffsetSeconds: number | undefined;
     if (own(snapshot, 'audioOffsetSeconds')) {
@@ -319,9 +320,15 @@ function validateProject(value: unknown, context: ValidationContext): SceneProje
     if (plan && take && plan.id !== take.planId) fail('动作与编排 ID 不一致。');
     if (!take && snapshot.manual != null) fail('手 K 序列缺少权威动作。');
     const manual = snapshot.manual === undefined ? undefined : validateManual(snapshot.manual, countMap, take!, takeContext);
+    if (!take && snapshot.aiMotion !== undefined) fail('AI 动作缺少原始动作。');
+    let aiMotion: SceneSnapshot['aiMotion'];
+    if (snapshot.aiMotion !== undefined) {
+      try { aiMotion = validateAIMotionTrack(snapshot.aiMotion, countMap, time => sampleTake(take!, time)); }
+      catch (error) { fail(error instanceof Error ? error.message : 'AI 动作格式无效。'); }
+    }
     const cameraTrack = own(snapshot, 'cameraTrack') ? snapshot.cameraTrack as CameraTrack : undefined;
     const operation = snapshot.operation === undefined ? undefined : validateOperation(snapshot.operation, countMap.durationSeconds, context);
-    return { title: text(snapshot.title, '作品名称'), countMap, plan, take, ...(manual ? { manual } : {}), ...(cameraTrack !== undefined ? { cameraTrack } : {}), ...(audioOffsetSeconds !== undefined ? { audioOffsetSeconds } : {}), ...(audioTracks !== undefined ? { audioTracks } : {}), ...(operation !== undefined ? { operation } : {}) };
+    return { title: text(snapshot.title, '作品名称'), countMap, plan, take, ...(manual ? { manual } : {}), ...(aiMotion !== undefined ? { aiMotion } : {}), ...(cameraTrack !== undefined ? { cameraTrack } : {}), ...(audioOffsetSeconds !== undefined ? { audioOffsetSeconds } : {}), ...(audioTracks !== undefined ? { audioTracks } : {}), ...(operation !== undefined ? { operation } : {}) };
   });
   const revision = integer(object.revision, 1, Number.MAX_SAFE_INTEGER, '作品版本');
   const teacherCheckedRevision = object.teacherCheckedRevision === null ? null : integer(object.teacherCheckedRevision, 1, revision, '试看版本');
