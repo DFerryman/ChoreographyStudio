@@ -1,5 +1,19 @@
 # 预览验证记录
 
+## 2026-10-13 · 真实骨骼接口已通；首次生成静止，修复后待动作语义复核
+
+运行源码`b093a1bc1e866819899f676073ed909c3a2a7fcb`/tree`76aa546dc98dfbaae664f6f548629f5ddd88a5ec`已推送main，远端完整SHA相等。native41/version`68214b11-8a2b-4fe9-b0ff-1ae29acc633a`（2026-10-13T05:41:15.079918Z），唯一100% deployment`0baf1574-c8bb-49c5-83d9-920ae26e2dfc`（05:41:15.563448Z）；两处source/tree精确，bindings/runtime与native40相等。健康/capabilities各一次正常TLS只读GET200，新协议/directBoneMotion/rangeGeneration=true、audioUnderstanding=false。
+
+该源码原流程9/9通过，92.650s，包含非均匀原Take与同钟相机的桌面/手机各90观测姿态、固定React时间的独立clock、camera及布局；原spec断言不改，只在ignored harness重定位并全拦API/外部HTTP，9份网络附件API/外部请求空。原spec SHA不变，软件环境不声明设备Hz。与新AI3/3分批共12不同相关流程，非单batch12/12。
+
+首次真实模型UI请求只一次，2026-10-13T05:42:47.283Z–05:43:01.672Z，正常TLS新profile、32秒公开示例，无用户场景访问/采用/保存/音频上传/自动重试/服务器写入。HTTP200返回5个真实`ai-motion-1`骨骼姿态；6静态响应逐SHA匹配，七诊断空，10个Stage姿态和同源码编译曲线误差0，整份project/take/manual/CountMap、本机全部存储SHA及示例音乐1,280,044B SHA前后一致。
+
+然而五帧Root相同、十五关节通道全零，没有Head通道；实际转动为0，摘要却说抬臂/转头。技术harness的`succeeded:true`只证明协议、渲染和原稿保持；动作语义验收失败，单独assessment保留，不把HTTP200算作成功编舞。没有证据认定特定guided decoder故障或所有同类模型无能力。
+
+修复继续使用同Qwen，不更换账单/provider：新motion用`json_object`，完整Schema作为可信system要求并保留独立严格校验；补骨架轴向/非零局部角度格式例及实际随时间变化规则，不新增六动作或整段固定模板。只读曲线诊断新增相对起点的Root/关节最大变化，近静止提醒仍允许明确采用；合法保持动作不自动拒绝，慢累计变化和360°返回初姿态均有回归。第二次真实检查必须测到LeftUpperArm至少10°、Head至少2°物理转角，再核对实际渲染，不自动重试。
+
+新修复最终`npm run check`788/788、39文件、32.25s，前端类型及Vite1977模块540ms构建通过；Worker类型通过，API56/core19 mock通过。AI最终浏览器同batch4/4、61.490s通过，新增默认32秒静止提醒/可明确采用/undo原稿与音乐保持；6个生成POST全部mock，诊断空（仅预期503资源）。与原流程9分批共13不同相关流程，不称单batch13/13。新部署和第二次实际动作结果由后续收据补充，不提前称通过。
+
 ## 2026-10-13 · 直接 AI 骨骼动作实现：本地验收，发布和真实调用待核对
 
 本轮由用户明确授权在拉取、推送和部署最新 main 后开始已确认开发计划。主 UI 已切换 `/api/motion/generate` / `ai-motion-1`，输出 Root 与局部关节稀疏姿态；旧六动作接口仅兼容，不回退。必要上下文和技术边界见 [方案](REALISM_PLAN.md)。原场景文件、原 Take/manual、相机及音乐没有通过此开发改写；候选明确采用才新增独立 AI 层和一次撤销历史。

@@ -3,7 +3,7 @@ import worker from './index';
 import { AI_MODEL, makeAIRequest } from '../../../packages/core/src/aiChoreography';
 import { makeCountMap } from '../../../packages/core/src/index';
 import { workerMetadata } from '../../../infra/worker-metadata.mjs';
-import { AI_MOTION_MODEL, AI_MOTION_PROTOCOL, AI_MOTION_REQUEST_MAX_BYTES, AI_MOTION_RESULT_MAX_BYTES } from '../../../packages/core/src/aiMotion';
+import { AI_MOTION_MODEL, AI_MOTION_PROTOCOL, AI_MOTION_REQUEST_MAX_BYTES, AI_MOTION_RESULT_MAX_BYTES, aiMotionOutputSchema } from '../../../packages/core/src/aiMotion';
 import { makeAIMotionFixture, makeAIMotionResultFixture } from '../../../packages/core/src/aiMotion.fixture';
 
 function fixture(success = true) {
@@ -129,13 +129,21 @@ describe('explicit direct bone Workers AI motion, mock binding only', () => {
     expect(run).toHaveBeenCalledOnce();
     expect(run.mock.calls[0]).toMatchObject([AI_MOTION_MODEL, {
       stream: false, max_tokens: 8192, temperature: 0.45,
-      response_format: { type: 'json_schema', json_schema: { properties: { keyframes: { maxItems: 48 } } } },
+      response_format: { type: 'json_object' },
     }, { signal: expect.any(AbortSignal) }]);
     const modelInput = run.mock.calls[0][1] as { messages: { role: string; content: string }[] };
     expect(modelInput.messages[1].content).toContain(JSON.stringify(input.context));
     expect(modelInput.messages[1].content).toContain(JSON.stringify(input.prompt));
     expect(modelInput.messages[0].content).toContain('before、after、boundaries');
     expect(modelInput.messages[0].content).toContain('audioUnderstanding=false');
+    expect(modelInput.messages[0].content).toContain(JSON.stringify(aiMotionOutputSchema(input.context)));
+    expect(modelInput.messages[0].content).toContain('summary 中写“抬臂”或“转头”不能替代真正的动作数据');
+    expect(modelInput.messages[0].content).toContain('随动作阶段变化的真实 Euler 数值');
+    expect(modelInput.messages[0].content).toContain('LeftUpperArm 的正 Z 角');
+    expect(modelInput.messages[0].content).toContain('Head 的正 Y 角');
+    expect(modelInput.messages[0].content).toContain('没有变化的骨骼省略');
+    expect(modelInput.messages[0].content).toContain('"rotations":{"LeftUpperArm":[0,0,35],"Head":[0,8,0]}');
+    expect((run.mock.calls[0][1] as { response_format: unknown }).response_format).toEqual({ type: 'json_object' });
     expect(modelInput.messages[0].content).not.toContain('动作表：');
     expect(JSON.stringify(modelInput)).not.toContain('side-reach');
     expect(fetch).not.toHaveBeenCalled();

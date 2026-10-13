@@ -6,7 +6,7 @@ import { JOINT_NAMES, type BakedTake, type Pose, type Quat, type Vec3 } from './
 import { makeAIMotionFixture, makeAIMotionResultFixture } from './aiMotion.fixture';
 import type { AIMotionKeyframe, AIMotionRequest, AIMotionResult } from './aiMotion';
 import {
-  analyzeAIMotionPatch, appendAIMotionPatch, compileAIMotionPatch, createAIMotionSampler,
+  AI_MOTION_STATIC_WARNING, analyzeAIMotionPatch, appendAIMotionPatch, compileAIMotionPatch, createAIMotionSampler,
   estimateAIMotionBoundary, MAX_AI_MOTION_PATCHES, validateAIMotionTrack,
   type AIMotionPoseSampler, type AIMotionTrack,
 } from './aiMotionTrack';
@@ -261,7 +261,7 @@ describe('independent AI motion layers', () => {
     expect(firstTrack.patches).toHaveLength(1);
   });
 
-  it('diagnoses a smooth hold without warnings or invented motion quality scores', () => {
+  it('reports a smooth hold for review without rejecting or inventing motion quality scores', () => {
     const timing = map(), request = requestFor(neutral, timing, 'full');
     const result = resultFor(request, [
       { time: 4, root: [0, 1.05, 0], rotations: {} },
@@ -269,9 +269,60 @@ describe('independent AI motion layers', () => {
     ]);
     const patch = compileAIMotionPatch(request, result, neutral), original = JSON.stringify(patch);
     const quality = analyzeAIMotionPatch(patch);
-    expect(quality.samples).toBe(481); expect(quality.warnings).toEqual([]);
+    expect(quality.samples).toBe(481); expect(quality.warnings).toEqual([AI_MOTION_STATIC_WARNING]);
     for (const [key, value] of Object.entries(quality)) if (key !== 'samples' && typeof value === 'number') expect(value).toBeLessThan(1e-9);
     expect(JSON.stringify(patch)).toBe(original);
+  });
+
+  it('measures cumulative slow movement from the first pose instead of individual frames', () => {
+    const timing = map();
+    for (const channel of ['root', 'rotation'] as const) {
+      const request = requestFor(neutral, timing, 'full');
+      const result = resultFor(request, [
+        { time: 8, root: [channel === 'root' ? .001 : 0, 1.05, 0], rotations: channel === 'rotation' ? { Hips: [2.5, 0, 0] } : {} },
+        { time: 16, root: [channel === 'root' ? .002 : 0, 1.05, 0], rotations: channel === 'rotation' ? { Hips: [5, 0, 0] } : {} },
+      ]);
+      const patch = compileAIMotionPatch(request, result, neutral), quality = analyzeAIMotionPatch(patch);
+      expect(quality.maxFrameRootDistanceMeters).toBeLessThan(1e-5);
+      expect(quality.maxFrameJointAngleDegrees).toBeLessThan(.1);
+      if (channel === 'root') expect(quality.maxRootExcursionMeters).toBeCloseTo(.002, 9);
+      else expect(quality.maxJointExcursionDegrees).toBeCloseTo(5, 9);
+      expect(quality.warnings).not.toContain(AI_MOTION_STATIC_WARNING);
+    }
+  });
+
+  it('uses physical quaternion orientation for near-360 values and a real turn returning to its initial pose', () => {
+    const timing = map(), request = requestFor(neutral, timing, 'full');
+    const almostSame = resultFor(request, [
+      { time: 8, root: [0, 1.05, 0], rotations: { Hips: [359.99, 0, 0] } },
+      { time: 16, root: [0, 1.05, 0], rotations: { Hips: [360, 0, 0] } },
+    ]);
+    const still = analyzeAIMotionPatch(compileAIMotionPatch(request, almostSame, neutral));
+    expect(still.maxJointExcursionDegrees).toBeLessThan(.1);
+    expect(still.warnings).toContain(AI_MOTION_STATIC_WARNING);
+    const turning = resultFor(request, [
+      { time: 4, root: [0, 1.05, 0], rotations: { Hips: [90, 0, 0] } },
+      { time: 8, root: [0, 1.05, 0], rotations: { Hips: [179.999, 0, 0] } },
+      { time: 12, root: [0, 1.05, 0], rotations: { Hips: [270, 0, 0] } },
+      { time: 16, root: [0, 1.05, 0], rotations: { Hips: [360, 0, 0] } },
+    ]);
+    const moving = analyzeAIMotionPatch(compileAIMotionPatch(request, turning, neutral));
+    expect(moving.maxJointExcursionDegrees).toBeGreaterThan(179.5);
+    expect(moving.maxJointExcursionDegrees).toBeLessThanOrEqual(180 + 1e-8);
+    expect(moving.warnings).not.toContain(AI_MOTION_STATIC_WARNING);
+  });
+
+  it('flags the observed five-zero-pose response pattern while preserving valid hold adoption', () => {
+    const timing = map(), request = requestFor(neutral, timing, 'full'); request.prompt = '抬起双臂并转身。';
+    const zeroRotations = Object.fromEntries(JOINT_NAMES.map(joint => [joint, [0, 0, 0]])) as AIMotionKeyframe['rotations'];
+    const result = resultFor(request, [3.2, 6.4, 9.6, 12.8, 16].map(time => ({ time, root: [0, 1.05, 0], rotations: structuredClone(zeroRotations) })));
+    const original = JSON.stringify({ request, result }), patch = compileAIMotionPatch(request, result, neutral);
+    const quality = analyzeAIMotionPatch(patch);
+    expect(quality.maxRootExcursionMeters).toBeLessThan(1e-5);
+    expect(quality.maxJointExcursionDegrees).toBeLessThan(.1);
+    expect(quality.warnings).toContain(AI_MOTION_STATIC_WARNING);
+    expect(() => appendAIMotionPatch(undefined, patch, timing)).not.toThrow();
+    expect(JSON.stringify({ request, result })).toBe(original);
   });
 
   it('measures and warns about a legal one-millisecond C1 excursion without changing it', () => {

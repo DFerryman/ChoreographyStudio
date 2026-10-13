@@ -1,5 +1,11 @@
 # Cloudflare 预览部署
 
+## 2026-10-13 · 原生直接动作已发布（native41）；首次模型语义未通过，继续修复
+
+新动作源码`b093a1bc1e866819899f676073ed909c3a2a7fcb`/tree`76aa546dc98dfbaae664f6f548629f5ddd88a5ec`已推送并完整remoteSHA核对。`wrangler deploy --keep-vars --message` EXIT0，native41/version`68214b11-8a2b-4fe9-b0ff-1ae29acc633a`（2026-10-13T05:41:15.079918Z），唯一100% deployment`0baf1574-c8bb-49c5-83d9-920ae26e2dfc`（05:41:15.563448Z），原生两处source/tree精确，bindings/runtime与native40相同。
+
+785基础、相关新AI3和原流程9分批通过；首次真实UI生成HTTP200/5个骨骼姿态，线上资源和原稿严格保持，但输出全部静止、摘要与数据不符，动作语义失败。保留技术成功与语义失败两个独立事实；具体证据见[验证记录](VERIFICATION.md)。当前已修复提示/JSON对象模式和静止提示，788本地基础通过，新发布及动作语义复核待实际收据。
+
 ## 2026-10-13 · 最新远端 UI/舞台/人物切换已先部署（native40）；随后实施直接 AI 动作
 
 用户要求的顺序已执行：从干净b27246b拉取并快进 main 到`f05ed91cd72c974d032dba8584d054489e3bdae5`/tree`537e9ffe094f19a50d32aef7d29ac92d849da717`，push及远端完整SHA核对，然后发布已有排版/舞台/人物切换，再开始批准的AI开发计划。

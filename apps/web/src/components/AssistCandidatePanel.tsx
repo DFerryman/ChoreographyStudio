@@ -1,5 +1,5 @@
 import type { AIMotionTarget } from '../../../../packages/core/src/aiMotion';
-import type { AIMotionQuality } from '../../../../packages/core/src/aiMotionTrack';
+import { AI_MOTION_STATIC_WARNING, type AIMotionQuality } from '../../../../packages/core/src/aiMotionTrack';
 
 /** An AI candidate is previewed and adopted explicitly; the original stays authoritative until then. */
 export function AssistCandidatePanel({ summary, target, quality, previewing, valid, onTogglePreview, onAdopt, onClose }: {
@@ -15,7 +15,8 @@ export function AssistCandidatePanel({ summary, target, quality, previewing, val
           : `替换整段 0–${Number(target.endSeconds.toFixed(2))} 秒人物动作。`} 原动作可撤销恢复。</small>
       </div>
       <p className="assist-candidate-summary" title={summary}>{summary}</p>
-      {!!quality?.warnings.length && <p className="assist-candidate-warning" role="status">候选包含较急的移动或转动，先预览再决定是否采用。</p>}
+      {quality?.warnings.includes(AI_MOTION_STATIC_WARNING) && <p className="assist-candidate-warning" role="status">{AI_MOTION_STATIC_WARNING}</p>}
+      {quality?.warnings.some(warning => warning !== AI_MOTION_STATIC_WARNING) && <p className="assist-candidate-warning" role="status">候选包含较急的移动或转动，先预览再决定是否采用。</p>}
       {!valid && <small role="status">作品已改变，请重新生成候选。</small>}
     </div>
     <div className="assist-actions">

@@ -4,7 +4,7 @@ import { expect, test, type Page, type Route } from '@playwright/test';
 import { bakeKeyframeSequence, makeKeyframeSequence, sampleTake, upsertMotionPointChanges, type Pose } from '../packages/core/src';
 import { validateAIMotionRequest, type AIMotionRequest, type AIMotionResult } from '../packages/core/src/aiMotion';
 import { makeAIMotionResultFixture } from '../packages/core/src/aiMotion.fixture';
-import { createAIMotionSampler } from '../packages/core/src/aiMotionTrack';
+import { AI_MOTION_STATIC_WARNING, createAIMotionSampler } from '../packages/core/src/aiMotionTrack';
 import { unpackScene } from '../apps/web/src/compactScene';
 import { clickRevealed, closeDisclosures } from './helpers';
 import { backup, current, hiddenButton, openFixture, ready, save, screenshot, type Backup } from './realismHelpers';
@@ -268,4 +268,44 @@ test('@ai-motion rejects invalid/provider results without templates or retry and
   await expect(page.getByRole('button', { name: '采用候选', exact: true })).toHaveCount(0);
   expect((await backup(page)).scene.project).toEqual(changed.scene.project);
   expect(calls).toHaveLength(3);
+});
+
+test('@ai-motion fresh 32-second scene warns about a static candidate while preserving explicit adoption and undo', async ({ page }, info) => {
+  test.setTimeout(120_000);
+  const calls = await mockMotion(page, async (request, _index, route) => {
+    const result = makeAIMotionResultFixture(request);
+    result.summary = '保持中立站姿。';
+    result.keyframes = result.keyframes.map(key => ({ time: key.time, root: structuredClone(request.context.initialPose.root), rotations: {} }));
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(result) });
+  });
+  // Exercise the real fresh-scene defaults instead of the shorter regression fixture.
+  await page.goto('/'); await ready(page);
+  const before = await backup(page), original = current(before), beforeAudio = await audioHash(page);
+  expect(original.countMap.durationSeconds).toBe(32);
+  expect(original.take!.times).toEqual([0, 32]);
+  await generate(page, '保持中立站姿，安静停留。');
+  await expect(candidate(page)).toBeVisible();
+  await expect(candidate(page).getByRole('status')).toHaveText(AI_MOTION_STATIC_WARNING);
+  await expect(candidate(page)).not.toContainText('较急的移动或转动');
+  await expect(candidate(page).getByRole('button', { name: '采用候选', exact: true })).toBeEnabled();
+  expect((await backup(page)).scene.project).toEqual(before.scene.project);
+  await candidate(page).getByRole('button', { name: '预览候选', exact: true }).click();
+  for (const at of [0, 16, 32]) {
+    await seek(page, at);
+    await expect.poll(async () => pose(page)).toEqual(sampleTake(original.take!, at));
+  }
+  expect((await backup(page)).scene.project).toEqual(before.scene.project);
+  expect(await audioHash(page)).toBe(beforeAudio);
+  await screenshot(page, info, 'ai-motion-static-warning.png');
+  await candidate(page).getByRole('button', { name: '采用候选', exact: true }).click();
+  await expect(candidate(page)).toHaveCount(0);
+  const adopted = await backup(page);
+  expect(adopted.scene.project.history).toHaveLength(before.scene.project.history.length + 1);
+  expectOriginal(current(adopted), original);
+  expect(current(adopted).aiMotion!.patches[0].target).toEqual({ mode: 'full', startSeconds: 0, endSeconds: 32 });
+  await page.getByRole('button', { name: '撤销', exact: true }).click();
+  expect(current(await backup(page))).toEqual(original);
+  await expectedVisible(page, before, 16);
+  expect(await audioHash(page)).toBe(beforeAudio);
+  expect(calls).toHaveLength(1);
 });

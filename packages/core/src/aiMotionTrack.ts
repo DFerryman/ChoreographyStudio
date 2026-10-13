@@ -35,6 +35,9 @@ export interface AIMotionQuality {
   samples: number;
   maxFrameRootDistanceMeters: number;
   maxFrameJointAngleDegrees: number;
+  /** Maximum displacement/orientation difference from the first sampled pose. */
+  maxRootExcursionMeters: number;
+  maxJointExcursionDegrees: number;
   maxLinearSpeedMetersPerSecond: number;
   maxRootAccelerationMetersPerSecondSquared: number;
   maxAngularSpeedDegreesPerSecond: number;
@@ -49,7 +52,10 @@ export const AI_MOTION_QUALITY_WARNING_THRESHOLDS = {
   rootAccelerationMetersPerSecondSquared: 150,
   angularSpeedDegreesPerSecond: 1800,
   angularAccelerationDegreesPerSecondSquared: 18000,
+  staticRootExcursionMeters: 1e-5,
+  staticJointExcursionDegrees: .1,
 } as const;
+export const AI_MOTION_STATIC_WARNING = '候选没有明显的移动或转动，请确认是否符合描述。';
 const UNIT_EPSILON = 1e-4;
 const forbidden = new Set(['__proto__', 'prototype', 'constructor']);
 const fail = (message = 'AI 动作轨道格式无效。'): never => { throw new Error(message); };
@@ -320,11 +326,13 @@ export function analyzeAIMotionPatch(patch: AIMotionPatch): AIMotionQuality {
   const ordered = [...times].sort((a, b) => a - b), radiansToDegrees = 180 / Math.PI;
   const quality: AIMotionQuality = {
     samples: ordered.length, maxFrameRootDistanceMeters: 0, maxFrameJointAngleDegrees: 0,
+    maxRootExcursionMeters: 0, maxJointExcursionDegrees: 0,
     maxLinearSpeedMetersPerSecond: 0, maxRootAccelerationMetersPerSecondSquared: 0,
     maxAngularSpeedDegreesPerSecond: 0, maxAngularAccelerationDegreesPerSecondSquared: 0,
     warnings: [],
   };
   let previousPose = samplePatch(patch, ordered[0]); usableSample(previousPose);
+  const firstPose = previousPose;
   let precedingLinear: Vec3 | undefined, precedingAngular: Record<JointName, Vec3> | undefined;
   let precedingDt = 0;
   for (let index = 1; index < ordered.length; index++) {
@@ -333,11 +341,13 @@ export function analyzeAIMotionPatch(patch: AIMotionPatch): AIMotionQuality {
     const displacement = subtract(current.root, previousPose.root), linear = displacement.map(component => component / dt) as Vec3;
     const angular = {} as Record<JointName, Vec3>;
     const middleSeparation = (precedingDt + dt) / 2;
+    quality.maxRootExcursionMeters = Math.max(quality.maxRootExcursionMeters, Math.hypot(...subtract(current.root, firstPose.root)));
     quality.maxFrameRootDistanceMeters = Math.max(quality.maxFrameRootDistanceMeters, Math.hypot(...displacement));
     quality.maxLinearSpeedMetersPerSecond = Math.max(quality.maxLinearSpeedMetersPerSecond, Math.hypot(...linear));
     if (precedingLinear) quality.maxRootAccelerationMetersPerSecondSquared = Math.max(quality.maxRootAccelerationMetersPerSecondSquared, Math.hypot(...subtract(linear, precedingLinear).map(component => component / middleSeparation)));
     for (const joint of JOINT_NAMES) {
       const from = previousPose.joints[joint], to = current.joints[joint];
+      quality.maxJointExcursionDegrees = Math.max(quality.maxJointExcursionDegrees, Math.hypot(...logarithm(relative(firstPose.joints[joint], to))) * radiansToDegrees);
       // R_next * R_previous^-1 expresses all increments in the same parent frame.
       const increment = logarithm(multiply(to, [-from[0], -from[1], -from[2], from[3]]));
       angular[joint] = increment.map(component => component / dt * radiansToDegrees) as Vec3;
@@ -350,6 +360,7 @@ export function analyzeAIMotionPatch(patch: AIMotionPatch): AIMotionQuality {
   const measured = Object.values(quality).filter((value): value is number => typeof value === 'number');
   if (measured.some(value => !Number.isFinite(value))) return fail('AI 动作曲线产生非有限的变化量。');
   const thresholds = AI_MOTION_QUALITY_WARNING_THRESHOLDS;
+  if (quality.maxRootExcursionMeters < thresholds.staticRootExcursionMeters && quality.maxJointExcursionDegrees < thresholds.staticJointExcursionDegrees) quality.warnings.push(AI_MOTION_STATIC_WARNING);
   if (quality.maxFrameRootDistanceMeters > thresholds.frameRootDistanceMeters) quality.warnings.push('相邻采样点位移超过 0.5 米，发现较急移动，请预览。');
   if (quality.maxFrameJointAngleDegrees > thresholds.frameJointAngleDegrees) quality.warnings.push('相邻采样点关节转角超过 60°，发现较急转动，请预览。');
   if (quality.maxLinearSpeedMetersPerSecond > thresholds.linearSpeedMetersPerSecond || quality.maxRootAccelerationMetersPerSecondSquared > thresholds.rootAccelerationMetersPerSecondSquared) quality.warnings.push('Root 速度或加速度较高，请预览。');
