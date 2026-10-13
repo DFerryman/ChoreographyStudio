@@ -12,6 +12,69 @@ HY输出的FBX含动画数据，本身可二次编辑。应用层未来可把选
 
 阶段选择：易接入的文本生成骨骼片段可先评估腾讯托管HY-Motion；如果模型原生区间二次编辑是硬要求，则优先评估SayMotion或可部署的motion-inpainting模型。音乐到动作的EDGE路线仍为备选，但音乐理解已不是本轮接入前置条件。这里只核对公开文档，没有模型推理、付费开通、账户变更、程序部署或场景数据修改。
 
+## 2026-10-13 · 文本模型结构化动作与只读区间上下文（设计，未实现）
+
+用户进一步明确：先尝试通用文本大模型直接生成结构化动作数据；从头生成独立候选，局部修改则提供区间前后的只读动作上下文，只有区间内部可改，两端须合理衔接。专用动作模型作为可替换备选，不是必需前提。此前下方关于 GPU 动作服务的建议仅适用于专用模型路线，不排除这条文本模型路线。本轮没有改运行代码、场景文件或调用生成模型。
+
+当前 [Worker](../apps/api/src/index.ts)已经使用 `response_format: json_schema`，但系统提示禁止骨骼及新动作 ID，[动作协议和候选构建](../packages/core/src/aiChoreography.ts)仅允许六种 `actionId/amplitude` 并调用 `bakePlan`。因此需新建直接表达 Root 与骨骼关键姿态/轨迹的协议和执行器，而不是仅添加 Structured Output 或换模型。JSON/Schema 合法不等于人体动作自然；[Cloudflare JSON Mode](https://developers.cloudflare.com/workers-ai/features/json-mode/)也说明复杂任务可能不能满足 schema，需处理失败，不能静默返回固定模板。
+
+现有骨架是 25 个骨骼、父节点局部 XYZW 四元数、Root 米制位置、Y 向上；[Take](../packages/core/src/motion-types.ts)使用显式时间戳，可能非均匀。先生成稀疏关键姿态或控制曲线，再插值成连续动画；可用明确角度约定降低模型数字难度，由程序转换旋转。60 秒 × 30 fps × (Root 3 + 25 × 四元数 4) 约需 185,400 个数值（未计端点与字段），不能直接塞入当前最多 4,096 output tokens、16 KiB 结果限制。[当前 Qwen 模型](https://developers.cloudflare.com/workers-ai/models/qwen3-30b-a3b-fp8/)上下文为 32,768 tokens。原型可先验证 2–4 秒短动作，关键姿态密度、稀疏通道与有界请求/输出预算需随新协议核实；长场景按动作阶段分段并共享边界状态，不能把分段成本当作单次完整生成质量保证。
+
+区间设计与验收要求：
+
+- 请求声明骨架/协议版本、原 Take 指纹、CountMap 版本和精确目标起止时间；模型返回内部关键姿态，不获得写入原场景的权限。若等待期间场景改变，候选作废或重新人工发起。
+- 初始建议前后各约 1 秒上下文，可按 0.5–2 秒或完整转身/跳跃阶段调整，属于待验证的工程起点。远处可稀疏采样和文字归纳，紧邻边界必须保留原始精确姿态与时间，不能只给动作名称。
+- 提供两端 Root 位置/速度、身体朝向/角速度、主要关节的变化趋势及脚支撑状态。导数估计使用实际时间戳和边界外单侧采样；原片段本身不光滑时不宣称其导数唯一或整段已顺滑。
+- 由程序锁定两端姿态及全部区间外数据，拒绝越界输出。区间外继续调用原动作求值器，以免改变相邻关键帧、切线或重采样而影响原曲线。只有显式采用后替换区间内部，并作为一次可撤销历史。
+- 接缝处理全部在可写区间内部：Root 可使用匹配端点速度的 Hermite 曲线，旋转使用适合旋转空间的连续曲线；除姿态连续外，还检查线速度和角速度。不能把逐段 SLERP 或简单淡入淡出等同于速度无跳变；可再检查加速度尖峰。
+- 目标动作与固定边界冲突、选区过短或输出突变时拒绝候选或降低内部动作幅度，不能偷偷改变只读两头。保留顺滑/原动作优先，不在播放时重新强制碰撞、关节投影或锁脚。
+- 验收分别检查格式/骨架、区间外精确一致（含非原样本时刻）、接缝姿态/速度误差、内部突变和人工动作质量。优先少量挥手、下蹲起身、转身抬臂及一段原动作局部修改，自动回归默认 mock。区间外不变可做成确定保证，边界连续可做数学约束，自然舞蹈仍须真实候选验证，不能承诺“上下文足够就完美接上”。
+
+## 2026-10-13 · HY-Motion / SayMotion 价格与质量调研（未进行付费实测）
+
+查询日期 2026-10-13；官方价目与接口为产品事实，费用情景是假设计算，创作者/社区观察不是总体评分。没有找到可信的 HY vs Say 同提示、多候选、同骨架直接质量比较，没有运行生成、购买套餐或联系厂商。
+
+| 动作服务 | 当前价格依据 | 接入与输出 | 原动作区间修改 |
+| --- | --- | --- | --- |
+| 腾讯 TokenHub HY-3D-Motion | [价格](https://cloud.tencent.com/document/product/1823/130055)：10 积分/次、¥0.12/积分，即 ¥1.20/次 | [API](https://cloud.tencent.com/document/product/1823/137780)：1–12 秒整数、提示最多 128 字符、FBX、默认 1 并发 | 未列出原动作、首尾条件或 inpainting 参数 |
+| fal HY-Motion 标准 / Lite | [标准](https://fal.ai/models/fal-ai/hunyuan-motion) $0.08/次；[Lite](https://fal.ai/models/fal-ai/hunyuan-motion/fast) $0.06/次 | [API](https://fal.ai/models/fal-ai/hunyuan-motion/api)：0.5–12 秒，可选 FBX 或原始 JSON，支持 seed | 未列出已有动作上下文或区间 inpainting |
+| SayMotion | 网页与 API 分开，见下表 | [API 申请制](https://www.deepmotion.com/saymotion-api)；FBX/BVH/GLB、自定义角色 | [REST](https://github.com/DeepMotion/SayMotion-REST-API)有 `inPaintingRequest.intervals`，引用其已有 `t2m_rid/variant_id`；单位、区间外精确不变及任意外部动作导入尚未验证 |
+
+[腾讯新人包](https://cloud.tencent.com/document/product/1823/130053)列 Motion 100 积分、有效一年（活动到 2026-12-31），约十次，实际账户可领取/共享额度须看控制台。老服务资源包折扣不能当作新 TokenHub 的已确认报价。
+
+[SayMotion 网页价](https://www.deepmotion.com/pricing-saymotion)已核对公开官方界面：
+
+| 网页计划 | 月付 | 年付折算/月（一次付款） | 每月积分 | 编辑时间线长度 |
+| --- | --- | --- | --- | --- |
+| Freemium | 免费 | 免费 | 3 | 10 秒 |
+| Starter | $15 | $9（$108/年） | 15 | 20 秒 |
+| Professional | $117 | $39（$468/年） | 400 | 120 秒 |
+| Studio | $300 | $83（$996/年） | 1,000 | 360 秒 |
+
+免费每月仅一次下载、限个人用途；付费下载次数无限不代表积分无限。生成每 10 秒 1 积分、包含首个候选下载，额外候选下载 1 积分/个，Inpainting/Merge 各 1 积分/次，Prompt Enhancer 0.5 积分/次，MP4 1 积分/个，未用积分月末不结转。不足十秒的取整未明确。“编辑时间线长度”是 Inpainting/Merge/Loop 长度，不是单次生成长度；[提示指南](https://www.deepmotion.com/article/saymotion-text-prompt-guide)仍写单次最多十秒，当前 API 上限待确认。
+
+以下为[官方公开前端 JS](https://www.deepmotion.com/assets/index-cbf2ca10.js)内独立 `SmApi` 配置，由登录后的 API 订阅页面使用；没有申请/登录核实合同，**仅为官方前端参考价，不是已取得正式报价**，也不能与网页计划混用：
+
+| API 参考计划 | 月付 | 年付折算/月（一次付款） | 每月积分 | 月付 / 年付摊销美元每积分 |
+| --- | --- | --- | --- | --- |
+| Starter | $100 | $70（$840/年） | 500 | $0.20 / $0.14 |
+| Growth | $500 | $350（$4,200/年） | 5,000 | $0.10 / $0.07 |
+| Professional | $2,500 | $1,600（$19,200/年） | 50,000 | $0.05 / $0.032 |
+
+费用情景：100 段 × 10 秒、每段一次生成且仅取首候选，腾讯 ¥120，fal 标准 $8。若 Say API 同样采用网页每十秒一积分规则（合同未独立核实），API Starter 月付包内消耗价值 $20，但实际最低账单 $100/月；年付包内价值 $14，但须一次付 $840/年。不能称“100 次只需付 $14”。每段再做一次 Inpainting，网页规则增加 100 积分。相同生成价下，可用动作成本还取决于重生成、重定向及衔接工作。不同币种未用未核实汇率换算。
+
+文本模型路线的推理成本另算：[Cloudflare 当前 Qwen 模型页](https://developers.cloudflare.com/workers-ai/models/qwen3-30b-a3b-fp8/)为 $0.0509/百万输入 tokens、$0.335/百万输出 tokens（平台总表将输入价四舍五入为 $0.051）。仅举预算示例：8,000 输入 + 4,000 输出 tokens = $0.0017472/次，100 次 $0.17472；这是未扣免费配额的模型推理假设，不是已测动作产出、一次生成整场景或完整平台账单，也不包括重试、推理隐藏 tokens/实际 usage 差异及新增编译器工程成本。便宜不代表动作可用。
+
+质量与口碑结论：
+
+- HY [作者论文](https://arxiv.org/html/2512.23464v1)使用 2,000+ 提示词、六类动作人评：指令遵循 3.24/5、质量 3.43/5，胜过论文比较的 DART/LoM/GoToZero/MoMask；**未比较 SayMotion**，不能当实际生成成功率或两者质量排名。模型有 22 个身体关节、不含手指，复杂顺序/精确接触有局限。
+- HY 一手 [跑跳脚滑问题 #38](https://github.com/Tencent-Hunyuan/HY-Motion-1.0/issues/38)维护者确认仍在处理；[重定向问题 #42](https://github.com/Tencent-Hunyuan/HY-Motion-1.0/issues/42)说明 FBX 接入仍需正确 Root/rest pose 映射。[创作者同提示踢腿测试](https://note.com/kenhfp/n/nf2643f54c0da?hl=en)中标准模型两次踢腿落地较稳，但把“右后左”生成两次右腿；未测 SayMotion，仅小样本。[VFX 创作者舞蹈试用](https://note.com/overhead_vfx/n/n23655dcce6f4?hl=en)认为泛泛 Dancing 更像扭动、适合简单预演，不能据此推广为全部动作质量。
+- SayMotion 的 Inpainting/Refine/Loop/Merge/Rerun 工作流有官方资料支持，更适合浏览器编辑；[官方合作创作者案例](https://deepmotion.com/post/saymotion-a-game-changer-in-3d-animation-production-pipelines)有正面成果，也指出穿插和衔接改善空间，但属于 2024 合作营销案例。本轮未筛到足够独立详细质量评测，不把 Animate 3D 视频动捕的评价算给 SayMotion，也不比较仓库 stars。
+- Say [官方 REST](https://github.com/DeepMotion/SayMotion-REST-API)明确默认 simulation 可能伤害动画，`dis=s` 可关闭；`grounding` 用于 shuffle/短时跑跳，避免过度锁脚；过滤 0–1 可去抖但降低精确性。与当前原动作/顺滑优先一致，不能默认叠加强制物理和锁脚。
+- 当前两者公开文生动作 API 都无音乐音频条件，不能承诺精准跟拍。HY 较便宜、接口可直接验证；Say 编辑产品更完整，API 权限和公开编舞服务的资产输出授权须按[条款](https://www.deepmotion.com/terms-of-use)/合作合同确认。工作流成熟不证明生成质量更高。
+
+建议按最新需求先做文本模型直接关键姿态的短片段原型，验收真实骨骼变化、区间外不变和接缝再看自然度；HY 标准为低成本专用动作备选，Say 为需要其原生编辑流程时的备选。本轮尚未实施该原型或做付费模型对比，不作质量胜负承诺。新需求与价格简结已同步原五份 Notion：五原生任务 succeeded、完整回读 5/5，新节一致，旧完整正文、子页和图片引用保持；最小收据在 ignored `work/model-comparison-20261013/notion-structured-motion-receipt.json`，私有全文未落盘。
+
 ## 2026-10-13 · AI 模板问题诊断与音乐驱动动作路线（设计，未实现）
 
 当前 Workers AI 已真实接通，但能力被产品协议限制为六种程序动作的排列与幅度选择。[请求协议](../packages/core/src/aiChoreography.ts)只接收文字及确认数拍，每个八拍仅允许 `actionId/amplitude`；[Worker prompt](../apps/api/src/index.ts)明确禁止骨骼轨迹和新动作 ID。候选由本地 `bakePlan` 生成固定程序动作，未发现失败时返回模板的隐式 fallback。因此结果相似的主要原因是输出空间受限，换模型或提高随机性不能单独解决。原始音频、音频特征、音轨偏移和时间线选区均未进入模型；[生成入口](../apps/web/src/App.tsx)仍生成整段，当前“整段”是已确认的 16–60 秒场景，并非任意完整歌曲。真实动作服务目录目前[只有接入计划](../services/motion-worker/README.md)。
