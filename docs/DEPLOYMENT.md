@@ -1,5 +1,15 @@
 # Cloudflare 预览部署
 
+## 2026-10-13 · 原动作顺滑播放（native39已上线）
+
+用户允许身体/地面穿插，优先顺滑与原动作，并要求不改场景文件。运行source [e0b2c880](https://github.com/DFerryman/ChoreographyStudio/commit/e0b2c880e66102270f2048f6e6bc22d52a3bf2ff)/tree`ce033b321294a9db2a34dc4d03deeb528d3d4a69`已pushmain、完整远端SHA一致。本次App/Stage移除普通播放/定位强制碰撞修正，每屏幕RAF按实时场景钟采样原动作和相机；碰撞/IK/物理核心保留，场景/原动作/音频/格式不改。
+
+原生deploy EXIT0，上传HTML和`index-s6u-qz1D.js`两新资产，21复用；native39/version`6fab32e8-8204-47cf-b700-7b3dc52928ff`于`2026-10-13T02:59:05.559319Z`创建，deployment`50093b8d-d34d-45ab-980b-aa7af2a9f86a`于`02:59:06.090124Z`创建，唯一100%。version/deployment完整source/tree注释一致，原bindings/script_runtime与native38精确相等，无新增服务器存储。
+
+700基础、前端/Worker类型/构建/dry-run通过；本地七个相关流程经分批通过。正常TLS HTTP8/8，新静态字节/SHA精确。真实街舞输入文件SHA不变，线上桌面27/手机46实际帧离线核对原姿态通过；独立只读重开收尾验证完整project及原音乐SHA保持。三次公网脚本的guard、浮点末位及暂停帧吸附验证器失败完整保留，不称整轮2/2。准确源码CI38339477347实际47pass/1新性能假设失败，测试改为固定React时间的独立时钟验证，新CI另核；详细范围与限制见[验证记录](VERIFICATION.md)。
+
+AI本轮只有诊断和[模型路线](REALISM_PLAN.md)，现有限actionId接口未改，音乐到动作模型/GPU服务尚未接入。需求与实际结果同步原五页Notion，以原生任务和回读为准。后续测试及Markdown收据沿用native39，不重复部署或公网循环。[打开工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+
 ## 2026-10-13 · 最新main与iPad场景包选择修复（native38已上线）
 
 按用户要求拉取最新提交，干净work/dc065fa同步到main [9c14cb76](https://github.com/DFerryman/ChoreographyStudio/commit/9c14cb762de3e9991f115e69b900f2d6f9f72dba)，tree `2d08bf0883c2d0ffd18ef6b72d11ff081553ae6c`。push返回Everything up-to-date，远端完整SHA核对一致。发布已有iPad Safari场景包文件类型修复，应用/测试/部署配置未另修改。

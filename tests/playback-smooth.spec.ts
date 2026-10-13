@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 import { Quaternion } from 'three';
 import { JOINT_NAMES, rotationFromDegrees, sampleCameraTrack, sampleTake, type CameraTrack, type Pose } from '../packages/core/src';
 import type { SceneSnapshot } from '../apps/web/src/sceneProject';
@@ -66,7 +67,9 @@ for (const width of [1440, 390]) {
       expect(frame.camera.zoom).toBe(camera.zoom ?? 1);
     }
     const independentFrames = frames.slice(1).filter((frame, index) => frame.time !== frames[index].time && frame.transport === frames[index].transport);
-    expect(independentFrames.length, 'Stage must advance between coarse React/Timeline updates').toBeGreaterThan(0);
+    // Slow software rendering may refresh below the UI cadence. Record the
+    // observed cadence, and verify clock independence with fixed props below.
+    expect(new Set(frames.map(frame => frame.time)).size, 'Rendered playback must advance').toBeGreaterThan(1);
     let largestAngle = 0;
     for (let index = 1; index < frames.length; index++) {
       const previous = frames[index - 1], frame = frames[index];
@@ -75,6 +78,11 @@ for (const width of [1440, 390]) {
       largestAngle = Math.max(largestAngle, angle);
       expect(angle).toBeLessThanOrEqual((frame.time - previous.time) / 3 * Math.PI / 180 + 1e-6);
     }
+    // Pause intentionally snaps to the existing 30 fps Timeline frame. Wait
+    // for that final UI/renderer commit before checking that playback stopped.
+    // Native range.value serializes recurring frame seconds with fewer digits
+    // than JavaScript String; compare the clocks, not their final printed ULP.
+    await expect.poll(async () => Math.abs(Number(await canvas.getAttribute('data-render-time')) - Number(await page.getByRole('slider', { name: '时间线进度', exact: true }).inputValue()))).toBeLessThan(1e-10);
     const paused = Number(await canvas.getAttribute('data-render-time'));
     await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
     expect(Number(await canvas.getAttribute('data-render-time'))).toBe(paused);
@@ -86,3 +94,20 @@ for (const width of [1440, 390]) {
     for (const value of Object.values(report)) expect(value).toEqual([]);
   });
 }
+
+test('@playback-smooth Stage advances its live clock while React time stays fixed', async ({ page }) => {
+  test.skip(!!process.env.CHOREO_BASE_URL, 'Component clock fixture is local-only, outside production assets.');
+  const report = diagnostics(page);
+  await page.goto(`/@fs${fileURLToPath(new URL('./fixtures/stage-clock.html', import.meta.url))}`);
+  const canvas = page.getByRole('img', { name: '人体编舞动作预览' });
+  await expect(canvas).toHaveAttribute('data-motion-presentation', 'author');
+  await expect.poll(async () => Number(await canvas.getAttribute('data-render-time'))).toBeGreaterThan(.1);
+  const firstTime = Number(await canvas.getAttribute('data-render-time'));
+  const first = await canvas.getAttribute('data-render-pose');
+  await expect.poll(async () => Number(await canvas.getAttribute('data-render-time'))).toBeGreaterThan(firstTime + .1);
+  expect(await canvas.getAttribute('data-render-pose')).not.toBe(first);
+  await expect(page.locator('#stage-clock-fixture')).toHaveAttribute('data-input-time', '0');
+  const takeAfter = await page.evaluate(() => JSON.stringify((window as unknown as { stageClockFixture: { take: unknown } }).stageClockFixture.take));
+  expect(takeAfter).toBe(await page.locator('#stage-clock-fixture').getAttribute('data-input-take'));
+  for (const value of Object.values(report)) expect(value).toEqual([]);
+});

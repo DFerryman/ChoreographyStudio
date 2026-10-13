@@ -1,6 +1,6 @@
 # 预览验证记录
 
-## 2026-10-13 · 播放抖动定位与原动作实时预览（本地验证通过，发布收据后补）
+## 2026-10-13 · 播放抖动定位与原动作实时预览（native39已发布）
 
 用户优先要求顺滑和原动作，允许穿插，不改场景文件。真实公开街舞包26,710,050B/SHA`e5f3d969c550fa6d401706b08cbe8beafb80a9346e1029e4d2c7a10a906afad5`仅下载一次只读诊断，文件及Take SHA前后完全相等。11个1秒窗口、671独立60Hz采样显示：32.3167→32.3333秒原关节最大8.0649°，碰撞投影后73.2572°；28.7333→28.75秒原Root位移0.7541cm，投影后35.3517cm。660相邻对中43对额外跳变超过10°。服务器CPU原采样平均0.029ms、碰撞投影平均3.810ms/p95 6.410ms，不是iPad实测。另在300个模拟60Hz时刻，原transport只发122次界面更新（24.4Hz），Stage之前受此节奏限制。
 
@@ -10,7 +10,17 @@
 - 正式相关本地首批7例为6pass/1fail（106.267s）：桌面新顺滑例、两低速导入例和三宽Timeline循环/终点通过；手机新例仅在独立与缓存相机采样的最后ULP（约2.22e-16）严格数学比较失败，原动作/原存储值不受影响。新测试对派生相机改为12位精度，原Root/25关节/project/cameraTrack仍严格逐值比较；手机定向1/1、13.9s通过。七个不同相关流程经两批通过，不改写首批结果。
 - 新顺滑两宽覆盖穿地、接触丰富及越建议范围的原始Head通道，正反向/非整数秒定位、实际骨骼逐值等于sampleTake、人物和相机同一时刻、Stage在React时间未更新时继续前进、暂停稳定及完整project/音频名不变。低速既有两例另保留原音乐SHA与.choreo/JSON往返。首次新fixture因camera=null且已有镜头轨阻止普通相机回调，ready坐标断言两例失败；仅补新fixture明确baseCamera，不改运行/既有helper。全部实际诊断空。原三批失败/复核证据保留ignored work。
 
-AI调查在本轮只读执行：当前协议和prompt只允许六种actionId+amplitude，bakePlan仍生成程序动作，请求不含音乐/音频特征/选区；没有暗中失败fallback。Cloudflare四次只读目录/schema GET200、真实推理0。Clef-omni可收音频但只返回选项概率或评分，不能直接编舞；新音乐到动作服务未实现，见[模型路线](REALISM_PLAN.md)。五页Notion已记录新需求，最终发布结果另据实更新。
+AI调查在本轮只读执行：当前协议和prompt只允许六种actionId+amplitude，bakePlan仍生成程序动作，请求不含音乐/音频特征/选区；没有暗中失败fallback。Cloudflare四次只读目录/schema GET200、真实推理0。Clef-omni可收音频但只返回选项概率或评分，不能直接编舞；新音乐到动作服务未实现，见[模型路线](REALISM_PLAN.md)。五页Notion已记录新需求，最终发布结果以原生回读收据为准。
+
+运行source`e0b2c880e66102270f2048f6e6bc22d52a3bf2ff`/tree`ce033b321294a9db2a34dc4d03deeb528d3d4a69`已push并远端精确核对。native39/version`6fab32e8-8204-47cf-b700-7b3dc52928ff`（`2026-10-13T02:59:05.559319Z`），唯一100% deployment`50093b8d-d34d-45ab-980b-aa7af2a9f86a`（`02:59:06.090124Z`），两原生注释绑定准确source/tree。仅新HTML/`index-s6u-qz1D.js`两资产上传；bindings和script_runtime与native38逐值相等。正常TLS HTTP8/8，六静态文件逐字节/SHA等于dist、两个只读API200。
+
+公网真实包的三轮原始脚本均保留失败，不能称整轮2/2：首轮忽略正常“保留未保存修改”guard，未进入播放；第二轮已播放桌面2秒，独立Chrome/Node派生四元数仅最后ULP（2e-17）比较失败；第三轮已完成桌面/390播放与原姿态比较，但手机暂停稳定检查在已有30fps吸附完成前读到34.2956→34.3（4.4ms），未执行尾部导出。该吸附是既有App.pause行为，不是持续播放抖动。第三轮已保存的实际帧离线核对：桌面27/27、手机46/46的Root和25关节均等于原sampleTake至1e-12，最大组件误差1.11e-16/5.55e-17；各5/3帧在UI未更新时独立前进。这不是持续设备帧率或真机iPad验收。
+
+独立只读收尾`03:11:27.286Z`–`03:11:33.536Z` EXIT0：重开同一已保存的导入场景，无重播/重导/应用保存，稳定暂停、整份project前后SHA`e10efe5e6d0274a0b5debdc4ffa0a98919f84989af5605722505d9f0c7fa31bd`相同，原音乐7,200,044B/SHA`8978e73fb0d576ad89b1a139006a9555ed3aa38b16b54eeb255c23fe40a8cf4a`及输入文件SHA不变。此为重开后的保存数据核对，不冒充上一失败脚本未执行的内存尾部检查。四次公网操作共24请求（22静态GET+2本机owned blobGET），各六诊断数组空、业务API/真实AI/服务器写入0。Root查看两张实际桌面/390图；26dist与运行源码冻结SHA保持，后续测试/Markdown更正不重复上传。
+
+准确e0[CI38339477347](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38339477347)/job115107004119实际completed/failure，updated`2026-10-13T03:12:59Z`：前序拟合/Python/check/Worker步骤success，48浏览器实际47pass/1fail（12.4m）。唯一失败新desktop测试要求在90个观测中至少1个Stage更新时UI不更新，慢软件渲染环境实得0；原姿态/同钟相机比较均已先通过，mobile及全部47其它例通过。它把画面能突破UI门槛误写成设备必须超过UI刷新率；不能宣称完整CI成功。修正保留原动作/数据比较，自然cadence只记录，增加本地固定React时间的Stage组件fixture检验实时钟确实独立。新暂停稳定等待还校准既有帧吸附和原生range重复小数末位输出（trace5.166666666666667 vs property5.16666666666667）；先桌面1pass/手机1fail，手机定向1/1、13.7s通过，原运行源码不改。测试更正的新CI终态待实际核对，不手动rerun旧失败。
+
+最终测试更正验证：新两宽正式2/2通过，独立fixture定向1/1、3.8s通过，合计八个不同相关流程已有成功证据，分批计数不冒充单轮8/8。fixture保持React time=0不重渲染，实际canvas时间/Root继续前进、Take逐值保持、严格诊断空，完全不要求某设备超过30Hz。初版fixture用绝对`.5s`目标但首次绘制已晚于它，原失败保留；改成首次观测后的相对推进，又发现独立@fs HTML默认/favicon.ico404，已明确链接原/favicon.svg，最终正式通过。开发预加载和资源仅在tests/fixtures，不进入生产dist，不改运行代码。全部历史和原始日志留ignored work；仅测试/Markdown提交触发新CI，保留native39与26dist库存/SHA。
 
 ## 2026-10-13 · 拉取最新main并发布iPad选择修复（native38，本地/线上有界检查通过）
 

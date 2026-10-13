@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Stage live clock regression fixture</title>
+    <style>
+      html, body { margin: 0; width: 100%; height: 100%; }
+      #stage-clock-fixture { position: relative; width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+    <div id="stage-clock-fixture" data-input-time="0"></div>
+    <script type="module">
+      // Vite serves this outside its app root through /@fs, without HTML hooks.
+      import RefreshRuntime from '/@react-refresh';
+      RefreshRuntime.injectIntoGlobalHook(window);
+      window.$RefreshReg$ = () => {};
+      window.$RefreshSig$ = () => type => type;
+      window.__vite_plugin_react_preamble_installed__ = true;
+      await import('./stage-clock.tsx');
+    </script>
+  </body>
+</html>
