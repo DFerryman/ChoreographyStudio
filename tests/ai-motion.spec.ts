@@ -2,13 +2,15 @@ import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { Quaternion, Vector3 } from 'three';
-import { bakeKeyframeSequence, makeKeyframeSequence, sampleTake, upsertMotionPointChanges, type Pose } from '../packages/core/src';
+import { bakeKeyframeSequence, JOINT_NAMES, makeKeyframeSequence, sampleTake, upsertMotionPointChanges, type Pose } from '../packages/core/src';
 import { AI_MOTION_MODEL } from '../packages/core/src/aiMotion';
 import { AI_MOTION_PLAN_PROTOCOL, motionPlanSources, validateAIMotionPlanRequest, validateAIMotionPlanResult, type AIMotionPlanRequest, type AIMotionPlanResult } from '../packages/core/src/aiMotionPlan';
 import { createAIMotionSampler, type AIMotionPatch } from '../packages/core/src/aiMotionTrack';
 import { decodeMotionPrior, sampleMotionPrior } from '../packages/core/src/motionPriors';
 import { AVATAR_COLLISION_PROFILE } from '../packages/core/src/avatarCapsules.generated';
-import { getPoseColliders } from '../packages/core/src/capsuleCollision';
+import { CAPSULE_FLOOR_TOLERANCE_METERS, getCapsuleCollisions, getPoseColliders } from '../packages/core/src/capsuleCollision';
+import { getMotionMinimumFloorHeight, isFunctionalJointWithinLimits } from '../packages/core/src/motionFeasibility';
+import { loadRapierBackend } from '../packages/core/src/rapierBackend';
 import { unpackScene } from '../apps/web/src/compactScene';
 import { clickRevealed, closeDisclosures } from './helpers';
 import { backup, current, hiddenButton, openFixture, ready, save, screenshot, type Backup } from './realismHelpers';
@@ -584,13 +586,36 @@ test('@ai-motion cancelled planning never creates or adopts a late candidate', a
   expect(calls).toHaveLength(1);
 });
 
-for (const conflict of ['backwards-elbow', 'legacy-rest-overlap'] as const) test(`@ai-motion infeasible locked interval ${conflict} rejects while original motion remains untouched`, async ({ page }) => {
+for (const conflict of ['backwards-elbow', 'legacy-rest-overlap', 'native-toe-floor'] as const) test(`@ai-motion infeasible locked interval ${conflict} rejects while original motion remains untouched`, async ({ page }) => {
   test.setTimeout(180_000);
   const calls = await mockMotion(page);
   if (conflict === 'backwards-elbow') await openHealthyFixture(page, source => {
     // Keep other joints geometrically healthy, isolating the reverse elbow.
     source.take.poses.forEach(value => { value.joints.LeftForeArm = [Math.sin(Math.PI / 4), 0, 0, Math.cos(Math.PI / 4)]; });
   });
+  else if (conflict === 'native-toe-floor') {
+    await loadRapierBackend();
+    await openHealthyFixture(page, source => {
+      // Public CMU-derived 3.425s curve sample: its original native toe hull
+      // goes 22.32mm below floor despite legal joints and clear legacy geometry.
+      const toe = structuredClone(source.take.poses[0]);
+      toe.root = [-.015076188685033123, 1.0280235555128743, .15771091780693985];
+      Object.assign(toe.joints, {
+        Hips: [-.00022747522441921098, -.06581125343759978, -.026548379607932902, .9974788272019548],
+        LeftUpperLeg: [-.03902566784456003, -.018991935637192477, .026566854932096658, .998704413652536],
+        RightUpperLeg: [-.17374210757780723, -.002095786141733125, .002535021951426246, .9847856931325595],
+        LeftLowerLeg: [.3715647496256995, .002445626547119249, .0009788420297135022, .9284033054737926],
+        RightLowerLeg: [.2965475131896887, -.001419580280618679, -.00044039501664502374, .9550169439675233],
+        LeftFoot: [-.02007733951380747, .04591162730210875, -.025121455768500348, .9984277316744516],
+        RightFoot: [-.048240764154988736, -.04066261756962767, .05133071261561373, .9966867803620666],
+      });
+      expect(JOINT_NAMES.every(joint => isFunctionalJointWithinLimits(joint, toe.joints[joint]))).toBe(true);
+      expect(getCapsuleCollisions(toe)).toMatchObject({ selfCollisions: [], floorPenetrations: [] });
+      expect(getMotionMinimumFloorHeight(toe)).toBeCloseTo(-.02232195042, 8);
+      expect(getMotionMinimumFloorHeight(toe)).toBeLessThan(-CAPSULE_FLOOR_TOLERANCE_METERS);
+      source.take.poses = source.take.poses.map(() => structuredClone(toe));
+    });
+  }
   else await openFixture(page);
   const before = await backup(page), beforeAudio = await audioHash(page);
   await setRange(page, 4, 12);
@@ -604,5 +629,6 @@ for (const conflict of ['backwards-elbow', 'legacy-rest-overlap'] as const) test
   await page.waitForTimeout(200);
   // The implementation may detect impossible endpoints before an AI request;
   // there must never be a repair/retry loop for this immutable conflict.
-  expect(calls.length).toBeLessThanOrEqual(1);
+  if (conflict === 'native-toe-floor') expect(calls).toHaveLength(0);
+  else expect(calls.length).toBeLessThanOrEqual(1);
 });

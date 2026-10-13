@@ -1,5 +1,9 @@
 # Working in Choreo Studio
 
+## Selective AI release resumed · 2026-10-13
+
+The user resumed implementation and publication from saved main `baafe8891463fbe75c2e88a944606ddbfcefb076`. The handoff-only stop below belongs to the earlier handoff turn and does not block this authorized continuation. Source-boundary preflight now shares the final generation gate's native Foot floor oracle and unchanged 3mm tolerance. A real 22.32mm toe-penetration regression is rejected before any model call, without changing source motion or endpoints. The full current local browser batch is10/10; single-worker foundation is922/922 after preserving the initial912/922 timeout result. No test timeout or physical limit was relaxed. Current-source CI, deployment, bounded live verification and five-page Notion receipts must be recorded from actual results in VERIFICATION/DEPLOYMENT and the handoff document.
+
 ## Selective AI implementation handoff · 2026-10-13 · not deployed
 
 The latest user explicitly requests committing and pushing this implementation to main, then handing it to another agent. Stop implementation, paid inference and deployment in this handoff turn. Read [docs/AI_MOTION_HANDOFF.md](docs/AI_MOTION_HANDOFF.md) for the current source, actual evidence and remaining release steps. Earlier plan-only/progress sections below are historical; this handoff supersedes their pending-code status.
