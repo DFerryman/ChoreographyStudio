@@ -1,5 +1,11 @@
 # Cloudflare 预览部署
 
+## 2026-10-13 · 普通街舞规划修复待发布
+
+本地修复源码 `2d989dba04250d23639290985def589d28f55867` 已提交：各素材窗口本地时间与Schema绑定、当前非零绝对选区说明、派生时长的端点误差处理、安全失败分类。全单测948、最终专项59及同批浏览器12项通过，Worker类型／dry-run／构建通过，详情见 [验证记录](VERIFICATION.md)。这是程序契约与mock浏览器验收，不是新模型自由描述成功率证明。
+
+直接push main及一次原生产端点真实验证均被自动审批审查拒绝，分别认为本次主分支发布、生产元数据传输／付费推理缺明确授权。未绕过拒绝，也未部署新运行版本；旧native45收据和线上状态保持，不能把当前本地提交冒称已上线。修复可通过草稿PR审阅，批准主分支／Cloudflare发布与一次自建32秒／4–9.5请求的真实验证后，再记录准确CI及新version／deployment。没有用户原场景或音频上传、后台生成、自动重试、额外provider或存储变更。
+
 ## 2026-10-13 · 选择性 AI 自然动作发布 · native45
 
 本轮运行源码 [`47ea623d8bc50d36c39a2e4d14b42f02b1dae6e5`](https://github.com/DFerryman/ChoreographyStudio/commit/47ea623d8bc50d36c39a2e4d14b42f02b1dae6e5)／tree `e01a004f1540de6274dba5f70d6fada8917bb98b` 已main并发布到[工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。Cloudflare native45／version `1f77133a-7b5d-4f3a-9130-d1347965eab9` 创建于14:19:10.232095 UTC；初始deployment `1e84926e-96ba-4a99-b84c-b59b6e3b7c48` 创建于14:19:10.998906 UTC，单版本100%。原生版本／部署收据准确绑定该source／tree；旧native44及其CI不作为本轮运行源码证据。
