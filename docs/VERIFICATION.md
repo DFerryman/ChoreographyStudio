@@ -1,5 +1,13 @@
 # 预览验证记录
 
+## 2026-10-13 · iPad Safari场景包选择修复（本地检查通过；未部署Cloudflare，本会话无凭据）
+
+用户报告iPad Safari导入场景时，支持的`.choreo`文件在文件选择器中灰色不可选，PC正常。原因：iOS/iPadOS把`accept`每一项映射为系统文件类型（UTI），`.choreo`无注册类型，因此`accept=".choreo,.json"`在iPad上过滤掉场景包。修复仅改`BackupImportDialog`：`accept`增加`application/json,application/octet-stream`（后者映射为通用数据类型，使`.choreo`可选）；解码器`decodeSceneBackup`本就按字节魔数/JSON内容校验，不依赖文件名或MIME，严格校验不变。
+
+- `npm run check` EXIT0：700/700、35文件，前端类型与Vite1972模块构建通过。
+- 浏览器：`tests/playback-rates.spec.ts` 2/2通过（38.3s，含`.choreo`经该输入导入）。`tests/backup.spec.ts`两例在本环境仍失败于导出下载名`download`≠`.choreo`，与既有环境下载名失败相同，发生在导入之前。
+- Playwright `setInputFiles`不执行`accept`过滤，真机iPad选择器未在本会话验证；需用户在iPad上确认。Cloudflare未部署（wrangler未认证），线上仍为native37。
+
 ## 2026-10-12 · 最新main多音轨发布（本地/公网限定检查与准确CI通过）
 
 按用户再次要求拉取并部署，从干净main98bbfdf快进到[6b59ee70](https://github.com/DFerryman/ChoreographyStudio/commit/6b59ee7022dd753911382c3be1bbb4f16f8992d1)，tree`9606f9c305484e2a5ba82c7be8180260296e6fa0`，包含多音轨feature293e828及其文档收据。push返回已是最新，远端完整SHA相等；本次没有应用、测试、配置或资产修改。

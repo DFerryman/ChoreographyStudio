@@ -20,6 +20,11 @@ type Props = {
 /** Read the chosen file once and reset the input so the same file can be chosen again. */
 const takeFile = (input: HTMLInputElement) => { const file = input.files?.[0]; input.value = ''; return file; };
 
+/** iOS/iPadOS maps each accept token to a system file type; `.choreo` has none, so the
+ * picker greys those files out. application/octet-stream maps to the generic data type and
+ * keeps them selectable; the decoder checks the bytes, not the name, either way. */
+const BACKUP_ACCEPT = '.choreo,.json,application/json,application/octet-stream';
+
 /** Validate a scene package or legacy JSON before it becomes an independent scene. */
 export function BackupImportDialog({ scene, name, needsAudio, error, reading, saving, onName, onChooseBackup, onChooseAudio, onConfirm, onClose }: Props) {
   const locked = reading || saving;
@@ -31,7 +36,7 @@ export function BackupImportDialog({ scene, name, needsAudio, error, reading, sa
       <Upload size={24} />
       <strong>{reading ? '正在验证场景与音乐…' : '选择 .choreo 场景包或旧 JSON 备份'}</strong>
       <span>完整包最多 132 MB · 旧 JSON 最多 32 MB</span>
-      <input type="file" accept=".choreo,.json" aria-label="选择场景备份文件" disabled={locked} onChange={event => onChooseBackup(takeFile(event.target))} />
+      <input type="file" accept={BACKUP_ACCEPT} aria-label="选择场景备份文件" disabled={locked} onChange={event => onChooseBackup(takeFile(event.target))} />
     </label>
     {scene && snapshot && <>
       <label className="field rename-field">导入后的场景名称<input value={name} maxLength={80} onChange={event => onName(event.target.value)} disabled={locked} /></label>
