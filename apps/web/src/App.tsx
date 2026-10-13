@@ -880,12 +880,12 @@ export default function App() {
               </AIDock>}
             </CameraBar>
             <div className="stage-wrap">
-              <Stage take={displayedTake} time={time} view={view} mirror={mirror}
-                cameraState={camera ?? undefined} cameraTrackState={cameraTrackState} cameraRestoreExact={cameraRestoreExact} cameraEditRevision={session.revision}
+              <Stage take={displayedTake} time={time} getPlaybackTime={timelinePlayback.getTime} view={view} mirror={mirror}
+                cameraState={camera ?? undefined} cameraTrackState={cameraTrackState} cameraTrackSampler={!cameraViewOverride && !previewAssist ? cameraSampler ?? undefined : undefined} cameraRestoreExact={cameraRestoreExact} cameraEditRevision={session.revision}
                 cameraCancelKey={cameraCancelKey} cameraTrackEditing={cameraSelected && cameraCanEdit()} onCameraGesture={handleCameraGesture}
                 cameraResetKey={cameraResetKey} cameraRestoreKey={cameraRestoreKey} cameraFocus={cameraFocus ?? undefined}
                 onCameraChange={handleCameraChange} onCameraInteraction={handleCameraInteraction}
-                selectedJoint={null} jointPicking={false} timelineKeys collisionPreview editMode={false} transformTool="select" playing={playing} />
+                selectedJoint={null} jointPicking={false} timelineKeys editMode={false} transformTool="select" playing={playing} />
             </div>
           </div>
           {ready && <TimelineDock ref={timelineDockRef}>

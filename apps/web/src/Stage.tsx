@@ -38,12 +38,16 @@ const EDITABLE_JOINT_SET = new Set<JointName>(EDITABLE_JOINT_NAMES);
 type StageProps = {
   take: BakedTake | null;
   time: number;
+  /** Read the scene clock directly when drawing playback, outside React's UI cadence. */
+  getPlaybackTime?: () => number;
   view: StageView;
   mirror: boolean;
   cameraResetKey?: number;
   cameraState?: StageCamera;
   /** Exact authored/derived track view; null leaves ordinary navigation in control. */
   cameraTrackState?: SampledCameraPose | null;
+  /** Prevalidated camera sampler, using the same live time as the character. */
+  cameraTrackSampler?: (time: number) => SampledCameraPose;
   cameraTrackEditing?: boolean;
   cameraEditRevision?: number;
   cameraCancelKey?: number;
@@ -209,7 +213,7 @@ function cameraOwnsKeys(state: StageProps): boolean {
 }
 
 export function Stage(props: StageProps) {
-  const { take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selectedJoint, linkedJoints, gridVisible, axesVisible, poseOverride, editMode, playing, collisionPreview, transformTool = 'rotate', ikTarget } = props;
+  const { take, time, getPlaybackTime, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackSampler, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selectedJoint, linkedJoints, gridVisible, axesVisible, poseOverride, editMode, playing, collisionPreview, transformTool = 'rotate', ikTarget } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const current = useRef<StageProps & { renderPose: Pose | null; previewState: 'author' | 'loading' | 'ready' | 'error' }>({ ...props, renderPose: null, previewState: 'author' });
   const requestDraw = useRef<() => void>(() => {});
@@ -221,7 +225,7 @@ export function Stage(props: StageProps) {
   const [humanLoaded, setHumanLoaded] = useState(false);
   const [collisionReady, setCollisionReady] = useState(isBodyCollisionBackendReady);
   const [collisionError, setCollisionError] = useState<string | null>(null);
-  const previewActive = !!(collisionPreview || playing);
+  const previewActive = !!collisionPreview;
   const selection = selectedJoint === undefined ? internalSelection : selectedJoint;
   const selectionRef = useRef(selection);
   selectionRef.current = selection;
@@ -237,7 +241,7 @@ export function Stage(props: StageProps) {
     return () => { active = false; };
   }, [previewActive, collisionReady]);
   const presentation = useMemo<{ pose: Pose | null; preview: ReturnType<typeof sampleCollisionPreview> | null; error: string | null }>(() => {
-    const authored = !previewActive && poseOverride ? poseOverride : take ? sampleTake(take, time) : null;
+    const authored = !previewActive && !playing && poseOverride ? poseOverride : take ? sampleTake(take, time) : null;
     if (!previewActive || !take || !collisionReady) return { pose: authored, preview: null, error: null };
     try {
       const preview = sampleCollisionPreview(take, time);
@@ -245,7 +249,7 @@ export function Stage(props: StageProps) {
     } catch (error) {
       return { pose: authored, preview: null, error: error instanceof Error ? error.message : '碰撞预览无法计算。' };
     }
-  }, [previewActive, poseOverride, take, time, collisionReady]);
+  }, [previewActive, playing, poseOverride, take, time, collisionReady]);
   const feedbackPose = presentation.pose;
   const poseGuidance = useMemo(() => getPoseGuidance(feedbackPose), [feedbackPose]);
   const capsuleCollisions = presentation.preview?.collisions ?? null;
@@ -792,7 +796,19 @@ export function Stage(props: StageProps) {
     }
 
     function draw() {
-      const state = current.current;
+      // The transport/UI can update less often than the display. Sample both
+      // tracks from one live clock reading so neither inherits React's 30 Hz
+      // cadence, and avoid feeding the presentation back into authored data.
+      const latest = current.current;
+      const state = latest.playing ? { ...latest, time: latest.getPlaybackTime?.() ?? latest.time } : latest;
+      if (state.playing) {
+        state.renderPose = state.take ? sampleTake(state.take, state.time) : null;
+        if (state.collisionPreview && state.take && state.previewState === 'ready') {
+          try { state.renderPose = sampleCollisionPreview(state.take, state.time).pose; }
+          catch { /* Keep the authored pose if optional preview projection fails. */ }
+        }
+        if (state.cameraTrackState && state.cameraTrackSampler) state.cameraTrackState = state.cameraTrackSampler(state.time);
+      }
       const nextKeyboardEnabled = cameraOwnsKeys(state);
       if (cameraKeyboardEnabled !== nextKeyboardEnabled) {
         cameraKeyboardEnabled = nextKeyboardEnabled;
@@ -913,7 +929,7 @@ export function Stage(props: StageProps) {
         canvas.dataset.renderPose = renderedSignature;
         renderedPoseSignature = renderedSignature;
       }
-      const motionPresentation = state.collisionPreview || state.playing ? 'collision-preview' : 'author';
+      const motionPresentation = state.collisionPreview ? 'collision-preview' : 'author';
       if (canvas.dataset.motionPresentation !== motionPresentation) canvas.dataset.motionPresentation = motionPresentation;
       const renderTime = String(state.time);
       if (canvas.dataset.renderTime !== renderTime) canvas.dataset.renderTime = renderTime;
@@ -949,6 +965,7 @@ export function Stage(props: StageProps) {
       renderer.render(scene, camera);
       cameraFeedback();
       selectionFeedback();
+      if (state.playing) schedule();
     }
 
     function resize() {
@@ -1354,7 +1371,7 @@ export function Stage(props: StageProps) {
 
   useEffect(() => {
     requestDraw.current();
-  }, [take, time, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selection, linkedJoints, gridVisible, axesVisible, poseOverride, editMode, playing, collisionPreview, feedbackPose, previewState, transformTool, ikTarget]);
+  }, [take, time, getPlaybackTime, view, mirror, cameraResetKey, cameraRestoreKey, cameraRestoreExact, cameraFocus, cameraTrackState, cameraTrackSampler, cameraTrackEditing, cameraEditRevision, cameraCancelKey, bottomOverlayInset, selection, linkedJoints, gridVisible, axesVisible, poseOverride, editMode, playing, collisionPreview, feedbackPose, previewState, transformTool, ikTarget]);
 
   return (
     <div className="stage3d" ref={containerRef} data-camera-offset-y="0" data-motion-presentation={previewActive ? 'collision-preview' : 'author'} data-collision-preview-state={previewState} tabIndex={0} role="region" aria-label="3D 动画舞台" data-selected-joint={selection ?? ''} data-local-rotation={selection && feedbackPose ? JSON.stringify(feedbackPose.joints[selection]) : undefined} data-root-position={feedbackPose ? JSON.stringify(feedbackPose.root) : undefined} aria-keyshortcuts={editMode ? 'ArrowLeft ArrowRight Space Delete Control+Z Meta+Z Control+Shift+Z Meta+Shift+Z Control+Y Alt+ArrowUp Alt+ArrowDown' : 'ArrowLeft ArrowRight Shift+ArrowLeft Shift+ArrowRight Home End I O Escape Space Delete Control+Z Meta+Z Control+Shift+Z Control+Y'} onPointerDown={event => { if (editMode && event.target instanceof HTMLCanvasElement) containerRef.current?.focus({ preventScroll: true }); }} onKeyDown={event => {

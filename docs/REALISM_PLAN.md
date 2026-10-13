@@ -1,5 +1,23 @@
 # 真实编舞体验：IK、接触与物理方案评估
 
+## 2026-10-13 · AI 模板问题诊断与音乐驱动动作路线（设计，未实现）
+
+当前 Workers AI 已真实接通，但能力被产品协议限制为六种程序动作的排列与幅度选择。[请求协议](../packages/core/src/aiChoreography.ts)只接收文字及确认数拍，每个八拍仅允许 `actionId/amplitude`；[Worker prompt](../apps/api/src/index.ts)明确禁止骨骼轨迹和新动作 ID。候选由本地 `bakePlan` 生成固定程序动作，未发现失败时返回模板的隐式 fallback。因此结果相似的主要原因是输出空间受限，换模型或提高随机性不能单独解决。原始音频、音频特征、音轨偏移和时间线选区均未进入模型；[生成入口](../apps/web/src/App.tsx)仍生成整段，当前“整段”是已确认的 16–60 秒场景，并非任意完整歌曲。真实动作服务目录目前[只有接入计划](../services/motion-worker/README.md)。
+
+用户本轮要求 AI 根据所选区间或完整音乐编舞，授权主动生成时把对应音乐交给模型，取代历史“任何音频均不得上传”的限制。授权限于用户发起的这次生成及相应音频，不开启后台上传、自动推理、重试或音频云存储；原本机音乐和场景保持，预览和明确采用继续分开。此次仅诊断和设计，未上传音乐或改 AI 代码、模型配置、场景文件。
+
+已检索 Cloudflare 当前文档，并执行 4 次原生只读 GET：模型目录首页两次、第二页一次、Clef-omni 输入/输出 schema 一次，全部 HTTP 200，真实推理、生成 POST、数据库写入均为 0。目录实际首页 70 条、第二页 0 条，metadata 的 `total_count=323` 不作为已验证模型数量。当前 Qwen3 是文字模型；较新的 Qwen3.8 支持文字/图像，没有文档支持的音频输入。2026-10-09 新增的 `@cf/cloudflare/clef-omni` 接受 WAV/MP3，但原生 schema 只有 `noul/choice/score` 类型问题，返回选项概率或评分，不能自由生成文字或连续关节动作。它可作为音乐属性判断的待验证候选，不能替换成“真正编舞已完成”。音频可传 base64 data URL 或 `{content_type,base64}`，最多 4 段、每段 8 MiB/300 秒，音视频合计 16 MiB，不接受远程 URL。[Clef-omni 官方模型页](https://developers.cloudflare.com/workers-ai/models/clef-omni/)、[发布说明](https://developers.cloudflare.com/changelog/post/2026-10-09-clef-omni-workers-ai/)、[模型卡](https://huggingface.co/Cloudflare/clef-omni)、[Qwen3.8 官方说明](https://developers.cloudflare.com/changelog/post/2026-08-17-qwen-3.8-27b-workers-ai/)。
+
+推荐先用 [EDGE 官方实现](https://github.com/Stanford-TML/EDGE)做音乐到连续骨骼动作的技术验证，Cloudflare 保留网页/API入口，专用模型在独立 GPU 服务推理。EDGE 有代码和预训练 checkpoint，真实 WAV 经 Jukebox 音乐特征条件生成 30 fps SMPL 旋转、Root 位移和关节坐标，支持补间/长序列生成；作者文档包含 T4 16 GB 配置，但没有原生自由文本舞种控制。其[示例入口](https://github.com/Stanford-TML/EDGE/blob/main/test.py)默认随机选取歌曲中的片段，不能原样接入用户选区；[长序列生成](https://github.com/Stanford-TML/EDGE/blob/main/model/diffusion.py)采用重叠窗口及旋转 SLERP。当前工作区没有已配置的 GPU 模型服务，尚未下载权重、验证模型质量或实现该路线。
+
+接入需要以下独立工作，不能只改 `AI_MODEL`：
+
+- 按实际音轨偏移、静音和所选区间裁切/混合原音频；完整歌曲按其真实长度分段生成。移除随机选段，处理短段和尾段，输出裁回精确时长。
+- 将模型的连续 SMPL 动作重定向为本项目 25 关节、局部四元数及 Root；扩展现有请求大小、结果契约和 `synthetic-demo` 来源校验，兼容保留旧场景。区间生成带原动作边界条件，范围外动作保持，明确采用前不改原稿。
+- 用实际音乐验证：不同音乐能改变动作时序，同一音乐可产生不同候选；检查区间精确覆盖、接缝和速度/加速度跳变。单次接口成功、mock、角度合法或模板变化不能作为真实编舞质量验收。
+
+许可与候选边界：[EDGE MIT](https://github.com/Stanford-TML/EDGE/blob/main/LICENSE)是代码许可，权重、[AIST 音乐/视频](https://google.github.io/aistplusplus_dataset/download.html)及 SMPL 资产须分别核对，未认定商业部署许可齐全。[GCDance](https://github.com/surrey-nlp/GCDance)适合继续研究音乐与文字风格控制，但公开推理为预处理音乐/标签驱动短片段；[LODGE](https://github.com/li-ronghui/LODGE)面向长曲。两者涉及的 [FineDance 官方许可](https://github.com/li-ronghui/FineDance/blob/main/LICENSE)限制非商业研究、教育或艺术，不能因代码可下载就直接用于商业产品。[AtomicDance](https://github.com/oceanflowlab/AtomicDance)方向包含整曲规划和连续动作生成，但官方仍标记预训练 checkpoint 待发布，暂不作为立即接入依赖。当前具体缺口是可用且许可适合的 GPU 动作模型服务、精确音频区间处理和骨骼适配；本节没有宣称新 AI 编舞已经上线。下方历史保持。
+
 ## 2026-10-12 · 真实AI验证权限更新
 
 用户已解除下文历史阶段的真实推理验证禁令。允许必要低频Workers AI调用，当前一次、无自动重试；自动化回归默认mock，保留限频、候选采用和本机存储保护，不更改套餐。历史零推理结果保持，单次接线不等于舞蹈质量验收。当前规则见[AGENTS](../AGENTS.md)，实际结果见[VERIFICATION](VERIFICATION.md)。
