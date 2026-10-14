@@ -471,36 +471,49 @@ export function adaptMotionPriorArmTargets(input: Pose, seed?: { source: Pose; f
     const frame = world[collider.proximal], rotation = chestInverse.clone().multiply(new Quaternion(...frame.rotation));
     return bounds(collider.vertices, rotation, new Vector3(...frame.position).sub(chestPosition).applyQuaternion(chestInverse));
   });
-  for (const side of ['Left', 'Right'] as const) for (let pass = 0; pass < 3; pass++) {
+  // Body/head geometry and donor coordinates are invariant through these arm
+  // passes. Keep each original expression/order; only reuse its exact result.
+  const headCollider = trunk.find(collider => collider.id === 'head');
+  const headGeometry = headCollider?.shape === 'convex' ? (() => {
+    const headFrame = world[headCollider.proximal], headRotation = new Quaternion(...headFrame.rotation);
+    const centre = new Vector3(...headCollider.bboxCenterOffset).applyQuaternion(headRotation).add(new Vector3(...headFrame.position))
+      .sub(chestPosition).applyQuaternion(chestInverse);
+    const radius = Math.max(...headCollider.vertices.map(vertex => new Vector3(...vertex).distanceTo(new Vector3(...headCollider.bboxCenterOffset))));
+    return { centre, radius };
+  })() : undefined;
+  const armGeometry = (['Left', 'Right'] as const).map(side => {
     const upper = `${side}UpperArm` as JointName, lower = `${side}ForeArm` as JointName, hand = `${side}Hand` as JointName;
     const handCollider = AVATAR_COLLISION_PROFILE.colliders.find(collider => collider.id === `${side}-hand`)!;
     const forearmCollider = AVATAR_COLLISION_PROFILE.colliders.find(collider => collider.id === `${side}-forearm`)!;
     if (handCollider.shape !== 'convex' || forearmCollider.shape !== 'convex') return fail('人物动作适配需要已校准的手臂几何。');
     const originalHand = new Vector3(...world[hand].position);
+    const handPosition = originalHand.clone().sub(chestPosition).applyQuaternion(chestInverse);
+    const band = forearmCollider.bboxHalfExtents[2] / 2;
+    const elbowLocal = new Vector3(...world[lower].position).sub(chestPosition).applyQuaternion(chestInverse);
+    const middleLocal = elbowLocal.clone().add(handPosition).multiplyScalar(.5);
+    const shoulderLocal = new Vector3(...world[upper].position).sub(chestPosition).applyQuaternion(chestInverse);
+    const forearmRadius = forearmCollider.bboxHalfExtents[0];
+    const palmRadius = Math.max(...handCollider.vertices.map(vertex => Math.hypot(...vertex)));
+    return { side, upper, lower, hand, handCollider, originalHand, handPosition, band,
+      elbowLocal, middleLocal, shoulderLocal, forearmRadius, palmRadius };
+  });
+  for (const { side, upper, lower, hand, handCollider, originalHand, handPosition, band,
+    elbowLocal, middleLocal, shoulderLocal, forearmRadius, palmRadius } of armGeometry) for (let pass = 0; pass < 3; pass++) {
     // Local capture wrist articulation follows the fitted upper/lower arm.
     // Its resulting world palm orientation, rather than the donor's, controls
     // the target avatar's actual palm bounds. Bounded outer passes converge
     // that coupled geometry without inflating the body's collision profile.
     const fittedWorld = evaluatePose(result), handRotation = new Quaternion(...fittedWorld[hand].rotation);
-    const handPosition = originalHand.clone().sub(chestPosition).applyQuaternion(chestInverse);
     const handBounds = bounds(handCollider.vertices, chestInverse.clone().multiply(handRotation), handPosition);
     const handCentre = handBounds.min.clone().add(handBounds.max).multiplyScalar(.5);
     const handHalf = handBounds.max.clone().sub(handBounds.min).multiplyScalar(.5);
-    const band = forearmCollider.bboxHalfExtents[2] / 2;
-    const elbowLocal = new Vector3(...world[lower].position).sub(chestPosition).applyQuaternion(chestInverse);
-    const middleLocal = elbowLocal.clone().add(handPosition).multiplyScalar(.5);
     let lateralDisplacement = 0, forwardDisplacement = 0, elbowLateral = 0, elbowForward = 0, middleLateral = 0, middleForward = 0;
-    const headCollider = trunk.find(collider => collider.id === 'head');
-    if (headCollider?.shape === 'convex') {
+    if (headGeometry) {
       // A palm can round an AABB corner back into the head when its arm curve
       // is filtered. The measured head's bounding sphere and the actual palm's
       // reach form a conservative continuous trajectory target; final collision
       // tests still use the unchanged original convex bodies, not this sphere.
-      const headFrame = world[headCollider.proximal], headRotation = new Quaternion(...headFrame.rotation);
-      const centre = new Vector3(...headCollider.bboxCenterOffset).applyQuaternion(headRotation).add(new Vector3(...headFrame.position))
-        .sub(chestPosition).applyQuaternion(chestInverse);
-      const headRadius = Math.max(...headCollider.vertices.map(vertex => new Vector3(...vertex).distanceTo(new Vector3(...headCollider.bboxCenterOffset))));
-      const palmRadius = Math.max(...handCollider.vertices.map(vertex => Math.hypot(...vertex)));
+      const centre = headGeometry.centre, headRadius = headGeometry.radius;
       const clearance = headRadius + palmRadius + .003 + band;
       const vertical = handPosition.y - centre.y, lateral = handPosition.x - centre.x;
       const heightWeight = bandWeight(handPosition.y, centre.y - clearance, centre.y + clearance, band);
@@ -528,13 +541,11 @@ export function adaptMotionPriorArmTargets(input: Pose, seed?: { source: Pose; f
       const travel = (tx + tz - Math.sqrt((tx - tz) ** 2 + band ** 2) + band) / 2 * weight;
       lateralDisplacement = union(lateralDisplacement, unitX * travel);
       forwardDisplacement = union(forwardDisplacement, unitZ * travel);
-      const forearmRadius = forearmCollider.bboxHalfExtents[0];
       const elbowWeight = bandWeight(elbowLocal.x, body.min.x - forearmRadius, body.max.x + forearmRadius, band)
         * bandWeight(elbowLocal.y, body.min.y - forearmRadius, body.max.y + forearmRadius, band)
         * bandWeight(elbowLocal.z, body.min.z - forearmRadius, body.max.z + forearmRadius, band);
       const ex = positive((side === 'Left' ? body.max.x - elbowLocal.x : elbowLocal.x - body.min.x) + forearmRadius + .003 + band, band);
       const ez = positive(body.max.z + forearmRadius + .003 + band - elbowLocal.z, band);
-      const shoulderLocal = new Vector3(...world[upper].position).sub(chestPosition).applyQuaternion(chestInverse);
       const adduction = positive((side === 'Left' ? 1 : -1) * (shoulderLocal.x - elbowLocal.x), band);
       const ep = 1 / (1 + Math.exp(Math.max(-40, Math.min(40, (ex + adduction - ez) / band))));
       const el = Math.hypot(Math.max(1e-6, ep), Math.max(1e-6, 1 - ep)), ux = Math.max(1e-6, ep) / el, uz = Math.max(1e-6, 1 - ep) / el;
