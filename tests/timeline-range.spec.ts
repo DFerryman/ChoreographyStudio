@@ -101,7 +101,7 @@ test('@timelinerange explicit camera key records the current view and the AI pan
   expect(current(after).operation).toMatchObject({ label: '记录镜头', time: 4, tracks: ['camera'] });
   expect(current(after).take).toEqual(current(before).take);
   await expect(timeline(page).getByRole('button', { name: '删除镜头关键帧', exact: true })).toBeVisible();
-  await page.getByLabel('AI 生成动作', { exact: true }).click();
+  await page.getByLabel('AI 动作', { exact: true }).click();
   await expect(page.getByLabel('AI 目标区间', { exact: true })).toContainText('4 秒–8 秒');
 });
 

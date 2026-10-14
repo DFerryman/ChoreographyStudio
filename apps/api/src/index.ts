@@ -31,6 +31,18 @@ function aiError(code: string, message: string, status: number): Response {
   return Response.json({ code, message }, { status, headers });
 }
 
+/** No creation provider is connected. Do not read a body, paid-inference
+ * binding or source catalog, and never substitute an existing-clip operation. */
+function unavailableMotionCreation(request: Request): Response {
+  if (request.headers.get('origin') !== new URL(request.url).origin || request.headers.get('sec-fetch-site') === 'cross-site') {
+    return aiError('ORIGIN_NOT_ALLOWED', '请从编舞编辑器发起创作。', 403);
+  }
+  if (!/^application\/json(?:\s*;\s*charset=utf-8)?\s*$/i.test(request.headers.get('content-type') ?? '')) {
+    return aiError('INVALID_CONTENT_TYPE', '创作请求必须使用 JSON。', 415);
+  }
+  return aiError('CREATION_UNAVAILABLE', '新的 3D 动作素材创作服务尚未接入，正在评估专用动作模型；不会改用已有片段编排。', 503);
+}
+
 async function boundedBody(request: Request, maximumBytes = AI_REQUEST_MAX_BYTES): Promise<string> {
   const length = request.headers.get('content-length');
   if (length && (!/^\d+$/.test(length) || Number(length) > maximumBytes)) throw new Error('BODY_TOO_LARGE');
@@ -319,9 +331,10 @@ export default {
       if (path === '/api/choreography/generate' && request.method === 'POST') return generate(request, env);
       if (path === '/api/motion/generate' && request.method === 'POST') return generateMotion(request, env);
       if (path === '/api/motion/plan' && request.method === 'POST') return planMotion(request, env);
+      if (path === '/api/motion/create' && request.method === 'POST') return unavailableMotionCreation(request);
       if (request.method !== 'GET') return Response.json({ code: 'FEATURE_NOT_ENABLED', message: '此公开预览仅提供本机演示，不接受项目或音频上传。' }, { status: 501, headers });
       if (path === '/api/health') return Response.json({ status: 'ok', stage: env.RELEASE_STAGE, version: '0.1.0', protocol: 'preview-1', motionProvenance: 'synthetic-demo' }, { headers });
-      if (path === '/api/capabilities') return Response.json({ protocol: 'preview-1', localPreview: { manualCountMap: true, templateArrangement: true, syntheticMotion: true, singleOctetReplacement: true, undoRedo: true, indexedDbSave: true }, serverProjectStorage: false, modelGeneration: Boolean(env.AI && env.AI_RATE_LIMITER), aiArrangement: { protocol: AI_PROTOCOL, model: AI_MODEL, legacy: true, explicitRequestOnly: true, uploadsAudio: false, proceduralMotion: true, maximumRequestsPerMinutePerIp: 2 }, aiMotion: { protocol: AI_MOTION_PROTOCOL, model: AI_MOTION_MODEL, legacy: true, directBoneMotion: true, rangeGeneration: true, immutableContext: true, audioUnderstanding: false, uploadsAudio: false, explicitRequestOnly: true, maximumRequestsPerMinutePerIp: 2 }, aiMotionPlanning: { protocol: AI_MOTION_PLAN_PROTOCOL, model: AI_MOTION_MODEL, requiresDeterministicCandidateValidation: true, physicalValidationLocation: 'client', articulatedDynamics: false, semanticPlanning: true, directBoneMotion: false, realMotionPriors: true, rangeGeneration: true, immutableContext: true, audioUnderstanding: false, uploadsAudio: false, explicitRequestOnly: true, maximumRequestsPerMinutePerIp: 2 }, licensedMotionPack: false, teacherFinalization: false, mp4Export: false, creativeIK: true, freeTimelineEditing: false }, { headers });
+      if (path === '/api/capabilities') return Response.json({ protocol: 'preview-1', localPreview: { manualCountMap: true, templateArrangement: true, syntheticMotion: true, singleOctetReplacement: true, undoRedo: true, indexedDbSave: true }, serverProjectStorage: false, modelGeneration: Boolean(env.AI && env.AI_RATE_LIMITER), newMotionCreation: { available: false, provider: null, existingClipFallback: false, status: 'dedicated-model-evaluation' }, aiArrangement: { protocol: AI_PROTOCOL, model: AI_MODEL, legacy: true, explicitRequestOnly: true, uploadsAudio: false, proceduralMotion: true, maximumRequestsPerMinutePerIp: 2 }, aiMotion: { protocol: AI_MOTION_PROTOCOL, model: AI_MOTION_MODEL, legacy: true, directBoneMotion: true, rangeGeneration: true, immutableContext: true, audioUnderstanding: false, uploadsAudio: false, explicitRequestOnly: true, maximumRequestsPerMinutePerIp: 2 }, aiMotionPlanning: { protocol: AI_MOTION_PLAN_PROTOCOL, model: AI_MOTION_MODEL, createsNewMaterial: false, operation: 'arrange-existing', coverage: { styles: ['street', 'salsa'], recordings: 2 }, requiresDeterministicCandidateValidation: true, physicalValidationLocation: 'client', articulatedDynamics: false, semanticPlanning: true, directBoneMotion: false, realMotionPriors: true, rangeGeneration: true, immutableContext: true, audioUnderstanding: false, uploadsAudio: false, explicitRequestOnly: true, maximumRequestsPerMinutePerIp: 2 }, licensedMotionPack: false, teacherFinalization: false, mp4Export: false, creativeIK: true, freeTimelineEditing: false }, { headers });
       return Response.json({ code: 'FEATURE_NOT_ENABLED', message: '此接口尚未接入生产服务。' }, { status: 501, headers });
     }
     return env.ASSETS.fetch(request);

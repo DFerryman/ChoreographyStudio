@@ -17,6 +17,7 @@ import { SceneTimeline, type TimelineRange } from './Timeline';
 import AIPanel from './AIPanel';
 import { requestAIMotionPlan } from './aiMotionPlanClient';
 import { loadMotionPriorClips } from './motionPriors';
+import { evaluateMotionCreationPolicy, type MotionCreationMode } from './motionCreationPolicy';
 import { checkAIMotionSourceBoundaries, INFEASIBLE_MOTION_SOURCE } from './motionSourcePreflight';
 import { buildAIMotionRequest, sourceStampForAIMotion } from './aiMotionContext';
 import { demoAudio } from './demoAudio';
@@ -53,7 +54,7 @@ type AudioMoveAction = { type: 'moveAudio'; offsetSeconds: number; sceneId: stri
 type ResetAction = 'music' | 'adoptAssist';
 /** Any action that must first resolve an in-progress camera gesture. */
 type GuardedAction = AudioMoveAction | { type: 'seek'; time: number } | { type: 'scene'; action: SceneAction } | { type: 'history'; direction: -1 | 1 }
-  | { type: 'play' | 'save' | 'music' | 'teaching' | 'backup' | 'projectBackup' | 'adoptAssist' | 'previewAssist' } | { type: 'assist'; prompt: string };
+  | { type: 'play' | 'save' | 'music' | 'teaching' | 'backup' | 'projectBackup' | 'adoptAssist' | 'previewAssist' } | { type: 'assist'; prompt: string; mode: MotionCreationMode };
 type AssistCandidate = { aiMotion: AIMotionTrack; target: AIMotionTarget; summary: string; limitations: string[]; maxHandAdaptationMeters: number; maxSoleAdaptationRadians: number; maxFootMarkerAdaptationMeters: number; maxFootAdaptationMeters: number; maxRetargetSoleRadians: number; endingAdaptationSeconds?: number; quality: AIMotionQuality; feasibility: MotionFeasibilityReport; sceneId: string; countMapId: string; baseRevision: number; sourceStamp: string };
 type CameraGesture = { sceneId: string; revision: number; time: number; snapshot: Snapshot; before: CameraPose; latest: CameraPose; status: SaveStatus; version: number; override: boolean };
 type NamedTarget = { id: string; name: string };
@@ -606,8 +607,10 @@ export default function App() {
     const run = assistRun.current; assistRun.current = null; run?.controller.abort();
     setAssistBusy(false);
   }
-  async function generateAssistance(prompt: string) {
-    if (guard({ type: 'assist', prompt })) return;
+  async function generateAssistance(prompt: string, mode: MotionCreationMode) {
+    const policy = evaluateMotionCreationPolicy({ mode });
+    if (!policy.allowed) { setAssistError(policy.message); setNotice(policy.message); return; }
+    if (guard({ type: 'assist', prompt, mode })) return;
     if (!active.take || assistRun.current || busy || !ready) return;
     pause(); setAssistError(''); setAssistCandidate(null); setPreviewAssist(false);
     const source = active;
@@ -667,7 +670,7 @@ export default function App() {
       const patch = solved.patch;
       const quality = analyzeAIMotionPatch(patch);
       const aiMotion = appendAIMotionPatch(source.aiMotion, patch, source.countMap);
-      const candidate: AssistCandidate = { aiMotion, target: request.context.target, summary: response.summary, limitations: response.limitations,
+      const candidate: AssistCandidate = { aiMotion, target: request.context.target, summary: 'AI 从现有街舞／Salsa 真人动捕中选择和编排片段；这份候选不是新动作素材。', limitations: response.limitations,
         maxHandAdaptationMeters: composition.adaptation.maxHandDisplacementMeters,
         maxSoleAdaptationRadians: conditionedFeet.report.maxSoleOrientationChangeRadians,
         maxFootMarkerAdaptationMeters: conditionedFeet.report.maxFootMarkerPositionChangeMeters,
@@ -967,7 +970,7 @@ export default function App() {
       case 'backup': void exportFullScene(); break;
       case 'projectBackup': exportProject(); break;
       case 'moveAudio': performAudioMove(action); break;
-      case 'assist': void generateAssistance(action.prompt); break;
+      case 'assist': void generateAssistance(action.prompt, action.mode); break;
       case 'adoptAssist': adoptAssistance(); break;
       case 'previewAssist': showAssistCandidate(); break;
     }
@@ -1000,7 +1003,7 @@ export default function App() {
           <div className="stage-area">
             <CameraBar view={view} canFrame={!!displayedTake && ready && !busy} camera={camera?.position ?? null} avatar={avatar} onAvatar={chooseAvatar} onView={chooseView} onFrame={frameActor}>
               {page === 'studio' && <AIDock busy={assistBusy}>
-                <AIPanel onGenerate={prompt => { void generateAssistance(prompt); }} onCancel={cancelAssistance} busy={assistBusy} range={range} duration={duration}
+                <AIPanel onGenerate={(prompt, mode) => { void generateAssistance(prompt, mode); }} onCancel={cancelAssistance} busy={assistBusy} range={range} duration={duration}
                   disabled={!ready || !active.take || !!busy || assistBusy || modalOpen} error={assistError} />
               </AIDock>}
             </CameraBar>

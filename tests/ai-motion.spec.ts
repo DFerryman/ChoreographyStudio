@@ -106,9 +106,10 @@ async function openHealthyFixture(page: Page, mutate?: NonNullable<Parameters<ty
 }
 async function generate(page: Page, prompt = '依据提供的 Salsa 真人动捕，编排自然的侧向步伐与手臂动作。') {
   await closeDisclosures(page);
-  await page.getByLabel('AI 生成动作', { exact: true }).click();
+  await page.getByLabel('AI 动作', { exact: true }).click();
+  await page.getByRole('radio', { name: '编排已有素材', exact: true }).check();
   await page.getByRole('textbox', { name: '动作描述', exact: true }).fill(prompt);
-  await page.getByRole('button', { name: '生成 AI 候选', exact: true }).click();
+  await page.getByRole('button', { name: '编排素材候选', exact: true }).click();
 }
 async function openHealthy32Fixture(page: Page) {
   return openHealthyFixture(page, source => {
@@ -233,6 +234,8 @@ async function expectFeasibleCandidate(page: Page) {
     page.getByRole('alert').waitFor({ state: 'visible', timeout: 130_000 }).then(async () => `rejected: ${await page.getByRole('alert').innerText()}`),
   ]);
   expect(outcome).toBe('candidate');
+  await expect(candidate(page).getByText('已有素材编排候选', { exact: true })).toBeVisible();
+  await expect(candidate(page).locator('.assist-candidate-summary')).toContainText('不是新动作素材');
   await expect(candidate(page).getByLabel('动作约束检查', { exact: true })).toHaveAttribute('data-feasibility-status', 'accepted');
   await expect(candidate(page).getByRole('button', { name: '采用候选', exact: true })).toBeEnabled();
 }
@@ -597,7 +600,7 @@ test('@ai-motion user 4-to-9.5 street interval shows a safe source-range reason 
   await expect(page.getByText(privateModelText, { exact: true })).toHaveCount(0);
   await expect(candidate(page)).toHaveCount(0);
   await expect(page.getByRole('button', { name: '采用候选', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '生成 AI 候选', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '编排素材候选', exact: true })).toBeEnabled();
   await screenshot(page, info, 'ai-motion-user-street-source-range-error.png');
   expect((await backup(page)).scene.project).toEqual(before.scene.project);
   for (const at of [0, 3.713, 4, 6.75, 9.5, 9.537, 16, 32]) await expectedVisible(page, before, at);
@@ -685,10 +688,10 @@ test('@ai-motion cancelled planning never creates or adopts a late candidate', a
   const before = await backup(page), beforeAudio = await audioHash(page);
   await generate(page);
   await expect.poll(() => calls.length).toBe(1);
-  await page.getByRole('button', { name: '取消生成', exact: true }).click();
+  await page.getByRole('button', { name: '取消编排', exact: true }).click();
   release();
-  await expect(page.getByRole('button', { name: '取消生成', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '生成 AI 候选', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '取消编排', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '编排素材候选', exact: true })).toBeEnabled();
   await page.waitForTimeout(200);
   await expect(candidate(page)).toHaveCount(0);
   expect((await backup(page)).scene.project).toEqual(before.scene.project);

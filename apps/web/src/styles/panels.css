@@ -2,6 +2,9 @@
 .ai-panel { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4) 0 var(--sp-2); color: var(--text-2); font-size: var(--fs-3); line-height: 1.6; }
 .ai-panel-title { color: var(--text); font-size: var(--fs-4); font-weight: 600; }
 .ai-panel .form-note { margin: 0; }
+.ai-source-mode { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.ai-source-mode label { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; cursor: pointer; }
+.ai-source-mode input { width: 16px; height: 16px; margin: 0; accent-color: var(--text); }
 .ai-range { margin: 0; padding: 10px var(--sp-3); border: 1px solid var(--line); border-radius: var(--radius-m); color: var(--text); background: #ffffff05; font-size: var(--fs-3); line-height: 1.6; }
 .ai-range > span { display: block; color: var(--muted); font-size: var(--fs-2); }
 .ai-panel .button-row { display: flex; flex-wrap: wrap; gap: 12px; }

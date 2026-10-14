@@ -37,7 +37,9 @@ describe('public preview API rate protection', () => {
     expect(health.status).toBe(200);
     expect(await health.json()).toMatchObject({ status: 'ok', protocol: 'preview-1' });
     expect(capabilities.status).toBe(200);
-    expect(await capabilities.json()).toMatchObject({ serverProjectStorage: false, modelGeneration: true, aiArrangement: { explicitRequestOnly: true, uploadsAudio: false } });
+    expect(await capabilities.json()).toMatchObject({ serverProjectStorage: false, modelGeneration: true,
+      newMotionCreation: { available: false, provider: null, existingClipFallback: false, status: 'dedicated-model-evaluation' },
+      aiArrangement: { legacy: true, explicitRequestOnly: true, uploadsAudio: false } });
     expect(limit.mock.calls).toEqual([
       [{ key: 'choreo-preview:ip:192.0.2.1' }],
       [{ key: 'choreo-preview:ip:192.0.2.1' }],
@@ -101,6 +103,77 @@ describe('public preview API rate protection', () => {
     }
     expect(fetch).toHaveBeenCalledTimes(3);
     expect(limit).not.toHaveBeenCalled();
+  });
+});
+
+function motionCreation(body = '{}', path = '/api/motion/create') {
+  return new Request(`https://preview.example${path}`, { method: 'POST', body,
+    headers: { 'cf-connecting-ip': '192.0.2.1', origin: 'https://preview.example', 'content-type': 'application/json' } });
+}
+
+describe('new motion creation is unavailable without existing-clip fallback', () => {
+  it('returns a fixed unavailable result without reading model bindings or accepting a body contract', async () => {
+    const { env, limit, run, aiLimit, fetch } = fixture();
+    const bindingAccess = vi.fn(() => { throw new Error('must not access a paid model binding'); });
+    Object.defineProperty(env, 'AI', { get: bindingAccess });
+    Object.defineProperty(env, 'AI_RATE_LIMITER', { get: bindingAccess });
+    for (const body of ['{}', '{invalid JSON', '{"intentMatch":"unknown","existingClipFallback":true}']) {
+      const response = await worker.fetch(motionCreation(body, '/api/motion/create?fallback=plan'), env);
+      expect(response.status).toBe(503);
+      expect(await response.json()).toEqual({ code: 'CREATION_UNAVAILABLE',
+        message: '新的 3D 动作素材创作服务尚未接入，正在评估专用动作模型；不会改用已有片段编排。' });
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    }
+    expect(limit).toHaveBeenCalledTimes(3); expect(bindingAccess).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled(); expect(aiLimit).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('requires the shared API limiter and refuses exhausted allowance before creation handling', async () => {
+    const { env, limit, run, aiLimit, fetch } = fixture(false);
+    expect((await worker.fetch(motionCreation(), env)).status).toBe(429);
+    expect(limit).toHaveBeenCalledWith({ key: 'choreo-preview:ip:192.0.2.1' });
+    Reflect.deleteProperty(env, 'API_RATE_LIMITER');
+    const response = await worker.fetch(motionCreation(), env);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ code: 'API_TEMPORARILY_UNAVAILABLE' });
+    expect(limit).toHaveBeenCalledOnce(); expect(run).not.toHaveBeenCalled();
+    expect(aiLimit).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('keeps origin and content-type checks ahead of the unavailable response without model usage', async () => {
+    const { env, run, aiLimit } = fixture();
+    for (const origin of ['https://evil.example', 'null', '']) {
+      const req = motionCreation(); req.headers.set('origin', origin);
+      expect((await worker.fetch(req, env)).status).toBe(403);
+    }
+    const crossSite = motionCreation(); crossSite.headers.set('sec-fetch-site', 'cross-site');
+    expect((await worker.fetch(crossSite, env)).status).toBe(403);
+    const wrongType = motionCreation(); wrongType.headers.set('content-type', 'text/plain');
+    expect((await worker.fetch(wrongType, env)).status).toBe(415);
+    expect(run).not.toHaveBeenCalled(); expect(aiLimit).not.toHaveBeenCalled();
+  });
+
+  it('matches only the exact POST creation path and never redirects unknown routes to a model', async () => {
+    const { env, run, aiLimit, fetch } = fixture();
+    expect((await worker.fetch(request('/api/motion/create'), env)).status).toBe(501);
+    for (const path of ['/api/motion/create/', '/api/motion/create-legacy']) {
+      expect((await worker.fetch(motionCreation('{}', path), env)).status).toBe(501);
+    }
+    expect(run).not.toHaveBeenCalled(); expect(aiLimit).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('never advertises a new provider from an existing legacy AI binding', async () => {
+    const { env, run, aiLimit } = fixture();
+    for (const legacyAvailable of [true, false]) {
+      if (!legacyAvailable) Reflect.deleteProperty(env, 'AI');
+      const response = await worker.fetch(request('/api/capabilities'), env);
+      const capabilities = await response.json() as { modelGeneration: boolean; newMotionCreation: unknown };
+      expect(capabilities.modelGeneration).toBe(legacyAvailable);
+      expect(capabilities.newMotionCreation).toEqual({ available: false, provider: null,
+        existingClipFallback: false, status: 'dedicated-model-evaluation' });
+    }
+    expect(run).not.toHaveBeenCalled(); expect(aiLimit).not.toHaveBeenCalled();
   });
 });
 

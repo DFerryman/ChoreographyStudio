@@ -1,3 +1,11 @@
+## 2026-10-14 · 新素材创作与已有素材编排分离（本轮未发布）
+
+当前源码定向Vitest101／3全部通过（04:06:49Z起、1.10s）、前端tsc／Vite build通过（旧大包警告保持），API Worker类型通过。两份本地分析CLI分别处理120／180帧真实Kimodo输出；原raw SHA不变，允许pickle=false。相似性44个已知copy控制均检出且来源正确，两原始样本有限筛查没有旗标；此证据不包含风格／自然度／目标曲线验收。
+
+浏览器按实际分轮记录：第一batch2／3（251.952s），full16素材求解及冻结5.5s Street素材区间均通过，新增creation fixture因audio20s／CountMap32s不一致在备份阶段失败；不是产品门禁失败。修正owned WAV36s后新增case1／1（34.515s）通过。最终最新CSS与timeline回归2／2（04:02:33.960Z起、35.794s），unexpected／flaky／skipped0；creation实际API／POST／prior GET0，原项目／音频保持，1440／390目视、radio labels44px、无横溢。手机打开AI面板仍遮舞台是旧布局行为。没有跑完整14case，也没有把旧949 foundation冒称本次新源码全量结果。
+
+真实专用模型Generate两次，Workers AI0；不加载gallery／旧本地文件，不上传用户场景／音频。原.choreo SHA e5f3d969c550fa6d401706b08cbe8beafb80a9346e1029e4d2c7a10a906afad5保持。源码改动、原始样本、参数、视频与校准说明见 [新素材评估](MOTION_CREATION_EVALUATION.md) 及 [归档清单](evidence/motion-creation-20261014/manifest.json)。当前没有新模型生产接入或Cloudflare发布；下方native47及旧观察结果保持历史有效范围。
+
 # 预览验证记录
 
 ## 2026-10-14 · 普通街舞冻结真实规划连续腿部修复 · native47最终验收

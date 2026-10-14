@@ -137,9 +137,22 @@ describe('Workers AI semantic motion planning (mock binding, no real inference)'
     const { env, run } = fixture();
     const req = new Request('https://preview.example/api/capabilities', { headers: { 'cf-connecting-ip': '192.0.2.1' } });
     expect(await (await worker.fetch(req, env)).json()).toMatchObject({ aiMotionPlanning: { protocol: AI_MOTION_PLAN_PROTOCOL,
-      semanticPlanning: true, realMotionPriors: true, requiresDeterministicCandidateValidation: true, physicalValidationLocation: 'client', articulatedDynamics: false, directBoneMotion: false, audioUnderstanding: false,
+      semanticPlanning: true, realMotionPriors: true, createsNewMaterial: false, operation: 'arrange-existing',
+      coverage: { styles: ['street', 'salsa'], recordings: 2 },
+      requiresDeterministicCandidateValidation: true, physicalValidationLocation: 'client', articulatedDynamics: false, directBoneMotion: false, audioUnderstanding: false,
       immutableContext: true, explicitRequestOnly: true, maximumRequestsPerMinutePerIp: 2 } });
     expect(run).not.toHaveBeenCalled();
+  });
+  it('does not substitute existing-motion planning for a new-material request, even with a valid legacy plan body', async () => {
+    const { env, limit, aiLimit, run, fetch } = fixture();
+    const response = await worker.fetch(new Request('https://preview.example/api/motion/create', {
+      method: 'POST', body: JSON.stringify(makeAIMotionPlanFixture()),
+      headers: { 'cf-connecting-ip': '192.0.2.1', origin: 'https://preview.example', 'content-type': 'application/json' },
+    }), env);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ code: 'CREATION_UNAVAILABLE' });
+    expect(limit).toHaveBeenCalledOnce(); expect(aiLimit).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
   });
 });
 
