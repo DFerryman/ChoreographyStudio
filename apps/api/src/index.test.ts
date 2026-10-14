@@ -38,7 +38,7 @@ describe('public preview API rate protection', () => {
     expect(await health.json()).toMatchObject({ status: 'ok', protocol: 'preview-1' });
     expect(capabilities.status).toBe(200);
     expect(await capabilities.json()).toMatchObject({ serverProjectStorage: false, modelGeneration: true,
-      newMotionCreation: { available: false, provider: null, existingClipFallback: false, status: 'dedicated-model-evaluation' },
+      newMotionCreation: { available: false, provider: null, existingClipFallback: false, status: 'text-model-evaluation' },
       aiArrangement: { legacy: true, explicitRequestOnly: true, uploadsAudio: false } });
     expect(limit.mock.calls).toEqual([
       [{ key: 'choreo-preview:ip:192.0.2.1' }],
@@ -121,7 +121,7 @@ describe('new motion creation is unavailable without existing-clip fallback', ()
       const response = await worker.fetch(motionCreation(body, '/api/motion/create?fallback=plan'), env);
       expect(response.status).toBe(503);
       expect(await response.json()).toEqual({ code: 'CREATION_UNAVAILABLE',
-        message: '新的 3D 动作素材创作服务尚未接入，正在评估专用动作模型；不会改用已有片段编排。' });
+        message: '新的 3D 动作素材创作服务尚未接入，当前处于文本模型创作评估阶段；不会改用已有片段编排。' });
       expect(response.headers.get('cache-control')).toBe('no-store');
       expect(response.headers.get('x-content-type-options')).toBe('nosniff');
     }
@@ -171,7 +171,7 @@ describe('new motion creation is unavailable without existing-clip fallback', ()
       const capabilities = await response.json() as { modelGeneration: boolean; newMotionCreation: unknown };
       expect(capabilities.modelGeneration).toBe(legacyAvailable);
       expect(capabilities.newMotionCreation).toEqual({ available: false, provider: null,
-        existingClipFallback: false, status: 'dedicated-model-evaluation' });
+        existingClipFallback: false, status: 'text-model-evaluation' });
     }
     expect(run).not.toHaveBeenCalled(); expect(aiLimit).not.toHaveBeenCalled();
   });

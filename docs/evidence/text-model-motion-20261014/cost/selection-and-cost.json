@@ -1,0 +1,53 @@
+{
+  "schema": "text-motion-first-selection-outcome-1",
+  "date": "2026-10-14",
+  "selectedFirstCandidate": "gpt-6.1-sol",
+  "choiceBasis": [
+    "Current official general text reasoning and structured-output support",
+    "Cost balance against frontier reasoning models",
+    "Actual named session model available for owned local creation experiment"
+  ],
+  "isCrossModelDanceWinner": false,
+  "actualTrial": {
+    "provider": "codex-session",
+    "model": "gpt-6.1-sol",
+    "authorTasks": 1,
+    "outputs": 3,
+    "priorClipsRead": false,
+    "externalProviderInferenceCalls": 0,
+    "specializedNewSubmissions": 0,
+    "rawEngineeringAccepted": 2,
+    "rawEngineeringRejected": 1,
+    "finalEngineeringAccepted": 3,
+    "styleAndNaturalnessQualified": false
+  },
+  "productionModelSwitched": false,
+  "officialPriceEvidence": {
+    "standardInputUsdPerMillion": 2,
+    "standardOutputUsdPerMillion": 10,
+    "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+    "fetchedAtUTC": "2026-10-14T05:31:39.025699+00:00",
+    "sourceHtmlSHA256": "8e35e9d36d3b8599abfde431032a427f8437b50396159db2cbd7ba0dfe6be958"
+  },
+  "priceExamplesNotActualBills": [
+    {
+      "inputTokens": 10000,
+      "billedOutputTokens": 2000,
+      "estimatedApiUsd": 0.04
+    },
+    {
+      "inputTokens": 10000,
+      "billedOutputTokens": 8192,
+      "estimatedApiUsd": 0.10192
+    }
+  ],
+  "sessionBillingTokensLatency": null,
+  "otherModelsNotFairlyTestedForNewMotion": [
+    "@cf/openai/gpt-oss-120b",
+    "@cf/google/gemma-4-26b-a4b-it",
+    "gpt-6-astra",
+    "claude-sonnet-5-5",
+    "gemini-4-argon"
+  ],
+  "modelBrandAndLegalJsonNotQualityProof": true
+}

@@ -1,0 +1,2595 @@
+{
+  "protocol": "ai-motion-1",
+  "prompt": "请直接创造一段新的3D骨骼动作素材，目标是绝对场景时间4至9.5秒（5.5秒）。使用12–24个严格位于区间内部、递增的关键姿态，以实际Root位置和局部Euler旋转表达动作阶段；两端和外部由程序锁定。不要引用动作ID、现成catalog、录制片段、Street/Salsa模板，也不要用静止数据配舞蹈summary。按本次舞种创造准备、主动作、收势和全身协调，遵守只读骨架、固定肢长及边界；不能声称程序已验证可行或听到了音乐。创作hip-hop短句：groove身体律动、locking清晰顿停与手臂节奏、原地footwork；在准备、律动、锁定与收势间协调躯干和脚步，不引用现有动捕。",
+  "context": {
+    "requestId": "motion_def39ff3-f8d8-4c1c-b8e2-6afe2f952083",
+    "sceneId": "owned-text-motion-experiment-32-20261014",
+    "baseRevision": 1,
+    "sourceHash": "b997f490769ae0923952f33dae3cb167780a93e96ce23175b9fce9994031cd20",
+    "target": {
+      "mode": "interval",
+      "startSeconds": 4,
+      "endSeconds": 9.5
+    },
+    "skeleton": {
+      "id": "neutral-rig-2",
+      "coordinateSystem": "right-handed-y-up-z-forward",
+      "rotationConvention": "local-euler-xyz-degrees",
+      "joints": [
+        {
+          "name": "Hips",
+          "parent": null,
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "Spine",
+          "parent": "Hips",
+          "offset": [
+            0,
+            0.14,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "Chest",
+          "parent": "Spine",
+          "offset": [
+            0,
+            0.2,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "Neck",
+          "parent": "Chest",
+          "offset": [
+            0,
+            0.19,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "Head",
+          "parent": "Neck",
+          "offset": [
+            0,
+            0.08,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "LeftShoulder",
+          "parent": "Chest",
+          "offset": [
+            0.1,
+            0.095,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "LeftUpperArm",
+          "parent": "LeftShoulder",
+          "offset": [
+            0.11,
+            -0.03,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "LeftForeArm",
+          "parent": "LeftUpperArm",
+          "offset": [
+            0,
+            -0.285,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "LeftHand",
+          "parent": "LeftForeArm",
+          "offset": [
+            0,
+            -0.255,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "LeftHandTip",
+          "parent": "LeftHand",
+          "offset": [
+            0,
+            -0.115,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "LeftUpperLeg",
+          "parent": "Hips",
+          "offset": [
+            0.112,
+            -0.05,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "LeftLowerLeg",
+          "parent": "LeftUpperLeg",
+          "offset": [
+            0,
+            -0.46,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "LeftFoot",
+          "parent": "LeftLowerLeg",
+          "offset": [
+            0,
+            -0.45,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "LeftToe",
+          "parent": "LeftFoot",
+          "offset": [
+            0,
+            -0.035,
+            0.15
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "LeftHeel",
+          "parent": "LeftFoot",
+          "offset": [
+            0,
+            -0.035,
+            -0.065
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RightShoulder",
+          "parent": "Chest",
+          "offset": [
+            -0.1,
+            0.095,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RightUpperArm",
+          "parent": "RightShoulder",
+          "offset": [
+            -0.11,
+            -0.03,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RightForeArm",
+          "parent": "RightUpperArm",
+          "offset": [
+            0,
+            -0.285,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RightHand",
+          "parent": "RightForeArm",
+          "offset": [
+            0,
+            -0.255,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RightHandTip",
+          "parent": "RightHand",
+          "offset": [
+            0,
+            -0.115,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RightUpperLeg",
+          "parent": "Hips",
+          "offset": [
+            -0.112,
+            -0.05,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RightLowerLeg",
+          "parent": "RightUpperLeg",
+          "offset": [
+            0,
+            -0.46,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RightFoot",
+          "parent": "RightLowerLeg",
+          "offset": [
+            0,
+            -0.45,
+            0
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RightToe",
+          "parent": "RightFoot",
+          "offset": [
+            0,
+            -0.035,
+            0.15
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        {
+          "name": "RightHeel",
+          "parent": "RightFoot",
+          "offset": [
+            0,
+            -0.035,
+            -0.065
+          ],
+          "restRotation": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    "timing": {
+      "id": "owned-text-motion-countmap-32-120bpm-20261014",
+      "version": 1,
+      "bpm": 120,
+      "musicBeatsPerDanceCount": 1,
+      "firstCountSourceSeconds": 0,
+      "sourceOffsetSeconds": 0,
+      "durationSeconds": 32,
+      "octetCount": 8,
+      "countTimesSeconds": [
+        0,
+        0.5,
+        1,
+        1.5,
+        2,
+        2.5,
+        3,
+        3.5,
+        4,
+        4.5,
+        5,
+        5.5,
+        6,
+        6.5,
+        7,
+        7.5,
+        8,
+        8.5,
+        9,
+        9.5,
+        10,
+        10.5,
+        11,
+        11.5,
+        12,
+        12.5,
+        13,
+        13.5,
+        14,
+        14.5,
+        15,
+        15.5,
+        16,
+        16.5,
+        17,
+        17.5,
+        18,
+        18.5,
+        19,
+        19.5,
+        20,
+        20.5,
+        21,
+        21.5,
+        22,
+        22.5,
+        23,
+        23.5,
+        24,
+        24.5,
+        25,
+        25.5,
+        26,
+        26.5,
+        27,
+        27.5,
+        28,
+        28.5,
+        29,
+        29.5,
+        30,
+        30.5,
+        31,
+        31.5,
+        32
+      ],
+      "confirmed": true
+    },
+    "initialPose": {
+      "root": [
+        0,
+        1.05,
+        0
+      ],
+      "joints": {
+        "Hips": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "Spine": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "Chest": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "Neck": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "Head": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "LeftShoulder": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "LeftUpperArm": [
+          0,
+          0,
+          0.1305261922200516,
+          0.9914448613738105
+        ],
+        "LeftForeArm": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "LeftHand": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "LeftHandTip": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "RightShoulder": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "RightUpperArm": [
+          0,
+          0,
+          -0.1305261922200516,
+          0.9914448613738105
+        ],
+        "RightForeArm": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "RightHand": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "RightHandTip": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "LeftUpperLeg": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "LeftLowerLeg": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "LeftFoot": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "LeftToe": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "LeftHeel": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "RightUpperLeg": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "RightLowerLeg": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "RightFoot": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "RightToe": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "RightHeel": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    "ending": "hold",
+    "before": [
+      {
+        "time": 3,
+        "pose": {
+          "root": [
+            0,
+            1.05,
+            0
+          ],
+          "joints": {
+            "Hips": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Spine": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Chest": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Neck": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Head": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperArm": [
+              0,
+              0,
+              0.1305261922200516,
+              0.9914448613738105
+            ],
+            "LeftForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperArm": [
+              0,
+              0,
+              -0.1305261922200516,
+              0.9914448613738105
+            ],
+            "RightForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHeel": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHeel": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      {
+        "time": 3.3333333333333335,
+        "pose": {
+          "root": [
+            0,
+            1.05,
+            0
+          ],
+          "joints": {
+            "Hips": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Spine": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Chest": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Neck": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Head": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperArm": [
+              0,
+              0,
+              0.1305261922200516,
+              0.9914448613738105
+            ],
+            "LeftForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperArm": [
+              0,
+              0,
+              -0.1305261922200516,
+              0.9914448613738105
+            ],
+            "RightForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHeel": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHeel": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      {
+        "time": 3.6666666666666665,
+        "pose": {
+          "root": [
+            0,
+            1.05,
+            0
+          ],
+          "joints": {
+            "Hips": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Spine": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Chest": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Neck": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Head": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperArm": [
+              0,
+              0,
+              0.1305261922200516,
+              0.9914448613738105
+            ],
+            "LeftForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperArm": [
+              0,
+              0,
+              -0.1305261922200516,
+              0.9914448613738105
+            ],
+            "RightForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHeel": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHeel": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      {
+        "time": 4,
+        "pose": {
+          "root": [
+            0,
+            1.05,
+            0
+          ],
+          "joints": {
+            "Hips": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Spine": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Chest": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Neck": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Head": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperArm": [
+              0,
+              0,
+              0.1305261922200516,
+              0.9914448613738105
+            ],
+            "LeftForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperArm": [
+              0,
+              0,
+              -0.1305261922200516,
+              0.9914448613738105
+            ],
+            "RightForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHeel": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHeel": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    ],
+    "after": [
+      {
+        "time": 9.5,
+        "pose": {
+          "root": [
+            0,
+            1.05,
+            0
+          ],
+          "joints": {
+            "Hips": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Spine": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Chest": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Neck": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Head": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperArm": [
+              0,
+              0,
+              0.1305261922200516,
+              0.9914448613738105
+            ],
+            "LeftForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperArm": [
+              0,
+              0,
+              -0.1305261922200516,
+              0.9914448613738105
+            ],
+            "RightForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHeel": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHeel": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      {
+        "time": 9.833333333333334,
+        "pose": {
+          "root": [
+            0,
+            1.05,
+            0
+          ],
+          "joints": {
+            "Hips": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Spine": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Chest": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Neck": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Head": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperArm": [
+              0,
+              0,
+              0.1305261922200516,
+              0.9914448613738105
+            ],
+            "LeftForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperArm": [
+              0,
+              0,
+              -0.1305261922200516,
+              0.9914448613738105
+            ],
+            "RightForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHeel": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHeel": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      {
+        "time": 10.166666666666666,
+        "pose": {
+          "root": [
+            0,
+            1.05,
+            0
+          ],
+          "joints": {
+            "Hips": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Spine": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Chest": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Neck": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Head": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperArm": [
+              0,
+              0,
+              0.1305261922200516,
+              0.9914448613738105
+            ],
+            "LeftForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperArm": [
+              0,
+              0,
+              -0.1305261922200516,
+              0.9914448613738105
+            ],
+            "RightForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHeel": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHeel": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      },
+      {
+        "time": 10.5,
+        "pose": {
+          "root": [
+            0,
+            1.05,
+            0
+          ],
+          "joints": {
+            "Hips": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Spine": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Chest": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Neck": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Head": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperArm": [
+              0,
+              0,
+              0.1305261922200516,
+              0.9914448613738105
+            ],
+            "LeftForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperArm": [
+              0,
+              0,
+              -0.1305261922200516,
+              0.9914448613738105
+            ],
+            "RightForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHeel": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHeel": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        }
+      }
+    ],
+    "boundaries": {
+      "start": {
+        "time": 4,
+        "pose": {
+          "root": [
+            0,
+            1.05,
+            0
+          ],
+          "joints": {
+            "Hips": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Spine": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Chest": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Neck": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Head": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperArm": [
+              0,
+              0,
+              0.1305261922200516,
+              0.9914448613738105
+            ],
+            "LeftForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperArm": [
+              0,
+              0,
+              -0.1305261922200516,
+              0.9914448613738105
+            ],
+            "RightForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHeel": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHeel": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        "linearVelocity": [
+          0,
+          0,
+          0
+        ],
+        "angularVelocity": {
+          "Hips": [
+            0,
+            0,
+            0
+          ],
+          "Spine": [
+            0,
+            0,
+            0
+          ],
+          "Chest": [
+            0,
+            0,
+            0
+          ],
+          "Neck": [
+            0,
+            0,
+            0
+          ],
+          "Head": [
+            0,
+            0,
+            0
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0
+          ],
+          "LeftUpperArm": [
+            0,
+            0,
+            0
+          ],
+          "LeftForeArm": [
+            0,
+            0,
+            0
+          ],
+          "LeftHand": [
+            0,
+            0,
+            0
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            0
+          ],
+          "RightUpperArm": [
+            0,
+            0,
+            0
+          ],
+          "RightForeArm": [
+            0,
+            0,
+            0
+          ],
+          "RightHand": [
+            0,
+            0,
+            0
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0
+          ],
+          "LeftUpperLeg": [
+            0,
+            0,
+            0
+          ],
+          "LeftLowerLeg": [
+            0,
+            0,
+            0
+          ],
+          "LeftFoot": [
+            0,
+            0,
+            0
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0
+          ],
+          "RightUpperLeg": [
+            0,
+            0,
+            0
+          ],
+          "RightLowerLeg": [
+            0,
+            0,
+            0
+          ],
+          "RightFoot": [
+            0,
+            0,
+            0
+          ],
+          "RightToe": [
+            0,
+            0,
+            0
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0
+          ]
+        },
+        "support": "unknown",
+        "supportConfidence": 0,
+        "footKinematics": {
+          "left": {
+            "position": [
+              0.112,
+              0.09000000000000002,
+              0
+            ],
+            "velocity": [
+              0,
+              0,
+              0
+            ]
+          },
+          "right": {
+            "position": [
+              -0.112,
+              0.09000000000000002,
+              0
+            ],
+            "velocity": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      },
+      "end": {
+        "time": 9.5,
+        "pose": {
+          "root": [
+            0,
+            1.05,
+            0
+          ],
+          "joints": {
+            "Hips": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Spine": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Chest": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Neck": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "Head": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperArm": [
+              0,
+              0,
+              0.1305261922200516,
+              0.9914448613738105
+            ],
+            "LeftForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightShoulder": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperArm": [
+              0,
+              0,
+              -0.1305261922200516,
+              0.9914448613738105
+            ],
+            "RightForeArm": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHand": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHandTip": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "LeftHeel": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightUpperLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightLowerLeg": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightFoot": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightToe": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "RightHeel": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        "linearVelocity": [
+          0,
+          0,
+          0
+        ],
+        "angularVelocity": {
+          "Hips": [
+            0,
+            0,
+            0
+          ],
+          "Spine": [
+            0,
+            0,
+            0
+          ],
+          "Chest": [
+            0,
+            0,
+            0
+          ],
+          "Neck": [
+            0,
+            0,
+            0
+          ],
+          "Head": [
+            0,
+            0,
+            0
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0
+          ],
+          "LeftUpperArm": [
+            0,
+            0,
+            0
+          ],
+          "LeftForeArm": [
+            0,
+            0,
+            0
+          ],
+          "LeftHand": [
+            0,
+            0,
+            0
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            0
+          ],
+          "RightUpperArm": [
+            0,
+            0,
+            0
+          ],
+          "RightForeArm": [
+            0,
+            0,
+            0
+          ],
+          "RightHand": [
+            0,
+            0,
+            0
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0
+          ],
+          "LeftUpperLeg": [
+            0,
+            0,
+            0
+          ],
+          "LeftLowerLeg": [
+            0,
+            0,
+            0
+          ],
+          "LeftFoot": [
+            0,
+            0,
+            0
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0
+          ],
+          "RightUpperLeg": [
+            0,
+            0,
+            0
+          ],
+          "RightLowerLeg": [
+            0,
+            0,
+            0
+          ],
+          "RightFoot": [
+            0,
+            0,
+            0
+          ],
+          "RightToe": [
+            0,
+            0,
+            0
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0
+          ]
+        },
+        "support": "unknown",
+        "supportConfidence": 0,
+        "footKinematics": {
+          "left": {
+            "position": [
+              0.112,
+              0.09000000000000002,
+              0
+            ],
+            "velocity": [
+              0,
+              0,
+              0
+            ]
+          },
+          "right": {
+            "position": [
+              -0.112,
+              0.09000000000000002,
+              0
+            ],
+            "velocity": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    },
+    "audio": [
+      {
+        "id": "primary",
+        "name": "无音乐文件",
+        "hash": null,
+        "durationSeconds": 0,
+        "offsetSeconds": 0,
+        "sourceOffsetSeconds": 0,
+        "muted": false,
+        "availability": "missing",
+        "coverage": null
+      }
+    ],
+    "audioUnderstanding": false
+  }
+}

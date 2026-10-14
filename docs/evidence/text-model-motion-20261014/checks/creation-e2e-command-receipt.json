@@ -1,0 +1,11 @@
+{
+  "command": "CHOREO_TEST_OUTPUT=work/model-selection-20261014/creation-e2e npm run test:e2e -- tests/motion-creation.spec.ts",
+  "start": "2026-10-14T06:11:16.607Z",
+  "end": "2026-10-14T06:11:58.502Z",
+  "exitCode": 0,
+  "signal": null,
+  "scope": "One existing local browser test only; all business POSTs aborted by unchanged test routes; no model/provider submission",
+  "baseURL": "http://127.0.0.1:5173",
+  "retriesChanged": false,
+  "timeoutsChanged": false
+}

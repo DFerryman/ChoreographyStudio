@@ -1,0 +1,73 @@
+{
+  "scope": "Sparse text-generated motion independently checked by current unchanged production detectors/solver",
+  "styleRequested": "chinese-classical",
+  "httpStatus": null,
+  "responsePath": "/workspace/ChoreographyStudio/work/model-selection-20261014/text-motion-experiment/chinese-classical.gpt61.raw.json",
+  "responseSHA256": "3097a267e82c8cd452c10a4f0db00c624d08b8642d6f0d1b1c43efaf4d03c859",
+  "inputFormat": "output",
+  "trustedExpectedIdentity": {
+    "expectedProvider": "codex-session",
+    "expectedModel": "gpt-6.1-sol"
+  },
+  "identityEvidence": "Expected identity is supplied by the trusted operator; schema validation itself does not attest model execution. Preserve the actual generation receipt separately.",
+  "requestSHA256": "817b062ad030bcdc89c5539915a7092966071c62cb6bf66f5fe2ff883f926f5a",
+  "sourceFileSHA256": "053f4b1a5763a829aa65c7755ee41be38ba780f34e4f26553c3f6c0d68b527c0",
+  "actualProviderCalls": 0,
+  "networkRequests": 0,
+  "usesCatalog": false,
+  "usesHumanPrior": false,
+  "styleEvaluation": {
+    "status": "not-assessed",
+    "summaryIsStyleEvidence": false,
+    "jointJSONIsStyleEvidence": false,
+    "note": "Naturalness, style fidelity and semantic intent require separate review of actual motion; this script reports engineering detection only."
+  },
+  "sparseCompatibility": {
+    "internalModelKeyframes": 16,
+    "compiledKnots": 18,
+    "requestedInternalKeyframes": [
+      12,
+      24
+    ],
+    "minimumGroundingKnots": 3,
+    "rootLockedNeighbourKnotsEachSide": 3,
+    "adjustableRootKnots": 12,
+    "note": "Some Root knots are adjustable; this is not evidence of motion feasibility or style quality."
+  },
+  "acceptedByEngineeringGate": true,
+  "requestId": "motion_a753d1dd-2e83-435f-82d1-635ded9c2afb",
+  "sourceHash": "b997f490769ae0923952f33dae3cb167780a93e96ce23175b9fce9994031cd20",
+  "target": {
+    "mode": "interval",
+    "startSeconds": 4,
+    "endSeconds": 9.5
+  },
+  "sourcePreflight": "passed",
+  "resultBindingOrigin": "Local trusted adapter bound standalone model output to the frozen request; this is not a provider-authenticated API envelope.",
+  "rawEngineeringStatus": "accepted",
+  "solverEngineeringStatus": "accepted",
+  "finalCoverage": {
+    "complete": true,
+    "samples": 363,
+    "maxGapSeconds": 0.016363636363637468,
+    "maxRootStepMeters": 0.0029564774962980533,
+    "maxJointStepRadians": 0.03369069244616086,
+    "maxSamples": 12000
+  },
+  "finalDerivativeCoverage": {
+    "method": "one-sided-so3-curvature",
+    "complete": true,
+    "spans": 17,
+    "stencils": 34,
+    "poseSamples": 68,
+    "maxPoseSamples": 7208,
+    "maxStepSeconds": 0.00018554687500049738
+  },
+  "finalTotalViolations": 0,
+  "frozenSourceSamplesExact": true,
+  "status": "engineering-accepted-style-unassessed",
+  "sourceFileUnchanged": true,
+  "sourceObjectUnchanged": true,
+  "rawResponseUnchanged": true,
+  "physicalScope": "Finite Quaternius proxy/functional geometry, adaptive interpolation and one-sided SO(3) curvature, aggregate forces; no articulated dynamics, continuous skin proof or automatic style acceptance."
+}

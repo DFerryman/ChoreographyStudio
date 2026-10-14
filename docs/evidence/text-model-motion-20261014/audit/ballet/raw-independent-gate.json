@@ -1,0 +1,1405 @@
+{
+  "report": {
+    "schema": "motion-feasibility-1",
+    "status": "rejected",
+    "sourceHash": "b997f490769ae0923952f33dae3cb167780a93e96ce23175b9fce9994031cd20",
+    "profileId": "neutral-rig-2-functional-proxy-1",
+    "rigId": "neutral-rig-2",
+    "bodyProfileId": "quaternius-mixed-collision-1",
+    "physicalParameters": {
+      "massKg": 70,
+      "gravityMps2": 9.81,
+      "friction": 0.75,
+      "groundForceToleranceNewtons": 52.5
+    },
+    "target": {
+      "mode": "interval",
+      "startSeconds": 4,
+      "endSeconds": 9.5
+    },
+    "scope": "adaptive-sampled-kinematic-proxy",
+    "articulatedDynamics": false,
+    "coverage": {
+      "complete": true,
+      "samples": 365,
+      "maxGapSeconds": 0.016500000000000625,
+      "maxRootStepMeters": 0.0013774337903833533,
+      "maxJointStepRadians": 0.03364819184872346,
+      "maxSamples": 12000
+    },
+    "derivativeCoverage": {
+      "method": "one-sided-so3-curvature",
+      "complete": true,
+      "spans": 17,
+      "stencils": 34,
+      "poseSamples": 68,
+      "maxPoseSamples": 7208,
+      "maxStepSeconds": 0.00017578125000028422
+    },
+    "violations": [
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.910666666666667,
+        "endSeconds": 6.910666666666667,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.017532303244297276,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.910666666666667,
+        "endSeconds": 6.910666666666667,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.01753232000280877,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.922000000000001,
+        "endSeconds": 6.922000000000001,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.01723174926111662,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.922000000000001,
+        "endSeconds": 6.922000000000001,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.017231766021042677,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.933333333333334,
+        "endSeconds": 6.933333333333334,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.016914158270679935,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.933333333333334,
+        "endSeconds": 6.933333333333334,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.016914175031810086,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.9446666666666665,
+        "endSeconds": 6.9446666666666665,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.01658066690972418,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.9446666666666665,
+        "endSeconds": 6.9446666666666665,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.01658068367180271,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.956,
+        "endSeconds": 6.956,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.016232422489640658,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.956,
+        "endSeconds": 6.956,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.016232439252368114,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.967333333333333,
+        "endSeconds": 6.967333333333333,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.015870584646886482,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.967333333333333,
+        "endSeconds": 6.967333333333333,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.01587060140992136,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.978666666666667,
+        "endSeconds": 6.978666666666667,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.015496326310278502,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.978666666666667,
+        "endSeconds": 6.978666666666667,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.015496343073239605,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.99,
+        "endSeconds": 6.99,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.015110833985111788,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.99,
+        "endSeconds": 6.99,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.015110850747580534,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 7.001333333333333,
+        "endSeconds": 7.001333333333333,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.014717360497904786,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 7.001333333333333,
+        "endSeconds": 7.001333333333333,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.014717391248063177,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 7.012666666666667,
+        "endSeconds": 7.012666666666667,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.014322464644948796,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 7.012666666666667,
+        "endSeconds": 7.012666666666667,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.014322495404454988,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 7.024,
+        "endSeconds": 7.024,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.013920169421941408,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 7.024,
+        "endSeconds": 7.024,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.013920200190109228,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 7.035333333333334,
+        "endSeconds": 7.035333333333334,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.013511683735339314,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 7.035333333333334,
+        "endSeconds": 7.035333333333334,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.013511714511410589,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 7.046666666666667,
+        "endSeconds": 7.046666666666667,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.013098221282285216,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 7.046666666666667,
+        "endSeconds": 7.046666666666667,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.01309825206543655,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 7.058,
+        "endSeconds": 7.058,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.012680996794985272,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 7.058,
+        "endSeconds": 7.058,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.012681027584335397,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 7.069333333333334,
+        "endSeconds": 7.069333333333334,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.012261221628767499,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 7.069333333333334,
+        "endSeconds": 7.069333333333334,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.012261252423384772,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.3100000000000005,
+        "endSeconds": 6.3100000000000005,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.012270236419406999,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.3100000000000005,
+        "endSeconds": 6.3100000000000005,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.012270267216496211,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.325454545454545,
+        "endSeconds": 6.325454545454545,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.012779698028321823,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.325454545454545,
+        "endSeconds": 6.325454545454545,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.012779728819829778,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.340909090909091,
+        "endSeconds": 6.340909090909091,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.013273056259481886,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.340909090909091,
+        "endSeconds": 6.340909090909091,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.013273087044226778,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.356363636363636,
+        "endSeconds": 6.356363636363636,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.013748716265946703,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.356363636363636,
+        "endSeconds": 6.356363636363636,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.013748747042871795,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.371818181818182,
+        "endSeconds": 6.371818181818182,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.014205136039972532,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.371818181818182,
+        "endSeconds": 6.371818181818182,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.014205166808158504,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.387272727272728,
+        "endSeconds": 6.387272727272728,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.014640824770011635,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.387272727272728,
+        "endSeconds": 6.387272727272728,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.014640855528687796,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.402727272727273,
+        "endSeconds": 6.402727272727273,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.015054339577287051,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.402727272727273,
+        "endSeconds": 6.402727272727273,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.015054370325841199,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.418181818181819,
+        "endSeconds": 6.418181818181819,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.015453415849895874,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.418181818181819,
+        "endSeconds": 6.418181818181819,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.015453432612507811,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.433636363636364,
+        "endSeconds": 6.433636363636364,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.01582756300702065,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.433636363636364,
+        "endSeconds": 6.433636363636364,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.015827579770036182,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.449090909090909,
+        "endSeconds": 6.449090909090909,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.016174897772005176,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.449090909090909,
+        "endSeconds": 6.449090909090909,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.016174914535001084,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.464545454545455,
+        "endSeconds": 6.464545454545455,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.01649406843320178,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.464545454545455,
+        "endSeconds": 6.464545454545455,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.016494085195830205,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.48,
+        "endSeconds": 6.48,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.01678373050954246,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.48,
+        "endSeconds": 6.48,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.0167837472715317,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.493076923076924,
+        "endSeconds": 6.493076923076924,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.017013493408855218,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.493076923076924,
+        "endSeconds": 6.493076923076924,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.01701351017012251,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.506153846153847,
+        "endSeconds": 6.506153846153847,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.017237799088442946,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.506153846153847,
+        "endSeconds": 6.506153846153847,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.01723781584882167,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.51923076923077,
+        "endSeconds": 6.51923076923077,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.0174558924202127,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.51923076923077,
+        "endSeconds": 6.51923076923077,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.017455909179550894,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.532307692307692,
+        "endSeconds": 6.532307692307692,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.017667038888707937,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.532307692307692,
+        "endSeconds": 6.532307692307692,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.01766705564687049,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.545384615384616,
+        "endSeconds": 6.545384615384616,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.017870523334605815,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.545384615384616,
+        "endSeconds": 6.545384615384616,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.01787054009147679,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.558461538461539,
+        "endSeconds": 6.558461538461539,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.01806564844907868,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.558461538461539,
+        "endSeconds": 6.558461538461539,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.018065665204563125,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.571538461538462,
+        "endSeconds": 6.571538461538462,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.018251733016033528,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.571538461538462,
+        "endSeconds": 6.571538461538462,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.018251749770059195,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.584615384615385,
+        "endSeconds": 6.584615384615385,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.018428109899917583,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.584615384615385,
+        "endSeconds": 6.584615384615385,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.0184281266524364,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.597692307692308,
+        "endSeconds": 6.597692307692308,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.01859412377748726,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.597692307692308,
+        "endSeconds": 6.597692307692308,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.018594140528476744,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.610769230769231,
+        "endSeconds": 6.610769230769231,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.018749128612738863,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.610769230769231,
+        "endSeconds": 6.610769230769231,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.018749145362202874,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.623846153846154,
+        "endSeconds": 6.623846153846154,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.01889248487504394,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.623846153846154,
+        "endSeconds": 6.623846153846154,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.01889250162301337,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.636923076923077,
+        "endSeconds": 6.636923076923077,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.01902355650145654,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.636923076923077,
+        "endSeconds": 6.636923076923077,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.019023573247989728,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.65,
+        "endSeconds": 6.65,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.019158993786337647,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.65,
+        "endSeconds": 6.65,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.019159024713277434,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.663076923076924,
+        "endSeconds": 6.663076923076924,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.019279031286052878,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.663076923076924,
+        "endSeconds": 6.663076923076924,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.019279062208639702,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.676153846153847,
+        "endSeconds": 6.676153846153847,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.019382717235807728,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.676153846153847,
+        "endSeconds": 6.676153846153847,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.019382748154584933,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.68923076923077,
+        "endSeconds": 6.68923076923077,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.019469277035093047,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.68923076923077,
+        "endSeconds": 6.68923076923077,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.019469307950665427,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.702307692307692,
+        "endSeconds": 6.702307692307692,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.019537920647587192,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.702307692307692,
+        "endSeconds": 6.702307692307692,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.019537951560618244,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.7153846153846155,
+        "endSeconds": 6.7153846153846155,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.019587838099331817,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.7153846153846155,
+        "endSeconds": 6.7153846153846155,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.01958786901053955,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.728461538461539,
+        "endSeconds": 6.728461538461539,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.01961819475953802,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.728461538461539,
+        "endSeconds": 6.728461538461539,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.019618225669690098,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.741538461538462,
+        "endSeconds": 6.741538461538462,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.019628126415545344,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.741538461538462,
+        "endSeconds": 6.741538461538462,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.019628157325453255,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.754615384615385,
+        "endSeconds": 6.754615384615385,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.019616734155178617,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.754615384615385,
+        "endSeconds": 6.754615384615385,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.019616765065690767,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.767692307692308,
+        "endSeconds": 6.767692307692308,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.01958307907156087,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.767692307692308,
+        "endSeconds": 6.767692307692308,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.019583109983554864,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.780769230769231,
+        "endSeconds": 6.780769230769231,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.019526176807409507,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.780769230769231,
+        "endSeconds": 6.780769230769231,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.01952620772178293,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.793846153846154,
+        "endSeconds": 6.793846153846154,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.019444991957898394,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.793846153846154,
+        "endSeconds": 6.793846153846154,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.01944502287555888,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.806923076923077,
+        "endSeconds": 6.806923076923077,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.01933843235340077,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.806923076923077,
+        "endSeconds": 6.806923076923077,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.01933846327525468,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.82,
+        "endSeconds": 6.82,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.019205343245790374,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.82,
+        "endSeconds": 6.82,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.01920537417273019,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.831333333333333,
+        "endSeconds": 6.831333333333333,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.01906451884075333,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.831333333333333,
+        "endSeconds": 6.831333333333333,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.019064535587375003,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.842666666666667,
+        "endSeconds": 6.842666666666667,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.018914813296206978,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.842666666666667,
+        "endSeconds": 6.842666666666667,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.018914830044418657,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.854,
+        "endSeconds": 6.854,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.018740132144923205,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.854,
+        "endSeconds": 6.854,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.018740148894835246,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.865333333333334,
+        "endSeconds": 6.865333333333334,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.018541640363972572,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.865333333333334,
+        "endSeconds": 6.865333333333334,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.018541657115652255,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.876666666666667,
+        "endSeconds": 6.876666666666667,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.018320483167518192,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.876666666666667,
+        "endSeconds": 6.876666666666667,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.01832049992098797,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.888,
+        "endSeconds": 6.888,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.018077792341047172,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.888,
+        "endSeconds": 6.888,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.018077809096283537,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.899333333333334,
+        "endSeconds": 6.899333333333334,
+        "segments": [
+          "Left-foot"
+        ],
+        "measured": 0.017814691925733706,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      },
+      {
+        "code": "floor-penetration",
+        "startSeconds": 6.899333333333334,
+        "endSeconds": 6.899333333333334,
+        "segments": [
+          "Right-foot"
+        ],
+        "measured": 0.017814708682666353,
+        "limit": 0.00300002,
+        "message": "插值动作穿入地面。"
+      }
+    ],
+    "totalViolations": 180,
+    "violationCounts": {
+      "floor-penetration": 180
+    },
+    "corrections": [],
+    "metrics": {
+      "maxRootSpeedMps": 0.0891280687895102,
+      "maxJointSpeedRadiansPerSecond": 2.9689581042989905,
+      "maxRootAccelerationMps2": 0.700275243787424,
+      "maxJointAccelerationRadiansPerSecondSquared": 25.670887177057452,
+      "maxSelfDepthMeters": 0,
+      "maxFloorDepthMeters": 0.019628157325453255,
+      "supportedSamples": 365,
+      "airborneSamples": 0,
+      "unknownContactSamples": 365,
+      "maxPoseCorrectionDegrees": 0,
+      "maxRootCorrectionMeters": 0,
+      "groundedForceSamples": 363,
+      "minNormalForceNewtons": 656.8709775249886,
+      "maxNormalForceNewtons": 722.8923435494607,
+      "maxHorizontalContactForceNewtons": 43.407981716721636,
+      "maxFrictionExcessNewtons": 0
+    },
+    "warnings": [
+      "检测为有限自适应几何采样、单侧近端点角曲率采样、骨架功能包络与 Quaternius 身体代理及汇总接触力检查；不证明连续时间、MHR 皮肤、人体力量或完整关节动力学。"
+    ],
+    "diagnostics": [
+      {
+        "stage": "input",
+        "pass": 0,
+        "samples": 18,
+        "jointLimitCounts": {},
+        "maxJointAccelerationRadiansPerSecondSquared": 12.139757424083498,
+        "groundForceViolations": 0,
+        "groundFrictionViolations": 0,
+        "minNormalForceNewtons": 667.3073745009336,
+        "maxFrictionExcessNewtons": 0,
+        "maxSelfDepthMeters": 0,
+        "maxFloorDepthMeters": 0.01920537417273019,
+        "maxJointAccelerationJoint": "RightUpperArm",
+        "maxJointAccelerationTime": 6.82
+      }
+    ]
+  }
+}

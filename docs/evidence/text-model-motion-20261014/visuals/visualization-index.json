@@ -1,0 +1,603 @@
+{
+  "scope": "Local visualization of actual saved sampler/FK outputs; no models, solving, interpolation, network, or input mutation",
+  "sceneIntervalSeconds": [
+    4,
+    9.5
+  ],
+  "localIntervalSeconds": [
+    0,
+    5.5
+  ],
+  "videoFPS": 30,
+  "videoFrameCount": 165,
+  "metricsEndpointInclusiveSamples": 166,
+  "styles": {
+    "chinese-classical": {
+      "summaryFile": "work/model-selection-20261014/text-visuals/chinese-classical/visualization-summary.json",
+      "summarySHA256": "fa533e0f35726211bd325a13c9edf84515e5acf7a146789b8044848b2a582f36",
+      "rawEngineeringStatus": "accepted",
+      "actualAcceptedByEngineeringGate": true,
+      "auditStatus": "engineering-accepted-style-unassessed",
+      "inputFilesUnchanged": true,
+      "maxRootChangeMillimeters30Hz": 0.0,
+      "maxRootChangeMillimetersExistingDenserDiagnostic": 0,
+      "actualTrajectories": {
+        "Root": {
+          "coordinateRangeMeters": [
+            0.18430746846989465,
+            0.008895327345605608,
+            0.012686108341356537
+          ],
+          "sampledPathLengthMeters": 0.37915986954883785,
+          "sampledHorizontalPathLengthMeters": 0.3729028467144202,
+          "max30HzDifferenceSpeedMetersPerSecond": 0.19105128175895658,
+          "relativeToRootMinMeters": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relativeToRootMaxMeters": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "LeftHand": {
+          "coordinateRangeMeters": [
+            0.4349126135236535,
+            0.8076488122506084,
+            0.5370133338228107
+          ],
+          "sampledPathLengthMeters": 3.695317836167292,
+          "sampledHorizontalPathLengthMeters": 2.5221929546965898,
+          "max30HzDifferenceSpeedMetersPerSecond": 1.1904256986751682,
+          "relativeToRootMinMeters": [
+            0.3497622843553612,
+            -0.11659994619609704,
+            0.0
+          ],
+          "relativeToRootMaxMeters": [
+            0.6387566166030715,
+            0.6946697250001657,
+            0.5305001510474578
+          ]
+        },
+        "RightHand": {
+          "coordinateRangeMeters": [
+            0.45491351410325104,
+            0.7379695161513541,
+            0.5248250409296624
+          ],
+          "sampledPathLengthMeters": 3.594473232048527,
+          "sampledHorizontalPathLengthMeters": 2.6958414500243744,
+          "max30HzDifferenceSpeedMetersPerSecond": 1.5907726917743763,
+          "relativeToRootMinMeters": [
+            -0.6680382389251365,
+            -0.11659994619609704,
+            -0.016208859347409607
+          ],
+          "relativeToRootMaxMeters": [
+            -0.3124974427782113,
+            0.6270136835314835,
+            0.5013929114975946
+          ]
+        },
+        "LeftFoot": {
+          "coordinateRangeMeters": [
+            0.31908317684821264,
+            0.01043346987984789,
+            0.013453378388244161
+          ],
+          "sampledPathLengthMeters": 0.7132933163875346,
+          "sampledHorizontalPathLengthMeters": 0.7102775611046933,
+          "max30HzDifferenceSpeedMetersPerSecond": 0.3411307044642511,
+          "relativeToRootMinMeters": [
+            0.000798867419135478,
+            -0.96,
+            0.0
+          ],
+          "relativeToRootMaxMeters": [
+            0.2219003737170005,
+            -0.945812656988434,
+            0.0013579169744275836
+          ]
+        },
+        "RightFoot": {
+          "coordinateRangeMeters": [
+            0.31908220276527,
+            0.011324575625197175,
+            0.013368922122961625
+          ],
+          "sampledPathLengthMeters": 0.7144344643771471,
+          "sampledHorizontalPathLengthMeters": 0.7106200548382704,
+          "max30HzDifferenceSpeedMetersPerSecond": 0.3415617698242647,
+          "relativeToRootMinMeters": [
+            -0.222151689593306,
+            -0.96,
+            0.0
+          ],
+          "relativeToRootMaxMeters": [
+            -0.0012506904326059637,
+            -0.9411742071983038,
+            0.0012249049196624588
+          ]
+        }
+      },
+      "artifacts": {
+        "raw": {
+          "file": "work/model-selection-20261014/text-visuals/chinese-classical/raw-front-side.mp4",
+          "sha256": "fccd061beb0211f1f04960748d90fed624e9d8184cb8aca0f0181e52a2b9356d",
+          "encoding": {
+            "programs": [],
+            "stream_groups": [],
+            "streams": [
+              {
+                "width": 800,
+                "height": 440,
+                "r_frame_rate": "30/1",
+                "duration": "5.500000",
+                "nb_frames": "165"
+              }
+            ],
+            "format": {
+              "duration": "5.500000"
+            }
+          }
+        },
+        "actual": {
+          "file": "work/model-selection-20261014/text-visuals/chinese-classical/actual-front-side.mp4",
+          "sha256": "73fb1f084844f20d3727f9797a0709d2c99c31a2e5708f47aeac8905223106cb",
+          "encoding": {
+            "programs": [],
+            "stream_groups": [],
+            "streams": [
+              {
+                "width": 800,
+                "height": 440,
+                "r_frame_rate": "30/1",
+                "duration": "5.500000",
+                "nb_frames": "165"
+              }
+            ],
+            "format": {
+              "duration": "5.500000"
+            }
+          }
+        },
+        "comparison": {
+          "file": "work/model-selection-20261014/text-visuals/chinese-classical/raw-vs-actual.mp4",
+          "sha256": "28d6cffa3d2458a19f59c2c9754699cf1cd59026fb0982cdfca9d96557c63791",
+          "encoding": {
+            "programs": [],
+            "stream_groups": [],
+            "streams": [
+              {
+                "width": 1600,
+                "height": 440,
+                "r_frame_rate": "30/1",
+                "duration": "5.500000",
+                "nb_frames": "165"
+              }
+            ],
+            "format": {
+              "duration": "5.500000"
+            }
+          }
+        },
+        "contactSheet": {
+          "file": "work/model-selection-20261014/text-visuals/chinese-classical/raw-vs-actual-contact-sheet.png",
+          "sha256": "99e2585b9eea720fb0535ef6763e502d73e17d19abd28687c28633917a696205",
+          "localTimes": [
+            0.0,
+            1.0999999999999996,
+            2.2,
+            3.3,
+            4.4,
+            5.5
+          ],
+          "sceneTimes": [
+            4.0,
+            5.1,
+            6.2,
+            7.3,
+            8.4,
+            9.5
+          ]
+        }
+      }
+    },
+    "hip-hop": {
+      "summaryFile": "work/model-selection-20261014/text-visuals/hip-hop/visualization-summary.json",
+      "summarySHA256": "f0077f5bb7804d89c0e4bf42f95ce68954b56aa5d599851e88b4b6f356117139",
+      "rawEngineeringStatus": "accepted",
+      "actualAcceptedByEngineeringGate": true,
+      "auditStatus": "engineering-accepted-style-unassessed",
+      "inputFilesUnchanged": true,
+      "maxRootChangeMillimeters30Hz": 0.0,
+      "maxRootChangeMillimetersExistingDenserDiagnostic": 0,
+      "actualTrajectories": {
+        "Root": {
+          "coordinateRangeMeters": [
+            0.14362825788751712,
+            0.040080291985106875,
+            0.040104252400548705
+          ],
+          "sampledPathLengthMeters": 0.5551933785948604,
+          "sampledHorizontalPathLengthMeters": 0.4203945720091955,
+          "max30HzDifferenceSpeedMetersPerSecond": 0.2510477695057151,
+          "relativeToRootMinMeters": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relativeToRootMaxMeters": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "LeftHand": {
+          "coordinateRangeMeters": [
+            0.3965559842519667,
+            0.7889057401129912,
+            0.46702714011447516
+          ],
+          "sampledPathLengthMeters": 6.111547674369391,
+          "sampledHorizontalPathLengthMeters": 4.083752673509814,
+          "max30HzDifferenceSpeedMetersPerSecond": 3.084498736938505,
+          "relativeToRootMinMeters": [
+            0.3497622843553612,
+            -0.11659994619609704,
+            -0.03744585408128205
+          ],
+          "relativeToRootMaxMeters": [
+            0.7383383240332414,
+            0.6823851119096913,
+            0.4390281868868876
+          ]
+        },
+        "RightHand": {
+          "coordinateRangeMeters": [
+            0.5806279885168659,
+            0.7404746745242002,
+            0.45911304318783114
+          ],
+          "sampledPathLengthMeters": 4.725678097578696,
+          "sampledHorizontalPathLengthMeters": 3.5220208062091336,
+          "max30HzDifferenceSpeedMetersPerSecond": 2.8467239567392935,
+          "relativeToRootMinMeters": [
+            -0.7293623603567365,
+            -0.11659994619609704,
+            0.0
+          ],
+          "relativeToRootMaxMeters": [
+            -0.2740132633587065,
+            0.6372224512361966,
+            0.45911304318783114
+          ]
+        },
+        "LeftFoot": {
+          "coordinateRangeMeters": [
+            0.2873375296917646,
+            0.016981811881823905,
+            0.04082496126682419
+          ],
+          "sampledPathLengthMeters": 0.8404074910980712,
+          "sampledHorizontalPathLengthMeters": 0.8295338646797634,
+          "max30HzDifferenceSpeedMetersPerSecond": 0.4766486135736222,
+          "relativeToRootMinMeters": [
+            0.001690772769113287,
+            -0.96,
+            0.0
+          ],
+          "relativeToRootMaxMeters": [
+            0.2008286761342481,
+            -0.9121299892503758,
+            0.0025881904510251692
+          ]
+        },
+        "RightFoot": {
+          "coordinateRangeMeters": [
+            0.287501744107218,
+            0.01802238161459435,
+            0.040844932285778165
+          ],
+          "sampledPathLengthMeters": 0.8385207273544389,
+          "sampledHorizontalPathLengthMeters": 0.8308326507802242,
+          "max30HzDifferenceSpeedMetersPerSecond": 0.47711531522543066,
+          "relativeToRootMinMeters": [
+            -0.22096654665550414,
+            -0.96,
+            0.0
+          ],
+          "relativeToRootMaxMeters": [
+            -0.02170757399381537,
+            -0.907216427991168,
+            0.0025881904510251692
+          ]
+        }
+      },
+      "artifacts": {
+        "raw": {
+          "file": "work/model-selection-20261014/text-visuals/hip-hop/raw-front-side.mp4",
+          "sha256": "87e7f6f90dc66535f6d8103b8b6b047e63889a673a04377d116a0a7df7310ffe",
+          "encoding": {
+            "programs": [],
+            "stream_groups": [],
+            "streams": [
+              {
+                "width": 800,
+                "height": 440,
+                "r_frame_rate": "30/1",
+                "duration": "5.500000",
+                "nb_frames": "165"
+              }
+            ],
+            "format": {
+              "duration": "5.500000"
+            }
+          }
+        },
+        "actual": {
+          "file": "work/model-selection-20261014/text-visuals/hip-hop/actual-front-side.mp4",
+          "sha256": "f5640cf3a8a0eb8d06351b6b1ea6c2fa592c6b2f7454beba6908cdbbe8e7c31b",
+          "encoding": {
+            "programs": [],
+            "stream_groups": [],
+            "streams": [
+              {
+                "width": 800,
+                "height": 440,
+                "r_frame_rate": "30/1",
+                "duration": "5.500000",
+                "nb_frames": "165"
+              }
+            ],
+            "format": {
+              "duration": "5.500000"
+            }
+          }
+        },
+        "comparison": {
+          "file": "work/model-selection-20261014/text-visuals/hip-hop/raw-vs-actual.mp4",
+          "sha256": "285381080f93e36792fd6cbc0f512284c19b68f6f4a0fa2ec4eca23ac8437cc3",
+          "encoding": {
+            "programs": [],
+            "stream_groups": [],
+            "streams": [
+              {
+                "width": 1600,
+                "height": 440,
+                "r_frame_rate": "30/1",
+                "duration": "5.500000",
+                "nb_frames": "165"
+              }
+            ],
+            "format": {
+              "duration": "5.500000"
+            }
+          }
+        },
+        "contactSheet": {
+          "file": "work/model-selection-20261014/text-visuals/hip-hop/raw-vs-actual-contact-sheet.png",
+          "sha256": "92f6bb2ac3e074c4c3561252c33a94a5b03baf7fc30c135fa32e7c71a64fc5fb",
+          "localTimes": [
+            0.0,
+            1.0999999999999996,
+            2.2,
+            3.3,
+            4.4,
+            5.5
+          ],
+          "sceneTimes": [
+            4.0,
+            5.1,
+            6.2,
+            7.3,
+            8.4,
+            9.5
+          ]
+        }
+      }
+    },
+    "ballet": {
+      "summaryFile": "work/model-selection-20261014/text-visuals/ballet/visualization-summary.json",
+      "summarySHA256": "b8ef85a6d291a58b9a00df0ca0e365720d095caeb2686a2190fbaae6d8430201",
+      "rawEngineeringStatus": "rejected",
+      "actualAcceptedByEngineeringGate": true,
+      "auditStatus": "engineering-accepted-style-unassessed",
+      "inputFilesUnchanged": true,
+      "maxRootChangeMillimeters30Hz": 25.659643292034183,
+      "maxRootChangeMillimetersExistingDenserDiagnostic": 25.668757526386976,
+      "actualTrajectories": {
+        "Root": {
+          "coordinateRangeMeters": [
+            0.0,
+            0.10019847757127431,
+            0.0
+          ],
+          "sampledPathLengthMeters": 0.2470006199038317,
+          "sampledHorizontalPathLengthMeters": 0.0,
+          "max30HzDifferenceSpeedMetersPerSecond": 0.11373813875364736,
+          "relativeToRootMinMeters": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "relativeToRootMaxMeters": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "LeftHand": {
+          "coordinateRangeMeters": [
+            0.38360765763168864,
+            0.9551085988876021,
+            0.38860782913932945
+          ],
+          "sampledPathLengthMeters": 2.9399194248017793,
+          "sampledHorizontalPathLengthMeters": 1.9726311129633285,
+          "max30HzDifferenceSpeedMetersPerSecond": 0.8878892762599313,
+          "relativeToRootMinMeters": [
+            0.3497622843553612,
+            -0.11659994619609704,
+            0.0
+          ],
+          "relativeToRootMaxMeters": [
+            0.7333699419870499,
+            0.780191299645377,
+            0.38860782913932945
+          ]
+        },
+        "RightHand": {
+          "coordinateRangeMeters": [
+            0.38360765763168864,
+            0.9557231408172108,
+            0.38860782913932945
+          ],
+          "sampledPathLengthMeters": 2.919950583056819,
+          "sampledHorizontalPathLengthMeters": 1.9205697028763877,
+          "max30HzDifferenceSpeedMetersPerSecond": 1.1901833128767196,
+          "relativeToRootMinMeters": [
+            -0.7333699419870499,
+            -0.11659994619609704,
+            0.0
+          ],
+          "relativeToRootMaxMeters": [
+            -0.3497622843553612,
+            0.7792758314691723,
+            0.38860782913932945
+          ]
+        },
+        "LeftFoot": {
+          "coordinateRangeMeters": [
+            0.0,
+            0.06382847983443901,
+            0.0029288152345470497
+          ],
+          "sampledPathLengthMeters": 0.1429680889563898,
+          "sampledHorizontalPathLengthMeters": 0.01022216322632841,
+          "max30HzDifferenceSpeedMetersPerSecond": 0.11095159628055554,
+          "relativeToRootMinMeters": [
+            0.112,
+            -0.96,
+            0.0
+          ],
+          "relativeToRootMaxMeters": [
+            0.112,
+            -0.9200953535024357,
+            0.0029288152345470497
+          ]
+        },
+        "RightFoot": {
+          "coordinateRangeMeters": [
+            0.0,
+            0.06382847983443901,
+            0.0029288152345470497
+          ],
+          "sampledPathLengthMeters": 0.1429680889563898,
+          "sampledHorizontalPathLengthMeters": 0.01022216322632841,
+          "max30HzDifferenceSpeedMetersPerSecond": 0.11095159628055554,
+          "relativeToRootMinMeters": [
+            -0.112,
+            -0.96,
+            0.0
+          ],
+          "relativeToRootMaxMeters": [
+            -0.112,
+            -0.9200953535024357,
+            0.0029288152345470497
+          ]
+        }
+      },
+      "artifacts": {
+        "raw": {
+          "file": "work/model-selection-20261014/text-visuals/ballet/raw-front-side.mp4",
+          "sha256": "8d9fa970e1098ab02d9c8f673c7e259d95cd80e2a43293b8565fa129cf5dd9c7",
+          "encoding": {
+            "programs": [],
+            "stream_groups": [],
+            "streams": [
+              {
+                "width": 800,
+                "height": 440,
+                "r_frame_rate": "30/1",
+                "duration": "5.500000",
+                "nb_frames": "165"
+              }
+            ],
+            "format": {
+              "duration": "5.500000"
+            }
+          }
+        },
+        "actual": {
+          "file": "work/model-selection-20261014/text-visuals/ballet/actual-front-side.mp4",
+          "sha256": "aba0ed137e67333d7dac80056996bd167d7ec632c925e146594af24a6c60e644",
+          "encoding": {
+            "programs": [],
+            "stream_groups": [],
+            "streams": [
+              {
+                "width": 800,
+                "height": 440,
+                "r_frame_rate": "30/1",
+                "duration": "5.500000",
+                "nb_frames": "165"
+              }
+            ],
+            "format": {
+              "duration": "5.500000"
+            }
+          }
+        },
+        "comparison": {
+          "file": "work/model-selection-20261014/text-visuals/ballet/raw-vs-actual.mp4",
+          "sha256": "c59aae41fb332105d91bcc3442907f420a4ee8b96a2d360e46d4d481c515b12a",
+          "encoding": {
+            "programs": [],
+            "stream_groups": [],
+            "streams": [
+              {
+                "width": 1600,
+                "height": 440,
+                "r_frame_rate": "30/1",
+                "duration": "5.500000",
+                "nb_frames": "165"
+              }
+            ],
+            "format": {
+              "duration": "5.500000"
+            }
+          }
+        },
+        "contactSheet": {
+          "file": "work/model-selection-20261014/text-visuals/ballet/raw-vs-actual-contact-sheet.png",
+          "sha256": "d18ab9814172cfdcb9a0e1f9e2eeea0692070b981853d6d119946582d48ec86a",
+          "localTimes": [
+            0.0,
+            1.0999999999999996,
+            2.2,
+            3.3,
+            4.4,
+            5.5
+          ],
+          "sceneTimes": [
+            4.0,
+            5.1,
+            6.2,
+            7.3,
+            8.4,
+            9.5
+          ]
+        }
+      }
+    }
+  },
+  "contacts": "unknown",
+  "styleAndNaturalness": "unassessed",
+  "modelCalls": 0,
+  "networkRequests": 0,
+  "allInputsUnchanged": true
+}

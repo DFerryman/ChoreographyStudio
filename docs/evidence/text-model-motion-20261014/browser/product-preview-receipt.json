@@ -1,0 +1,3393 @@
+{
+  "startedAtUTC": "2026-10-14T05:50:07.800Z",
+  "scope": "One bounded localhost viewing session in the current real App Stage; offline independently gated codex-session/gpt-6.1-sol AI tracks in separate owned review scenes. Not live generation, temporary candidate-state UX or user adoption.",
+  "source": {
+    "path": "/workspace/ChoreographyStudio/work/model-selection-20261014/text-motion-experiment/owned-source-snapshot.json",
+    "fileSHA256Before": "053f4b1a5763a829aa65c7755ee41be38ba780f34e4f26553c3f6c0d68b527c0",
+    "durationSeconds": 32,
+    "originalSnapshotRetained": true,
+    "fileSHA256After": "053f4b1a5763a829aa65c7755ee41be38ba780f34e4f26553c3f6c0d68b527c0",
+    "fileBytesUnchanged": true
+  },
+  "syntheticPlaybackAudio": {
+    "path": "owned-review-silence-32s.wav",
+    "sha256": "8eb8d33ac2106e281a090b9201d0ada350280378e31a7643a70460b19b76415a",
+    "durationSeconds": 32,
+    "allPCMZero": true
+  },
+  "inputs": [
+    {
+      "style": "chinese-classical",
+      "label": "中国古典舞",
+      "path": "/workspace/ChoreographyStudio/work/model-selection-20261014/text-motion-experiment/audit-chinese-classical-1791956279320/solver-returned-patch.json",
+      "sha256": "ac98fc67a25acbdcee752e6edd914171913347b9d225cda064bb70e43d7f2d66",
+      "provider": "codex-session",
+      "model": "gpt-6.1-sol",
+      "requestId": "motion_a753d1dd-2e83-435f-82d1-635ded9c2afb",
+      "sourceHash": "b997f490769ae0923952f33dae3cb167780a93e96ce23175b9fce9994031cd20",
+      "knots": 18,
+      "sha256After": "ac98fc67a25acbdcee752e6edd914171913347b9d225cda064bb70e43d7f2d66",
+      "inputBytesUnchanged": true,
+      "existingEngineeringGateAccepted": true,
+      "existingRawEngineeringStatus": "accepted",
+      "note": "Existing independent gate result reused; product viewing does not rerun style or physics qualification."
+    },
+    {
+      "style": "hip-hop",
+      "label": "街舞",
+      "path": "/workspace/ChoreographyStudio/work/model-selection-20261014/text-motion-experiment/audit-hip-hop-1791956376756/solver-returned-patch.json",
+      "sha256": "aead7b8029875c0387001f137153352863857de6d62ca397915bdaca7f3f6b76",
+      "provider": "codex-session",
+      "model": "gpt-6.1-sol",
+      "requestId": "motion_def39ff3-f8d8-4c1c-b8e2-6afe2f952083",
+      "sourceHash": "b997f490769ae0923952f33dae3cb167780a93e96ce23175b9fce9994031cd20",
+      "knots": 20,
+      "sha256After": "aead7b8029875c0387001f137153352863857de6d62ca397915bdaca7f3f6b76",
+      "inputBytesUnchanged": true,
+      "existingEngineeringGateAccepted": true,
+      "existingRawEngineeringStatus": "accepted",
+      "note": "Existing independent gate result reused; product viewing does not rerun style or physics qualification."
+    },
+    {
+      "style": "ballet",
+      "label": "芭蕾",
+      "path": "/workspace/ChoreographyStudio/work/model-selection-20261014/text-motion-experiment/audit-ballet-1791956376740/solver-returned-patch.json",
+      "sha256": "49787b4e84713d5e20e6f77b2b3e89981c90c924d7bb8bcbb439c7c9a6749d6f",
+      "provider": "codex-session",
+      "model": "gpt-6.1-sol",
+      "requestId": "motion_0873a6c6-3a74-4fea-af94-182ac956c5c4",
+      "sourceHash": "b997f490769ae0923952f33dae3cb167780a93e96ce23175b9fce9994031cd20",
+      "knots": 18,
+      "sha256After": "49787b4e84713d5e20e6f77b2b3e89981c90c924d7bb8bcbb439c7c9a6749d6f",
+      "inputBytesUnchanged": true,
+      "existingEngineeringGateAccepted": true,
+      "existingRawEngineeringStatus": "rejected",
+      "note": "Existing independent gate result reused; product viewing does not rerun style or physics qualification."
+    }
+  ],
+  "network": {
+    "providerCalls": 0,
+    "apiRequests": [],
+    "priorRequests": [],
+    "nonReadRequests": [],
+    "externalRequests": [],
+    "staticRequests": [
+      "GET http://127.0.0.1:5173/",
+      "GET http://127.0.0.1:5173/@vite/client",
+      "GET http://127.0.0.1:5173/src/main.tsx",
+      "GET http://127.0.0.1:5173/@react-refresh",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/node_modules/.vite/deps/react.js",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/node_modules/.vite/deps/react-dom_client.js",
+      "GET http://127.0.0.1:5173/src/App.tsx",
+      "GET http://127.0.0.1:5173/src/styles/tokens.css",
+      "GET http://127.0.0.1:5173/src/styles/app.css",
+      "GET http://127.0.0.1:5173/src/styles/dialogs.css",
+      "GET http://127.0.0.1:5173/src/styles/panels.css",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/node_modules/.vite/deps/react_jsx-dev-runtime.js",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/node_modules/vite/dist/client/env.mjs",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/node_modules/.vite/deps/rolldown-runtime-EAsCxrDo.js",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/node_modules/.vite/deps/lucide-react.js",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/index.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/aiMotionTrack.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/aiMotionPlan.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/motionPriors.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/motionFeasibility.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/motionGrounding.ts",
+      "GET http://127.0.0.1:5173/src/Stage.tsx",
+      "GET http://127.0.0.1:5173/src/Humanoid.ts",
+      "GET http://127.0.0.1:5173/src/Timeline.tsx",
+      "GET http://127.0.0.1:5173/src/AIPanel.tsx",
+      "GET http://127.0.0.1:5173/src/aiMotionPlanClient.ts",
+      "GET http://127.0.0.1:5173/src/motionPriors.ts",
+      "GET http://127.0.0.1:5173/src/motionCreationPolicy.ts",
+      "GET http://127.0.0.1:5173/src/motionSourcePreflight.ts",
+      "GET http://127.0.0.1:5173/src/aiMotionContext.ts",
+      "GET http://127.0.0.1:5173/src/demoAudio.ts",
+      "GET http://127.0.0.1:5173/src/storage.ts",
+      "GET http://127.0.0.1:5173/src/scene.ts",
+      "GET http://127.0.0.1:5173/src/sceneBackup.ts",
+      "GET http://127.0.0.1:5173/src/audioTimeline.ts",
+      "GET http://127.0.0.1:5173/src/audioTracks.ts",
+      "GET http://127.0.0.1:5173/src/useAudioTrackMixer.ts",
+      "GET http://127.0.0.1:5173/src/useModalFocus.ts",
+      "GET http://127.0.0.1:5173/src/useEditorShortcuts.ts",
+      "GET http://127.0.0.1:5173/src/useTimelinePlayback.ts",
+      "GET http://127.0.0.1:5173/src/useAudioWaveform.ts",
+      "GET http://127.0.0.1:5173/src/hooks/useCountCue.ts",
+      "GET http://127.0.0.1:5173/src/hooks/useMusicSetup.ts",
+      "GET http://127.0.0.1:5173/src/hooks/useFloatingMenus.ts",
+      "GET http://127.0.0.1:5173/src/hooks/useLayoutHelpers.ts",
+      "GET http://127.0.0.1:5173/src/editor/sceneModel.ts",
+      "GET http://127.0.0.1:5173/src/editor/format.ts",
+      "GET http://127.0.0.1:5173/src/components/StudioHeader.tsx",
+      "GET http://127.0.0.1:5173/src/components/StageOverlays.tsx",
+      "GET http://127.0.0.1:5173/src/components/TimelineDock.tsx",
+      "GET http://127.0.0.1:5173/src/components/Playback.tsx",
+      "GET http://127.0.0.1:5173/src/components/AssistCandidatePanel.tsx",
+      "GET http://127.0.0.1:5173/src/dialogs/Dialog.tsx",
+      "GET http://127.0.0.1:5173/src/dialogs/SceneLibraryDialog.tsx",
+      "GET http://127.0.0.1:5173/src/dialogs/BackupImportDialog.tsx",
+      "GET http://127.0.0.1:5173/src/dialogs/MusicSetupDialog.tsx",
+      "GET http://127.0.0.1:5173/src/dialogs/AboutDialog.tsx",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/node_modules/.vite/deps/react-dom.js",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/aiMotion.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/humanoid.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/aiMotionPlanErrors.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/motion-types.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/keyframes.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/motionPoints.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/cameraTrack.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/jointConstraints.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/ik.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/footLocks.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/humanProfile.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/physics.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/capsuleCollision.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/collisionPreview.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/rapierBackend.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/avatarCapsules.generated.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/aiChoreography.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/stepAssistance.ts",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/node_modules/.vite/deps/three.js",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/node_modules/.vite/deps/three_addons_loaders_GLTFLoader__js.js",
+      "GET http://127.0.0.1:5173/src/MHRCorrectives.ts",
+      "GET http://127.0.0.1:5173/src/MHRTransport.ts",
+      "GET http://127.0.0.1:5173/src/MHRRig.ts",
+      "GET http://127.0.0.1:5173/src/QuaterniusRig.ts",
+      "GET http://127.0.0.1:5173/src/avatarCollisionSource.ts",
+      "GET http://127.0.0.1:5173/src/sceneCameraTrack.ts",
+      "GET http://127.0.0.1:5173/src/sceneAIMotion.ts",
+      "GET http://127.0.0.1:5173/src/compactScene.ts",
+      "GET http://127.0.0.1:5173/src/playbackRates.ts",
+      "GET http://127.0.0.1:5173/src/timelineGeometry.ts",
+      "GET http://127.0.0.1:5173/src/Timeline.css",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/node_modules/.vite/deps/three_addons_controls_TransformControls__js.js",
+      "GET http://127.0.0.1:5173/src/cameraFraming.ts",
+      "GET http://127.0.0.1:5173/src/characterOrbit.ts",
+      "GET http://127.0.0.1:5173/src/poseGuidance.ts",
+      "GET http://127.0.0.1:5173/src/stageSet.ts",
+      "GET http://127.0.0.1:5173/src/Stage.css",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/node_modules/.vite/deps/three_addons_animation_CCDIKSolver__js.js",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/node_modules/.vite/deps/three.module-Bj7iJlUn.js",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/node_modules/.vite/deps/three_addons_controls_OrbitControls__js.js",
+      "GET http://127.0.0.1:5173/models/neutral-quaternius-v1.glb",
+      "GET http://127.0.0.1:5173/models/neutral-quaternius-v1.json",
+      "GET http://127.0.0.1:5173/models/neutral-quaternius-v1.glb",
+      "GET http://127.0.0.1:5173/models/neutral-quaternius-v1.json",
+      "GET http://127.0.0.1:5173/favicon.svg",
+      "GET http://127.0.0.1:5173/@fs/workspace/ChoreographyStudio/packages/core/src/aiMotionTrack.ts",
+      "GET http://127.0.0.1:5173/src/sceneBackup.ts",
+      "GET http://127.0.0.1:5173/favicon.svg"
+    ],
+    "webSockets": [
+      "ws://127.0.0.1:5173/?[redacted-local-hmr-query]"
+    ]
+  },
+  "diagnostics": {
+    "errors": [],
+    "warnings": []
+  },
+  "scenes": [
+    {
+      "style": "chinese-classical",
+      "importedSceneId": "41744c35-9c21-4a2a-9389-80b6ebdb1157",
+      "inputSceneId": "8f4cd43f-758e-4400-95e4-035447032f36",
+      "sceneName": "自有离线评审 · 中国古典舞 · GPT6.1",
+      "independentIdentity": true,
+      "sourceSnapshotExact": true,
+      "activeBaseExact": true,
+      "patchExact": true,
+      "persistedProjectUnchangedByWatching": true
+    },
+    {
+      "style": "hip-hop",
+      "importedSceneId": "19f5f6c3-1b1a-4448-b0c6-2f4dc671b665",
+      "inputSceneId": "48e639e4-9dd0-4466-9de3-37f6428e634c",
+      "sceneName": "自有离线评审 · 街舞 · GPT6.1",
+      "independentIdentity": true,
+      "sourceSnapshotExact": true,
+      "activeBaseExact": true,
+      "patchExact": true,
+      "persistedProjectUnchangedByWatching": true
+    },
+    {
+      "style": "ballet",
+      "importedSceneId": "41e65111-5dd3-446d-a775-e356622c6b94",
+      "inputSceneId": "dd5fdf13-fca3-409a-a918-3a89171cbd7b",
+      "sceneName": "自有离线评审 · 芭蕾 · GPT6.1",
+      "independentIdentity": true,
+      "sourceSnapshotExact": true,
+      "activeBaseExact": true,
+      "patchExact": true,
+      "persistedProjectUnchangedByWatching": true
+    }
+  ],
+  "frames": [
+    {
+      "style": "chinese-classical",
+      "view": "front",
+      "time": 3.5,
+      "actualRenderTime": 3.5,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          0,
+          1.05,
+          0
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Chest": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Neck": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Head": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperArm": [
+            0,
+            0,
+            0.1305261922200516,
+            0.9914448613738105
+          ],
+          "LeftForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperArm": [
+            0,
+            0,
+            -0.1305261922200516,
+            0.9914448613738105
+          ],
+          "RightForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "chinese-classical",
+      "view": "front",
+      "time": 4,
+      "actualRenderTime": 4,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          0,
+          1.05,
+          0
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Chest": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Neck": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Head": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperArm": [
+            0,
+            0,
+            0.1305261922200516,
+            0.9914448613738105
+          ],
+          "LeftForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperArm": [
+            0,
+            0,
+            -0.1305261922200516,
+            0.9914448613738105
+          ],
+          "RightForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "chinese-classical",
+      "view": "front",
+      "time": 4.7,
+      "actualRenderTime": 4.7,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          0.023748252781226154,
+          1.0412398064481474,
+          0.004735701453877012
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            -0.01621036202628681,
+            -0.05724753466078785,
+            -0.020090179917936345,
+            0.9980262163936896
+          ],
+          "Chest": [
+            -0.015927937294925896,
+            -0.06986858480001414,
+            -0.01985285076349642,
+            0.997231440533307
+          ],
+          "Neck": [
+            0.009057944797997396,
+            0.031528375131901674,
+            0.010831169710758488,
+            0.9994031223486725
+          ],
+          "Head": [
+            0,
+            0.0189761075944768,
+            0,
+            0.9998199374590221
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0.028648246176428454,
+            0.999589554762861
+          ],
+          "LeftUpperArm": [
+            -0.31483328475328104,
+            0.05136031670391085,
+            0.35157392455616987,
+            0.8801351579454749
+          ],
+          "LeftForeArm": [
+            -0.31607092839082507,
+            0,
+            0,
+            0.9487355628551941
+          ],
+          "LeftHand": [
+            -0.08399109773452236,
+            0.007225900611869052,
+            0.08521599884213889,
+            0.9927897639495653
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            -0.022006718729243764,
+            0.9997578228404976
+          ],
+          "RightUpperArm": [
+            -0.2171561883768107,
+            0.03963848149539535,
+            -0.2841709067905079,
+            0.9330160107780868
+          ],
+          "RightForeArm": [
+            -0.2639737139258278,
+            0,
+            0,
+            0.9645298742683946
+          ],
+          "RightHand": [
+            0.06504634578917567,
+            0.0045393591133958125,
+            -0.0679328312567246,
+            0.9955568781118233
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            -0.07676862729474013,
+            0.0019498098139803964,
+            0.02502352281912186,
+            0.9967329629397692
+          ],
+          "LeftLowerLeg": [
+            0.1531331523262807,
+            0,
+            0,
+            0.988205564474627
+          ],
+          "LeftFoot": [
+            -0.07676862729474013,
+            -0.0019498098139803964,
+            -0.02502352281912186,
+            0.9967329629397692
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            -0.06926055569636203,
+            0.0017607525469433656,
+            0.025037515196401294,
+            0.9972828074362305
+          ],
+          "RightLowerLeg": [
+            0.13823287904141338,
+            0,
+            0,
+            0.9903997532067148
+          ],
+          "RightFoot": [
+            -0.06926055569636203,
+            -0.0017607525469433656,
+            -0.025037515196401294,
+            0.9972828074362305
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "chinese-classical",
+      "view": "front",
+      "time": 5.8,
+      "actualRenderTime": 5.8,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          0.12224404640749031,
+          1.0434936820679828,
+          0.012170974964380214
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            -0.016928329724148903,
+            0.03450462780319921,
+            0.01568276145773326,
+            0.9991380852044291
+          ],
+          "Chest": [
+            -0.016809712448882595,
+            0.04210503674788174,
+            0.01554421713407348,
+            0.9988508280827194
+          ],
+          "Neck": [
+            0.008866817741068914,
+            -0.018947154998196776,
+            -0.008311325485468974,
+            0.9997466212642561
+          ],
+          "Head": [
+            0,
+            -0.01141224460874131,
+            0,
+            0.9999348782160717
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0.041549962659798406,
+            0.9991364274226866
+          ],
+          "LeftUpperArm": [
+            -0.3990006271418797,
+            0.21790096909422627,
+            0.44877162117058467,
+            0.7693644775008195
+          ],
+          "LeftForeArm": [
+            -0.5253776486682408,
+            0,
+            0,
+            0.8508691593187702
+          ],
+          "LeftHand": [
+            0.13748106304749821,
+            -0.013843379017495121,
+            0.09678026906133581,
+            0.9856677420313212
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            -0.04541068414423262,
+            0.9989684027863707
+          ],
+          "RightUpperArm": [
+            -0.541985899804672,
+            -0.3295728471124609,
+            -0.426839466658123,
+            0.6445471996387199
+          ],
+          "RightForeArm": [
+            -0.35096427334292746,
+            0,
+            0,
+            0.9363888502309662
+          ],
+          "RightHand": [
+            -0.12415847030315041,
+            -0.016437241213566055,
+            -0.13549348994157082,
+            0.98283060877077
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            -0.06579448647392101,
+            0.0014787989994458535,
+            0.021097105658320247,
+            0.9976090470900881
+          ],
+          "LeftLowerLeg": [
+            0.13133622687328406,
+            0,
+            0,
+            0.9913378816078245
+          ],
+          "LeftFoot": [
+            -0.06579448647392101,
+            -0.0014787989994458535,
+            -0.021097105658320247,
+            0.9976090470900881
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            -0.05946289822003642,
+            0.0013594348440398563,
+            0.021105127312763296,
+            0.998006457530857
+          ],
+          "RightLowerLeg": [
+            0.1187461269925543,
+            0,
+            0,
+            0.9929246483617316
+          ],
+          "RightFoot": [
+            -0.05946289822003642,
+            -0.0013594348440398563,
+            -0.021105127312763296,
+            0.998006457530857
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "chinese-classical",
+      "view": "front",
+      "time": 7.3,
+      "actualRenderTime": 7.3,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          -0.05075310400976999,
+          1.0444754060655406,
+          0.0005813148788927341
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            -0.015963844334343905,
+            -0.06317965550049191,
+            -0.022372258922026194,
+            0.9976236609241151
+          ],
+          "Chest": [
+            -0.015625436496995396,
+            -0.07710316874470781,
+            -0.022103701891225902,
+            0.9966555942082034
+          ],
+          "Neck": [
+            0.00912348558538027,
+            0.0347974015307189,
+            0.01205854558551844,
+            0.9992799879592533
+          ],
+          "Head": [
+            0,
+            0.02094508365257701,
+            0,
+            0.9997806276732845
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0.04108924565975743,
+            0.999155480338827
+          ],
+          "LeftUpperArm": [
+            -0.5462436521671579,
+            0.17145208778119095,
+            0.46798655943652856,
+            0.6732092054104106
+          ],
+          "LeftForeArm": [
+            -0.46374679924895174,
+            0,
+            0,
+            0.8859677794289994
+          ],
+          "LeftHand": [
+            -0.01171375155037745,
+            0.001827046482376297,
+            0.1145942263010561,
+            0.9933416397313813
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            -0.0412631691337953,
+            0.9991483127509327
+          ],
+          "RightUpperArm": [
+            -0.4820744622211442,
+            -0.2793457430542008,
+            -0.398979218938322,
+            0.7282758760023962
+          ],
+          "RightForeArm": [
+            -0.38377116822207263,
+            0,
+            0,
+            0.9234282270114261
+          ],
+          "RightHand": [
+            -0.06474851284154108,
+            -0.006142447194074364,
+            -0.11281579410449175,
+            0.9914849958662257
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            -0.05285732635428408,
+            -0.0020951652003657366,
+            -0.033683400159882616,
+            0.9980316337106399
+          ],
+          "LeftLowerLeg": [
+            0.10564482855085669,
+            0,
+            0,
+            0.9944039270841903
+          ],
+          "LeftFoot": [
+            -0.05285732635428408,
+            0.0020951652003657366,
+            0.033683400159882616,
+            0.9980316337106399
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            -0.06295882965127204,
+            -0.002448138133461517,
+            -0.033659791025678086,
+            0.9974453422903579
+          ],
+          "RightLowerLeg": [
+            0.12576073881675284,
+            0,
+            0,
+            0.9920606012599554
+          ],
+          "RightFoot": [
+            -0.06295882965127204,
+            0.002448138133461517,
+            0.033659791025678086,
+            0.9974453422903579
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "chinese-classical",
+      "view": "front",
+      "time": 8.7,
+      "actualRenderTime": 8.7,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          0.0006050420168067259,
+          1.0489645864741344,
+          0
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            -0.0172001027610597,
+            0.026937041902108542,
+            0.00680022674944466,
+            0.9994660120057756
+          ],
+          "Chest": [
+            -0.017142461176887797,
+            0.032892882162651814,
+            0.006694167065196727,
+            0.9992894387789435
+          ],
+          "Neck": [
+            0.00879373943497079,
+            -0.014866234825051361,
+            -0.0037660217632940903,
+            0.9998437289341544
+          ],
+          "Head": [
+            0,
+            -0.008939429112688455,
+            0,
+            0.999960042505269
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0.017917895510779543,
+            0.9998394616239473
+          ],
+          "LeftUpperArm": [
+            -0.1450322602866154,
+            0.06790485961277762,
+            0.2128943151547265,
+            0.9638623263163283
+          ],
+          "LeftForeArm": [
+            -0.17784390239214304,
+            0,
+            0,
+            0.9840587108409405
+          ],
+          "LeftHand": [
+            0.03959619751669639,
+            -0.001090850279577607,
+            0.025400360533499686,
+            0.9988922729066707
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            -0.01749998053558436,
+            0.999846863615251
+          ],
+          "RightUpperArm": [
+            -0.1336065576897042,
+            -0.07097847757052972,
+            -0.2061761895263322,
+            0.9667485310754187
+          ],
+          "RightForeArm": [
+            -0.18451279952014535,
+            0,
+            0,
+            0.9828301108600808
+          ],
+          "RightHand": [
+            0.03959619751669639,
+            0.001090850279577607,
+            -0.025400360533499686,
+            0.9988922729066707
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            -0.022901151404687552,
+            -5.434752540738371e-05,
+            -0.0010546209425478955,
+            0.9997371765045819
+          ],
+          "LeftLowerLeg": [
+            0.04579001957116043,
+            0,
+            0,
+            0.9989510869445373
+          ],
+          "LeftFoot": [
+            -0.022901151404687552,
+            5.434752540738371e-05,
+            0.0010546209425478955,
+            0.9997371765045819
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            -0.023217794000431686,
+            -4.60614927989708e-05,
+            -0.001054981631878379,
+            0.9997298729826216
+          ],
+          "RightLowerLeg": [
+            0.04642294426629082,
+            0,
+            0,
+            0.9989218739449289
+          ],
+          "RightFoot": [
+            -0.023217794000431686,
+            4.60614927989708e-05,
+            0.001054981631878379,
+            0.9997298729826216
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "chinese-classical",
+      "view": "front",
+      "time": 9.5,
+      "actualRenderTime": 9.5,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          0,
+          1.05,
+          0
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Chest": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Neck": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Head": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperArm": [
+            0,
+            0,
+            0.1305261922200516,
+            0.9914448613738105
+          ],
+          "LeftForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperArm": [
+            0,
+            0,
+            -0.1305261922200516,
+            0.9914448613738105
+          ],
+          "RightForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "chinese-classical",
+      "view": "front",
+      "time": 10,
+      "actualRenderTime": 10,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          0,
+          1.05,
+          0
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Chest": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Neck": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Head": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperArm": [
+            0,
+            0,
+            0.1305261922200516,
+            0.9914448613738105
+          ],
+          "LeftForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperArm": [
+            0,
+            0,
+            -0.1305261922200516,
+            0.9914448613738105
+          ],
+          "RightForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "chinese-classical",
+      "view": "left",
+      "time": 5.8,
+      "actualRenderTime": 5.8,
+      "pose": {
+        "root": [
+          0.12224404640749031,
+          1.0434936820679828,
+          0.012170974964380214
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            -0.016928329724148903,
+            0.03450462780319921,
+            0.01568276145773326,
+            0.9991380852044291
+          ],
+          "Chest": [
+            -0.016809712448882595,
+            0.04210503674788174,
+            0.01554421713407348,
+            0.9988508280827194
+          ],
+          "Neck": [
+            0.008866817741068914,
+            -0.018947154998196776,
+            -0.008311325485468974,
+            0.9997466212642561
+          ],
+          "Head": [
+            0,
+            -0.01141224460874131,
+            0,
+            0.9999348782160717
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0.041549962659798406,
+            0.9991364274226866
+          ],
+          "LeftUpperArm": [
+            -0.3990006271418797,
+            0.21790096909422627,
+            0.44877162117058467,
+            0.7693644775008195
+          ],
+          "LeftForeArm": [
+            -0.5253776486682408,
+            0,
+            0,
+            0.8508691593187702
+          ],
+          "LeftHand": [
+            0.13748106304749821,
+            -0.013843379017495121,
+            0.09678026906133581,
+            0.9856677420313212
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            -0.04541068414423262,
+            0.9989684027863707
+          ],
+          "RightUpperArm": [
+            -0.541985899804672,
+            -0.3295728471124609,
+            -0.426839466658123,
+            0.6445471996387199
+          ],
+          "RightForeArm": [
+            -0.35096427334292746,
+            0,
+            0,
+            0.9363888502309662
+          ],
+          "RightHand": [
+            -0.12415847030315041,
+            -0.016437241213566055,
+            -0.13549348994157082,
+            0.98283060877077
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            -0.06579448647392101,
+            0.0014787989994458535,
+            0.021097105658320247,
+            0.9976090470900881
+          ],
+          "LeftLowerLeg": [
+            0.13133622687328406,
+            0,
+            0,
+            0.9913378816078245
+          ],
+          "LeftFoot": [
+            -0.06579448647392101,
+            -0.0014787989994458535,
+            -0.021097105658320247,
+            0.9976090470900881
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            -0.05946289822003642,
+            0.0013594348440398563,
+            0.021105127312763296,
+            0.998006457530857
+          ],
+          "RightLowerLeg": [
+            0.1187461269925543,
+            0,
+            0,
+            0.9929246483617316
+          ],
+          "RightFoot": [
+            -0.05946289822003642,
+            -0.0013594348440398563,
+            -0.021105127312763296,
+            0.998006457530857
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "chinese-classical",
+      "view": "left",
+      "time": 7.3,
+      "actualRenderTime": 7.3,
+      "pose": {
+        "root": [
+          -0.05075310400976999,
+          1.0444754060655406,
+          0.0005813148788927341
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            -0.015963844334343905,
+            -0.06317965550049191,
+            -0.022372258922026194,
+            0.9976236609241151
+          ],
+          "Chest": [
+            -0.015625436496995396,
+            -0.07710316874470781,
+            -0.022103701891225902,
+            0.9966555942082034
+          ],
+          "Neck": [
+            0.00912348558538027,
+            0.0347974015307189,
+            0.01205854558551844,
+            0.9992799879592533
+          ],
+          "Head": [
+            0,
+            0.02094508365257701,
+            0,
+            0.9997806276732845
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0.04108924565975743,
+            0.999155480338827
+          ],
+          "LeftUpperArm": [
+            -0.5462436521671579,
+            0.17145208778119095,
+            0.46798655943652856,
+            0.6732092054104106
+          ],
+          "LeftForeArm": [
+            -0.46374679924895174,
+            0,
+            0,
+            0.8859677794289994
+          ],
+          "LeftHand": [
+            -0.01171375155037745,
+            0.001827046482376297,
+            0.1145942263010561,
+            0.9933416397313813
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            -0.0412631691337953,
+            0.9991483127509327
+          ],
+          "RightUpperArm": [
+            -0.4820744622211442,
+            -0.2793457430542008,
+            -0.398979218938322,
+            0.7282758760023962
+          ],
+          "RightForeArm": [
+            -0.38377116822207263,
+            0,
+            0,
+            0.9234282270114261
+          ],
+          "RightHand": [
+            -0.06474851284154108,
+            -0.006142447194074364,
+            -0.11281579410449175,
+            0.9914849958662257
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            -0.05285732635428408,
+            -0.0020951652003657366,
+            -0.033683400159882616,
+            0.9980316337106399
+          ],
+          "LeftLowerLeg": [
+            0.10564482855085669,
+            0,
+            0,
+            0.9944039270841903
+          ],
+          "LeftFoot": [
+            -0.05285732635428408,
+            0.0020951652003657366,
+            0.033683400159882616,
+            0.9980316337106399
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            -0.06295882965127204,
+            -0.002448138133461517,
+            -0.033659791025678086,
+            0.9974453422903579
+          ],
+          "RightLowerLeg": [
+            0.12576073881675284,
+            0,
+            0,
+            0.9920606012599554
+          ],
+          "RightFoot": [
+            -0.06295882965127204,
+            0.002448138133461517,
+            0.033659791025678086,
+            0.9974453422903579
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "hip-hop",
+      "view": "front",
+      "time": 4,
+      "actualRenderTime": 4,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          0,
+          1.05,
+          0
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Chest": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Neck": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Head": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperArm": [
+            0,
+            0,
+            0.1305261922200516,
+            0.9914448613738105
+          ],
+          "LeftForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperArm": [
+            0,
+            0,
+            -0.1305261922200516,
+            0.9914448613738105
+          ],
+          "RightForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "hip-hop",
+      "view": "front",
+      "time": 5.8,
+      "actualRenderTime": 5.8,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          0.07148148148148153,
+          1.0359022222222223,
+          0.02859259259259259
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            -0.01664019275150638,
+            -0.03121082150476223,
+            -0.01366294746103,
+            0.9992808976823623
+          ],
+          "Chest": [
+            -0.016457799785974257,
+            -0.038088343983770735,
+            -0.013535415818086864,
+            0.9990471517388008
+          ],
+          "Neck": [
+            0.008947839236769894,
+            0.017146375631728338,
+            0.007258107581510969,
+            0.9997866061565458
+          ],
+          "Head": [
+            0,
+            0.0103263478764582,
+            0,
+            0.9999466818483546
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0.031720885212217484,
+            0.9994967660984969
+          ],
+          "LeftUpperArm": [
+            -0.26947277159729316,
+            0.1437868964301458,
+            0.36393578653696956,
+            0.8799207333961265
+          ],
+          "LeftForeArm": [
+            -0.5367543125124364,
+            0,
+            0,
+            0.8437385898483614
+          ],
+          "LeftHand": [
+            0.04368468370070146,
+            -0.0010767748753227509,
+            0.0799875703811774,
+            0.9958375758879324
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            -0.04120395904509947,
+            0.9991507562720502
+          ],
+          "RightUpperArm": [
+            -0.3109851478147048,
+            -0.24316508352186605,
+            -0.42098741501439707,
+            0.8166569514759341
+          ],
+          "RightForeArm": [
+            -0.6250408416564112,
+            0,
+            0,
+            0.7805920485512552
+          ],
+          "RightHand": [
+            -0.11886704546413655,
+            -0.013760971872332158,
+            -0.09337886293058695,
+            0.9884137034225833
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            -0.08459936643367974,
+            -0.001378561195649416,
+            -0.02421454199530177,
+            0.9961198234770795
+          ],
+          "LeftLowerLeg": [
+            0.16861681349718166,
+            0,
+            0,
+            0.9856816779295722
+          ],
+          "LeftFoot": [
+            -0.08459936643367974,
+            0.001378561195649416,
+            0.02421454199530177,
+            0.9961198234770795
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            -0.09184017358510392,
+            -0.0015939354647515026,
+            -0.024199542331248613,
+            0.9954783895376886
+          ],
+          "RightLowerLeg": [
+            0.18293463266260868,
+            0,
+            0,
+            0.9831250786001731
+          ],
+          "RightFoot": [
+            -0.09184017358510392,
+            0.0015939354647515026,
+            0.024199542331248613,
+            0.9954783895376886
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "hip-hop",
+      "view": "front",
+      "time": 7.3,
+      "actualRenderTime": 7.3,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          -0.01166666666666671,
+          1.031717037037037,
+          0.014925925925925957
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            -0.0170792019371667,
+            -0.016107446602474155,
+            -0.006180980941351162,
+            0.9997052798198779
+          ],
+          "Chest": [
+            -0.016995719785773338,
+            -0.019661382933134547,
+            -0.006117472376992179,
+            0.9996435124892458
+          ],
+          "Neck": [
+            0.008829094353364916,
+            0.008859448880022585,
+            0.00330906345192923,
+            0.9999163001759263
+          ],
+          "Head": [
+            0,
+            0.005332925213734665,
+            0,
+            0.999985779853226
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0.044019781708075516,
+            0.9990306595987801
+          ],
+          "LeftUpperArm": [
+            -0.16611180488297128,
+            0.09707053634418875,
+            0.5147706255317751,
+            0.8354611794344474
+          ],
+          "LeftForeArm": [
+            -0.1990512034071399,
+            0,
+            0,
+            0.9799890909710013
+          ],
+          "LeftHand": [
+            -0.02120473456266874,
+            -8.50326769926066e-05,
+            0.12432361605131412,
+            0.9920151160609884
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            -0.04350314253130801,
+            0.9990532901651947
+          ],
+          "RightUpperArm": [
+            -0.17790567679371241,
+            -0.10049714249562185,
+            -0.5077137868166584,
+            0.8369448041484425
+          ],
+          "RightForeArm": [
+            -0.21170387222941014,
+            0,
+            0,
+            0.9773338582506356
+          ],
+          "RightHand": [
+            -0.041840277108688526,
+            -0.0013490978727257468,
+            -0.12432408635869034,
+            0.9913582060473778
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            -0.10991054426783753,
+            0.005065620647817469,
+            0.044950499693913425,
+            0.9929116095219491
+          ],
+          "LeftLowerLeg": [
+            0.2187109698050947,
+            0,
+            0,
+            0.9757896861962186
+          ],
+          "LeftFoot": [
+            -0.10991054426783753,
+            -0.005065620647817469,
+            -0.044950499693913425,
+            0.9929116095219491
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            -0.09642091938802107,
+            0.004517277231881674,
+            0.04500900116839517,
+            0.9943122197401592
+          ],
+          "RightLowerLeg": [
+            0.19214135676812744,
+            0,
+            0,
+            0.981367260009882
+          ],
+          "RightFoot": [
+            -0.09642091938802107,
+            -0.004517277231881674,
+            -0.04500900116839517,
+            0.9943122197401592
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "hip-hop",
+      "view": "front",
+      "time": 9.5,
+      "actualRenderTime": 9.5,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          0,
+          1.05,
+          0
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Chest": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Neck": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Head": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperArm": [
+            0,
+            0,
+            0.1305261922200516,
+            0.9914448613738105
+          ],
+          "LeftForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperArm": [
+            0,
+            0,
+            -0.1305261922200516,
+            0.9914448613738105
+          ],
+          "RightForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "ballet",
+      "view": "front",
+      "time": 4,
+      "actualRenderTime": 4,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          0,
+          1.05,
+          0
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Chest": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Neck": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Head": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperArm": [
+            0,
+            0,
+            0.1305261922200516,
+            0.9914448613738105
+          ],
+          "LeftForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperArm": [
+            0,
+            0,
+            -0.1305261922200516,
+            0.9914448613738105
+          ],
+          "RightForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "ballet",
+      "view": "front",
+      "time": 5.8,
+      "actualRenderTime": 5.8,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          0,
+          1.0472368554999056,
+          0
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            -0.01745240643728351,
+            0,
+            0,
+            0.9998476951563913
+          ],
+          "Chest": [
+            -0.01745240643728351,
+            0,
+            0,
+            0.9998476951563913
+          ],
+          "Neck": [
+            0.008726535498373935,
+            0,
+            0,
+            0.9999619230641713
+          ],
+          "Head": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0.053033118367921815,
+            0.9985927540074453
+          ],
+          "LeftUpperArm": [
+            -0.1444186906105036,
+            0.06908941012667336,
+            0.6120133661921762,
+            0.7744737147333132
+          ],
+          "LeftForeArm": [
+            -0.10452846326765346,
+            0,
+            0,
+            0.9945218953682733
+          ],
+          "LeftHand": [
+            -0.03463936114628634,
+            0.004253178748303901,
+            0.12179510389394449,
+            0.9919415193434414
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            -0.053033118367921815,
+            0.9985927540074453
+          ],
+          "RightUpperArm": [
+            -0.1444186906105036,
+            -0.06908941012667336,
+            -0.6120133661921762,
+            0.7744737147333132
+          ],
+          "RightForeArm": [
+            -0.10452846326765346,
+            0,
+            0,
+            0.9945218953682733
+          ],
+          "RightHand": [
+            -0.03463936114628634,
+            -0.004253178748303901,
+            -0.12179510389394449,
+            0.9919415193434414
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            -0.03489949670250096,
+            0,
+            0,
+            0.9993908270190955
+          ],
+          "LeftLowerLeg": [
+            0.06975647374412532,
+            0,
+            0,
+            0.9975640502598243
+          ],
+          "LeftFoot": [
+            -0.03489949670250096,
+            0,
+            0,
+            0.9993908270190955
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            -0.03489949670250096,
+            0,
+            0,
+            0.9993908270190955
+          ],
+          "RightLowerLeg": [
+            0.06975647374412532,
+            0,
+            0,
+            0.9975640502598243
+          ],
+          "RightFoot": [
+            -0.03489949670250096,
+            0,
+            0,
+            0.9993908270190955
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "ballet",
+      "view": "front",
+      "time": 7.3,
+      "actualRenderTime": 7.3,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          0,
+          1.062523532368918,
+          0
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            -0.01698372209146817,
+            0.04114122321562827,
+            0.01076093200506501,
+            0.9989510274676251
+          ],
+          "Chest": [
+            -0.016875931050606616,
+            0.05023221364248978,
+            0.010597627459712714,
+            0.9985387413395513
+          ],
+          "Neck": [
+            0.008849978178094645,
+            -0.02270294051407551,
+            -0.005940326690518979,
+            0.999685433972643
+          ],
+          "Head": [
+            0,
+            -0.013653322389445268,
+            0,
+            0.9999067890497244
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0.03638689430372581,
+            0.9993377776922724
+          ],
+          "LeftUpperArm": [
+            -0.6451028947780595,
+            0.27975693557985654,
+            0.34180639937687163,
+            0.6234955472887952
+          ],
+          "LeftForeArm": [
+            -0.27859501692838706,
+            0,
+            0,
+            0.9604086716302971
+          ],
+          "LeftHand": [
+            -0.051376684214340045,
+            0.003957677428228355,
+            0.07644946355298639,
+            0.9957410570178247
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            -0.04672072223299196,
+            0.9989079908149837
+          ],
+          "RightUpperArm": [
+            -0.42361386586509925,
+            -0.19353594975446692,
+            -0.5189963948169242,
+            0.7167550983191522
+          ],
+          "RightForeArm": [
+            -0.18345094471917278,
+            0,
+            0,
+            0.983028865741817
+          ],
+          "RightHand": [
+            -0.03765794742365666,
+            -0.004440262452416423,
+            -0.11541613793210465,
+            0.9925932088071265
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            -0.029833668976780227,
+            0,
+            0,
+            0.9995548770304628
+          ],
+          "LeftLowerLeg": [
+            0.05964077865090621,
+            0,
+            0,
+            0.9982199043907679
+          ],
+          "LeftFoot": [
+            0.02902228082123757,
+            0,
+            0,
+            0.9995787648884571
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            -0.029833668976780227,
+            0,
+            0,
+            0.9995548770304628
+          ],
+          "RightLowerLeg": [
+            0.05964077865090621,
+            0,
+            0,
+            0.9982199043907679
+          ],
+          "RightFoot": [
+            0.02902228082123757,
+            0,
+            0,
+            0.9995787648884571
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "style": "ballet",
+      "view": "front",
+      "time": 9.5,
+      "actualRenderTime": 9.5,
+      "maxExpectedPoseDifference": 0,
+      "motionPresentation": "author",
+      "pose": {
+        "root": [
+          0,
+          1.05,
+          0
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Chest": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Neck": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Head": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperArm": [
+            0,
+            0,
+            0.1305261922200516,
+            0.9914448613738105
+          ],
+          "LeftForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperArm": [
+            0,
+            0,
+            -0.1305261922200516,
+            0.9914448613738105
+          ],
+          "RightForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    }
+  ],
+  "videos": [
+    {
+      "path": "/workspace/ChoreographyStudio/work/model-selection-20261014/product-preview/chinese-classical-native-stage-playback.raw.webm",
+      "bytes": 108046,
+      "sha256": "65496702fb63b7f9b4dd58c54e2d177e65cc0e480f0120504180c9a4643a4287",
+      "mime": "video/webm;codecs=vp9",
+      "wallDurationSeconds": 7.004800000000745,
+      "startSceneSeconds": 4,
+      "stopRenderTime": 9.894199999999255,
+      "rate": 1,
+      "scope": "MediaRecorder of the current native Stage canvas during normal app playback; starts/stops include browser scheduling delay. Not yet an exact 5.5-second edit or frame-rate guarantee.",
+      "captureAnalysis": {
+        "source": "current app Stage canvas, normal transport rate1",
+        "rawFile": "chinese-classical-native-stage-playback.raw.webm",
+        "indexedReviewFile": "chinese-classical-native-stage-playback-review.webm",
+        "operation": "ffmpeg stream-copy remux with -t 5.5; no new renderer, no synthesized/interpolated motion, no duplicated-frame smoothing",
+        "rawFrames": 17,
+        "rawEncodedPtsStartSeconds": 0.0,
+        "rawEncodedPtsLastFrameSeconds": 5.337,
+        "rawFrameIntervalSpanApproxFPS": 2.9979389169945665,
+        "indexedDurationSeconds": 5.337,
+        "indexedProbe": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [
+            {
+              "codec_name": "vp9",
+              "width": 1440,
+              "height": 648,
+              "nb_read_frames": "17"
+            }
+          ],
+          "format": {
+            "duration": "5.337000"
+          }
+        },
+        "limitation": "Only 17 encoded frames over 5.337 seconds in this SwiftShader environment. Recording includes scheduling delay; the app stop sample was 9.8942 seconds. The remuxed review file is 5.337 seconds, not exact 4..9.5 or a verified 5.5-second/30FPS clip. Preserve raw; do not use this low-frame capture to certify smoothness or style."
+      }
+    }
+  ],
+  "styleAssessment": "not assessed; screenshots and playback are review material, not proof of dance genre fidelity/naturalness",
+  "success": true,
+  "finishedAtUTC": "2026-10-14T05:52:11.178Z",
+  "artifactHashes": [
+    {
+      "path": "ballet-front-4s.png",
+      "bytes": 294067,
+      "sha256": "ea4c3880c7c26bde11ff955eaa4d3e9eaa1bbd05f2ae9dbd6f2086f033edbf0c"
+    },
+    {
+      "path": "ballet-front-5p8s.png",
+      "bytes": 295226,
+      "sha256": "30e72ee62903700d9feb7d183a56fe432f2cf88c5f15546ee24556fdba896cd0"
+    },
+    {
+      "path": "ballet-front-7p3s.png",
+      "bytes": 301644,
+      "sha256": "919dcc7754d67035148550b5e2f56eac434192481a35f6b8b2b017d0ccfafdf9"
+    },
+    {
+      "path": "ballet-front-9p5s.png",
+      "bytes": 294263,
+      "sha256": "55ca4fb8dd766f72e3884d0bf0664668b76b3446187fe053e00b18a80ecf6bb8"
+    },
+    {
+      "path": "chinese-classical-front-4p7s.png",
+      "bytes": 297824,
+      "sha256": "a006aec44c83eff3b2c7b4b47bdca5ca2c12766ceee4f5e5e4815bb1f88d0f52"
+    },
+    {
+      "path": "chinese-classical-front-4s.png",
+      "bytes": 294501,
+      "sha256": "769ef6448b06047b60c57b26849dcf9d9d6d3b5d5ee1b7b3b274e2d70aaa59e7"
+    },
+    {
+      "path": "chinese-classical-front-5p8s.png",
+      "bytes": 304547,
+      "sha256": "a666398cf238df567490ade134d6d227cbe6bcd249602167e07d9a0f9114d601"
+    },
+    {
+      "path": "chinese-classical-front-7p3s.png",
+      "bytes": 301367,
+      "sha256": "c787c87e9bd3477f7d3532012a67907fce00c2d44348d7c77023ae3167236028"
+    },
+    {
+      "path": "chinese-classical-front-8p7s.png",
+      "bytes": 299856,
+      "sha256": "dc396229493be5037d8b754517ce732b358b24a03f5f8c1676811157b5940aa6"
+    },
+    {
+      "path": "chinese-classical-front-9p5s.png",
+      "bytes": 294792,
+      "sha256": "f55d91666ff34d724bdb0db49ee34724ae44f3d08d67d2e63b719d96431ca0ee"
+    },
+    {
+      "path": "chinese-classical-left-5p8s.png",
+      "bytes": 278892,
+      "sha256": "8c454f586fbf3aefe2793a9f1a9e1ab7d3f9c70163964b06e805c85d52bcff85"
+    },
+    {
+      "path": "chinese-classical-left-7p3s.png",
+      "bytes": 279008,
+      "sha256": "01765cdf1123331f300d13c9b8ceba03512e0a751c80a3dd09fc84f12b9f8e31"
+    },
+    {
+      "path": "hip-hop-front-4s.png",
+      "bytes": 294224,
+      "sha256": "0a1ac61757d798f0151a200aec02a9a419b9b2efafc03ded9e90dae65779ba35"
+    },
+    {
+      "path": "hip-hop-front-5p8s.png",
+      "bytes": 301715,
+      "sha256": "930bbed37cc12459ff7f0e05b41d460d71bda69824496eecf55f4d715c566828"
+    },
+    {
+      "path": "hip-hop-front-7p3s.png",
+      "bytes": 299201,
+      "sha256": "18af9839a1a954b4ad924e65c9b0a2fd2f3e8cb4a14df932fd41d71f0c55270e"
+    },
+    {
+      "path": "hip-hop-front-9p5s.png",
+      "bytes": 294413,
+      "sha256": "5e02a17602b3d611afcf4e89f109fd520cfad5a163a1e432523612f6ff9411c9"
+    },
+    {
+      "path": "chinese-classical-native-stage-playback-review.webm",
+      "bytes": 108402,
+      "sha256": "a06d9d5f991ef216e8e41a6636d7eebbddce755e758b41dd5016bd0eb1f62346"
+    }
+  ],
+  "priorLocalHarnessFailure": {
+    "receipt": "attempt01-product-preview-receipt.json",
+    "reason": "The harness omitted the comma in the real unsaved-dialog button name. It never imported a scene or requested API/prior/provider work. Corrected only the ignored harness selector; application source unchanged by this agent."
+  },
+  "visualInspectionByAgent": [
+    "chinese-classical-front-5p8s.png",
+    "chinese-classical-left-7p3s.png",
+    "hip-hop-front-7p3s.png",
+    "ballet-front-7p3s.png"
+  ],
+  "visualConclusion": "Actual native skin, stage floor and whole body are visible in these images. Style/naturalness not certified; exact original snapshots/base take/patches and sampled Stage pose equality were verified.",
+  "runtimeSourceAfterOnly": [
+    {
+      "path": "apps/web/src/App.tsx",
+      "sha256": "7bde08cbd77f6ed0dc09011aec086a5f752e0b7bd78c9d849140386bb1cdcf04"
+    },
+    {
+      "path": "apps/web/src/Stage.tsx",
+      "sha256": "2a825e45cd367e23eb4faa25bdf0fae9b1fdeda0ca20b4e5eea24ea6b1d9db3f"
+    },
+    {
+      "path": "apps/web/src/Humanoid.ts",
+      "sha256": "6144997d74847a7ccb0924923326726c9ddf5f5b77375784d40ba8b4be5bdc71"
+    },
+    {
+      "path": "packages/core/src/aiMotionTrack.ts",
+      "sha256": "22baba96105431d9d1adb2a814ca95bcc924d817f1ee02b870c0b0a6a7681ec6"
+    },
+    {
+      "path": "packages/core/src/aiMotion.ts",
+      "sha256": "5f048b29ea19053a89a081d0d84f2f052346e69554d7c9fcd820ae456c2ce015"
+    }
+  ],
+  "runtimeSourceHashScope": "After-only local source identities; no before-run source guard, no CI/publication claim. This agent wrote only ignored work artifacts/harness files."
+}

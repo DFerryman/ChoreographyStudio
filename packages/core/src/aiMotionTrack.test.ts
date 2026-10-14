@@ -231,6 +231,45 @@ describe('independent AI motion layers', () => {
     expect(JSON.stringify({ take, oldTrack })).toBe(original);
   });
 
+  it('compiles and restores true session identity without changing the motion or source seams', () => {
+    const timing = map(), request = requestFor(poseAt, timing), originalResult = resultFor(request);
+    const response: AIMotionResult = { ...originalResult, provider: 'codex-session', model: 'gpt-6.1-sol' };
+    const options = { expectedProvider: 'codex-session', expectedModel: 'gpt-6.1-sol' } as const;
+    const original = JSON.stringify({ request, response, options });
+    expect(() => compileAIMotionPatch(request, response, poseAt)).toThrow(/过期/);
+    const patch = compileAIMotionPatch(request, response, poseAt, options);
+    expect(patch.provider).toBe('codex-session'); expect(patch.model).toBe('gpt-6.1-sol');
+    expect(patch.motionOrigin).toBeUndefined();
+    expect(patch.knots).toEqual(compileAIMotionPatch(request, originalResult, poseAt).knots);
+    const track = appendAIMotionPatch(undefined, patch, timing), restored = JSON.parse(JSON.stringify(track));
+    expect(validateAIMotionTrack(restored, timing, poseAt)).toEqual(track);
+    for (const time of [0, 3.999999, 4, 8, 8.000001, 16]) expect(createAIMotionSampler(poseAt, restored)(time)).toEqual(poseAt(time));
+    expect(() => compileAIMotionPatch(request, response, poseAt,
+      { expectedProvider: 'cloudflare-workers-ai', expectedModel: 'gpt-6.1-sol' } as any)).toThrow();
+    const changed = (time: number) => { const value = poseAt(time); if (time === 4) value.root[0] += .001; return value; };
+    expect(() => compileAIMotionPatch(request, response, changed, options)).toThrow(/原稿边界已变化/);
+    expect(JSON.stringify({ request, response, options })).toBe(original);
+  });
+
+  it('rejects incorrect stored identity pairs and session human-prior claims without increasing sparse limits', () => {
+    const timing = map(), request = requestFor(poseAt, timing);
+    const response: AIMotionResult = { ...resultFor(request), provider: 'codex-session', model: 'gpt-6.1-sol' };
+    const patch = compileAIMotionPatch(request, response, poseAt, { expectedProvider: 'codex-session', expectedModel: 'gpt-6.1-sol' });
+    const track = appendAIMotionPatch(undefined, patch, timing);
+    for (const [provider, model] of [
+      ['cloudflare-workers-ai', 'gpt-6.1-sol'], ['codex-session', AI_MOTION_MODEL],
+      ['codex-session', '@cf/qwen/qwen3-30b-a3b-fp8'], ['codex-session', 'unknown'], ['unknown', 'gpt-6.1-sol'],
+    ]) {
+      const changed = structuredClone(track); Object.assign(changed.patches[0], { provider, model });
+      expect(() => validateAIMotionTrack(changed, timing)).toThrow(/来源/);
+    }
+    const fakePrior = structuredClone(track); fakePrior.patches[0].motionOrigin = { kind: 'human-motion-prior' } as any;
+    expect(() => validateAIMotionTrack(fakePrior, timing)).toThrow(/不能标记/);
+    const dense = structuredClone(track);
+    dense.patches[0].knots = Array.from({ length: 51 }, (_, index) => ({ ...structuredClone(patch.knots[0]), time: 4 + index * 4 / 50 }));
+    expect(() => validateAIMotionTrack(dense, timing)).toThrow(/数量/);
+  });
+
   it('checks restored seam authority against the source and prior AI layers when provided', () => {
     const timing = map(), full = compile(poseAt, timing, 'full'), fullSampler = createAIMotionSampler(poseAt, full.track);
     const local = compile(fullSampler, timing, 'interval', 4, 8), track = appendAIMotionPatch(full.track, local.patch, timing);

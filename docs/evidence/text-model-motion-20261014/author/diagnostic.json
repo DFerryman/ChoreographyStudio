@@ -1,0 +1,38 @@
+{
+  "ballet.raw.json": {
+    "keyframes": 16,
+    "firstTime": 4.12,
+    "lastTime": 9.22,
+    "schemaDiagnosticIssues": [],
+    "maxAbsoluteEulerDegrees": 115,
+    "maxEulerVectorSecantDegreesPerSecond": 139.60522689771557,
+    "diagnosticOnly": true,
+    "physicalAcceptance": "not evaluated",
+    "styleAcceptance": "not evaluated",
+    "limitations": "Secant Euler speed is not SO3 speed, spline acceleration, anatomical-envelope or continuous-time physics evaluation."
+  },
+  "chinese-classical.raw.json": {
+    "keyframes": 16,
+    "firstTime": 4.12,
+    "lastTime": 9.2,
+    "schemaDiagnosticIssues": [],
+    "maxAbsoluteEulerDegrees": 78,
+    "maxEulerVectorSecantDegreesPerSecond": 125.09511951845145,
+    "diagnosticOnly": true,
+    "physicalAcceptance": "not evaluated",
+    "styleAcceptance": "not evaluated",
+    "limitations": "Secant Euler speed is not SO3 speed, spline acceleration, anatomical-envelope or continuous-time physics evaluation."
+  },
+  "hip-hop.raw.json": {
+    "keyframes": 18,
+    "firstTime": 4.12,
+    "lastTime": 9.22,
+    "schemaDiagnosticIssues": [],
+    "maxAbsoluteEulerDegrees": 95,
+    "maxEulerVectorSecantDegreesPerSecond": 206.6666666666668,
+    "diagnosticOnly": true,
+    "physicalAcceptance": "not evaluated",
+    "styleAcceptance": "not evaluated",
+    "limitations": "Secant Euler speed is not SO3 speed, spline acceleration, anatomical-envelope or continuous-time physics evaluation."
+  }
+}

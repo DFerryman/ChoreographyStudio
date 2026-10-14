@@ -1,0 +1,545 @@
+{
+  "schema": "independent-codex-text-motion-gate-review-1",
+  "recordedAtUtc": "2026-10-14T05:48:25.293047+00:00",
+  "clientTimezone": "Asia/Shanghai",
+  "method": "Read-only artifact/hash/component comparison and source inspection. No model, network, detector or test re-execution.",
+  "sourceHead": "05ecab83ba289caaea8adbe745c7cc3c79f400db",
+  "result": "All three current final candidates pass the existing finite engineering gate; Chinese and HipHop raw curves already pass unchanged, Ballet needs 25.669mm Root conditioning. Style and naturalness remain unassessed.",
+  "fixture": {
+    "sourcePath": "work/model-selection-20261014/text-motion-experiment/owned-source-snapshot.json",
+    "sourceSha256": "053f4b1a5763a829aa65c7755ee41be38ba780f34e4f26553c3f6c0d68b527c0",
+    "durationSeconds": 32,
+    "takeSampleTimes": [
+      0,
+      32
+    ],
+    "ownedStaticFixture": true,
+    "originalUserSceneOrAudioUsed": false,
+    "actualAudioFilePresent": false
+  },
+  "styles": [
+    {
+      "styleRequested": "ballet",
+      "folder": "work/model-selection-20261014/text-motion-experiment/audit-ballet-1791956376740",
+      "receiptSha256": "23f70a034b7975150320e4ec9aedbfaf0470d8223138cbfbacd6d58ceae14093",
+      "rawResponseSha256": "c6b84b29f041b4de7adcb6ac3c7b6acd071ab59c599375b956a09d873346e458",
+      "trustedIdentity": {
+        "expectedProvider": "codex-session",
+        "expectedModel": "gpt-6.1-sol"
+      },
+      "identityExecutionAttestation": "Operator supplied identity; schema itself does not prove the author model ran. Actual collaboration generation receipt is separate.",
+      "httpStatus": null,
+      "actualExternalProviderCallsByAuditor": 0,
+      "auditorNetworkRequests": 0,
+      "usesCatalog": false,
+      "usesHumanPrior": false,
+      "rawKeyframes": 16,
+      "compiledKnots": 18,
+      "target": {
+        "mode": "interval",
+        "startSeconds": 4,
+        "endSeconds": 9.5
+      },
+      "rawGate": {
+        "status": "rejected",
+        "violations": 180,
+        "violationCounts": {
+          "floor-penetration": 180
+        },
+        "maxFloorDepthMeters": 0.019628157325453255
+      },
+      "finalGate": {
+        "independentCorrectFalseEvidence": "audit.ts raw and final calls explicitly pass correct:false; saved final report corrections empty and patch equals solver-returned exactly. This review did not rerun the detector.",
+        "accepted": true,
+        "status": "accepted",
+        "totalViolations": 0,
+        "recordedViolations": [],
+        "corrections": [],
+        "profileId": "neutral-rig-2-functional-proxy-1",
+        "scope": "adaptive-sampled-kinematic-proxy",
+        "articulatedDynamics": false,
+        "coverage": {
+          "complete": true,
+          "samples": 365,
+          "maxGapSeconds": 0.016500000000000625,
+          "maxRootStepMeters": 0.001759817663460117,
+          "maxJointStepRadians": 0.03364819184872346,
+          "maxSamples": 12000
+        },
+        "derivativeCoverage": {
+          "method": "one-sided-so3-curvature",
+          "complete": true,
+          "spans": 17,
+          "stencils": 34,
+          "poseSamples": 68,
+          "maxPoseSamples": 7208,
+          "maxStepSeconds": 0.00017578125000028422
+        },
+        "metrics": {
+          "maxRootSpeedMps": 0.11387055469448357,
+          "maxJointSpeedRadiansPerSecond": 2.9689581042989905,
+          "maxRootAccelerationMps2": 0.7032316066520578,
+          "maxJointAccelerationRadiansPerSecondSquared": 25.670887177057452,
+          "maxSelfDepthMeters": 0,
+          "maxFloorDepthMeters": 0,
+          "supportedSamples": 365,
+          "airborneSamples": 0,
+          "unknownContactSamples": 365,
+          "maxPoseCorrectionDegrees": 0,
+          "maxRootCorrectionMeters": 0,
+          "groundedForceSamples": 363,
+          "minNormalForceNewtons": 627.8223079889679,
+          "maxNormalForceNewtons": 722.9868554584334,
+          "maxHorizontalContactForceNewtons": 43.407981716721636,
+          "maxFrictionExcessNewtons": 0
+        }
+      },
+      "changesFromRaw": {
+        "entirePatchExactlyUnchanged": false,
+        "rootConditioningReportedMaxMeters": 0.025668757526386976,
+        "actualSampledFinalRootMaxDisplacementMeters": 0.025668757526386976,
+        "actualSampledFinalJointDifferenceRadiansReporter": 5.960464477539063e-08,
+        "actualJointQuaternionOrAngularVelocityChanges": false,
+        "zeroDifferenceAcosNoise": "All original/final quaternion and angular-velocity components match exactly; the ~5.96e-8 rad orientation-difference reporter is near-zero acos roundoff, not a real joint correction.",
+        "finalGateReportedRootCorrectionMeters": 0,
+        "finalGateReportedPoseCorrectionDegrees": 0,
+        "note": "Final correct:false correction metrics measure no correction performed by that inspection; Ballet total Root conditioning must be disclosed separately."
+      },
+      "preservation": {
+        "sourceFileHashMatchesReceipt": true,
+        "rawFileHashMatchesReceipt": true,
+        "requestHashMatchesReceipt": true,
+        "receiptSourceObjectUnchanged": true,
+        "receiptSourceFileUnchanged": true,
+        "receiptRawResponseUnchanged": true,
+        "receiptFrozenOutsideSampleChecksExact": true,
+        "finalPatchExactlyEqualsSolverReturnedPatch": true,
+        "firstAndLastKnotsExactlyEqualRawCompiledPatch": true,
+        "startPoseAndVelocitiesExactlyEqualRequestBoundary": true,
+        "endPoseAndVelocitiesExactlyEqualRequestBoundary": true,
+        "allJointQuaternionComponentsExactlyUnchangedFromRaw": true,
+        "allAngularVelocityComponentsExactlyUnchangedFromRaw": true
+      },
+      "styleAndNaturalness": {
+        "status": "unassessed",
+        "summaryOrJSONProvesStyle": false,
+        "visualReviewByThisReviewer": false,
+        "realDanceTeacherReviewByThisReviewer": false
+      },
+      "fileSha256": {
+        "audit-receipt.json": "23f70a034b7975150320e4ec9aedbfaf0470d8223138cbfbacd6d58ceae14093",
+        "raw-compiled-patch.json": "78a225a4ccf3e0b52471f3a83b4296c507448ea9d0f108cb2dd2236858486e80",
+        "raw-independent-gate.json": "801bc0b618c240d51e4f59c5a27051425740b7f30abc0629235865e8da4c4d5e",
+        "root-conditioning-report.json": "30c49ea3f22beebef62d394536582f8919779b32039cdd2c76ee7036810c0dda",
+        "solver-returned-patch.json": "49787b4e84713d5e20e6f77b2b3e89981c90c924d7bb8bcbb439c7c9a6749d6f",
+        "final-independent-gate.json": "d1aa2e951cac6616238d3d8b88e79690f8771ac49469102ff6dadaceca9c9958",
+        "last-actual-correction-differences.json": "88e85b65dc30abf4006ec3d9eb6c305874d7aa2dcee88fac198e3f4a31790dc5"
+      }
+    },
+    {
+      "styleRequested": "chinese-classical",
+      "folder": "work/model-selection-20261014/text-motion-experiment/audit-chinese-classical-1791956279320",
+      "receiptSha256": "599edc805e0a066273f79967efa49a5d82e71220a8b9814d1fb7a058e2e02d0d",
+      "rawResponseSha256": "3097a267e82c8cd452c10a4f0db00c624d08b8642d6f0d1b1c43efaf4d03c859",
+      "trustedIdentity": {
+        "expectedProvider": "codex-session",
+        "expectedModel": "gpt-6.1-sol"
+      },
+      "identityExecutionAttestation": "Operator supplied identity; schema itself does not prove the author model ran. Actual collaboration generation receipt is separate.",
+      "httpStatus": null,
+      "actualExternalProviderCallsByAuditor": 0,
+      "auditorNetworkRequests": 0,
+      "usesCatalog": false,
+      "usesHumanPrior": false,
+      "rawKeyframes": 16,
+      "compiledKnots": 18,
+      "target": {
+        "mode": "interval",
+        "startSeconds": 4,
+        "endSeconds": 9.5
+      },
+      "rawGate": {
+        "status": "accepted",
+        "violations": 0,
+        "violationCounts": {},
+        "maxFloorDepthMeters": 0
+      },
+      "finalGate": {
+        "independentCorrectFalseEvidence": "audit.ts raw and final calls explicitly pass correct:false; saved final report corrections empty and patch equals solver-returned exactly. This review did not rerun the detector.",
+        "accepted": true,
+        "status": "accepted",
+        "totalViolations": 0,
+        "recordedViolations": [],
+        "corrections": [],
+        "profileId": "neutral-rig-2-functional-proxy-1",
+        "scope": "adaptive-sampled-kinematic-proxy",
+        "articulatedDynamics": false,
+        "coverage": {
+          "complete": true,
+          "samples": 363,
+          "maxGapSeconds": 0.016363636363637468,
+          "maxRootStepMeters": 0.0029564774962980533,
+          "maxJointStepRadians": 0.03369069244616086,
+          "maxSamples": 12000
+        },
+        "derivativeCoverage": {
+          "method": "one-sided-so3-curvature",
+          "complete": true,
+          "spans": 17,
+          "stencils": 34,
+          "poseSamples": 68,
+          "maxPoseSamples": 7208,
+          "maxStepSeconds": 0.00018554687500049738
+        },
+        "metrics": {
+          "maxRootSpeedMps": 0.191301485054578,
+          "maxJointSpeedRadiansPerSecond": 2.7745276132132775,
+          "maxRootAccelerationMps2": 0.8709540088398438,
+          "maxJointAccelerationRadiansPerSecondSquared": 23.124226811922846,
+          "maxSelfDepthMeters": 0,
+          "maxFloorDepthMeters": 0,
+          "supportedSamples": 363,
+          "airborneSamples": 0,
+          "unknownContactSamples": 363,
+          "maxPoseCorrectionDegrees": 0,
+          "maxRootCorrectionMeters": 0,
+          "groundedForceSamples": 361,
+          "minNormalForceNewtons": 664.5389693254641,
+          "maxNormalForceNewtons": 706.7577947948195,
+          "maxHorizontalContactForceNewtons": 71.97287855180693,
+          "maxFrictionExcessNewtons": 0
+        }
+      },
+      "changesFromRaw": {
+        "entirePatchExactlyUnchanged": true,
+        "rootConditioningReportedMaxMeters": 0,
+        "actualSampledFinalRootMaxDisplacementMeters": 0,
+        "actualSampledFinalJointDifferenceRadiansReporter": 5.960464477539063e-08,
+        "actualJointQuaternionOrAngularVelocityChanges": false,
+        "zeroDifferenceAcosNoise": "All original/final quaternion and angular-velocity components match exactly; the ~5.96e-8 rad orientation-difference reporter is near-zero acos roundoff, not a real joint correction.",
+        "finalGateReportedRootCorrectionMeters": 0,
+        "finalGateReportedPoseCorrectionDegrees": 0,
+        "note": "Final correct:false correction metrics measure no correction performed by that inspection; Ballet total Root conditioning must be disclosed separately."
+      },
+      "preservation": {
+        "sourceFileHashMatchesReceipt": true,
+        "rawFileHashMatchesReceipt": true,
+        "requestHashMatchesReceipt": true,
+        "receiptSourceObjectUnchanged": true,
+        "receiptSourceFileUnchanged": true,
+        "receiptRawResponseUnchanged": true,
+        "receiptFrozenOutsideSampleChecksExact": true,
+        "finalPatchExactlyEqualsSolverReturnedPatch": true,
+        "firstAndLastKnotsExactlyEqualRawCompiledPatch": true,
+        "startPoseAndVelocitiesExactlyEqualRequestBoundary": true,
+        "endPoseAndVelocitiesExactlyEqualRequestBoundary": true,
+        "allJointQuaternionComponentsExactlyUnchangedFromRaw": true,
+        "allAngularVelocityComponentsExactlyUnchangedFromRaw": true
+      },
+      "styleAndNaturalness": {
+        "status": "unassessed",
+        "summaryOrJSONProvesStyle": false,
+        "visualReviewByThisReviewer": false,
+        "realDanceTeacherReviewByThisReviewer": false
+      },
+      "fileSha256": {
+        "audit-receipt.json": "599edc805e0a066273f79967efa49a5d82e71220a8b9814d1fb7a058e2e02d0d",
+        "raw-compiled-patch.json": "ac98fc67a25acbdcee752e6edd914171913347b9d225cda064bb70e43d7f2d66",
+        "raw-independent-gate.json": "8492d6c81243c329d309312fbb6264a8df0e19a489270b7a1c7ce8196db855ec",
+        "root-conditioning-report.json": "58e381849feded226cf2d2b3ead514080ed011084fea264f72e0660d627cdb61",
+        "solver-returned-patch.json": "ac98fc67a25acbdcee752e6edd914171913347b9d225cda064bb70e43d7f2d66",
+        "final-independent-gate.json": "8492d6c81243c329d309312fbb6264a8df0e19a489270b7a1c7ce8196db855ec",
+        "last-actual-correction-differences.json": "7aeae86b55b1ff0e13111ec018cfadcc91ccb4fff798eebb943a9ee2ff97922d"
+      }
+    },
+    {
+      "styleRequested": "hip-hop",
+      "folder": "work/model-selection-20261014/text-motion-experiment/audit-hip-hop-1791956376756",
+      "receiptSha256": "4a56ae6c031c3ba616bb452c203344548817338dc60304fcdae8d71db43f70b5",
+      "rawResponseSha256": "b3f4589904d56bba19cfec5441b732d5181d0d7ac51cb16290a30b9159153a16",
+      "trustedIdentity": {
+        "expectedProvider": "codex-session",
+        "expectedModel": "gpt-6.1-sol"
+      },
+      "identityExecutionAttestation": "Operator supplied identity; schema itself does not prove the author model ran. Actual collaboration generation receipt is separate.",
+      "httpStatus": null,
+      "actualExternalProviderCallsByAuditor": 0,
+      "auditorNetworkRequests": 0,
+      "usesCatalog": false,
+      "usesHumanPrior": false,
+      "rawKeyframes": 18,
+      "compiledKnots": 20,
+      "target": {
+        "mode": "interval",
+        "startSeconds": 4,
+        "endSeconds": 9.5
+      },
+      "rawGate": {
+        "status": "accepted",
+        "violations": 0,
+        "violationCounts": {},
+        "maxFloorDepthMeters": 0
+      },
+      "finalGate": {
+        "independentCorrectFalseEvidence": "audit.ts raw and final calls explicitly pass correct:false; saved final report corrections empty and patch equals solver-returned exactly. This review did not rerun the detector.",
+        "accepted": true,
+        "status": "accepted",
+        "totalViolations": 0,
+        "recordedViolations": [],
+        "corrections": [],
+        "profileId": "neutral-rig-2-functional-proxy-1",
+        "scope": "adaptive-sampled-kinematic-proxy",
+        "articulatedDynamics": false,
+        "coverage": {
+          "complete": true,
+          "samples": 475,
+          "maxGapSeconds": 0.016666666666667496,
+          "maxRootStepMeters": 0.003413496539294628,
+          "maxJointStepRadians": 0.03450937431937242,
+          "maxSamples": 12000
+        },
+        "derivativeCoverage": {
+          "method": "one-sided-so3-curvature",
+          "complete": true,
+          "spans": 19,
+          "stencils": 38,
+          "poseSamples": 76,
+          "maxPoseSamples": 7208,
+          "maxStepSeconds": 0.0001562499999998579
+        },
+        "metrics": {
+          "maxRootSpeedMps": 0.25183908939602156,
+          "maxJointSpeedRadiansPerSecond": 4.600560644665744,
+          "maxRootAccelerationMps2": 2.056496654358937,
+          "maxJointAccelerationRadiansPerSecondSquared": 42.82088428082469,
+          "maxSelfDepthMeters": 0,
+          "maxFloorDepthMeters": 0,
+          "supportedSamples": 475,
+          "airborneSamples": 0,
+          "unknownContactSamples": 475,
+          "maxPoseCorrectionDegrees": 0,
+          "maxRootCorrectionMeters": 0,
+          "groundedForceSamples": 473,
+          "minNormalForceNewtons": 540.3545936774561,
+          "maxNormalForceNewtons": 827.0697787889145,
+          "maxHorizontalContactForceNewtons": 149.2202349784519,
+          "maxFrictionExcessNewtons": 0
+        }
+      },
+      "changesFromRaw": {
+        "entirePatchExactlyUnchanged": true,
+        "rootConditioningReportedMaxMeters": 0,
+        "actualSampledFinalRootMaxDisplacementMeters": 0,
+        "actualSampledFinalJointDifferenceRadiansReporter": 5.960464477539063e-08,
+        "actualJointQuaternionOrAngularVelocityChanges": false,
+        "zeroDifferenceAcosNoise": "All original/final quaternion and angular-velocity components match exactly; the ~5.96e-8 rad orientation-difference reporter is near-zero acos roundoff, not a real joint correction.",
+        "finalGateReportedRootCorrectionMeters": 0,
+        "finalGateReportedPoseCorrectionDegrees": 0,
+        "note": "Final correct:false correction metrics measure no correction performed by that inspection; Ballet total Root conditioning must be disclosed separately."
+      },
+      "preservation": {
+        "sourceFileHashMatchesReceipt": true,
+        "rawFileHashMatchesReceipt": true,
+        "requestHashMatchesReceipt": true,
+        "receiptSourceObjectUnchanged": true,
+        "receiptSourceFileUnchanged": true,
+        "receiptRawResponseUnchanged": true,
+        "receiptFrozenOutsideSampleChecksExact": true,
+        "finalPatchExactlyEqualsSolverReturnedPatch": true,
+        "firstAndLastKnotsExactlyEqualRawCompiledPatch": true,
+        "startPoseAndVelocitiesExactlyEqualRequestBoundary": true,
+        "endPoseAndVelocitiesExactlyEqualRequestBoundary": true,
+        "allJointQuaternionComponentsExactlyUnchangedFromRaw": true,
+        "allAngularVelocityComponentsExactlyUnchangedFromRaw": true
+      },
+      "styleAndNaturalness": {
+        "status": "unassessed",
+        "summaryOrJSONProvesStyle": false,
+        "visualReviewByThisReviewer": false,
+        "realDanceTeacherReviewByThisReviewer": false
+      },
+      "fileSha256": {
+        "audit-receipt.json": "4a56ae6c031c3ba616bb452c203344548817338dc60304fcdae8d71db43f70b5",
+        "raw-compiled-patch.json": "aead7b8029875c0387001f137153352863857de6d62ca397915bdaca7f3f6b76",
+        "raw-independent-gate.json": "455f07f6b73cb636884838c99d1bd3d31f89889d76bad0d346bb04e86b065b35",
+        "root-conditioning-report.json": "ee2e9bdd02d57e6b816f636bd8d441932c3ee8651f29b1721035d34b2dc40d47",
+        "solver-returned-patch.json": "aead7b8029875c0387001f137153352863857de6d62ca397915bdaca7f3f6b76",
+        "final-independent-gate.json": "455f07f6b73cb636884838c99d1bd3d31f89889d76bad0d346bb04e86b065b35",
+        "last-actual-correction-differences.json": "cb37f36939fe80f340f54335c63ac7ce1613bb0edca2426ed993d3f23221d7f3"
+      }
+    }
+  ],
+  "unchangedDetectorAndProfileFiles": [
+    {
+      "path": "packages/core/src/motionFeasibility.ts",
+      "sha256": "b3b47a4de98bc9210e20eb7e5a7395c23be647b895f84e0ed3690d0a5982ab0f",
+      "exactlyMatchesHead": true
+    },
+    {
+      "path": "packages/core/src/motionGrounding.ts",
+      "sha256": "684c731a0f49a709ba55d46cfe1a032609bc9f54aa5e23b7dfe2f9ced99e3978",
+      "exactlyMatchesHead": true
+    },
+    {
+      "path": "packages/core/src/humanProfile.ts",
+      "sha256": "e5458fdbdea4309bb036e51df8169c48ab565fcd3277e13049356792f419f0fc",
+      "exactlyMatchesHead": true
+    },
+    {
+      "path": "packages/core/src/humanoid.ts",
+      "sha256": "9f01217d4fa6168effc7561d8c96509bb7be763a8082e43717d2f78088806883",
+      "exactlyMatchesHead": true
+    },
+    {
+      "path": "packages/core/src/avatarCapsules.generated.ts",
+      "sha256": "c222ce1cc78c9b27ed9ae0b436a5f44c899be1850c95cd9864bc4b1d086bd5e1",
+      "exactlyMatchesHead": true
+    },
+    {
+      "path": "apps/web/src/motionSourcePreflight.ts",
+      "sha256": "6c7c9b45ec113fe3079164e5720ba302b23103e4992b660a4f8a2fe6de45977f",
+      "exactlyMatchesHead": true
+    }
+  ],
+  "thresholdsFromSource": {
+    "groundPenetrationToleranceMeters": 0.003,
+    "groundNumericalEpsilonMeters": 2e-08,
+    "maxRootSpeedMps": 8,
+    "maxJointSpeedRadiansPerSecond": 16,
+    "maxRootAccelerationMps2": 65,
+    "maxJointAccelerationRadiansPerSecondSquared": 250,
+    "geometryMaxGapSeconds": 0.016666666666666666,
+    "geometryMaxRootStepMeters": 0.01,
+    "geometryMaxJointStepRadians": 0.03490658503988659,
+    "profile": "neutral-rig-2-functional-proxy-1"
+  },
+  "outsidePreservationEvidence": {
+    "sixActualReceiptTimes": "0, 3.999999, 4, 9.5, 9.500001, 32 compared exactly by existing auditor",
+    "allOutsideFunctionEvidence": "createAIMotionSampler only samples interval patch for start < time < end; all other times directly return the unchanged baseSampler(time)",
+    "notAContinuousSamplingProof": "All-outside preservation follows this branch and unchanged source rather than exhaustive sampling of infinitely many times."
+  },
+  "identityChecks": {
+    "reportPath": "work/model-selection-20261014/text-motion-experiment/core-identity-checks/targeted-results.json",
+    "reportSha256": "948dc415bc096d869adc945a68922061a2e9d9bac20eb4819d0cb5a2b574e8b3",
+    "actualTotalTests": 60,
+    "actualPassed": 60,
+    "failed": 0,
+    "actualFiles": 2,
+    "all60AreNewIdentityTests": false,
+    "focusedIdentityCases": [
+      {
+        "file": "/workspace/ChoreographyStudio/packages/core/src/aiMotion.test.ts",
+        "title": "binds new generation to the current model while exposing historical provenance for stored layers",
+        "status": "passed"
+      },
+      {
+        "file": "/workspace/ChoreographyStudio/packages/core/src/aiMotion.test.ts",
+        "title": "accepts true session provenance only with an independently supplied trusted identity",
+        "status": "passed"
+      },
+      {
+        "file": "/workspace/ChoreographyStudio/packages/core/src/aiMotion.test.ts",
+        "title": "rejects unsupported, partial or misleading trusted identity 0",
+        "status": "passed"
+      },
+      {
+        "file": "/workspace/ChoreographyStudio/packages/core/src/aiMotion.test.ts",
+        "title": "rejects unsupported, partial or misleading trusted identity 1",
+        "status": "passed"
+      },
+      {
+        "file": "/workspace/ChoreographyStudio/packages/core/src/aiMotion.test.ts",
+        "title": "rejects unsupported, partial or misleading trusted identity 2",
+        "status": "passed"
+      },
+      {
+        "file": "/workspace/ChoreographyStudio/packages/core/src/aiMotion.test.ts",
+        "title": "rejects unsupported, partial or misleading trusted identity 3",
+        "status": "passed"
+      },
+      {
+        "file": "/workspace/ChoreographyStudio/packages/core/src/aiMotion.test.ts",
+        "title": "rejects unsupported, partial or misleading trusted identity 4",
+        "status": "passed"
+      },
+      {
+        "file": "/workspace/ChoreographyStudio/packages/core/src/aiMotion.test.ts",
+        "title": "rejects unsupported, partial or misleading trusted identity 5",
+        "status": "passed"
+      },
+      {
+        "file": "/workspace/ChoreographyStudio/packages/core/src/aiMotion.test.ts",
+        "title": "rejects unsupported, partial or misleading trusted identity 6",
+        "status": "passed"
+      },
+      {
+        "file": "/workspace/ChoreographyStudio/packages/core/src/aiMotion.test.ts",
+        "title": "rejects unsupported, partial or misleading trusted identity 7",
+        "status": "passed"
+      },
+      {
+        "file": "/workspace/ChoreographyStudio/packages/core/src/aiMotion.test.ts",
+        "title": "rejects unsupported, partial or misleading trusted identity 8",
+        "status": "passed"
+      },
+      {
+        "file": "/workspace/ChoreographyStudio/packages/core/src/aiMotion.test.ts",
+        "title": "keeps source, target and sparse-output bounds strict under explicit session identity",
+        "status": "passed"
+      },
+      {
+        "file": "/workspace/ChoreographyStudio/packages/core/src/aiMotionTrack.test.ts",
+        "title": "restores historical Qwen provenance unchanged after selecting OSS and layers the new model separately",
+        "status": "passed"
+      },
+      {
+        "file": "/workspace/ChoreographyStudio/packages/core/src/aiMotionTrack.test.ts",
+        "title": "compiles and restores true session identity without changing the motion or source seams",
+        "status": "passed"
+      },
+      {
+        "file": "/workspace/ChoreographyStudio/packages/core/src/aiMotionTrack.test.ts",
+        "title": "rejects incorrect stored identity pairs and session human-prior claims without increasing sparse limits",
+        "status": "passed"
+      }
+    ],
+    "defaultGenerationExpectation": "validateAIMotionResult and compileAIMotionPatch without explicit options remain cloudflare-workers-ai/@cf/openai/gpt-oss-120b and reject session result",
+    "allowedSessionPair": "codex-session/gpt-6.1-sol only with independently supplied trusted expected identity for result/compile",
+    "storedSessionRestoration": "Strict valid pair can be stored/restored; this does not select a provider or prove model execution",
+    "wrongPairAndFakeHumanPriorRejected": true,
+    "sparse48KeyframeLimitNotRaised": true,
+    "typescriptReceiptExit": 0,
+    "workerTypesReceiptExit": 0
+  },
+  "callAndCostLimits": {
+    "theseAreProviderApiCalls": false,
+    "source": "Codex-session model authorship, operator bound standalone output",
+    "cloudflareInferenceCallsRecordedByAuditor": 0,
+    "apiTokenUsageReceiptExists": false,
+    "apiLatencyReceiptExists": false,
+    "apiChargeReceiptExists": false,
+    "zeroSessionComputationalCostProven": false,
+    "apiRatePriceCannotBeUsedAsMeasuredCost": true
+  },
+  "remainingLimits": [
+    "Three samples on one owned static original do not prove arbitrary styles, moving originals or long-scene robustness.",
+    "Engineering gate does not certify genre intent, naturalness, planted-foot locking, full articulated dynamics, continuous skin or MHR.",
+    "No global or full-training-corpus originality evaluation was performed for these session outputs.",
+    "No production model route, UI adoption/browser playback/deployment is proven by this artifact review.",
+    "Source pairing and trusted operator options are honest provenance labels, not cryptographic model-execution attestation."
+  ],
+  "reviewerWork": {
+    "networkRequests": 0,
+    "modelCalls": 0,
+    "testsRerun": 0,
+    "detectorRuns": 0,
+    "sourceOrExistingDocsEdited": false
+  },
+  "reviewedSourceSha256": {
+    "packages/core/src/aiMotion.ts": "5f048b29ea19053a89a081d0d84f2f052346e69554d7c9fcd820ae456c2ce015",
+    "packages/core/src/aiMotionTrack.ts": "22baba96105431d9d1adb2a814ca95bcc924d817f1ee02b870c0b0a6a7681ec6",
+    "packages/core/src/aiMotion.test.ts": "f5a31bf7174b38b3919b75f87f079cb0d7c4e0ed56d6d2f6264e0a25c0f060e1",
+    "packages/core/src/aiMotionTrack.test.ts": "c7e74853245f24ed33816b62ec90922333104cea8ea6614f9b5fbd9655a8ce22",
+    "work/model-selection-20261014/text-motion-experiment/audit.ts": "243e3141c64ff61270ed0a8c901cd4c412e61635d4cd7f26ef82fe61127408b5"
+  }
+}

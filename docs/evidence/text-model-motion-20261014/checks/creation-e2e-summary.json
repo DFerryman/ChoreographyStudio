@@ -1,0 +1,48 @@
+{
+  "scope": "One existing creation-unavailable regression; no claim of generated motion/style/physics qualification",
+  "command": "CHOREO_TEST_OUTPUT=work/model-selection-20261014/creation-e2e npm run test:e2e -- tests/motion-creation.spec.ts",
+  "start": "2026-10-14T06:11:16.607Z",
+  "end": "2026-10-14T06:11:58.502Z",
+  "exitCode": 0,
+  "browser": "Existing configured Chromium; one worker",
+  "tests": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "testSeconds": 36.8,
+    "playwrightSeconds": 40.5,
+    "lastRun": {
+      "status": "passed",
+      "failedTests": []
+    }
+  },
+  "diagnostics": {
+    "diagnostics": {
+      "errors": [],
+      "warnings": [],
+      "expectedHttpErrors": [],
+      "apiRequests": []
+    },
+    "posts": [],
+    "motionPriorRequests": []
+  },
+  "diagnosticArtifact": {
+    "path": "work/model-selection-20261014/creation-e2e/motion-creation--motion-cr-bc537-el-or-changing-the-original/creation-network-and-browser-diagnostics.json",
+    "sha256": "fdfd875b2e2d9f705e2ed91748ad70fb37ef0cfdbc4e39c3e55005290aa6acee",
+    "bytes": 160
+  },
+  "originalProjectAndAudioPreservationAssertions": "passed",
+  "actualProviderCalls": 0,
+  "priorRequests": 0,
+  "businessPosts": 0,
+  "sourceEdits": 0,
+  "newTests": 0,
+  "retriesChanged": false,
+  "timeoutsChanged": false,
+  "otherSuitesRun": false,
+  "launcherMessages": [
+    "Node NO_COLOR ignored because FORCE_COLOR is set",
+    "npm major-version update notice"
+  ],
+  "log": "work/model-selection-20261014/creation-e2e/command.log"
+}

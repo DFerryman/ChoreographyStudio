@@ -1,3 +1,13 @@
+## 2026-10-14 · 文本会话创作验收：保留原超时与有限质量结论
+
+真实创作模型为 codex-session／gpt-6.1-sol，作者任务1次、三份自有中国／街舞／芭蕾意图数值输出；外部推理API0、新专用提交0。原raw和源快照SHA保持。中国／街舞raw工程accepted且最终patch完全一致；芭蕾raw拒绝180处地面违规、最大19.628157mm，原Root-only调理最多25.668758mm后accepted，关节组件／切线、固定两端／外部和原3mm／250门槛保持。三份 final correct:false 0违规与完整覆盖均通过；不推广为舞种／自然度／完整动力学通过。
+
+本地核心身份／曲线60／60、API83／83、前端build（1985模块／865ms）和独立Worker tsc exit0。首次全量单元49文件980／987、7个旧时限超时，完整原失败报告保留；同源码／时限仅复跑失败三文件，单worker57／57另通过，不写成首轮全987通过。API文案后改动另83／83通过，没有改保护、绑定或默认推理。
+
+当前相关创作入口浏览器专项1／1、40.5秒通过，诊断errors／warnings／expectedHttpErrors／apiRequests及业务POST／priorGET／模型均0，原稿／音频保持；不算全65项浏览器新一轮验收。五原Notion页原生任务成功、最终读回5／5完整原文后缀／属性／icon／cover保持，private全文只在工具内存；档案保留公开摘要、实际83项自动report与原超时报告。重放工具仅语法及SHA检查通过，未重复执行。
+
+实际AppStage18次观察中16个正面姿态有数值比较、组件误差0，另2个侧面只保留实际姿态／视角／时间；16张1440截图、诊断errors／warnings0，provider／业务API／priorGET／外部0。首辅助脚本漏逗号导致导入前超时的失败保留；科学骨架视频30fps／165帧／5.5s与软件原生录屏17帧／5.337s分开，不冒充设备性能。抽样画面臂／躯干／膝动作多、步法有限，风格与自然度未验收。详见 [当前评估](TEXT_MODEL_MOTION_EVALUATION.md) 与 [证据归档](evidence/text-model-motion-20261014/README.md)。新head CI必须读实际结果；旧0a0424d的973单元／65浏览器不作为当前源码的CI。
+
 ## 2026-10-14 · 本轮准确代码完整 CI 通过，生成质量仍未通过
 
 代码0a0424d／[草稿PR14](https://github.com/DFerryman/ChoreographyStudio/pull/14)对应 [CI38510847006](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38510847006)，job115678754167，实际completed/success；日志checkout为0a0424d合入b89b0f28的12f7e13375d49809ca824f3ec15ba7dd3ca4245d。973／973单元（49文件、59.62s）、65／65全量浏览器（13.0m）、前端类型／Vite构建、Worker类型、人体代理检查及Python6（0.619s）通过，旧大包警告保持。原始本地2／3夹具失败与后续分轮通过仍在下方，不改记为首轮通过。公开精选日志行与run身份见 [CI回执](evidence/motion-creation-20261014/ci-code-0a0424d.json)；此结果不证明新文档head独立CI或舞蹈质量。

@@ -8,9 +8,60 @@ describe('direct structured motion contract (no inference)', () => {
   it('binds new generation to the current model while exposing historical provenance for stored layers', () => {
     const request = makeAIMotionFixture(), response = makeAIMotionResultFixture(request);
     expect(AI_MOTION_MODEL).toBe('@cf/openai/gpt-oss-120b');
-    expect(AI_MOTION_SUPPORTED_MODELS).toEqual(['@cf/openai/gpt-oss-120b', '@cf/qwen/qwen3-30b-a3b-fp8']);
+    expect(AI_MOTION_SUPPORTED_MODELS).toEqual(['@cf/openai/gpt-oss-120b', '@cf/qwen/qwen3-30b-a3b-fp8', 'gpt-6.1-sol']);
     expect(validateAIMotionResult(response, request).model).toBe(AI_MOTION_MODEL);
     expect(() => validateAIMotionResult({ ...response, model: '@cf/qwen/qwen3-30b-a3b-fp8' }, request)).toThrow(/过期/);
+  });
+
+  it('accepts true session provenance only with an independently supplied trusted identity', () => {
+    const request = makeAIMotionFixture(), response = { ...makeAIMotionResultFixture(request), provider: 'codex-session', model: 'gpt-6.1-sol' };
+    const options = { expectedProvider: 'codex-session', expectedModel: 'gpt-6.1-sol' } as const;
+    const original = JSON.stringify({ request, response, options });
+    expect(() => validateAIMotionResult(response, request)).toThrow(/过期/);
+    const result = validateAIMotionResult(response, request, options);
+    expect(result).toEqual(response);
+    expect(result.keyframes).not.toBe(response.keyframes);
+    result.keyframes[0].root[0] += 1;
+    expect(JSON.stringify({ request, response, options })).toBe(original);
+    expect(() => validateAIMotionResult(makeAIMotionResultFixture(request), request, options)).toThrow(/过期/);
+  });
+
+  it.each([
+    { expectedProvider: 'cloudflare-workers-ai', expectedModel: 'gpt-6.1-sol' },
+    { expectedProvider: 'codex-session', expectedModel: AI_MOTION_MODEL },
+    { expectedProvider: 'codex-session', expectedModel: '@cf/qwen/qwen3-30b-a3b-fp8' },
+    { expectedProvider: 'cloudflare-workers-ai', expectedModel: '@cf/qwen/qwen3-30b-a3b-fp8' },
+    { expectedProvider: 'unknown', expectedModel: 'gpt-6.1-sol' },
+    { expectedProvider: 'codex-session', expectedModel: 'unknown' },
+    { expectedProvider: 'codex-session' },
+    { expectedProvider: 'codex-session', expectedModel: 'gpt-6.1-sol', extra: true },
+    null,
+  ])('rejects unsupported, partial or misleading trusted identity %#', options => {
+    const request = makeAIMotionFixture(), response = makeAIMotionResultFixture(request);
+    expect(() => validateAIMotionResult(response, request, options as any)).toThrow();
+  });
+
+  it('does not execute trusted-option accessors or accept a custom prototype', () => {
+    const request = makeAIMotionFixture(), response = makeAIMotionResultFixture(request);
+    let reads = 0;
+    const getter = { get expectedProvider() { reads++; return 'codex-session'; }, expectedModel: 'gpt-6.1-sol' };
+    expect(() => validateAIMotionResult(response, request, getter as any)).toThrow();
+    expect(reads).toBe(0);
+    expect(() => validateAIMotionResult(response, request,
+      Object.assign(Object.create({}), { expectedProvider: 'codex-session', expectedModel: 'gpt-6.1-sol' }))).toThrow();
+  });
+
+  it('keeps source, target and sparse-output bounds strict under explicit session identity', () => {
+    const request = makeAIMotionFixture(), response = { ...makeAIMotionResultFixture(request), provider: 'codex-session', model: 'gpt-6.1-sol' };
+    const options = { expectedProvider: 'codex-session', expectedModel: 'gpt-6.1-sol' } as const;
+    for (const changed of [
+      { requestId: 'another-request' }, { sourceHash: 'c'.repeat(64) },
+      { target: { ...response.target, startSeconds: response.target.startSeconds + .1 } },
+      { target: { ...response.target, endSeconds: response.target.endSeconds - .1 } },
+      { provider: 'cloudflare-workers-ai' }, { model: AI_MOTION_MODEL },
+      { keyframes: [{ ...response.keyframes[0], time: response.target.endSeconds }] },
+      { keyframes: [{ ...response.keyframes[0], root: [0, Infinity, 0] }] },
+    ]) expect(() => validateAIMotionResult({ ...response, ...changed }, request, options)).toThrow();
   });
 
   it('accepts direct sparse bone motion and preserves both input and independent result ownership', () => {

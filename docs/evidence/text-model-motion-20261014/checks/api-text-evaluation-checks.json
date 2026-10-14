@@ -1,0 +1,114 @@
+{
+  "scope": "Narrow API evaluation metadata/copy update; creation availability and default inference remain unchanged",
+  "evidenceKind": "Summarized tool evidence; temporary raw Vitest JSON was parsed then deleted",
+  "apiTests": {
+    "command": "./node_modules/.bin/vitest run apps/api/src/index.test.ts apps/api/src/motionPlan.test.ts --maxWorkers=1 --reporter=json --outputFile=/tmp/text-model-api-20261014-results.json",
+    "startedAt": "2026-10-14T06:02:31.863Z",
+    "endedAt": null,
+    "endTimeNote": "The final report's end timestamp was not retained; no inferred timestamp is supplied",
+    "exitCode": 0,
+    "success": true,
+    "total": 83,
+    "passed": 83,
+    "failed": 0,
+    "errors": 0,
+    "files": [
+      {
+        "path": "apps/api/src/index.test.ts",
+        "passed": 64,
+        "failed": 0
+      },
+      {
+        "path": "apps/api/src/motionPlan.test.ts",
+        "passed": 19,
+        "failed": 0
+      }
+    ],
+    "temporaryRawReport": {
+      "parsed": true,
+      "deleted": true
+    }
+  },
+  "workerTypecheck": {
+    "command": "./node_modules/.bin/tsc --noEmit -p tsconfig.worker.json",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": "",
+    "timestamp": null,
+    "regeneratedBindings": false,
+    "note": "Existing Worker bindings were used; Wrangler was not run"
+  },
+  "diffCheck": {
+    "command": "git diff --check",
+    "exitCode": 0
+  },
+  "narrowEdits": [
+    {
+      "path": "apps/api/src/index.ts",
+      "field": "CREATION_UNAVAILABLE message",
+      "value": "新的 3D 动作素材创作服务尚未接入，当前处于文本模型创作评估阶段；不会改用已有片段编排。"
+    },
+    {
+      "path": "apps/api/src/index.ts",
+      "field": "capabilities.newMotionCreation.status",
+      "value": "text-model-evaluation"
+    },
+    {
+      "path": "apps/api/src/index.test.ts",
+      "field": "capabilities expected status",
+      "value": "text-model-evaluation"
+    },
+    {
+      "path": "apps/api/src/index.test.ts",
+      "field": "creation rejection expected message",
+      "value": "新的 3D 动作素材创作服务尚未接入，当前处于文本模型创作评估阶段；不会改用已有片段编排。"
+    },
+    {
+      "path": "apps/api/src/index.test.ts",
+      "field": "legacy AI binding capabilities expected status",
+      "value": "text-model-evaluation"
+    }
+  ],
+  "unchangedBehavior": {
+    "available": false,
+    "provider": null,
+    "existingClipFallback": false,
+    "creationHttpStatus": 503,
+    "guards": "unchanged",
+    "defaultInference": "unchanged",
+    "provenance": "unchanged"
+  },
+  "actualProviderCalls": 0,
+  "networkRequests": 0,
+  "collectionDiagnostic": {
+    "note": "The earlier stdout-only Vitest invocation exited 0 and wrote its automatic .vitest/json/output.json report; root later preserved those exact bytes separately. A /dev/stdout collection attempt was denied with spawnSync EPERM. The later writable /tmp report was parsed and deleted after yielding 83/83 passing counts.",
+    "testFailure": false
+  },
+  "commits": 0,
+  "evidenceClockObservedAt": "2026-10-14T06:10:16Z",
+  "additionalActualRawReport": {
+    "path": "work/model-selection-20261014/api-text-tests-auto-report.json",
+    "sha256": "f8a2f34af80b3ac32f68d690ecb2bf2d6cde67aa217a6b83367f4a2774e08a0a",
+    "bytes": 35347,
+    "command": "./node_modules/.bin/vitest run apps/api/src/index.test.ts apps/api/src/motionPlan.test.ts --maxWorkers=1 --reporter=json",
+    "startedAt": "2026-10-14T06:00:59.239Z",
+    "total": 83,
+    "passed": 83,
+    "failed": 0,
+    "note": "Root preserved exact bytes from automatic .vitest/json/output.json; this is the earlier stdout-only check, separate from the later temporary /tmp check"
+  },
+  "creationBrowserCheck": {
+    "summary": "work/model-selection-20261014/creation-e2e/summary.json",
+    "passed": 1,
+    "failed": 0,
+    "exitCode": 0,
+    "start": "2026-10-14T06:11:16.607Z",
+    "end": "2026-10-14T06:11:58.502Z",
+    "businessPosts": 0,
+    "priorRequests": 0,
+    "diagnosticErrors": 0,
+    "diagnosticWarnings": 0,
+    "apiRequests": 0,
+    "actualProviderCalls": 0
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "samples": 180,
+  "maxFrameRootDistanceMeters": 0.002963217389992945,
+  "maxFrameJointAngleDegrees": 5.639411412406176,
+  "maxRootExcursionMeters": 0.039825568009553614,
+  "maxJointExcursionDegrees": 119.36314335622453,
+  "maxLinearSpeedMetersPerSecond": 0.08889652169978866,
+  "maxRootAccelerationMetersPerSecondSquared": 0.6836148992474801,
+  "maxAngularSpeedDegreesPerSecond": 169.18234237218587,
+  "maxAngularAccelerationDegreesPerSecondSquared": 1389.4785549014198,
+  "warnings": []
+}
