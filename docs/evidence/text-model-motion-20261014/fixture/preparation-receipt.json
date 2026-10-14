@@ -1,0 +1,1232 @@
+{
+  "scope": "owned-source preparation only; no model or network calls",
+  "model": "@cf/openai/gpt-oss-120b",
+  "endpoint": "/api/motion/generate",
+  "protocol": "ai-motion-1",
+  "usesCatalog": false,
+  "sourceFileSHA256": "053f4b1a5763a829aa65c7755ee41be38ba780f34e4f26553c3f6c0d68b527c0",
+  "sourceTakeSHA256": "41cdcca1a104ae5e011362b56935cdeb66b20bbdbba1596dadcc732b1e82b655",
+  "target": {
+    "start": 4,
+    "end": 9.5
+  },
+  "audioFileRead": false,
+  "userSceneRead": false,
+  "requests": [
+    {
+      "id": "chinese-classical",
+      "filename": "chinese-classical.request.json",
+      "requestSHA256": "817b062ad030bcdc89c5539915a7092966071c62cb6bf66f5fe2ff883f926f5a",
+      "bytes": 47303,
+      "requestId": "motion_a753d1dd-2e83-435f-82d1-635ded9c2afb",
+      "sourceHash": "b997f490769ae0923952f33dae3cb167780a93e96ce23175b9fce9994031cd20",
+      "boundaryPreflight": "passed",
+      "boundaries": [
+        {
+          "side": "start",
+          "time": 4,
+          "jointViolations": [],
+          "jointMeasurements": {
+            "Hips": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Spine": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Chest": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Neck": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Head": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftShoulder": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftUpperArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 15.000000000000002,
+              "swingDegrees": 14.999999999999996,
+              "errorDegrees": 0
+            },
+            "LeftForeArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHand": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHandTip": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightShoulder": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightUpperArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": -15.000000000000002,
+              "swingDegrees": 14.999999999999996,
+              "errorDegrees": 0
+            },
+            "RightForeArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHand": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHandTip": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftUpperLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftLowerLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftFoot": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftToe": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHeel": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightUpperLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightLowerLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightFoot": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightToe": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHeel": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            }
+          },
+          "collisions": {
+            "profileId": "quaternius-mixed-collision-1",
+            "selfCollisions": [],
+            "floorPenetrations": []
+          },
+          "minimumFloorHeightMeters": 0.006427051000000031,
+          "support": "unknown",
+          "supportConfidence": 0
+        },
+        {
+          "side": "end",
+          "time": 9.5,
+          "jointViolations": [],
+          "jointMeasurements": {
+            "Hips": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Spine": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Chest": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Neck": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Head": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftShoulder": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftUpperArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 15.000000000000002,
+              "swingDegrees": 14.999999999999996,
+              "errorDegrees": 0
+            },
+            "LeftForeArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHand": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHandTip": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightShoulder": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightUpperArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": -15.000000000000002,
+              "swingDegrees": 14.999999999999996,
+              "errorDegrees": 0
+            },
+            "RightForeArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHand": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHandTip": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftUpperLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftLowerLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftFoot": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftToe": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHeel": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightUpperLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightLowerLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightFoot": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightToe": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHeel": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            }
+          },
+          "collisions": {
+            "profileId": "quaternius-mixed-collision-1",
+            "selfCollisions": [],
+            "floorPenetrations": []
+          },
+          "minimumFloorHeightMeters": 0.006427051000000031,
+          "support": "unknown",
+          "supportConfidence": 0
+        }
+      ],
+      "audio": [
+        {
+          "id": "primary",
+          "name": "无音乐文件",
+          "hash": null,
+          "durationSeconds": 0,
+          "offsetSeconds": 0,
+          "sourceOffsetSeconds": 0,
+          "muted": false,
+          "availability": "missing",
+          "coverage": null
+        }
+      ]
+    },
+    {
+      "id": "hip-hop",
+      "filename": "hip-hop.request.json",
+      "requestSHA256": "e2a359e277a0d84126c106d6d57914bea507c5b6b7fd225f0fec7877c519ab49",
+      "bytes": 47313,
+      "requestId": "motion_def39ff3-f8d8-4c1c-b8e2-6afe2f952083",
+      "sourceHash": "b997f490769ae0923952f33dae3cb167780a93e96ce23175b9fce9994031cd20",
+      "boundaryPreflight": "passed",
+      "boundaries": [
+        {
+          "side": "start",
+          "time": 4,
+          "jointViolations": [],
+          "jointMeasurements": {
+            "Hips": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Spine": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Chest": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Neck": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Head": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftShoulder": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftUpperArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 15.000000000000002,
+              "swingDegrees": 14.999999999999996,
+              "errorDegrees": 0
+            },
+            "LeftForeArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHand": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHandTip": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightShoulder": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightUpperArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": -15.000000000000002,
+              "swingDegrees": 14.999999999999996,
+              "errorDegrees": 0
+            },
+            "RightForeArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHand": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHandTip": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftUpperLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftLowerLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftFoot": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftToe": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHeel": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightUpperLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightLowerLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightFoot": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightToe": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHeel": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            }
+          },
+          "collisions": {
+            "profileId": "quaternius-mixed-collision-1",
+            "selfCollisions": [],
+            "floorPenetrations": []
+          },
+          "minimumFloorHeightMeters": 0.006427051000000031,
+          "support": "unknown",
+          "supportConfidence": 0
+        },
+        {
+          "side": "end",
+          "time": 9.5,
+          "jointViolations": [],
+          "jointMeasurements": {
+            "Hips": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Spine": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Chest": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Neck": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Head": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftShoulder": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftUpperArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 15.000000000000002,
+              "swingDegrees": 14.999999999999996,
+              "errorDegrees": 0
+            },
+            "LeftForeArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHand": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHandTip": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightShoulder": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightUpperArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": -15.000000000000002,
+              "swingDegrees": 14.999999999999996,
+              "errorDegrees": 0
+            },
+            "RightForeArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHand": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHandTip": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftUpperLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftLowerLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftFoot": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftToe": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHeel": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightUpperLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightLowerLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightFoot": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightToe": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHeel": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            }
+          },
+          "collisions": {
+            "profileId": "quaternius-mixed-collision-1",
+            "selfCollisions": [],
+            "floorPenetrations": []
+          },
+          "minimumFloorHeightMeters": 0.006427051000000031,
+          "support": "unknown",
+          "supportConfidence": 0
+        }
+      ],
+      "audio": [
+        {
+          "id": "primary",
+          "name": "无音乐文件",
+          "hash": null,
+          "durationSeconds": 0,
+          "offsetSeconds": 0,
+          "sourceOffsetSeconds": 0,
+          "muted": false,
+          "availability": "missing",
+          "coverage": null
+        }
+      ]
+    },
+    {
+      "id": "ballet",
+      "filename": "ballet.request.json",
+      "requestSHA256": "2aac98820bef75180e695c839efb09bf5b2fec28cba72d8c091dbe5c14f272f5",
+      "bytes": 47348,
+      "requestId": "motion_0873a6c6-3a74-4fea-af94-182ac956c5c4",
+      "sourceHash": "b997f490769ae0923952f33dae3cb167780a93e96ce23175b9fce9994031cd20",
+      "boundaryPreflight": "passed",
+      "boundaries": [
+        {
+          "side": "start",
+          "time": 4,
+          "jointViolations": [],
+          "jointMeasurements": {
+            "Hips": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Spine": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Chest": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Neck": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Head": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftShoulder": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftUpperArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 15.000000000000002,
+              "swingDegrees": 14.999999999999996,
+              "errorDegrees": 0
+            },
+            "LeftForeArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHand": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHandTip": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightShoulder": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightUpperArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": -15.000000000000002,
+              "swingDegrees": 14.999999999999996,
+              "errorDegrees": 0
+            },
+            "RightForeArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHand": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHandTip": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftUpperLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftLowerLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftFoot": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftToe": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHeel": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightUpperLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightLowerLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightFoot": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightToe": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHeel": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            }
+          },
+          "collisions": {
+            "profileId": "quaternius-mixed-collision-1",
+            "selfCollisions": [],
+            "floorPenetrations": []
+          },
+          "minimumFloorHeightMeters": 0.006427051000000031,
+          "support": "unknown",
+          "supportConfidence": 0
+        },
+        {
+          "side": "end",
+          "time": 9.5,
+          "jointViolations": [],
+          "jointMeasurements": {
+            "Hips": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Spine": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Chest": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Neck": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "Head": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftShoulder": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftUpperArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 15.000000000000002,
+              "swingDegrees": 14.999999999999996,
+              "errorDegrees": 0
+            },
+            "LeftForeArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHand": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHandTip": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightShoulder": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightUpperArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": -15.000000000000002,
+              "swingDegrees": 14.999999999999996,
+              "errorDegrees": 0
+            },
+            "RightForeArm": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHand": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHandTip": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftUpperLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftLowerLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftFoot": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftToe": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "LeftHeel": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightUpperLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightLowerLeg": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightFoot": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightToe": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            },
+            "RightHeel": {
+              "twistDegrees": 0,
+              "flexionDegrees": 0,
+              "lateralDegrees": 0,
+              "swingDegrees": 0,
+              "errorDegrees": 0
+            }
+          },
+          "collisions": {
+            "profileId": "quaternius-mixed-collision-1",
+            "selfCollisions": [],
+            "floorPenetrations": []
+          },
+          "minimumFloorHeightMeters": 0.006427051000000031,
+          "support": "unknown",
+          "supportConfidence": 0
+        }
+      ],
+      "audio": [
+        {
+          "id": "primary",
+          "name": "无音乐文件",
+          "hash": null,
+          "durationSeconds": 0,
+          "offsetSeconds": 0,
+          "sourceOffsetSeconds": 0,
+          "muted": false,
+          "availability": "missing",
+          "coverage": null
+        }
+      ]
+    }
+  ],
+  "status": "prepared",
+  "networkAttempts": 0,
+  "sourceFileUnchanged": true
+}

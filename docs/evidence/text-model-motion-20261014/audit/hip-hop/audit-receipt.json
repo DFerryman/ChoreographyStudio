@@ -1,0 +1,73 @@
+{
+  "scope": "Sparse text-generated motion independently checked by current unchanged production detectors/solver",
+  "styleRequested": "hip-hop",
+  "httpStatus": null,
+  "responsePath": "/workspace/ChoreographyStudio/work/model-selection-20261014/text-motion-experiment/hip-hop.gpt61.raw.json",
+  "responseSHA256": "b3f4589904d56bba19cfec5441b732d5181d0d7ac51cb16290a30b9159153a16",
+  "inputFormat": "output",
+  "trustedExpectedIdentity": {
+    "expectedProvider": "codex-session",
+    "expectedModel": "gpt-6.1-sol"
+  },
+  "identityEvidence": "Expected identity is supplied by the trusted operator; schema validation itself does not attest model execution. Preserve the actual generation receipt separately.",
+  "requestSHA256": "e2a359e277a0d84126c106d6d57914bea507c5b6b7fd225f0fec7877c519ab49",
+  "sourceFileSHA256": "053f4b1a5763a829aa65c7755ee41be38ba780f34e4f26553c3f6c0d68b527c0",
+  "actualProviderCalls": 0,
+  "networkRequests": 0,
+  "usesCatalog": false,
+  "usesHumanPrior": false,
+  "styleEvaluation": {
+    "status": "not-assessed",
+    "summaryIsStyleEvidence": false,
+    "jointJSONIsStyleEvidence": false,
+    "note": "Naturalness, style fidelity and semantic intent require separate review of actual motion; this script reports engineering detection only."
+  },
+  "sparseCompatibility": {
+    "internalModelKeyframes": 18,
+    "compiledKnots": 20,
+    "requestedInternalKeyframes": [
+      12,
+      24
+    ],
+    "minimumGroundingKnots": 3,
+    "rootLockedNeighbourKnotsEachSide": 3,
+    "adjustableRootKnots": 14,
+    "note": "Some Root knots are adjustable; this is not evidence of motion feasibility or style quality."
+  },
+  "acceptedByEngineeringGate": true,
+  "requestId": "motion_def39ff3-f8d8-4c1c-b8e2-6afe2f952083",
+  "sourceHash": "b997f490769ae0923952f33dae3cb167780a93e96ce23175b9fce9994031cd20",
+  "target": {
+    "mode": "interval",
+    "startSeconds": 4,
+    "endSeconds": 9.5
+  },
+  "sourcePreflight": "passed",
+  "resultBindingOrigin": "Local trusted adapter bound standalone model output to the frozen request; this is not a provider-authenticated API envelope.",
+  "rawEngineeringStatus": "accepted",
+  "solverEngineeringStatus": "accepted",
+  "finalCoverage": {
+    "complete": true,
+    "samples": 475,
+    "maxGapSeconds": 0.016666666666667496,
+    "maxRootStepMeters": 0.003413496539294628,
+    "maxJointStepRadians": 0.03450937431937242,
+    "maxSamples": 12000
+  },
+  "finalDerivativeCoverage": {
+    "method": "one-sided-so3-curvature",
+    "complete": true,
+    "spans": 19,
+    "stencils": 38,
+    "poseSamples": 76,
+    "maxPoseSamples": 7208,
+    "maxStepSeconds": 0.0001562499999998579
+  },
+  "finalTotalViolations": 0,
+  "frozenSourceSamplesExact": true,
+  "status": "engineering-accepted-style-unassessed",
+  "sourceFileUnchanged": true,
+  "sourceObjectUnchanged": true,
+  "rawResponseUnchanged": true,
+  "physicalScope": "Finite Quaternius proxy/functional geometry, adaptive interpolation and one-sided SO(3) curvature, aggregate forces; no articulated dynamics, continuous skin proof or automatic style acceptance."
+}

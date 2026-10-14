@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "cost-controlled-motion-model-evaluation-1",
+  "userAuthorization": "控制成本的前提下，你可以使用最合适的AI进行测试，看看是不是能够让AI随意生成任意舞种的舞蹈片段",
+  "authorizationSupersedesPreviousNoPaidTesting": true,
+  "modelFeesCeilingCnyChosenByAgent": 10,
+  "billableGenerationAutomaticRetries": 0,
+  "newAccountsOrSubscriptionsAuthorized": false,
+  "managedCredentialsObserved": [
+    "CLOUDFLARE_API_TOKEN",
+    "CLOUDFLARE_ACCOUNT_ID"
+  ],
+  "modelFeeConfirmedCny": null,
+  "paidCallsExecuted": 0,
+  "newModelGenerateSubmissions": 0,
+  "priorSeparateKimodoTrials": {
+    "generateClicks": 4,
+    "outputsRetrieved": 3,
+    "inferenceCompletionUnknown": 1
+  },
+  "candidateGenres": [
+    "Chinese classical",
+    "ballet",
+    "hip-hop",
+    "salsa",
+    "contemporary",
+    "Kathak"
+  ],
+  "universalGenreReliabilityProven": false,
+  "entries": [
+    {
+      "kind": "text-session-generation",
+      "provider": "codex-session",
+      "model": "gpt-6.1-sol",
+      "genres": [
+        "Chinese classical",
+        "hip-hop",
+        "ballet"
+      ],
+      "externalProviderInferenceCalls": 0,
+      "automaticInferenceRetries": 0,
+      "newServicePurchases": 0,
+      "rawImmutable": true,
+      "styleNaturalnessAccepted": false
+    }
+  ],
+  "userFacingTimezone": "Asia/Shanghai",
+  "latestUserPriority": "先不要用专门做舞蹈动作的模型，先用最合适的文本模型试试",
+  "freeEligibleTextModelsFirst": true,
+  "specializedNewSubmissions": 0,
+  "hySessionCreated": false,
+  "tokenHubAccessAvailable": false,
+  "frontierPaidBillingActivation": false,
+  "newModelGenerateSubmissionsScope": "external provider generation submissions only; actual session author task is counted separately",
+  "newServicePurchaseFeesConfirmedCny": 0,
+  "externalProviderInferenceCallsExecuted": 0,
+  "actualTextSession": {
+    "provider": "codex-session",
+    "model": "gpt-6.1-sol",
+    "authorTasks": 1,
+    "ownedOutputs": 3,
+    "sessionTokenUsage": null,
+    "sessionBilling": null,
+    "providerApiLatency": null,
+    "sourceMethod": "Model authored new pose rows; local Python serialization/root-height math; not a provider API inference."
+  },
+  "feeEstimate": {
+    "officialModel": "gpt-6.1-sol",
+    "inputUsdPerMillion": 2,
+    "outputUsdPerMillion": 10,
+    "hypotheticalInputTokens": 10000,
+    "hypotheticalBilledOutputTokens": 2000,
+    "hypotheticalApiFeeUsd": 0.04,
+    "isActualSessionBill": false,
+    "source": "https://developers.openai.com/api/docs/models/gpt-6.1-sol"
+  }
+}

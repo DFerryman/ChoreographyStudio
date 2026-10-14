@@ -1,0 +1,850 @@
+{
+  "sampling": {
+    "fpsProvidedByCaller": 30.0,
+    "frames": 180,
+    "jointCount": 77,
+    "durationSecondsFramesDividedByFps": 6.0,
+    "lastSampleTimeSeconds": 5.966666666666667
+  },
+  "rawArrays": {
+    "posed_joints": {
+      "shape": [
+        180,
+        77,
+        3
+      ],
+      "dtype": "float32",
+      "finite": true
+    },
+    "global_rot_mats": {
+      "shape": [
+        180,
+        77,
+        3,
+        3
+      ],
+      "dtype": "float32",
+      "finite": true
+    },
+    "local_rot_mats": {
+      "shape": [
+        180,
+        77,
+        3,
+        3
+      ],
+      "dtype": "float32",
+      "finite": true
+    },
+    "root_positions": {
+      "shape": [
+        180,
+        3
+      ],
+      "dtype": "float32",
+      "finite": true
+    },
+    "foot_contacts": {
+      "shape": [
+        180,
+        6
+      ],
+      "dtype": "bool",
+      "finite": true
+    }
+  },
+  "fkConsistency": {
+    "rawGlobalParentOffsetPositionErrorMeters": {
+      "mean": 4.996280113353822e-08,
+      "p50": 4.405331124435201e-08,
+      "p95": 1.0935025144869308e-07,
+      "max": 1.955933159449568e-07
+    },
+    "rawLocalChainedPositionErrorMeters": {
+      "mean": 0.0018396298613705556,
+      "p50": 0.0015510064976988337,
+      "p95": 0.004747434897992326,
+      "max": 0.00917329868273131
+    },
+    "rawLocalChainedGlobalRotationMaxComponentError": 0.04238171025043724,
+    "rawAdjacentParentLocalGlobalRotationMaxComponentError": {
+      "mean": 0.0015651436229249685,
+      "p50": 0.0014626005796553043,
+      "p95": 0.002939271677103061,
+      "max": 0.005227477273728298
+    },
+    "rootArrayEqualsRootJointPositionMaxAbsoluteErrorMeters": 0.0,
+    "nearestSo3GlobalThenRecomputedLocalChainedPositionErrorMeters": {
+      "mean": 0.00031227211092285716,
+      "p50": 0.0002723871600259308,
+      "p95": 0.000731508099844425,
+      "max": 0.001367365264620925
+    },
+    "nearestSo3GlobalMaxComponentChange": 0.0025339531075325716,
+    "projectionPurpose": "Diagnostic only; raw arrays are unchanged and no corrected candidate is saved."
+  },
+  "rawRotationValidity": {
+    "local": {
+      "orthogonalityFrobeniusError": {
+        "mean": 0.004541528407390641,
+        "p50": 0.004370884522755627,
+        "p95": 0.00798301209143796,
+        "max": 0.013110181721765082
+      },
+      "determinantMin": 0.9926622090335621,
+      "determinantMax": 1.0104442099149555,
+      "singularValueMin": 0.9941449333599908,
+      "singularValueMax": 1.0049131206601924,
+      "nonPositiveDeterminantCount": 0,
+      "peakOrthogonalityJoint": "LeftHandThumbEnd",
+      "peakOrthogonalityTimeSeconds": 4.566666666666666
+    },
+    "global": {
+      "orthogonalityFrobeniusError": {
+        "mean": 0.0022983488953139735,
+        "p50": 0.0021946573811291595,
+        "p95": 0.00398418664872047,
+        "max": 0.006754175358073653
+      },
+      "determinantMin": 0.9961052949347663,
+      "determinantMax": 1.0053142169674811,
+      "singularValueMin": 0.9970114930922738,
+      "singularValueMax": 1.002512366036715,
+      "nonPositiveDeterminantCount": 0,
+      "peakOrthogonalityJoint": "LeftHandThumbEnd",
+      "peakOrthogonalityTimeSeconds": 4.566666666666666
+    }
+  },
+  "boneLength": {
+    "maxAbsoluteDeviationFromRestMeters": 0.00046702527503789115,
+    "maxPerBoneTemporalRangeMeters": 0.0008704175635377287,
+    "deviationFromRestMeters": {
+      "mean": 3.472385993549468e-05,
+      "p50": 1.759645101590164e-05,
+      "p95": 0.00013777900376552713,
+      "max": 0.00046702527503789115
+    }
+  },
+  "rootTrajectory": {
+    "axisRangeMeters": [
+      0.43007054552435875,
+      0.1382749080657959,
+      0.10747749451547861
+    ],
+    "axisMinMeters": [
+      -0.017228063195943832,
+      0.8516110777854919,
+      -0.002537422813475132
+    ],
+    "axisMaxMeters": [
+      0.4128424823284149,
+      0.9898859858512878,
+      0.10494007170200348
+    ],
+    "planarPathLengthMeters": 1.314829644189838,
+    "planarStartToEndDistanceMeters": 0.32458758047239644,
+    "speedMetersPerSecond": {
+      "mean": 0.24166084359123605,
+      "p50": 0.19372322333016223,
+      "p95": 0.6890587770088029,
+      "max": 0.9680888432424453
+    },
+    "accelerationMetersPerSecondSquared": {
+      "mean": 1.837870504609768,
+      "p50": 1.566604313178504,
+      "p95": 4.0699939051678635,
+      "max": 6.789879459544631
+    }
+  },
+  "jointTrajectories": {
+    "Hips": {
+      "axisRangeMeters": [
+        0.43007054552435875,
+        0.1382749080657959,
+        0.10747749451547861
+      ],
+      "axisMinMeters": [
+        -0.017228063195943832,
+        0.8516110777854919,
+        -0.002537422813475132
+      ],
+      "axisMaxMeters": [
+        0.4128424823284149,
+        0.9898859858512878,
+        0.10494007170200348
+      ],
+      "positionSpeedMetersPerSecond": {
+        "mean": 0.24166084359123605,
+        "p50": 0.19372322333016223,
+        "p95": 0.6890587770088029,
+        "max": 0.9680888432424453
+      },
+      "positionAccelerationMetersPerSecondSquared": {
+        "mean": 1.837870504609768,
+        "p50": 1.566604313178504,
+        "p95": 4.0699939051678635,
+        "max": 6.789879459544631
+      },
+      "globalAngularSpeedRadiansPerSecondAfterDiagnosticSo3Projection": {
+        "mean": 0.33209759199433847,
+        "p50": 0.29735051775477667,
+        "p95": 0.6810648240360271,
+        "max": 0.8109168513765187
+      },
+      "globalAngularAccelerationRadiansPerSecondSquaredAfterDiagnosticSo3Projection": {
+        "mean": 3.53840798812278,
+        "p50": 3.1279101647061696,
+        "p95": 7.442336493113314,
+        "max": 13.263176139891675
+      }
+    },
+    "Chest": {
+      "axisRangeMeters": [
+        0.4530766326934099,
+        0.14354288578033447,
+        0.09451721608638763
+      ],
+      "axisMinMeters": [
+        -0.0284613985568285,
+        1.0380460023880005,
+        -0.07428906857967377
+      ],
+      "axisMaxMeters": [
+        0.4246152341365814,
+        1.181588888168335,
+        0.020228147506713867
+      ],
+      "positionSpeedMetersPerSecond": {
+        "mean": 0.2409694724151149,
+        "p50": 0.17157976429457197,
+        "p95": 0.7533386966558826,
+        "max": 1.0079887598147446
+      },
+      "positionAccelerationMetersPerSecondSquared": {
+        "mean": 1.7868919729754529,
+        "p50": 1.3974285650909308,
+        "p95": 4.501235806973967,
+        "max": 7.063107693649984
+      },
+      "globalAngularSpeedRadiansPerSecondAfterDiagnosticSo3Projection": {
+        "mean": 0.39901038638238817,
+        "p50": 0.3832619571689603,
+        "p95": 0.7486786391735237,
+        "max": 1.0355738106828156
+      },
+      "globalAngularAccelerationRadiansPerSecondSquaredAfterDiagnosticSo3Projection": {
+        "mean": 3.701523645686042,
+        "p50": 3.336756608743414,
+        "p95": 7.34604736615,
+        "max": 9.645380500874605
+      }
+    },
+    "Head": {
+      "axisRangeMeters": [
+        0.49939921498298645,
+        0.15472888946533203,
+        0.07117512449622154
+      ],
+      "axisMinMeters": [
+        -0.03966319561004639,
+        1.4299061298370361,
+        -0.09495481103658676
+      ],
+      "axisMaxMeters": [
+        0.45973601937294006,
+        1.5846350193023682,
+        -0.02377968654036522
+      ],
+      "positionSpeedMetersPerSecond": {
+        "mean": 0.2517955046837368,
+        "p50": 0.1599630630134931,
+        "p95": 0.7981790751978892,
+        "max": 1.0099912489438707
+      },
+      "positionAccelerationMetersPerSecondSquared": {
+        "mean": 1.8110373991210988,
+        "p50": 1.4361032702652037,
+        "p95": 4.676252231915151,
+        "max": 7.511224475833488
+      },
+      "globalAngularSpeedRadiansPerSecondAfterDiagnosticSo3Projection": {
+        "mean": 0.5926342341829741,
+        "p50": 0.5357907093084299,
+        "p95": 1.1657335470061294,
+        "max": 1.6891480712439535
+      },
+      "globalAngularAccelerationRadiansPerSecondSquaredAfterDiagnosticSo3Projection": {
+        "mean": 6.2768067235453415,
+        "p50": 5.361090126401409,
+        "p95": 13.724893899073129,
+        "max": 18.353844324450208
+      }
+    },
+    "LeftHand": {
+      "axisRangeMeters": [
+        0.6996465921401978,
+        0.9057580828666687,
+        0.4374678134918213
+      ],
+      "axisMinMeters": [
+        0.3512071371078491,
+        0.7673061490058899,
+        -0.0949963629245758
+      ],
+      "axisMaxMeters": [
+        1.0508537292480469,
+        1.6730642318725586,
+        0.3424714505672455
+      ],
+      "positionSpeedMetersPerSecond": {
+        "mean": 1.0160327292666065,
+        "p50": 0.9069322261436885,
+        "p95": 2.0212747055319387,
+        "max": 2.13486762601814
+      },
+      "positionAccelerationMetersPerSecondSquared": {
+        "mean": 6.984640480329824,
+        "p50": 6.396641527569541,
+        "p95": 14.37385151116664,
+        "max": 20.54236037470886
+      },
+      "globalAngularSpeedRadiansPerSecondAfterDiagnosticSo3Projection": {
+        "mean": 4.39406580078349,
+        "p50": 3.7982025894040663,
+        "p95": 10.435821873151651,
+        "max": 41.476154897855686
+      },
+      "globalAngularAccelerationRadiansPerSecondSquaredAfterDiagnosticSo3Projection": {
+        "mean": 49.49916983785592,
+        "p50": 27.531849005141105,
+        "p95": 121.69247356766184,
+        "max": 873.0558224811647
+      }
+    },
+    "RightHand": {
+      "axisRangeMeters": [
+        0.752152606844902,
+        0.7681699395179749,
+        0.4257630705833435
+      ],
+      "axisMinMeters": [
+        -0.5128911137580872,
+        0.7773644328117371,
+        -0.10893246531486511
+      ],
+      "axisMaxMeters": [
+        0.23926149308681488,
+        1.545534372329712,
+        0.3168306052684784
+      ],
+      "positionSpeedMetersPerSecond": {
+        "mean": 1.0388849266100748,
+        "p50": 1.0384664113180195,
+        "p95": 1.9403552187777044,
+        "max": 2.312246347775701
+      },
+      "positionAccelerationMetersPerSecondSquared": {
+        "mean": 7.141141009387853,
+        "p50": 5.807158385684348,
+        "p95": 16.056334324044396,
+        "max": 20.53410635527919
+      },
+      "globalAngularSpeedRadiansPerSecondAfterDiagnosticSo3Projection": {
+        "mean": 3.372608676145465,
+        "p50": 2.826072539815917,
+        "p95": 8.431081372871473,
+        "max": 12.033816640994443
+      },
+      "globalAngularAccelerationRadiansPerSecondSquaredAfterDiagnosticSo3Projection": {
+        "mean": 31.87493465588168,
+        "p50": 25.444106245737096,
+        "p95": 87.70096898379133,
+        "max": 135.01064662862515
+      }
+    },
+    "LeftFoot": {
+      "axisRangeMeters": [
+        0.21964970231056213,
+        0.0848662257194519,
+        0.09431765973567963
+      ],
+      "axisMinMeters": [
+        0.3715648949146271,
+        0.06722623109817505,
+        -0.11910790950059891
+      ],
+      "axisMaxMeters": [
+        0.5912145972251892,
+        0.15209245681762695,
+        -0.02479024976491928
+      ],
+      "positionSpeedMetersPerSecond": {
+        "mean": 0.08747341369149464,
+        "p50": 0.04014365521786035,
+        "p95": 0.3628095230992292,
+        "max": 1.2563417553930774
+      },
+      "positionAccelerationMetersPerSecondSquared": {
+        "mean": 1.4677423822367566,
+        "p50": 0.9387974202257859,
+        "p95": 4.322890127236914,
+        "max": 14.693776581995953
+      },
+      "globalAngularSpeedRadiansPerSecondAfterDiagnosticSo3Projection": {
+        "mean": 0.4267406216256285,
+        "p50": 0.19207870857221843,
+        "p95": 1.9609830670260102,
+        "max": 4.146941611091482
+      },
+      "globalAngularAccelerationRadiansPerSecondSquaredAfterDiagnosticSo3Projection": {
+        "mean": 6.440334491570056,
+        "p50": 2.4253247568278136,
+        "p95": 34.09887838496045,
+        "max": 97.84674154683651
+      }
+    },
+    "RightFoot": {
+      "axisRangeMeters": [
+        0.464211106300354,
+        0.12427753210067749,
+        0.08311605453491211
+      ],
+      "axisMinMeters": [
+        -0.3477742671966553,
+        0.06684064865112305,
+        -0.07865403592586517
+      ],
+      "axisMaxMeters": [
+        0.11643683910369873,
+        0.19111818075180054,
+        0.004462018609046936
+      ],
+      "positionSpeedMetersPerSecond": {
+        "mean": 0.16356819820448582,
+        "p50": 0.047866692137175426,
+        "p95": 0.9803092724989761,
+        "max": 1.9310529497714575
+      },
+      "positionAccelerationMetersPerSecondSquared": {
+        "mean": 2.2526507579047665,
+        "p50": 1.0578092942468889,
+        "p95": 11.503537897857324,
+        "max": 19.332238098056347
+      },
+      "globalAngularSpeedRadiansPerSecondAfterDiagnosticSo3Projection": {
+        "mean": 0.5273239165764857,
+        "p50": 0.20311349840955958,
+        "p95": 2.450778948793906,
+        "max": 5.1197332212335365
+      },
+      "globalAngularAccelerationRadiansPerSecondSquaredAfterDiagnosticSo3Projection": {
+        "mean": 7.52246956372831,
+        "p50": 2.892790141723208,
+        "p95": 32.56751666038361,
+        "max": 94.00101552896757
+      }
+    },
+    "LeftToeBase": {
+      "axisRangeMeters": [
+        0.2210427224636078,
+        0.04816311597824097,
+        0.09833930060267448
+      ],
+      "axisMinMeters": [
+        0.40564098954200745,
+        0.015928030014038086,
+        0.0034426935017108917
+      ],
+      "axisMaxMeters": [
+        0.6266837120056152,
+        0.06409114599227905,
+        0.10178199410438538
+      ],
+      "positionSpeedMetersPerSecond": {
+        "mean": 0.07958067999169155,
+        "p50": 0.03771987027185493,
+        "p95": 0.19417188281306394,
+        "max": 1.1250199429502505
+      },
+      "positionAccelerationMetersPerSecondSquared": {
+        "mean": 1.5161460152133148,
+        "p50": 0.9732688225771992,
+        "p95": 4.729480032970265,
+        "max": 12.270513381762399
+      },
+      "globalAngularSpeedRadiansPerSecondAfterDiagnosticSo3Projection": {
+        "mean": 0.4261377235353427,
+        "p50": 0.21524908218392722,
+        "p95": 1.8085368505815034,
+        "max": 4.017562560765251
+      },
+      "globalAngularAccelerationRadiansPerSecondSquaredAfterDiagnosticSo3Projection": {
+        "mean": 6.656521723337555,
+        "p50": 2.4791676360317236,
+        "p95": 35.86508630375917,
+        "max": 97.75794403225544
+      }
+    },
+    "RightToeBase": {
+      "axisRangeMeters": [
+        0.4562709927558899,
+        0.0801095962524414,
+        0.09995842538774014
+      ],
+      "axisMinMeters": [
+        -0.3517073690891266,
+        0.01533365249633789,
+        0.01759541966021061
+      ],
+      "axisMaxMeters": [
+        0.1045636236667633,
+        0.0954432487487793,
+        0.11755384504795074
+      ],
+      "positionSpeedMetersPerSecond": {
+        "mean": 0.14123554983121098,
+        "p50": 0.03985291953372619,
+        "p95": 0.8501553691307029,
+        "max": 2.027119380161772
+      },
+      "positionAccelerationMetersPerSecondSquared": {
+        "mean": 2.177817145389066,
+        "p50": 1.0789134870919574,
+        "p95": 11.588501376782013,
+        "max": 22.576794297073512
+      },
+      "globalAngularSpeedRadiansPerSecondAfterDiagnosticSo3Projection": {
+        "mean": 0.5029985049145693,
+        "p50": 0.20192345473831635,
+        "p95": 2.435308347604356,
+        "max": 5.636926223330077
+      },
+      "globalAngularAccelerationRadiansPerSecondSquaredAfterDiagnosticSo3Projection": {
+        "mean": 7.174393583497425,
+        "p50": 2.8269532557810324,
+        "p95": 29.366343541873967,
+        "max": 121.83329018548007
+      }
+    }
+  },
+  "contactRuns": {
+    "LeftFoot": {
+      "labelActiveFraction": 0.9055555555555556,
+      "planarActiveSpeedMetersPerSecond": {
+        "mean": 0.040488379549249304,
+        "p50": 0.03008193765850244,
+        "p95": 0.10886652862352816,
+        "max": 0.2108528921524167
+      },
+      "planarActiveCumulativePathMeters": 0.21593802426266295,
+      "runs": [
+        {
+          "startFrame": 15,
+          "endFrame": 15,
+          "sampleDurationSeconds": 0.0,
+          "planarExcursionFromRunStartMeters": 0.0,
+          "planarTotalPathMeters": 0.0,
+          "jointCenterHeightRangeMeters": 0.0
+        },
+        {
+          "startFrame": 17,
+          "endFrame": 77,
+          "sampleDurationSeconds": 2.0,
+          "planarExcursionFromRunStartMeters": 0.02029663079521673,
+          "planarTotalPathMeters": 0.0740663760373959,
+          "jointCenterHeightRangeMeters": 0.005150437355041504
+        },
+        {
+          "startFrame": 79,
+          "endFrame": 179,
+          "sampleDurationSeconds": 3.3333333333333335,
+          "planarExcursionFromRunStartMeters": 0.05691934860899203,
+          "planarTotalPathMeters": 0.14187164822526707,
+          "jointCenterHeightRangeMeters": 0.009475886821746826
+        }
+      ]
+    },
+    "LeftToeBase": {
+      "labelActiveFraction": 0.9222222222222223,
+      "planarActiveSpeedMetersPerSecond": {
+        "mean": 0.037209927572608374,
+        "p50": 0.028905680166903598,
+        "p95": 0.09621324617666828,
+        "max": 0.1856201817379858
+      },
+      "planarActiveCumulativePathMeters": 0.20217393981117218,
+      "runs": [
+        {
+          "startFrame": 0,
+          "endFrame": 6,
+          "sampleDurationSeconds": 0.2,
+          "planarExcursionFromRunStartMeters": 0.008981186403341602,
+          "planarTotalPathMeters": 0.011144901831319401,
+          "jointCenterHeightRangeMeters": 0.011684298515319824
+        },
+        {
+          "startFrame": 15,
+          "endFrame": 73,
+          "sampleDurationSeconds": 1.9333333333333333,
+          "planarExcursionFromRunStartMeters": 0.028695974932650796,
+          "planarTotalPathMeters": 0.07675272519917366,
+          "jointCenterHeightRangeMeters": 0.009760737419128418
+        },
+        {
+          "startFrame": 80,
+          "endFrame": 179,
+          "sampleDurationSeconds": 3.3,
+          "planarExcursionFromRunStartMeters": 0.036564534953260175,
+          "planarTotalPathMeters": 0.1142763127806791,
+          "jointCenterHeightRangeMeters": 0.014763474464416504
+        }
+      ]
+    },
+    "LeftToeEnd": {
+      "labelActiveFraction": 0.9222222222222223,
+      "planarActiveSpeedMetersPerSecond": {
+        "mean": 0.037833161457970374,
+        "p50": 0.031548601715486305,
+        "p95": 0.0959292596981365,
+        "max": 0.19404381244759134
+      },
+      "planarActiveCumulativePathMeters": 0.2055601772549724,
+      "runs": [
+        {
+          "startFrame": 0,
+          "endFrame": 6,
+          "sampleDurationSeconds": 0.2,
+          "planarExcursionFromRunStartMeters": 0.007319902597190231,
+          "planarTotalPathMeters": 0.009277803286911959,
+          "jointCenterHeightRangeMeters": 0.0019318461418151855
+        },
+        {
+          "startFrame": 15,
+          "endFrame": 73,
+          "sampleDurationSeconds": 1.9333333333333333,
+          "planarExcursionFromRunStartMeters": 0.030805200440504943,
+          "planarTotalPathMeters": 0.08234983359935089,
+          "jointCenterHeightRangeMeters": 0.0144997239112854
+        },
+        {
+          "startFrame": 80,
+          "endFrame": 179,
+          "sampleDurationSeconds": 3.3,
+          "planarExcursionFromRunStartMeters": 0.032474698356318096,
+          "planarTotalPathMeters": 0.11393254036870953,
+          "jointCenterHeightRangeMeters": 0.02444934844970703
+        }
+      ]
+    },
+    "RightFoot": {
+      "labelActiveFraction": 0.8555555555555555,
+      "planarActiveSpeedMetersPerSecond": {
+        "mean": 0.04548212214565983,
+        "p50": 0.034724827286267704,
+        "p95": 0.11022117620103693,
+        "max": 0.21346438827448705
+      },
+      "planarActiveCumulativePathMeters": 0.22741061072829916,
+      "runs": [
+        {
+          "startFrame": 0,
+          "endFrame": 21,
+          "sampleDurationSeconds": 0.7,
+          "planarExcursionFromRunStartMeters": 0.03314625319838229,
+          "planarTotalPathMeters": 0.04534858699282367,
+          "jointCenterHeightRangeMeters": 0.0067487359046936035
+        },
+        {
+          "startFrame": 28,
+          "endFrame": 57,
+          "sampleDurationSeconds": 0.9666666666666667,
+          "planarExcursionFromRunStartMeters": 0.02890813437302751,
+          "planarTotalPathMeters": 0.04275913110424395,
+          "jointCenterHeightRangeMeters": 0.012407362461090088
+        },
+        {
+          "startFrame": 62,
+          "endFrame": 151,
+          "sampleDurationSeconds": 2.966666666666667,
+          "planarExcursionFromRunStartMeters": 0.07006748371432463,
+          "planarTotalPathMeters": 0.11758307593457278,
+          "jointCenterHeightRangeMeters": 0.009018659591674805
+        },
+        {
+          "startFrame": 168,
+          "endFrame": 179,
+          "sampleDurationSeconds": 0.36666666666666664,
+          "planarExcursionFromRunStartMeters": 0.021089593110792244,
+          "planarTotalPathMeters": 0.021719816696658786,
+          "jointCenterHeightRangeMeters": 0.0036461949348449707
+        }
+      ]
+    },
+    "RightToeBase": {
+      "labelActiveFraction": 0.8722222222222222,
+      "planarActiveSpeedMetersPerSecond": {
+        "mean": 0.035618900799434854,
+        "p50": 0.032661187773636316,
+        "p95": 0.0857946882040431,
+        "max": 0.13323278438743447
+      },
+      "planarActiveCumulativePathMeters": 0.18165639407711773,
+      "runs": [
+        {
+          "startFrame": 0,
+          "endFrame": 21,
+          "sampleDurationSeconds": 0.7,
+          "planarExcursionFromRunStartMeters": 0.015829051860449153,
+          "planarTotalPathMeters": 0.026826061398142816,
+          "jointCenterHeightRangeMeters": 0.005955994129180908
+        },
+        {
+          "startFrame": 28,
+          "endFrame": 58,
+          "sampleDurationSeconds": 1.0,
+          "planarExcursionFromRunStartMeters": 0.010148193236314374,
+          "planarTotalPathMeters": 0.03574178053429386,
+          "jointCenterHeightRangeMeters": 0.011102914810180664
+        },
+        {
+          "startFrame": 62,
+          "endFrame": 153,
+          "sampleDurationSeconds": 3.033333333333333,
+          "planarExcursionFromRunStartMeters": 0.04724625620865681,
+          "planarTotalPathMeters": 0.09975389068351619,
+          "jointCenterHeightRangeMeters": 0.009762048721313477
+        },
+        {
+          "startFrame": 168,
+          "endFrame": 179,
+          "sampleDurationSeconds": 0.36666666666666664,
+          "planarExcursionFromRunStartMeters": 0.017900595005068215,
+          "planarTotalPathMeters": 0.019334661461164877,
+          "jointCenterHeightRangeMeters": 0.004349052906036377
+        }
+      ]
+    },
+    "RightToeEnd": {
+      "labelActiveFraction": 0.8722222222222222,
+      "planarActiveSpeedMetersPerSecond": {
+        "mean": 0.03579130621798862,
+        "p50": 0.03238195447004346,
+        "p95": 0.08138881041210722,
+        "max": 0.12914039999495266
+      },
+      "planarActiveCumulativePathMeters": 0.182535661711742,
+      "runs": [
+        {
+          "startFrame": 0,
+          "endFrame": 21,
+          "sampleDurationSeconds": 0.7,
+          "planarExcursionFromRunStartMeters": 0.01053664071547351,
+          "planarTotalPathMeters": 0.02249260582989572,
+          "jointCenterHeightRangeMeters": 0.006777763366699219
+        },
+        {
+          "startFrame": 28,
+          "endFrame": 58,
+          "sampleDurationSeconds": 1.0,
+          "planarExcursionFromRunStartMeters": 0.01919513349222367,
+          "planarTotalPathMeters": 0.04061433511489077,
+          "jointCenterHeightRangeMeters": 0.010656476020812988
+        },
+        {
+          "startFrame": 62,
+          "endFrame": 153,
+          "sampleDurationSeconds": 3.033333333333333,
+          "planarExcursionFromRunStartMeters": 0.038106843336662824,
+          "planarTotalPathMeters": 0.10046458688217919,
+          "jointCenterHeightRangeMeters": 0.01504606008529663
+        },
+        {
+          "startFrame": 168,
+          "endFrame": 179,
+          "sampleDurationSeconds": 0.36666666666666664,
+          "planarExcursionFromRunStartMeters": 0.01668916149052211,
+          "planarTotalPathMeters": 0.018964133884776295,
+          "jointCenterHeightRangeMeters": 0.005953550338745117
+        }
+      ]
+    }
+  },
+  "promptRelatedObservationsOnly": {
+    "leftRightHandHeightCorrelation": 0.5020691923440199,
+    "firstLastHandPositionsMeters": {
+      "LeftHand": {
+        "first": [
+          0.35972797870635986,
+          0.7925306558609009,
+          -0.0017493590712547302
+        ],
+        "last": [
+          0.6118838787078857,
+          0.8234635591506958,
+          0.0548672080039978
+        ]
+      },
+      "RightHand": {
+        "first": [
+          -0.34361404180526733,
+          0.8011897802352905,
+          0.07750456780195236
+        ],
+        "last": [
+          0.030154287815093994,
+          0.8319374918937683,
+          0.09498009085655212
+        ]
+      }
+    },
+    "interpretationLimit": "Descriptive evidence only; no dance style classifier or calibrated intent pass/fail criterion."
+  },
+  "limits": [
+    "Offline native-array diagnostics do not certify dance style, reliability, success rate, or training-data originality.",
+    "Joint centers and predicted contact labels do not encode the target rendered sole/body hull; floor and self-collision remain unverified.",
+    "Finite differences do not inspect an application Hermite curve, joins, locked endpoints, or continuous derivatives.",
+    "Contact labels are model predictions, not forces. Active movement uses consecutive true labels.",
+    "SO(3) projection is diagnostic normalization only; no repair or accepted result is produced.",
+    "Model name, weights/version, coordinate metadata and supplied FPS require separate provenance verification."
+  ],
+  "schemaVersion": "generated-motion-audit-1",
+  "inputFile": "/workspace/ChoreographyStudio/work/model-evaluation-20261014/trial-02/kimodo-chinese-classical-raw.npz",
+  "inputSha256": "84c4b29492e51dde15a1896ef454f7d1941ec0e5ed859efabef1735ad749507c",
+  "skeletonMetadata": {
+    "file": "/workspace/ChoreographyStudio/work/kimodo-runtime-research-20261014/soma-skeleton-metadata.json",
+    "sha256": "8047a9c48cbb29ceef3edd991275026e49480188089a83813b14dc98307bf086",
+    "id": "somaskel77",
+    "metadataVersion": "legacy-unversioned",
+    "jointCount": 77,
+    "declaredSource": "https://github.com/nv-tlabs/kimodo/blob/main/kimodo/assets/skeletons/somaskel77/joints.p",
+    "declaredAssetSha256": "dc5fd8e39e0ff312f5d0f536a87ac22ac58445e13443fcb8ab54e6817cb97ce7",
+    "verificationStatus": "Supplied rest metadata checked against arrays by FK; service model/weight identity not independently verified."
+  },
+  "trialMetadata": {
+    "file": "/workspace/ChoreographyStudio/work/model-evaluation-20261014/trial-02/kimodo-trial.json",
+    "sha256": "a464442492f5c5d250d990f5b36b60d8ccd195af4569a082d5abf2537b8ecbe0",
+    "declared": {
+      "startedAt": "2026-10-14T03:54:19.493Z",
+      "url": "https://nvidia-kimodo.hf.space/",
+      "inferenceClicks": 1,
+      "errors": []
+    },
+    "textInputEvents": [
+      {
+        "op": "fill",
+        "role": "textbox",
+        "name": "Seed",
+        "value": "20261014",
+        "time": "2026-10-14T03:55:05.794Z"
+      },
+      {
+        "op": "fill",
+        "selector": "[contenteditable=true]",
+        "value": "A dancer performs graceful flowing Chinese classical dance. The left arm sweeps outward in a wide horizontal circle while the right hand stays near the waist, then the right arm circles outward while the left hand lowers. The torso turns gently to follow each arm. The dancer steps slowly sideways to the left, shifts weight, and finishes with arms softly extended.",
+        "time": "2026-10-14T03:55:11.831Z"
+      }
+    ],
+    "verificationStatus": "Supplied receipt metadata; model and weight identity not independently verified."
+  },
+  "inputsUnchanged": true
+}

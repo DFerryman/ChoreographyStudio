@@ -1,0 +1,1543 @@
+{
+  "schema": "two-priors-real-adapted-copy-calibration-2",
+  "blindToInitialRawSample": false,
+  "reasonForSupplement": "Original screen lacked actual retarget/contact/solver/seam-adjusted known copies; a changed pose or seam is not evidence of newly created source material.",
+  "unchangedMethod": "audit_similarity.py feature/DTW method; same 1.25 maximum-positive-control margin.",
+  "initialThresholdDirectionRms": 0.05297699627250428,
+  "initialReceiptSha256": "79b007eaa893b724a5299a1e3922d1ec319a8a641474b67e7e74026028c6a7f2",
+  "initialCalibrationSha256": "b9f2bf06170bec65d98c4cfbe617e22baf1a1c3eec917fe430d15af48195f96c",
+  "thresholdDirectionRms": 0.43256752988859576,
+  "maximumAugmentedPositiveControlDirectionRms": 0.3460540159108766,
+  "initialPositiveControlCount": 36,
+  "additionalActualAdaptedControlCount": 8,
+  "controls": [
+    {
+      "knownSourcePath": "work/planner-frozen-review-20261014/public-frozen-review-clean/actual-browser-candidate.json",
+      "knownSourceCaptureSha256": "35dc1840dbb962cf6a45694b399b400a2cfd00bc0b96665629b7b5477141ab27",
+      "originalSources": [
+        {
+          "clipId": "cmu-85-12",
+          "sourceHash": "641cc765dbce56267b4a16a087174e487bdf16842a705e6fdc1cbb99329096bd"
+        }
+      ],
+      "originalOrigin": {
+        "kind": "human-motion-prior",
+        "catalogVersion": "cmu-neutral-rig-2-1",
+        "sources": [
+          {
+            "clipId": "cmu-85-12",
+            "sourceHash": "641cc765dbce56267b4a16a087174e487bdf16842a705e6fdc1cbb99329096bd"
+          }
+        ],
+        "segments": [
+          {
+            "clipId": "cmu-85-12",
+            "startSeconds": 4,
+            "endSeconds": 9.5,
+            "sourceStartSeconds": 0,
+            "sourceEndSeconds": 5.5,
+            "yawDegrees": 0,
+            "travelXZ": [
+              0,
+              0
+            ],
+            "transitionSeconds": 0,
+            "contactHint": "floor"
+          }
+        ],
+        "adaptations": [
+          "quaternius-arm-target-1",
+          "arm-so3-trajectory-1",
+          "neck-so3-trajectory-1",
+          "head-so3-trajectory-1",
+          "spine-so3-trajectory-1",
+          "upperleg-so3-trajectory-1",
+          "knee-flex-trajectory-1",
+          "motion-leg-contact-conditioning-1",
+          "motion-curve-grounding-1"
+        ],
+        "adaptationMetrics": {
+          "maxHandDisplacementMeters": 0.3013594765321551,
+          "rmsHandDisplacementMeters": 0.12835502063398704,
+          "maxFootDisplacementMeters": 0.07389591090303334,
+          "rmsFootDisplacementMeters": 0.017621208482752632,
+          "maxKneeDisplacementMeters": 0.04684969524884697,
+          "maxSoleOrientationChangeRadians": 4.2146848510894035e-08,
+          "maxSoleSmoothingRadians": 0.19020672056234555,
+          "maxFootMarkerDisplacementMeters": 0.02924491269875816
+        }
+      },
+      "control": "whole-actual-curve",
+      "actualCurveStartSeconds": 4.0,
+      "actualCurveEndSeconds": 9.5,
+      "result": {
+        "closest": {
+          "directionRms": 0.258582812186666,
+          "sourceStartSeconds": 0.5333333333333333,
+          "sourceEndSeconds": 5.266666666666667,
+          "sourceSpanSeconds": 4.733333333333333,
+          "queryFrames": 166,
+          "querySpanSeconds": 5.5,
+          "groupDirectionRmsAlongSamePath": {
+            "torso": 0.05780778053353598,
+            "arms": 0.35756253287195144,
+            "legs": 0.1748510946561914
+          },
+          "sourceId": "cmu-85-12",
+          "queryMirrored": false,
+          "overlappingDerivedWindows": [
+            {
+              "id": "cmu-85-12-a",
+              "recordingStart": 0,
+              "recordingEnd": 8
+            }
+          ]
+        },
+        "allFourSearches": [
+          {
+            "directionRms": 0.258582812186666,
+            "sourceStartSeconds": 0.5333333333333333,
+            "sourceEndSeconds": 5.266666666666667,
+            "sourceSpanSeconds": 4.733333333333333,
+            "queryFrames": 166,
+            "querySpanSeconds": 5.5,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.05780778053353598,
+              "arms": 0.35756253287195144,
+              "legs": 0.1748510946561914
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          },
+          {
+            "directionRms": 0.29873704709571547,
+            "sourceStartSeconds": 0.0,
+            "sourceEndSeconds": 3.1,
+            "sourceSpanSeconds": 3.1,
+            "queryFrames": 166,
+            "querySpanSeconds": 5.5,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.1598194748478681,
+              "arms": 0.37019177410311105,
+              "legs": 0.2703550714584233
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          },
+          {
+            "directionRms": 0.37247823402087654,
+            "sourceStartSeconds": 0.06666666666666667,
+            "sourceEndSeconds": 4.0,
+            "sourceSpanSeconds": 3.933333333333333,
+            "queryFrames": 166,
+            "querySpanSeconds": 5.5,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.2766326749285425,
+              "arms": 0.48952043713406357,
+              "legs": 0.26446344370084524
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          },
+          {
+            "directionRms": 0.38066026798175345,
+            "sourceStartSeconds": 0.06666666666666667,
+            "sourceEndSeconds": 3.8333333333333335,
+            "sourceSpanSeconds": 3.7666666666666666,
+            "queryFrames": 166,
+            "querySpanSeconds": 5.5,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.27270688582286307,
+              "arms": 0.5022930081001231,
+              "legs": 0.27941109339855125
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          }
+        ],
+        "queryDiagnostics": {
+          "headingUndefinedFrames": 0
+        }
+      }
+    },
+    {
+      "knownSourcePath": "work/planner-frozen-review-20261014/public-frozen-review-clean/actual-browser-candidate.json",
+      "knownSourceCaptureSha256": "35dc1840dbb962cf6a45694b399b400a2cfd00bc0b96665629b7b5477141ab27",
+      "originalSources": [
+        {
+          "clipId": "cmu-85-12",
+          "sourceHash": "641cc765dbce56267b4a16a087174e487bdf16842a705e6fdc1cbb99329096bd"
+        }
+      ],
+      "originalOrigin": {
+        "kind": "human-motion-prior",
+        "catalogVersion": "cmu-neutral-rig-2-1",
+        "sources": [
+          {
+            "clipId": "cmu-85-12",
+            "sourceHash": "641cc765dbce56267b4a16a087174e487bdf16842a705e6fdc1cbb99329096bd"
+          }
+        ],
+        "segments": [
+          {
+            "clipId": "cmu-85-12",
+            "startSeconds": 4,
+            "endSeconds": 9.5,
+            "sourceStartSeconds": 0,
+            "sourceEndSeconds": 5.5,
+            "yawDegrees": 0,
+            "travelXZ": [
+              0,
+              0
+            ],
+            "transitionSeconds": 0,
+            "contactHint": "floor"
+          }
+        ],
+        "adaptations": [
+          "quaternius-arm-target-1",
+          "arm-so3-trajectory-1",
+          "neck-so3-trajectory-1",
+          "head-so3-trajectory-1",
+          "spine-so3-trajectory-1",
+          "upperleg-so3-trajectory-1",
+          "knee-flex-trajectory-1",
+          "motion-leg-contact-conditioning-1",
+          "motion-curve-grounding-1"
+        ],
+        "adaptationMetrics": {
+          "maxHandDisplacementMeters": 0.3013594765321551,
+          "rmsHandDisplacementMeters": 0.12835502063398704,
+          "maxFootDisplacementMeters": 0.07389591090303334,
+          "rmsFootDisplacementMeters": 0.017621208482752632,
+          "maxKneeDisplacementMeters": 0.04684969524884697,
+          "maxSoleOrientationChangeRadians": 4.2146848510894035e-08,
+          "maxSoleSmoothingRadians": 0.19020672056234555,
+          "maxFootMarkerDisplacementMeters": 0.02924491269875816
+        }
+      },
+      "control": "entry-two-seconds",
+      "actualCurveStartSeconds": 4.0,
+      "actualCurveEndSeconds": 6.0,
+      "result": {
+        "closest": {
+          "directionRms": 0.21579460888113502,
+          "sourceStartSeconds": 0.5333333333333333,
+          "sourceEndSeconds": 1.9666666666666666,
+          "sourceSpanSeconds": 1.4333333333333331,
+          "queryFrames": 61,
+          "querySpanSeconds": 2.0,
+          "groupDirectionRmsAlongSamePath": {
+            "torso": 0.03798143133024658,
+            "arms": 0.3105214220674358,
+            "legs": 0.13934202158842407
+          },
+          "sourceId": "cmu-85-12",
+          "queryMirrored": false,
+          "overlappingDerivedWindows": [
+            {
+              "id": "cmu-85-12-a",
+              "recordingStart": 0,
+              "recordingEnd": 8
+            }
+          ]
+        },
+        "allFourSearches": [
+          {
+            "directionRms": 0.21579460888113502,
+            "sourceStartSeconds": 0.5333333333333333,
+            "sourceEndSeconds": 1.9666666666666666,
+            "sourceSpanSeconds": 1.4333333333333331,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.03798143133024658,
+              "arms": 0.3105214220674358,
+              "legs": 0.13934202158842407
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          },
+          {
+            "directionRms": 0.24539670745122172,
+            "sourceStartSeconds": 0.4666666666666667,
+            "sourceEndSeconds": 1.6,
+            "sourceSpanSeconds": 1.1333333333333333,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.09755274864376388,
+              "arms": 0.3301450844396334,
+              "legs": 0.18697101403906544
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          },
+          {
+            "directionRms": 0.31626069125316136,
+            "sourceStartSeconds": 1.7,
+            "sourceEndSeconds": 3.033333333333333,
+            "sourceSpanSeconds": 1.3333333333333333,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.23803837014184195,
+              "arms": 0.40886024181849623,
+              "legs": 0.23713528803376283
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          },
+          {
+            "directionRms": 0.3169421860979226,
+            "sourceStartSeconds": 0.2,
+            "sourceEndSeconds": 2.9,
+            "sourceSpanSeconds": 2.6999999999999997,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.2523451404721789,
+              "arms": 0.40068931805657654,
+              "legs": 0.243611331790837
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          }
+        ],
+        "queryDiagnostics": {
+          "headingUndefinedFrames": 0
+        }
+      }
+    },
+    {
+      "knownSourcePath": "work/planner-frozen-review-20261014/public-frozen-review-clean/actual-browser-candidate.json",
+      "knownSourceCaptureSha256": "35dc1840dbb962cf6a45694b399b400a2cfd00bc0b96665629b7b5477141ab27",
+      "originalSources": [
+        {
+          "clipId": "cmu-85-12",
+          "sourceHash": "641cc765dbce56267b4a16a087174e487bdf16842a705e6fdc1cbb99329096bd"
+        }
+      ],
+      "originalOrigin": {
+        "kind": "human-motion-prior",
+        "catalogVersion": "cmu-neutral-rig-2-1",
+        "sources": [
+          {
+            "clipId": "cmu-85-12",
+            "sourceHash": "641cc765dbce56267b4a16a087174e487bdf16842a705e6fdc1cbb99329096bd"
+          }
+        ],
+        "segments": [
+          {
+            "clipId": "cmu-85-12",
+            "startSeconds": 4,
+            "endSeconds": 9.5,
+            "sourceStartSeconds": 0,
+            "sourceEndSeconds": 5.5,
+            "yawDegrees": 0,
+            "travelXZ": [
+              0,
+              0
+            ],
+            "transitionSeconds": 0,
+            "contactHint": "floor"
+          }
+        ],
+        "adaptations": [
+          "quaternius-arm-target-1",
+          "arm-so3-trajectory-1",
+          "neck-so3-trajectory-1",
+          "head-so3-trajectory-1",
+          "spine-so3-trajectory-1",
+          "upperleg-so3-trajectory-1",
+          "knee-flex-trajectory-1",
+          "motion-leg-contact-conditioning-1",
+          "motion-curve-grounding-1"
+        ],
+        "adaptationMetrics": {
+          "maxHandDisplacementMeters": 0.3013594765321551,
+          "rmsHandDisplacementMeters": 0.12835502063398704,
+          "maxFootDisplacementMeters": 0.07389591090303334,
+          "rmsFootDisplacementMeters": 0.017621208482752632,
+          "maxKneeDisplacementMeters": 0.04684969524884697,
+          "maxSoleOrientationChangeRadians": 4.2146848510894035e-08,
+          "maxSoleSmoothingRadians": 0.19020672056234555,
+          "maxFootMarkerDisplacementMeters": 0.02924491269875816
+        }
+      },
+      "control": "interior-two-seconds",
+      "actualCurveStartSeconds": 5.733333333333333,
+      "actualCurveEndSeconds": 7.733333333333333,
+      "result": {
+        "closest": {
+          "directionRms": 0.16708124717666525,
+          "sourceStartSeconds": 1.8333333333333333,
+          "sourceEndSeconds": 3.7666666666666666,
+          "sourceSpanSeconds": 1.9333333333333333,
+          "queryFrames": 61,
+          "querySpanSeconds": 2.0,
+          "groupDirectionRmsAlongSamePath": {
+            "torso": 0.015146895017908245,
+            "arms": 0.26959235332330306,
+            "legs": 0.03649846695728645
+          },
+          "sourceId": "cmu-85-12",
+          "queryMirrored": false,
+          "overlappingDerivedWindows": [
+            {
+              "id": "cmu-85-12-a",
+              "recordingStart": 0,
+              "recordingEnd": 8
+            }
+          ]
+        },
+        "allFourSearches": [
+          {
+            "directionRms": 0.16708124717666525,
+            "sourceStartSeconds": 1.8333333333333333,
+            "sourceEndSeconds": 3.7666666666666666,
+            "sourceSpanSeconds": 1.9333333333333333,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.015146895017908245,
+              "arms": 0.26959235332330306,
+              "legs": 0.03649846695728645
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          },
+          {
+            "directionRms": 0.23509991079517636,
+            "sourceStartSeconds": 0.0,
+            "sourceEndSeconds": 1.0666666666666667,
+            "sourceSpanSeconds": 1.0666666666666667,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.13770640819638835,
+              "arms": 0.2992878654487123,
+              "legs": 0.19518273250881119
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          },
+          {
+            "directionRms": 0.3439760456628318,
+            "sourceStartSeconds": 2.3666666666666667,
+            "sourceEndSeconds": 4.333333333333333,
+            "sourceSpanSeconds": 1.9666666666666663,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.28181410028733095,
+              "arms": 0.45302762491574605,
+              "legs": 0.2683089901307145
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          },
+          {
+            "directionRms": 0.34661025195533507,
+            "sourceStartSeconds": 2.033333333333333,
+            "sourceEndSeconds": 3.4,
+            "sourceSpanSeconds": 1.3666666666666667,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.25909516934743926,
+              "arms": 0.47650325740225963,
+              "legs": 0.24760130274190045
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          }
+        ],
+        "queryDiagnostics": {
+          "headingUndefinedFrames": 0
+        }
+      }
+    },
+    {
+      "knownSourcePath": "work/planner-frozen-review-20261014/public-frozen-review-clean/actual-browser-candidate.json",
+      "knownSourceCaptureSha256": "35dc1840dbb962cf6a45694b399b400a2cfd00bc0b96665629b7b5477141ab27",
+      "originalSources": [
+        {
+          "clipId": "cmu-85-12",
+          "sourceHash": "641cc765dbce56267b4a16a087174e487bdf16842a705e6fdc1cbb99329096bd"
+        }
+      ],
+      "originalOrigin": {
+        "kind": "human-motion-prior",
+        "catalogVersion": "cmu-neutral-rig-2-1",
+        "sources": [
+          {
+            "clipId": "cmu-85-12",
+            "sourceHash": "641cc765dbce56267b4a16a087174e487bdf16842a705e6fdc1cbb99329096bd"
+          }
+        ],
+        "segments": [
+          {
+            "clipId": "cmu-85-12",
+            "startSeconds": 4,
+            "endSeconds": 9.5,
+            "sourceStartSeconds": 0,
+            "sourceEndSeconds": 5.5,
+            "yawDegrees": 0,
+            "travelXZ": [
+              0,
+              0
+            ],
+            "transitionSeconds": 0,
+            "contactHint": "floor"
+          }
+        ],
+        "adaptations": [
+          "quaternius-arm-target-1",
+          "arm-so3-trajectory-1",
+          "neck-so3-trajectory-1",
+          "head-so3-trajectory-1",
+          "spine-so3-trajectory-1",
+          "upperleg-so3-trajectory-1",
+          "knee-flex-trajectory-1",
+          "motion-leg-contact-conditioning-1",
+          "motion-curve-grounding-1"
+        ],
+        "adaptationMetrics": {
+          "maxHandDisplacementMeters": 0.3013594765321551,
+          "rmsHandDisplacementMeters": 0.12835502063398704,
+          "maxFootDisplacementMeters": 0.07389591090303334,
+          "rmsFootDisplacementMeters": 0.017621208482752632,
+          "maxKneeDisplacementMeters": 0.04684969524884697,
+          "maxSoleOrientationChangeRadians": 4.2146848510894035e-08,
+          "maxSoleSmoothingRadians": 0.19020672056234555,
+          "maxFootMarkerDisplacementMeters": 0.02924491269875816
+        }
+      },
+      "control": "exit-two-seconds",
+      "actualCurveStartSeconds": 7.5,
+      "actualCurveEndSeconds": 9.5,
+      "result": {
+        "closest": {
+          "directionRms": 0.34436320522996366,
+          "sourceStartSeconds": 3.466666666666667,
+          "sourceEndSeconds": 5.266666666666667,
+          "sourceSpanSeconds": 1.7999999999999998,
+          "queryFrames": 61,
+          "querySpanSeconds": 2.0,
+          "groupDirectionRmsAlongSamePath": {
+            "torso": 0.08914164516336867,
+            "arms": 0.4655821692455511,
+            "legs": 0.2587303863514311
+          },
+          "sourceId": "cmu-85-12",
+          "queryMirrored": false,
+          "overlappingDerivedWindows": [
+            {
+              "id": "cmu-85-12-a",
+              "recordingStart": 0,
+              "recordingEnd": 8
+            }
+          ]
+        },
+        "allFourSearches": [
+          {
+            "directionRms": 0.34436320522996366,
+            "sourceStartSeconds": 3.466666666666667,
+            "sourceEndSeconds": 5.266666666666667,
+            "sourceSpanSeconds": 1.7999999999999998,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.08914164516336867,
+              "arms": 0.4655821692455511,
+              "legs": 0.2587303863514311
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          },
+          {
+            "directionRms": 0.38515131966638066,
+            "sourceStartSeconds": 0.8666666666666667,
+            "sourceEndSeconds": 3.1,
+            "sourceSpanSeconds": 2.2333333333333334,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.24266293295744124,
+              "arms": 0.4374048605877299,
+              "legs": 0.3884181314692706
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          },
+          {
+            "directionRms": 0.3866688805369645,
+            "sourceStartSeconds": 28.3,
+            "sourceEndSeconds": 30.233333333333334,
+            "sourceSpanSeconds": 1.9333333333333336,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.24666058787434228,
+              "arms": 0.4943828035809432,
+              "legs": 0.3393623620234302
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-d",
+                "recordingStart": 24,
+                "recordingEnd": 32
+              }
+            ]
+          },
+          {
+            "directionRms": 0.3923715945673404,
+            "sourceStartSeconds": 15.066666666666666,
+            "sourceEndSeconds": 16.666666666666668,
+            "sourceSpanSeconds": 1.6000000000000014,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.277236647170437,
+              "arms": 0.47657191506553515,
+              "legs": 0.3570914643922891
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-b",
+                "recordingStart": 8,
+                "recordingEnd": 16
+              },
+              {
+                "id": "cmu-61-08-c",
+                "recordingStart": 16,
+                "recordingEnd": 24
+              }
+            ]
+          }
+        ],
+        "queryDiagnostics": {
+          "headingUndefinedFrames": 0
+        }
+      }
+    },
+    {
+      "knownSourcePath": "work/resume-natural-20261013/public-browser-curve-review/actual-browser-candidate.json",
+      "knownSourceCaptureSha256": "08189ffc8daf9ab4f197afb5c2660a2be3d17eeb385bfa2a71bfb35668d44962",
+      "originalSources": [
+        {
+          "clipId": "cmu-61-08",
+          "sourceHash": "d24951aaeeb9e4335238b07138a5e4dda463e13d9490883e9cd475085b218890"
+        }
+      ],
+      "originalOrigin": {
+        "kind": "human-motion-prior",
+        "catalogVersion": "cmu-neutral-rig-2-1",
+        "endingAdaptation": {
+          "kind": "stable-hold",
+          "seconds": 1.5
+        },
+        "sources": [
+          {
+            "clipId": "cmu-61-08",
+            "sourceHash": "d24951aaeeb9e4335238b07138a5e4dda463e13d9490883e9cd475085b218890"
+          }
+        ],
+        "segments": [
+          {
+            "clipId": "cmu-61-08",
+            "startSeconds": 0,
+            "endSeconds": 16,
+            "sourceStartSeconds": 0,
+            "sourceEndSeconds": 16,
+            "yawDegrees": 0,
+            "travelXZ": [
+              0,
+              0
+            ],
+            "transitionSeconds": 0.5,
+            "contactHint": "standing"
+          }
+        ],
+        "adaptations": [
+          "quaternius-arm-target-1",
+          "arm-so3-trajectory-1",
+          "neck-so3-trajectory-1",
+          "head-so3-trajectory-1",
+          "spine-so3-trajectory-1",
+          "quaternius-cmu61-stance-1",
+          "shin-axial-trajectory-1",
+          "knee-flex-trajectory-1",
+          "upperleg-so3-trajectory-1",
+          "full-hold-settle-1",
+          "motion-leg-contact-conditioning-1",
+          "motion-curve-grounding-1"
+        ],
+        "adaptationMetrics": {
+          "maxHandDisplacementMeters": 0.5547976156610879,
+          "rmsHandDisplacementMeters": 0.19872700351172168,
+          "maxFootDisplacementMeters": 0.2677800144686235,
+          "rmsFootDisplacementMeters": 0.09591576016555052,
+          "maxKneeDisplacementMeters": 0.24908856214970582,
+          "maxSoleOrientationChangeRadians": 1.2558146962992007,
+          "maxSoleSmoothingRadians": 0.2254450936857324,
+          "maxFootMarkerDisplacementMeters": 0.0331268968241107
+        }
+      },
+      "control": "whole-actual-curve",
+      "actualCurveStartSeconds": 0.0,
+      "actualCurveEndSeconds": 16.0,
+      "result": {
+        "closest": {
+          "directionRms": 0.24067739217865128,
+          "sourceStartSeconds": 0.06666666666666667,
+          "sourceEndSeconds": 16.233333333333334,
+          "sourceSpanSeconds": 16.166666666666668,
+          "queryFrames": 481,
+          "querySpanSeconds": 16.0,
+          "groupDirectionRmsAlongSamePath": {
+            "torso": 0.07059689688303915,
+            "arms": 0.3738604209491487,
+            "legs": 0.1326107125821627
+          },
+          "sourceId": "cmu-61-08",
+          "queryMirrored": false,
+          "overlappingDerivedWindows": [
+            {
+              "id": "cmu-61-08-a",
+              "recordingStart": 0,
+              "recordingEnd": 8
+            },
+            {
+              "id": "cmu-61-08-b",
+              "recordingStart": 8,
+              "recordingEnd": 16
+            },
+            {
+              "id": "cmu-61-08-c",
+              "recordingStart": 16,
+              "recordingEnd": 24
+            }
+          ]
+        },
+        "allFourSearches": [
+          {
+            "directionRms": 0.24067739217865128,
+            "sourceStartSeconds": 0.06666666666666667,
+            "sourceEndSeconds": 16.233333333333334,
+            "sourceSpanSeconds": 16.166666666666668,
+            "queryFrames": 481,
+            "querySpanSeconds": 16.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.07059689688303915,
+              "arms": 0.3738604209491487,
+              "legs": 0.1326107125821627
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              },
+              {
+                "id": "cmu-61-08-b",
+                "recordingStart": 8,
+                "recordingEnd": 16
+              },
+              {
+                "id": "cmu-61-08-c",
+                "recordingStart": 16,
+                "recordingEnd": 24
+              }
+            ]
+          },
+          {
+            "directionRms": 0.43911932995116437,
+            "sourceStartSeconds": 0.06666666666666667,
+            "sourceEndSeconds": 16.666666666666668,
+            "sourceSpanSeconds": 16.6,
+            "queryFrames": 481,
+            "querySpanSeconds": 16.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.16003812081253707,
+              "arms": 0.665332467008487,
+              "legs": 0.304652034372951
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              },
+              {
+                "id": "cmu-61-08-b",
+                "recordingStart": 8,
+                "recordingEnd": 16
+              },
+              {
+                "id": "cmu-61-08-c",
+                "recordingStart": 16,
+                "recordingEnd": 24
+              }
+            ]
+          },
+          {
+            "directionRms": 0.5129823613453983,
+            "sourceStartSeconds": 0.0,
+            "sourceEndSeconds": 11.366666666666667,
+            "sourceSpanSeconds": 11.366666666666667,
+            "queryFrames": 481,
+            "querySpanSeconds": 16.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.4893563523420716,
+              "arms": 0.6778828920557486,
+              "legs": 0.4179461870651492
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              },
+              {
+                "id": "cmu-85-12-b",
+                "recordingStart": 8,
+                "recordingEnd": 16
+              }
+            ]
+          },
+          {
+            "directionRms": 0.522964043808333,
+            "sourceStartSeconds": 0.0,
+            "sourceEndSeconds": 11.4,
+            "sourceSpanSeconds": 11.4,
+            "queryFrames": 481,
+            "querySpanSeconds": 16.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.5082227943755939,
+              "arms": 0.6948966124046118,
+              "legs": 0.4188906208933274
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              },
+              {
+                "id": "cmu-85-12-b",
+                "recordingStart": 8,
+                "recordingEnd": 16
+              }
+            ]
+          }
+        ],
+        "queryDiagnostics": {
+          "headingUndefinedFrames": 0
+        }
+      }
+    },
+    {
+      "knownSourcePath": "work/resume-natural-20261013/public-browser-curve-review/actual-browser-candidate.json",
+      "knownSourceCaptureSha256": "08189ffc8daf9ab4f197afb5c2660a2be3d17eeb385bfa2a71bfb35668d44962",
+      "originalSources": [
+        {
+          "clipId": "cmu-61-08",
+          "sourceHash": "d24951aaeeb9e4335238b07138a5e4dda463e13d9490883e9cd475085b218890"
+        }
+      ],
+      "originalOrigin": {
+        "kind": "human-motion-prior",
+        "catalogVersion": "cmu-neutral-rig-2-1",
+        "endingAdaptation": {
+          "kind": "stable-hold",
+          "seconds": 1.5
+        },
+        "sources": [
+          {
+            "clipId": "cmu-61-08",
+            "sourceHash": "d24951aaeeb9e4335238b07138a5e4dda463e13d9490883e9cd475085b218890"
+          }
+        ],
+        "segments": [
+          {
+            "clipId": "cmu-61-08",
+            "startSeconds": 0,
+            "endSeconds": 16,
+            "sourceStartSeconds": 0,
+            "sourceEndSeconds": 16,
+            "yawDegrees": 0,
+            "travelXZ": [
+              0,
+              0
+            ],
+            "transitionSeconds": 0.5,
+            "contactHint": "standing"
+          }
+        ],
+        "adaptations": [
+          "quaternius-arm-target-1",
+          "arm-so3-trajectory-1",
+          "neck-so3-trajectory-1",
+          "head-so3-trajectory-1",
+          "spine-so3-trajectory-1",
+          "quaternius-cmu61-stance-1",
+          "shin-axial-trajectory-1",
+          "knee-flex-trajectory-1",
+          "upperleg-so3-trajectory-1",
+          "full-hold-settle-1",
+          "motion-leg-contact-conditioning-1",
+          "motion-curve-grounding-1"
+        ],
+        "adaptationMetrics": {
+          "maxHandDisplacementMeters": 0.5547976156610879,
+          "rmsHandDisplacementMeters": 0.19872700351172168,
+          "maxFootDisplacementMeters": 0.2677800144686235,
+          "rmsFootDisplacementMeters": 0.09591576016555052,
+          "maxKneeDisplacementMeters": 0.24908856214970582,
+          "maxSoleOrientationChangeRadians": 1.2558146962992007,
+          "maxSoleSmoothingRadians": 0.2254450936857324,
+          "maxFootMarkerDisplacementMeters": 0.0331268968241107
+        }
+      },
+      "control": "entry-two-seconds",
+      "actualCurveStartSeconds": 0.0,
+      "actualCurveEndSeconds": 2.0,
+      "result": {
+        "closest": {
+          "directionRms": 0.2540703487714683,
+          "sourceStartSeconds": 0.06666666666666667,
+          "sourceEndSeconds": 2.7666666666666666,
+          "sourceSpanSeconds": 2.6999999999999997,
+          "queryFrames": 61,
+          "querySpanSeconds": 2.0,
+          "groupDirectionRmsAlongSamePath": {
+            "torso": 0.11866540319811435,
+            "arms": 0.3772163183240012,
+            "legs": 0.1305417559854765
+          },
+          "sourceId": "cmu-61-08",
+          "queryMirrored": false,
+          "overlappingDerivedWindows": [
+            {
+              "id": "cmu-61-08-a",
+              "recordingStart": 0,
+              "recordingEnd": 8
+            }
+          ]
+        },
+        "allFourSearches": [
+          {
+            "directionRms": 0.2540703487714683,
+            "sourceStartSeconds": 0.06666666666666667,
+            "sourceEndSeconds": 2.7666666666666666,
+            "sourceSpanSeconds": 2.6999999999999997,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.11866540319811435,
+              "arms": 0.3772163183240012,
+              "legs": 0.1305417559854765
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          },
+          {
+            "directionRms": 0.2727877005832872,
+            "sourceStartSeconds": 0.06666666666666667,
+            "sourceEndSeconds": 1.5666666666666667,
+            "sourceSpanSeconds": 1.5,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.12687763760861837,
+              "arms": 0.38064409042748343,
+              "legs": 0.17651424428562162
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          },
+          {
+            "directionRms": 0.27556670881350875,
+            "sourceStartSeconds": 0.5,
+            "sourceEndSeconds": 1.6333333333333333,
+            "sourceSpanSeconds": 1.1333333333333333,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.21924400271741531,
+              "arms": 0.32765281809200947,
+              "legs": 0.24164503635531331
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          },
+          {
+            "directionRms": 0.2815975733639741,
+            "sourceStartSeconds": 0.5,
+            "sourceEndSeconds": 1.6333333333333333,
+            "sourceSpanSeconds": 1.1333333333333333,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.22077885052643018,
+              "arms": 0.3303683464044532,
+              "legs": 0.251723556672211
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          }
+        ],
+        "queryDiagnostics": {
+          "headingUndefinedFrames": 0
+        }
+      }
+    },
+    {
+      "knownSourcePath": "work/resume-natural-20261013/public-browser-curve-review/actual-browser-candidate.json",
+      "knownSourceCaptureSha256": "08189ffc8daf9ab4f197afb5c2660a2be3d17eeb385bfa2a71bfb35668d44962",
+      "originalSources": [
+        {
+          "clipId": "cmu-61-08",
+          "sourceHash": "d24951aaeeb9e4335238b07138a5e4dda463e13d9490883e9cd475085b218890"
+        }
+      ],
+      "originalOrigin": {
+        "kind": "human-motion-prior",
+        "catalogVersion": "cmu-neutral-rig-2-1",
+        "endingAdaptation": {
+          "kind": "stable-hold",
+          "seconds": 1.5
+        },
+        "sources": [
+          {
+            "clipId": "cmu-61-08",
+            "sourceHash": "d24951aaeeb9e4335238b07138a5e4dda463e13d9490883e9cd475085b218890"
+          }
+        ],
+        "segments": [
+          {
+            "clipId": "cmu-61-08",
+            "startSeconds": 0,
+            "endSeconds": 16,
+            "sourceStartSeconds": 0,
+            "sourceEndSeconds": 16,
+            "yawDegrees": 0,
+            "travelXZ": [
+              0,
+              0
+            ],
+            "transitionSeconds": 0.5,
+            "contactHint": "standing"
+          }
+        ],
+        "adaptations": [
+          "quaternius-arm-target-1",
+          "arm-so3-trajectory-1",
+          "neck-so3-trajectory-1",
+          "head-so3-trajectory-1",
+          "spine-so3-trajectory-1",
+          "quaternius-cmu61-stance-1",
+          "shin-axial-trajectory-1",
+          "knee-flex-trajectory-1",
+          "upperleg-so3-trajectory-1",
+          "full-hold-settle-1",
+          "motion-leg-contact-conditioning-1",
+          "motion-curve-grounding-1"
+        ],
+        "adaptationMetrics": {
+          "maxHandDisplacementMeters": 0.5547976156610879,
+          "rmsHandDisplacementMeters": 0.19872700351172168,
+          "maxFootDisplacementMeters": 0.2677800144686235,
+          "rmsFootDisplacementMeters": 0.09591576016555052,
+          "maxKneeDisplacementMeters": 0.24908856214970582,
+          "maxSoleOrientationChangeRadians": 1.2558146962992007,
+          "maxSoleSmoothingRadians": 0.2254450936857324,
+          "maxFootMarkerDisplacementMeters": 0.0331268968241107
+        }
+      },
+      "control": "interior-two-seconds",
+      "actualCurveStartSeconds": 7.0,
+      "actualCurveEndSeconds": 9.0,
+      "result": {
+        "closest": {
+          "directionRms": 0.16642644457534006,
+          "sourceStartSeconds": 7.0,
+          "sourceEndSeconds": 8.933333333333334,
+          "sourceSpanSeconds": 1.9333333333333336,
+          "queryFrames": 61,
+          "querySpanSeconds": 2.0,
+          "groupDirectionRmsAlongSamePath": {
+            "torso": 0.026185156003861808,
+            "arms": 0.2530319109042452,
+            "legs": 0.0895037597718373
+          },
+          "sourceId": "cmu-61-08",
+          "queryMirrored": false,
+          "overlappingDerivedWindows": [
+            {
+              "id": "cmu-61-08-a",
+              "recordingStart": 0,
+              "recordingEnd": 8
+            },
+            {
+              "id": "cmu-61-08-b",
+              "recordingStart": 8,
+              "recordingEnd": 16
+            }
+          ]
+        },
+        "allFourSearches": [
+          {
+            "directionRms": 0.16642644457534006,
+            "sourceStartSeconds": 7.0,
+            "sourceEndSeconds": 8.933333333333334,
+            "sourceSpanSeconds": 1.9333333333333336,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.026185156003861808,
+              "arms": 0.2530319109042452,
+              "legs": 0.0895037597718373
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              },
+              {
+                "id": "cmu-61-08-b",
+                "recordingStart": 8,
+                "recordingEnd": 16
+              }
+            ]
+          },
+          {
+            "directionRms": 0.4052751941714761,
+            "sourceStartSeconds": 47.833333333333336,
+            "sourceEndSeconds": 48.833333333333336,
+            "sourceSpanSeconds": 1.0,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.15047791052527087,
+              "arms": 0.5209194145512327,
+              "legs": 0.34542334647522516
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-f",
+                "recordingStart": 40,
+                "recordingEnd": 48
+              },
+              {
+                "id": "cmu-61-08-g",
+                "recordingStart": 48,
+                "recordingEnd": 56.25
+              }
+            ]
+          },
+          {
+            "directionRms": 0.532944777803655,
+            "sourceStartSeconds": 1.3666666666666667,
+            "sourceEndSeconds": 3.8666666666666667,
+            "sourceSpanSeconds": 2.5,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.2766665511609571,
+              "arms": 0.7555076694125822,
+              "legs": 0.3519894293851846
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          },
+          {
+            "directionRms": 0.5566286607508695,
+            "sourceStartSeconds": 4.333333333333333,
+            "sourceEndSeconds": 5.666666666666667,
+            "sourceSpanSeconds": 1.333333333333334,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.35827444137207826,
+              "arms": 0.7598588405576429,
+              "legs": 0.42673310989633123
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-a",
+                "recordingStart": 0,
+                "recordingEnd": 8
+              }
+            ]
+          }
+        ],
+        "queryDiagnostics": {
+          "headingUndefinedFrames": 0
+        }
+      }
+    },
+    {
+      "knownSourcePath": "work/resume-natural-20261013/public-browser-curve-review/actual-browser-candidate.json",
+      "knownSourceCaptureSha256": "08189ffc8daf9ab4f197afb5c2660a2be3d17eeb385bfa2a71bfb35668d44962",
+      "originalSources": [
+        {
+          "clipId": "cmu-61-08",
+          "sourceHash": "d24951aaeeb9e4335238b07138a5e4dda463e13d9490883e9cd475085b218890"
+        }
+      ],
+      "originalOrigin": {
+        "kind": "human-motion-prior",
+        "catalogVersion": "cmu-neutral-rig-2-1",
+        "endingAdaptation": {
+          "kind": "stable-hold",
+          "seconds": 1.5
+        },
+        "sources": [
+          {
+            "clipId": "cmu-61-08",
+            "sourceHash": "d24951aaeeb9e4335238b07138a5e4dda463e13d9490883e9cd475085b218890"
+          }
+        ],
+        "segments": [
+          {
+            "clipId": "cmu-61-08",
+            "startSeconds": 0,
+            "endSeconds": 16,
+            "sourceStartSeconds": 0,
+            "sourceEndSeconds": 16,
+            "yawDegrees": 0,
+            "travelXZ": [
+              0,
+              0
+            ],
+            "transitionSeconds": 0.5,
+            "contactHint": "standing"
+          }
+        ],
+        "adaptations": [
+          "quaternius-arm-target-1",
+          "arm-so3-trajectory-1",
+          "neck-so3-trajectory-1",
+          "head-so3-trajectory-1",
+          "spine-so3-trajectory-1",
+          "quaternius-cmu61-stance-1",
+          "shin-axial-trajectory-1",
+          "knee-flex-trajectory-1",
+          "upperleg-so3-trajectory-1",
+          "full-hold-settle-1",
+          "motion-leg-contact-conditioning-1",
+          "motion-curve-grounding-1"
+        ],
+        "adaptationMetrics": {
+          "maxHandDisplacementMeters": 0.5547976156610879,
+          "rmsHandDisplacementMeters": 0.19872700351172168,
+          "maxFootDisplacementMeters": 0.2677800144686235,
+          "rmsFootDisplacementMeters": 0.09591576016555052,
+          "maxKneeDisplacementMeters": 0.24908856214970582,
+          "maxSoleOrientationChangeRadians": 1.2558146962992007,
+          "maxSoleSmoothingRadians": 0.2254450936857324,
+          "maxFootMarkerDisplacementMeters": 0.0331268968241107
+        }
+      },
+      "control": "exit-two-seconds",
+      "actualCurveStartSeconds": 14.0,
+      "actualCurveEndSeconds": 16.0,
+      "result": {
+        "closest": {
+          "directionRms": 0.3460540159108766,
+          "sourceStartSeconds": 14.033333333333333,
+          "sourceEndSeconds": 16.233333333333334,
+          "sourceSpanSeconds": 2.200000000000001,
+          "queryFrames": 61,
+          "querySpanSeconds": 2.0,
+          "groupDirectionRmsAlongSamePath": {
+            "torso": 0.1390521449744102,
+            "arms": 0.499191584937309,
+            "legs": 0.2581260477826164
+          },
+          "sourceId": "cmu-61-08",
+          "queryMirrored": false,
+          "overlappingDerivedWindows": [
+            {
+              "id": "cmu-61-08-b",
+              "recordingStart": 8,
+              "recordingEnd": 16
+            },
+            {
+              "id": "cmu-61-08-c",
+              "recordingStart": 16,
+              "recordingEnd": 24
+            }
+          ]
+        },
+        "allFourSearches": [
+          {
+            "directionRms": 0.3460540159108766,
+            "sourceStartSeconds": 14.033333333333333,
+            "sourceEndSeconds": 16.233333333333334,
+            "sourceSpanSeconds": 2.200000000000001,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.1390521449744102,
+              "arms": 0.499191584937309,
+              "legs": 0.2581260477826164
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-b",
+                "recordingStart": 8,
+                "recordingEnd": 16
+              },
+              {
+                "id": "cmu-61-08-c",
+                "recordingStart": 16,
+                "recordingEnd": 24
+              }
+            ]
+          },
+          {
+            "directionRms": 0.4639241840994333,
+            "sourceStartSeconds": 27.166666666666668,
+            "sourceEndSeconds": 28.866666666666667,
+            "sourceSpanSeconds": 1.6999999999999993,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.1956673536523989,
+              "arms": 0.6785188092282867,
+              "legs": 0.3204501247468503
+            },
+            "sourceId": "cmu-61-08",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-61-08-d",
+                "recordingStart": 24,
+                "recordingEnd": 32
+              }
+            ]
+          },
+          {
+            "directionRms": 0.508013359315593,
+            "sourceStartSeconds": 35.7,
+            "sourceEndSeconds": 36.96666666666667,
+            "sourceSpanSeconds": 1.2666666666666657,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.23368556115314118,
+              "arms": 0.7110305835471772,
+              "legs": 0.3416065374795862
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": false,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-e",
+                "recordingStart": 32,
+                "recordingEnd": 37.5
+              }
+            ]
+          },
+          {
+            "directionRms": 0.5250046837299969,
+            "sourceStartSeconds": 34.96666666666667,
+            "sourceEndSeconds": 36.96666666666667,
+            "sourceSpanSeconds": 2.0,
+            "queryFrames": 61,
+            "querySpanSeconds": 2.0,
+            "groupDirectionRmsAlongSamePath": {
+              "torso": 0.3319250499673525,
+              "arms": 0.7229598561840904,
+              "legs": 0.3916551609237149
+            },
+            "sourceId": "cmu-85-12",
+            "queryMirrored": true,
+            "overlappingDerivedWindows": [
+              {
+                "id": "cmu-85-12-e",
+                "recordingStart": 32,
+                "recordingEnd": 37.5
+              }
+            ]
+          }
+        ],
+        "queryDiagnostics": {
+          "headingUndefinedFrames": 0
+        }
+      }
+    }
+  ],
+  "allAugmentedKnownCopyControlsDetected": true,
+  "sourceIdentityMatches": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+  ],
+  "adaptedFkExportSha256": "24232127ebf386ef468d8254808c82a705401ea1a9589141a73960663a5428f0",
+  "scriptSha256": "32dda2fcd49579eb1acfc8b277a35972be343fd1a478e1dc2f55b8aa7aaa6e6e",
+  "frozenBeforeSupplementaryRawRescoreAt": "2026-10-14T03:58:52.383113+00:00"
+}

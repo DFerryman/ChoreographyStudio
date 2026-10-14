@@ -45,10 +45,10 @@ export function CameraBar({ view, canFrame, camera, avatar, onView, onFrame, onA
   </div>;
 }
 
-/** All character motion comes from AI; its prompt lives behind one stage button. */
+/** The neutral AI entry does not imply that a motion-creation model is available. */
 export function AIDock({ busy, children }: { busy: boolean; children: ReactNode }) {
   return <details className="scene-extras ai-dock">
-    <summary aria-label="AI 生成动作" title="用 AI 生成人物动作"><Sparkles size={13} /><span>AI 动作</span>{busy && <i className="ai-dock-busy" aria-hidden="true" />}</summary>
+    <summary aria-label="AI 动作" title="AI 动作"><Sparkles size={13} /><span>AI 动作</span>{busy && <i className="ai-dock-busy" aria-hidden="true" />}</summary>
     <div className="scene-extras-content floating-panel">{children}</div>
   </details>;
 }

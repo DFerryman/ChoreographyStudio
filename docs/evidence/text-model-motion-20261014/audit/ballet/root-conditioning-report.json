@@ -1,0 +1,32 @@
+{
+  "schema": "motion-curve-grounding-1",
+  "scope": "quarterpoint-hermite-root-conditioning",
+  "articulatedDynamics": false,
+  "physicalParameters": {
+    "massKg": 70,
+    "gravityMps2": 9.81,
+    "friction": 0.75
+  },
+  "provenance": {
+    "rigId": "neutral-rig-2",
+    "humanProfileId": "neutral-adult-v2",
+    "sourceHash": "b997f490769ae0923952f33dae3cb167780a93e96ce23175b9fce9994031cd20",
+    "inputKnots": 18
+  },
+  "samples": 365,
+  "iterations": 8,
+  "maxRootCorrectionMeters": 0.025668757526386976,
+  "maxFloorDepthMeters": 0.0016533864487936617,
+  "before": {
+    "groundedSamples": 363,
+    "minNormalForceNewtons": 656.8709775249886,
+    "maxFrictionExcessNewtons": 0,
+    "forceViolationSamples": 0
+  },
+  "after": {
+    "groundedSamples": 363,
+    "minNormalForceNewtons": 627.8223079889679,
+    "maxFrictionExcessNewtons": 0,
+    "forceViolationSamples": 0
+  }
+}

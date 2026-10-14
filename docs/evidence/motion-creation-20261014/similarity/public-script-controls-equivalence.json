@@ -1,0 +1,364 @@
+{
+  "schema": "public-script-same-method-controls-1",
+  "controlsChecked": 44,
+  "allClosestSourceIdentitiesMatch": true,
+  "maximumOriginalVsPublicDistanceDelta": 0.0,
+  "maximumPathRecalculationDirectionRmsError": 1.2939993704494625e-08,
+  "scriptSha256": "6a1a97b9ddfdae4fb932ae36a16c0b04f913c17613a0ca689526851a36a7fe35",
+  "calibrationSha256": "eafb05f3dc66f9dfcadb687bb424d6ac4ef9125e829640a1363d192a93237769",
+  "results": [
+    {
+      "source": "cmu-85-12",
+      "case": "exact",
+      "window": "whole",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.07969157532992e-08
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "exact",
+      "window": "first-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.2066607233150119e-08
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "exact",
+      "window": "last-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 9.346752314552924e-09
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "yaw-and-translation",
+      "window": "whole",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.0710882920382046e-08
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "yaw-and-translation",
+      "window": "first-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.1124861575310221e-08
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "yaw-and-translation",
+      "window": "last-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.0274344230694625e-08
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "tempo-0.75",
+      "window": "whole",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.27675647831893e-15
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "tempo-0.75",
+      "window": "first-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 5.381112222480056e-15
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "tempo-0.75",
+      "window": "last-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 5.551115123125783e-16
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "tempo-1.5",
+      "window": "whole",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 5.412337245047638e-16
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "tempo-1.5",
+      "window": "first-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.4016565685892601e-15
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "tempo-1.5",
+      "window": "last-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.1102230246251565e-16
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "mirror-and-LR-swap",
+      "window": "whole",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.07969157532992e-08
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "mirror-and-LR-swap",
+      "window": "first-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.2066607233150119e-08
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "mirror-and-LR-swap",
+      "window": "last-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 9.346752314552924e-09
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "3mm-joint-noise",
+      "window": "whole",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.1102230246251565e-16
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "3mm-joint-noise",
+      "window": "first-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 3.157196726277789e-16
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "3mm-joint-noise",
+      "window": "last-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 2.463307335887066e-16
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "exact",
+      "window": "whole",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.1380948426759486e-08
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "exact",
+      "window": "first-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.0960039553430664e-08
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "exact",
+      "window": "last-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.176107263030665e-08
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "yaw-and-translation",
+      "window": "whole",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.1780400655885494e-08
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "yaw-and-translation",
+      "window": "first-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.2939993704494625e-08
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "yaw-and-translation",
+      "window": "last-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.062272569131561e-08
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "tempo-0.75",
+      "window": "whole",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 4.2327252813834093e-16
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "tempo-0.75",
+      "window": "first-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.169203622808368e-15
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "tempo-0.75",
+      "window": "last-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.3877787807814457e-16
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "tempo-1.5",
+      "window": "whole",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 8.534839501805891e-16
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "tempo-1.5",
+      "window": "first-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 7.355227538141662e-16
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "tempo-1.5",
+      "window": "last-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 8.465450562766819e-16
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "mirror-and-LR-swap",
+      "window": "whole",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.1380948426759486e-08
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "mirror-and-LR-swap",
+      "window": "first-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.0960039553430664e-08
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "mirror-and-LR-swap",
+      "window": "last-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.176107263030665e-08
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "3mm-joint-noise",
+      "window": "whole",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 4.614364446098307e-16
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "3mm-joint-noise",
+      "window": "first-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 3.7816971776294395e-16
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "3mm-joint-noise",
+      "window": "last-two-seconds",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 2.498001805406602e-16
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "actual-adapted-copy",
+      "window": "whole",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.6653345369377348e-16
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "actual-adapted-copy",
+      "window": "entry",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 3.608224830031759e-16
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "actual-adapted-copy",
+      "window": "interior",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 2.220446049250313e-16
+    },
+    {
+      "source": "cmu-85-12",
+      "case": "actual-adapted-copy",
+      "window": "exit",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 5.551115123125783e-17
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "actual-adapted-copy",
+      "window": "whole",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 4.440892098500626e-16
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "actual-adapted-copy",
+      "window": "entry",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 2.7755575615628914e-16
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "actual-adapted-copy",
+      "window": "interior",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 2.220446049250313e-16
+    },
+    {
+      "source": "cmu-61-08",
+      "case": "actual-adapted-copy",
+      "window": "exit",
+      "sameClosestSource": true,
+      "directionDistanceDelta": 0.0,
+      "pathRecalculationDirectionRmsError": 1.6653345369377348e-16
+    }
+  ],
+  "note": "Exact-zero squared distances are checked before square root because GEMM cancellation yields ~sqrt(machine epsilon) RMS error."
+}

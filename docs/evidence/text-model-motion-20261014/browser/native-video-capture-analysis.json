@@ -1,0 +1,27 @@
+{
+  "source": "current app Stage canvas, normal transport rate1",
+  "rawFile": "chinese-classical-native-stage-playback.raw.webm",
+  "indexedReviewFile": "chinese-classical-native-stage-playback-review.webm",
+  "operation": "ffmpeg stream-copy remux with -t 5.5; no new renderer, no synthesized/interpolated motion, no duplicated-frame smoothing",
+  "rawFrames": 17,
+  "rawEncodedPtsStartSeconds": 0.0,
+  "rawEncodedPtsLastFrameSeconds": 5.337,
+  "rawFrameIntervalSpanApproxFPS": 2.9979389169945665,
+  "indexedDurationSeconds": 5.337,
+  "indexedProbe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "vp9",
+        "width": 1440,
+        "height": 648,
+        "nb_read_frames": "17"
+      }
+    ],
+    "format": {
+      "duration": "5.337000"
+    }
+  },
+  "limitation": "Only 17 encoded frames over 5.337 seconds in this SwiftShader environment. Recording includes scheduling delay; the app stop sample was 9.8942 seconds. The remuxed review file is 5.337 seconds, not exact 4..9.5 or a verified 5.5-second/30FPS clip. Preserve raw; do not use this low-frame capture to certify smoothness or style."
+}

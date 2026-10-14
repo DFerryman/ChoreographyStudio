@@ -1,0 +1,213 @@
+{
+  "schemaVersion": "motion-evaluation-archive-1",
+  "files": [
+    {
+      "path": "NOTICE.md",
+      "bytes": 2357,
+      "sha256": "2265f4e89455aba2f81818fbb3d5bf11be2a0163b1a1912187c8f6da40f95c9c"
+    },
+    {
+      "path": "browser-verification.json",
+      "bytes": 4144,
+      "sha256": "096e3a43a6a1b37b6939b42139d6f6abfbcb8fb60aa812895ce124e681037c9b"
+    },
+    {
+      "path": "ci-code-0a0424d.json",
+      "bytes": 979,
+      "sha256": "5fd34127646cb4dbb5c3fd9585ee766708475bd6a833ed0b0d15590ffe5ee418"
+    },
+    {
+      "path": "creation-ui-1440.png",
+      "bytes": 294110,
+      "sha256": "bb41929c871ec2b30f92a080b00ad5ddef872e9d80176589b3fde54c26d0dcc3"
+    },
+    {
+      "path": "creation-ui-390.png",
+      "bytes": 69263,
+      "sha256": "d07d8a399948281057cd6dba4df39ef306e3fb54c8b5973f76f2ade803555610"
+    },
+    {
+      "path": "notion-free-route-readback.json",
+      "bytes": 2432,
+      "sha256": "7a24f4e829ea60dfdcd395961bd316d6e5a8f9c7b494e272d7558b39ab3abdb6"
+    },
+    {
+      "path": "similarity/README-original-experiment.md",
+      "bytes": 4977,
+      "sha256": "93eb4c0447a3c204de55ccbc64f1ffaa844d72c9ff95522c19c9f54e52fd1e35"
+    },
+    {
+      "path": "similarity/calibration-adapted-v2.json",
+      "bytes": 52106,
+      "sha256": "eafb05f3dc66f9dfcadb687bb424d6ac4ef9125e829640a1363d192a93237769"
+    },
+    {
+      "path": "similarity/calibration-frozen.json",
+      "bytes": 150847,
+      "sha256": "b9f2bf06170bec65d98c4cfbe617e22baf1a1c3eec917fe430d15af48195f96c"
+    },
+    {
+      "path": "similarity/priors-world-joints.json.gz",
+      "bytes": 1929290,
+      "sha256": "a130a4a88dc210e96573485133ebf3415bcb6147d54cffbc042d166c477f3cf2"
+    },
+    {
+      "path": "similarity/public-script-controls-equivalence.json",
+      "bytes": 11206,
+      "sha256": "56d98ffb8d7e66504887e2ef244d74bd0d5574678c02636a0e18a3fcd80d0995"
+    },
+    {
+      "path": "similarity/receipt-adapted-v2.json",
+      "bytes": 196533,
+      "sha256": "7d9c909758e4dc38c997f3eb37ae918ed671e2b488d731530d8540938b5699e2"
+    },
+    {
+      "path": "similarity/receipt-packed-source-recheck.json",
+      "bytes": 329083,
+      "sha256": "c03fa68142d33349d90d171b377d489dc56c643568c2f01ed2be2c1d89fad800"
+    },
+    {
+      "path": "similarity/receipt-trial-01-public-script.json",
+      "bytes": 197445,
+      "sha256": "a760df37c9cfe23a4c0f3c7bc4dc2a23f08e065bbca4760dfad291285e9d0173"
+    },
+    {
+      "path": "similarity/receipt-trial-02-v2.json",
+      "bytes": 329089,
+      "sha256": "be48a97df42ba5a63b37576c1d36439ff2d49ea63ae09ed458c943e90ee95bd6"
+    },
+    {
+      "path": "similarity/receipt-trial-04-v2.json",
+      "bytes": 326606,
+      "sha256": "2ca4320181ba39466200df2b5b43c4bd79ece2f32b5875562ae9d8f99eb98da2"
+    },
+    {
+      "path": "similarity/receipt.json",
+      "bytes": 199326,
+      "sha256": "79b007eaa893b724a5299a1e3922d1ec319a8a641474b67e7e74026028c6a7f2"
+    },
+    {
+      "path": "soma-skeleton-metadata.json",
+      "bytes": 15117,
+      "sha256": "8047a9c48cbb29ceef3edd991275026e49480188089a83813b14dc98307bf086"
+    },
+    {
+      "path": "trial-01/motion-analysis.json",
+      "bytes": 26081,
+      "sha256": "8baafd5da58366f91924afe9ca1fe6e1760ebe65d6e5d41eeb9d58f117198ec9"
+    },
+    {
+      "path": "trial-01/motion-contact-sheet.png",
+      "bytes": 135907,
+      "sha256": "4f7628a88186a3a2ec1ddc9a731a681ca093606344b7dc613a9421330f86ada0"
+    },
+    {
+      "path": "trial-01/motion-front-side.mp4",
+      "bytes": 221015,
+      "sha256": "8af22ac13adef8b664f40c0072715e4535467f50aecbf012fe7e914a579c413e"
+    },
+    {
+      "path": "trial-01/raw.npz",
+      "bytes": 779638,
+      "sha256": "254e4c22eb7d176e4def9c6a75a27eb76a49ce3f021fdbeeb6346fb952f04e59"
+    },
+    {
+      "path": "trial-01/trial.json",
+      "bytes": 1325,
+      "sha256": "21f6af06058b11600b35e9835c8fa7b6af044f7e1c6ed9e615b7584c73f3e192"
+    },
+    {
+      "path": "trial-02/motion-analysis.json",
+      "bytes": 27763,
+      "sha256": "13cf278403e475b312bb1b82bbc95b065d100eb992d7113011789497b044d0ee"
+    },
+    {
+      "path": "trial-02/motion-contact-sheet.png",
+      "bytes": 147837,
+      "sha256": "7bec7ac653103af5f73f15ea1a25c7e47977dd964d0ff9e04f668f991984283c"
+    },
+    {
+      "path": "trial-02/motion-front-side.mp4",
+      "bytes": 236302,
+      "sha256": "a19fbe3604e05f9b5bb6dca0507c9851fd8b3d276fc2ebc57ad2aec4a33008fa"
+    },
+    {
+      "path": "trial-02/raw.npz",
+      "bytes": 1168798,
+      "sha256": "84c4b29492e51dde15a1896ef454f7d1941ec0e5ed859efabef1735ad749507c"
+    },
+    {
+      "path": "trial-02/trial.json",
+      "bytes": 1412,
+      "sha256": "d6f1a667664501ada938c7d92dbac1f42816d03b188a2a89ba65e4b7c21e9b01"
+    },
+    {
+      "path": "trial-03/trial.json",
+      "bytes": 2472,
+      "sha256": "08b528617402a3f8707bb708f838f7229af9ffa35983691145e225b21b081307"
+    },
+    {
+      "path": "trial-04/constraint-events.json",
+      "bytes": 1120,
+      "sha256": "4776ae144a04dc8ffefabcc6b6bb5953709a3fac2dea547007c6dfd9f7955694"
+    },
+    {
+      "path": "trial-04/ending-reference-analysis.json",
+      "bytes": 14150,
+      "sha256": "8007d9e828a4cd4a74e8a39b701a4a3789b5446303089e7320883589e478a22f"
+    },
+    {
+      "path": "trial-04/motion-analysis.json",
+      "bytes": 37673,
+      "sha256": "71bf9dc9ab67363cae57eedf0768674206df655375fa2eea0bb6fe1bf25d8581"
+    },
+    {
+      "path": "trial-04/motion-contact-sheet.png",
+      "bytes": 123104,
+      "sha256": "b1d21303e7ae1cacc41a1f42b33921c9332cc587e2a3b58d5ed6df90613997ab"
+    },
+    {
+      "path": "trial-04/motion-front-side.mp4",
+      "bytes": 156491,
+      "sha256": "8fd28abddc0573c5dd5723df9be1d2c51d84cba90c4c2a346a67c47ae6bebb4e"
+    },
+    {
+      "path": "trial-04/raw.npz",
+      "bytes": 1168798,
+      "sha256": "d7327134ca4e2c54f39d14ddcaffaee7dcd591bc058a0471521628c766e41d70"
+    },
+    {
+      "path": "trial-04/trial.json",
+      "bytes": 2189,
+      "sha256": "151953f683ad94949ad9d89f4b1e398cc4a86183cdc3a857caa5ce6915717218"
+    },
+    {
+      "path": "ui-pose-probe/after.png",
+      "bytes": 335734,
+      "sha256": "f14a829a4966f4ba429ca5c26c373f1500b2a19e38b048cbf6cd25e0ae6a7d50"
+    },
+    {
+      "path": "ui-pose-probe/before.png",
+      "bytes": 307043,
+      "sha256": "3c77160e21aabc71b22967ad78750de6327e7db0ebbac31fc20a4b872ec702d7"
+    },
+    {
+      "path": "ui-pose-probe/ui-probe-result.json",
+      "bytes": 3252,
+      "sha256": "45a9780bfd298792aae44770d1d557672d6b37e952d23c9e93b561d9f8b3fb6d"
+    }
+  ],
+  "inferenceCalls": {
+    "dedicatedModel": 4,
+    "dedicatedModelGenerateClicks": 4,
+    "outputsRetrieved": 3,
+    "inferenceCompletionUnknown": 1,
+    "workersAi": 0,
+    "paidServiceTasks": 0,
+    "automaticGenerationRetries": 0,
+    "additionalUiProbeGenerateClicks": 0
+  },
+  "userScenePublished": false,
+  "browserProfilePublished": false,
+  "fullWebSocketTracePublished": false
+}

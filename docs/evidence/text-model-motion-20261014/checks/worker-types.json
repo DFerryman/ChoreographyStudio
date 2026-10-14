@@ -1,0 +1,7 @@
+{
+  "command": "tsc --noEmit -p tsconfig.worker.json",
+  "start": "2026-10-14T05:38:35.045Z",
+  "end": "2026-10-14T05:38:36.135Z",
+  "exit": 0,
+  "signal": null
+}

@@ -1,0 +1,118 @@
+{
+  "schema": "motion-creation-browser-evidence-1",
+  "rounds": [
+    {
+      "name": "creation-browser-subset",
+      "report": "work/model-evaluation-20261014/creation-browser-subset.json",
+      "log": "work/model-evaluation-20261014/creation-browser-subset.log",
+      "stats": {
+        "startTime": "2026-10-14T03:54:08.248Z",
+        "duration": 251952.202,
+        "expected": 2,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "diagnostics": [
+        {
+          "diagnostics": {
+            "errors": [
+              "场景备份无效：数拍、选段或音频时长不符合预览范围。"
+            ],
+            "warnings": [],
+            "expectedHttpErrors": [],
+            "apiRequests": []
+          },
+          "posts": [],
+          "motionPriorRequests": []
+        },
+        {
+          "errors": [],
+          "warnings": [],
+          "requests": [
+            "POST /api/motion/plan"
+          ],
+          "expectedHttpErrors": []
+        },
+        {
+          "errors": [],
+          "warnings": [],
+          "requests": [
+            "POST /api/motion/plan"
+          ],
+          "expectedHttpErrors": []
+        }
+      ]
+    },
+    {
+      "name": "creation-browser-retry",
+      "report": "work/model-evaluation-20261014/creation-browser-retry.json",
+      "log": "work/model-evaluation-20261014/creation-browser-retry.log",
+      "stats": {
+        "startTime": "2026-10-14T03:59:21.924Z",
+        "duration": 34515.261,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "diagnostics": [
+        {
+          "diagnostics": {
+            "errors": [],
+            "warnings": [],
+            "expectedHttpErrors": [],
+            "apiRequests": []
+          },
+          "posts": [],
+          "motionPriorRequests": []
+        }
+      ]
+    },
+    {
+      "name": "creation-browser-final",
+      "report": "work/model-evaluation-20261014/creation-browser-final.json",
+      "log": "work/model-evaluation-20261014/creation-browser-final.log",
+      "stats": {
+        "startTime": "2026-10-14T04:02:33.960Z",
+        "duration": 35794.424,
+        "expected": 2,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "diagnostics": [
+        {
+          "diagnostics": {
+            "errors": [],
+            "warnings": [],
+            "expectedHttpErrors": [],
+            "apiRequests": []
+          },
+          "posts": [],
+          "motionPriorRequests": []
+        }
+      ]
+    }
+  ],
+  "explanation": "First batch2/3: two actual prior pipelines accepted; newly added fixture incorrectly extended its32s CountMap but left20s audio, so strict backup rejected before creation UI. Fixture now has36s owned WAV and metadata. Single-case retry1/1 passes; final2/2 verifies latest radio CSS and one existing timeline/camera test. Preserve all batches separately; this is not a full14-case local batch.",
+  "productionModelCalls": 0,
+  "workersAIRealCalls": 0,
+  "sourceHashesCapturedAfterFinalRun": "work/model-evaluation-20261014/creation-browser-final-source-after.json",
+  "sourceBeforeFinalRunGuardCaptured": false,
+  "screenshotsReviewed": [
+    "creation-browser-final-shots/motion-creation-unavailable-1440.png",
+    "creation-browser-final-shots/motion-creation-unavailable-390.png"
+  ],
+  "visualReview": "Default create checked; Chinese prompt retained; honest unavailable explanation and disabled button visible; radio labels are44px touch targets, mobile has no horizontal overflow, timeline visible. Open AI panel covers much of mobile stage as before.",
+  "assertionScope": [
+    "owned32s blank scene/36s WAV and4..9.5s range",
+    "default creation unavailable fails before network or donor loading",
+    "zeroPOST/API/priorGET in creation test",
+    "explicit mode switches preserve prompt and fixed target",
+    "no candidate or adoption",
+    "project/take/manual/cameraTrack/CountMap and audio hash unchanged",
+    "existing full16 and frozen Street physical paths accepted in first batch",
+    "timeline camera/range behavior passes final separate batch"
+  ]
+}

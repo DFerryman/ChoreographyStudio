@@ -3,8 +3,8 @@ import { JOINT_NAMES, type JointName, type Pose, type Quat, type Vec3 } from './
 import type { MotionPriorCompositionOrigin } from './motionPriors';
 import { hasAIMotionPlanMinimumDuration } from './aiMotionPlan';
 import {
-  AI_MOTION_SUPPORTED_MODELS, AI_MOTION_MAX_KEYFRAMES, validateAIMotionRequest, validateAIMotionResult,
-  type AIMotionBoundary, type AIMotionModel, type AIMotionRequest, type AIMotionResult, type AIMotionTarget,
+  AI_MOTION_MAX_KEYFRAMES, isSupportedAIMotionIdentity, validateAIMotionRequest, validateAIMotionResult,
+  type AIMotionBoundary, type AIMotionModel, type AIMotionProvider, type AIMotionRequest, type AIMotionResult, type AIMotionTarget, type AIMotionTrustedIdentityOptions,
 } from './aiMotion';
 
 /** A separate, immutable layer: author takes and their exact sample times stay intact. */
@@ -17,7 +17,7 @@ export interface AIMotionKnot {
 }
 export interface AIMotionPatch {
   id: string;
-  provider: 'cloudflare-workers-ai';
+  provider: AIMotionProvider;
   model: AIMotionModel;
   requestId: string;
   sourceHash: string;
@@ -216,10 +216,13 @@ export function validateAIMotionTrack(input: unknown, map: { id: string; duratio
     const patch = record(inputPatch, ['id', 'provider', 'model', 'requestId', 'sourceHash', 'target', 'knots'], ['motionOrigin']);
     text(patch.id); text(patch.requestId); text(patch.sourceHash);
     if (!/^[a-fA-F0-9]{64}$/.test(patch.sourceHash as string)) return fail('AI 动作轨道需要有效的原稿摘要。');
-    if (patch.provider !== 'cloudflare-workers-ai' || !AI_MOTION_SUPPORTED_MODELS.includes(patch.model as AIMotionModel) || ids.has(patch.id as string) || requests.has(patch.requestId as string)) return fail('AI 动作轨道来源或标识无效。');
+    if (!isSupportedAIMotionIdentity(patch.provider, patch.model) || ids.has(patch.id as string) || requests.has(patch.requestId as string)) return fail('AI 动作轨道来源或标识无效。');
     ids.add(patch.id as string); requests.add(patch.requestId as string);
     const range = target(patch.target, map.durationSeconds);
-    if (patch.motionOrigin !== undefined) validateMotionOrigin(patch.motionOrigin, range);
+    if (patch.motionOrigin !== undefined) {
+      if (patch.provider === 'codex-session') return fail('会话文本动作不能标记为人体动作先验。');
+      validateMotionOrigin(patch.motionOrigin, range);
+    }
     if (range.mode === 'full' && index !== 0) return fail('完整 AI 动作必须是轨道第一层。');
     const maxKnots = (patch.motionOrigin === undefined ? AI_MOTION_MAX_KEYFRAMES : MAX_AI_MOTION_POSE_SAMPLES) + (range.mode === 'full' ? 1 : 2);
     if (!Array.isArray(patch.knots) || patch.knots.length < 3 || patch.knots.length > maxKnots) return fail('AI 动作曲线关键姿态数量无效。');
@@ -298,9 +301,9 @@ function validateSourceBoundaries(track: AIMotionTrack, original: AIMotionPoseSa
 }
 
 /** Model Euler values are converted once, not repeatedly projected during playback. */
-export function compileAIMotionPatch(inputRequest: AIMotionRequest, inputResult: AIMotionResult, baseSampler: AIMotionPoseSampler): AIMotionPatch {
+export function compileAIMotionPatch(inputRequest: AIMotionRequest, inputResult: AIMotionResult, baseSampler: AIMotionPoseSampler, trustedOptions?: AIMotionTrustedIdentityOptions): AIMotionPatch {
   const request = validateAIMotionRequest(inputRequest);
-  const result = validateAIMotionResult(inputResult, request);
+  const result = validateAIMotionResult(inputResult, request, trustedOptions);
   const { target: range, timing } = request.context;
   const start = estimateAIMotionBoundary(baseSampler, range.startSeconds, 'before', timing.durationSeconds);
   const end = estimateAIMotionBoundary(baseSampler, range.endSeconds, 'after', timing.durationSeconds);

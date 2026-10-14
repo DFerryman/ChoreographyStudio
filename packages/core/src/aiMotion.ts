@@ -5,10 +5,21 @@ import { JOINT_NAMES, type JointName, type Pose, type Quat, type Vec3 } from './
 
 export const AI_MOTION_PROTOCOL = 'ai-motion-1' as const;
 export const AI_MOTION_MODEL = '@cf/openai/gpt-oss-120b' as const;
-/** Historical motion layers retain their original model provenance. This list
- * permits restoration, never automatic inference or provider fallback. */
-export const AI_MOTION_SUPPORTED_MODELS = [AI_MOTION_MODEL, '@cf/qwen/qwen3-30b-a3b-fp8'] as const;
+/** Historical and explicitly audited session layers retain their true model
+ * provenance. This list never selects inference or enables provider fallback. */
+export const AI_MOTION_SUPPORTED_MODELS = [AI_MOTION_MODEL, '@cf/qwen/qwen3-30b-a3b-fp8', 'gpt-6.1-sol'] as const;
 export type AIMotionModel = typeof AI_MOTION_SUPPORTED_MODELS[number];
+export type AIMotionProvider = 'cloudflare-workers-ai' | 'codex-session';
+/** Trusted caller context, never derived from a model's response. Omitting it
+ * preserves the application's existing Cloudflare/OSS generation contract. */
+export type AIMotionTrustedIdentityOptions =
+  | { expectedProvider: 'cloudflare-workers-ai'; expectedModel: typeof AI_MOTION_MODEL }
+  | { expectedProvider: 'codex-session'; expectedModel: 'gpt-6.1-sol' };
+/** Stored identity pairs are validated together, including historical Qwen. */
+export function isSupportedAIMotionIdentity(provider: unknown, model: unknown): boolean {
+  return provider === 'cloudflare-workers-ai' && (model === AI_MOTION_MODEL || model === '@cf/qwen/qwen3-30b-a3b-fp8') ||
+    provider === 'codex-session' && model === 'gpt-6.1-sol';
+}
 export const AI_MOTION_REQUEST_MAX_BYTES = 64 * 1024;
 export const AI_MOTION_RESULT_MAX_BYTES = 96 * 1024;
 export const AI_MOTION_MAX_OUTPUT_TOKENS = 8192;
@@ -72,8 +83,8 @@ export interface AIMotionKeyframe { time: number; root: Vec3; rotations: Partial
 export interface AIMotionOutput { summary: string; keyframes: AIMotionKeyframe[] }
 export interface AIMotionResult extends AIMotionOutput {
   protocol: typeof AI_MOTION_PROTOCOL;
-  provider: 'cloudflare-workers-ai';
-  model: typeof AI_MOTION_MODEL;
+  provider: AIMotionProvider;
+  model: AIMotionModel;
   requestId: string;
   sourceHash: string;
   target: AIMotionTarget;
@@ -286,16 +297,21 @@ export function validateAIMotionOutput(input: unknown, context: AIMotionContext)
   if (utf8Bytes(result) > AI_MOTION_RESULT_MAX_BYTES) return fail('AI 动作结果超过大小限制。');
   return result;
 }
-export function validateAIMotionResult(input: unknown, request: AIMotionRequest): AIMotionResult {
+export function validateAIMotionResult(input: unknown, request: AIMotionRequest, trustedOptions?: AIMotionTrustedIdentityOptions): AIMotionResult {
   const expected = validateAIMotionRequest(request);
+  const identity = trustedOptions === undefined
+    ? { expectedProvider: 'cloudflare-workers-ai' as const, expectedModel: AI_MOTION_MODEL }
+    : record(trustedOptions, ['expectedProvider', 'expectedModel']);
+  if (!(identity.expectedProvider === 'cloudflare-workers-ai' && identity.expectedModel === AI_MOTION_MODEL ||
+    identity.expectedProvider === 'codex-session' && identity.expectedModel === 'gpt-6.1-sol')) return fail('AI 验收来源约定无效。');
   const value = record(input, ['protocol', 'provider', 'model', 'requestId', 'sourceHash', 'target', 'summary', 'keyframes']);
   const resultTarget = target(value.target, expected.context.timing.durationSeconds);
-  if (value.protocol !== AI_MOTION_PROTOCOL || value.provider !== 'cloudflare-workers-ai' || value.model !== AI_MOTION_MODEL ||
+  if (value.protocol !== AI_MOTION_PROTOCOL || value.provider !== identity.expectedProvider || value.model !== identity.expectedModel ||
     value.requestId !== expected.context.requestId || value.sourceHash !== expected.context.sourceHash ||
     resultTarget.mode !== expected.context.target.mode || resultTarget.startSeconds !== expected.context.target.startSeconds ||
     resultTarget.endSeconds !== expected.context.target.endSeconds) return fail('AI 候选已过期或与固定原稿范围不匹配。');
   const output = validateAIMotionOutput({ summary: value.summary, keyframes: value.keyframes }, expected.context);
-  const result: AIMotionResult = { protocol: AI_MOTION_PROTOCOL, provider: 'cloudflare-workers-ai', model: AI_MOTION_MODEL,
+  const result: AIMotionResult = { protocol: AI_MOTION_PROTOCOL, provider: identity.expectedProvider as AIMotionProvider, model: identity.expectedModel as AIMotionModel,
     requestId: expected.context.requestId, sourceHash: expected.context.sourceHash, target: resultTarget, ...output };
   // Includes the server envelope; its metadata cannot evade the result budget.
   if (utf8Bytes(result) > AI_MOTION_RESULT_MAX_BYTES) return fail('AI 动作结果超过大小限制。');

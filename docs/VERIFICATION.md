@@ -1,3 +1,31 @@
+## 2026-10-14 · 文本会话创作验收：保留原超时与有限质量结论
+
+真实创作模型为 codex-session／gpt-6.1-sol，作者任务1次、三份自有中国／街舞／芭蕾意图数值输出；外部推理API0、新专用提交0。原raw和源快照SHA保持。中国／街舞raw工程accepted且最终patch完全一致；芭蕾raw拒绝180处地面违规、最大19.628157mm，原Root-only调理最多25.668758mm后accepted，关节组件／切线、固定两端／外部和原3mm／250门槛保持。三份 final correct:false 0违规与完整覆盖均通过；不推广为舞种／自然度／完整动力学通过。
+
+本地核心身份／曲线60／60、API83／83、前端build（1985模块／865ms）和独立Worker tsc exit0。首次全量单元49文件980／987、7个旧时限超时，完整原失败报告保留；同源码／时限仅复跑失败三文件，单worker57／57另通过，不写成首轮全987通过。API文案后改动另83／83通过，没有改保护、绑定或默认推理。
+
+当前相关创作入口浏览器专项1／1、40.5秒通过，诊断errors／warnings／expectedHttpErrors／apiRequests及业务POST／priorGET／模型均0，原稿／音频保持；不算全65项浏览器新一轮验收。五原Notion页原生任务成功、最终读回5／5完整原文后缀／属性／icon／cover保持，private全文只在工具内存；档案保留公开摘要、实际83项自动report与原超时报告。重放工具仅语法及SHA检查通过，未重复执行。
+
+实际AppStage18次观察中16个正面姿态有数值比较、组件误差0，另2个侧面只保留实际姿态／视角／时间；16张1440截图、诊断errors／warnings0，provider／业务API／priorGET／外部0。首辅助脚本漏逗号导致导入前超时的失败保留；科学骨架视频30fps／165帧／5.5s与软件原生录屏17帧／5.337s分开，不冒充设备性能。抽样画面臂／躯干／膝动作多、步法有限，风格与自然度未验收。详见 [当前评估](TEXT_MODEL_MOTION_EVALUATION.md) 与 [证据归档](evidence/text-model-motion-20261014/README.md)。新head CI必须读实际结果；旧0a0424d的973单元／65浏览器不作为当前源码的CI。
+
+## 2026-10-14 · 本轮准确代码完整 CI 通过，生成质量仍未通过
+
+代码0a0424d／[草稿PR14](https://github.com/DFerryman/ChoreographyStudio/pull/14)对应 [CI38510847006](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38510847006)，job115678754167，实际completed/success；日志checkout为0a0424d合入b89b0f28的12f7e13375d49809ca824f3ec15ba7dd3ca4245d。973／973单元（49文件、59.62s）、65／65全量浏览器（13.0m）、前端类型／Vite构建、Worker类型、人体代理检查及Python6（0.619s）通过，旧大包警告保持。原始本地2／3夹具失败与后续分轮通过仍在下方，不改记为首轮通过。公开精选日志行与run身份见 [CI回执](evidence/motion-creation-20261014/ci-code-0a0424d.json)；此结果不证明新文档head独立CI或舞蹈质量。
+
+免费Kimodo累计4次Generate、3份输出；第3次下载超时没有NPZ、推理完成未知，第4次单次主动重试（0自动生成重试）。第4份180×77、raw SHA d7327134…41d70保持，实际新T FullBody约束164／178与后处理同时改变。身体相对T约束帧误差很小，但约2.4秒起长期T静止趋势、末15帧最大两帧29.05mm、腕速峰0.186m/s；交替云手／侧步／中国舞风格及站点重定向／曲线门禁没有通过。固定v2相似性未旗标，最近2s窗距0.44851515只高阈值3.69%，路径成本复算误差2.22e−16，不能当原创性验收。
+
+用户已拒绝付费服务：TokenHub submits0、付费任务0、Workers AI新增0、用户场景／音频上传0。四次完整原始工作回执留ignored work；公开归档只有选定参数／事件、SHA、三个生成样本及分析，不含profile／Cookies／会话URL／全WS二进制。详细事实与范围见 [评估](MOTION_CREATION_EVALUATION.md)。当前仍草稿PR、线上native47未变。
+
+普通UI独立probe在一新会话、0Generate下产生20条LeftArm gizmo更新与Undo Move，但沿手臂轴旋转，没有改变T腕位置或记录手脚部分约束；不标成新姿态／舞蹈通过。新的静止参考RootY约1.008708484说明第四份8.71mm不是已证实的后处理位移。五页最新Notion补充全部succeeded、完整读回5／5原正文后缀／标题／metadata／icon／cover保持，私有全文未写文件，见 [读回摘要](evidence/motion-creation-20261014/notion-free-route-readback.json)。
+
+## 2026-10-14 · 新素材创作与已有素材编排分离（本轮未发布）
+
+当前源码定向Vitest101／3全部通过（04:06:49Z起、1.10s）、前端tsc／Vite build通过（旧大包警告保持），API Worker类型通过。两份本地分析CLI分别处理120／180帧真实Kimodo输出；原raw SHA不变，允许pickle=false。相似性44个已知copy控制均检出且来源正确，两原始样本有限筛查没有旗标；此证据不包含风格／自然度／目标曲线验收。
+
+浏览器按实际分轮记录：第一batch2／3（251.952s），full16素材求解及冻结5.5s Street素材区间均通过，新增creation fixture因audio20s／CountMap32s不一致在备份阶段失败；不是产品门禁失败。修正owned WAV36s后新增case1／1（34.515s）通过。最终最新CSS与timeline回归2／2（04:02:33.960Z起、35.794s），unexpected／flaky／skipped0；creation实际API／POST／prior GET0，原项目／音频保持，1440／390目视、radio labels44px、无横溢。手机打开AI面板仍遮舞台是旧布局行为。没有跑完整14case，也没有把旧949 foundation冒称本次新源码全量结果。
+
+真实专用模型Generate两次，Workers AI0；不加载gallery／旧本地文件，不上传用户场景／音频。原.choreo SHA e5f3d969c550fa6d401706b08cbe8beafb80a9346e1029e4d2c7a10a906afad5保持。源码改动、原始样本、参数、视频与校准说明见 [新素材评估](MOTION_CREATION_EVALUATION.md) 及 [归档清单](evidence/motion-creation-20261014/manifest.json)。当前没有新模型生产接入或Cloudflare发布；下方native47及旧观察结果保持历史有效范围。
+
 # 预览验证记录
 
 ## 2026-10-14 · 普通街舞冻结真实规划连续腿部修复 · native47最终验收

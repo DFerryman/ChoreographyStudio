@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "dedicated-motion-trial-1",
+  "source": "https://huggingface.co/spaces/nvidia/Kimodo",
+  "spaceRepositorySha": "032e9f86e8ab21aca62e72564aac6dbbb20cfe5b",
+  "modelUiName": "Kimodo-SOMA-RP-v1",
+  "modelWeightShaVerified": false,
+  "modelWeightSha": null,
+  "runtimeCodeShaVerified": false,
+  "seed": 20261014,
+  "fpsObservedInUi": 30,
+  "denoisingSteps": 100,
+  "cfg": [
+    2,
+    2
+  ],
+  "workersAiCalls": 0,
+  "userSceneOrAudioUploaded": false,
+  "loadedExample": false,
+  "normalTls": true,
+  "prompt": "A dancer performs graceful flowing Chinese classical dance. The left arm sweeps outward in a wide horizontal circle while the right hand stays near the waist, then the right arm circles outward while the left hand lowers. The torso turns gently to follow each arm. The dancer steps slowly sideways to the left, shifts weight, and finishes with arms softly extended.",
+  "durationSecondsObservedInUi": 6,
+  "postprocessing": true,
+  "rootMarginMetersObservedInUi": 0.04,
+  "constraints": {
+    "origin": "new static official T-rest pose, ordinary visible timeline clicks; no example or existing dance loaded",
+    "type": "FullBody",
+    "actualFrames": null,
+    "outgoingMessagesIncludeAllGoalCoordinates": false,
+    "timelineClicksObserved": [
+      [
+        760,
+        891
+      ],
+      [
+        821,
+        891
+      ]
+    ],
+    "frameIndexVerification": "Third-trial receipt recorded mouse clicks and only WebSocket message counts; exact indices are not independently decoded for trial03. The164/178 evidence belongs to trial04."
+  },
+  "paidTasks": 0,
+  "trial": 3,
+  "status": "no-sample-retrieved",
+  "inferenceClicks": 1,
+  "startedAt": "2026-10-14T04:38:00.316Z",
+  "generateClickedAt": "2026-10-14T04:42:34.008Z",
+  "downloadedAt": null,
+  "rawSha256": null,
+  "inferenceCompleted": null,
+  "automaticGenerationRetries": 0,
+  "originalIgnoredReceiptSha256": "4c6f9e50712bacbc961bbf0ae1c3ad8e8312eeffaadb0bd31a14566ff6cd878c",
+  "failureObservation": {
+    "downloadWaitTimedOut": true,
+    "reportedWaitMilliseconds": 30000,
+    "evidence": "Observed controller tool output and retained original receipt; original receipt errors[] was not populated before its unhandled wait error. Do not claim a complete failure log.",
+    "sessionDeadlineCauseConfirmed": false,
+    "interpretation": "Configuration and download happened close to the shared session deadline; no sample was retrieved, inference completion unknown."
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "selected-ui-constraint-events-1",
+  "events": [
+    {
+      "time": "2026-10-14T04:48:09.231Z",
+      "type": "TimelinePromptUpdateMessage",
+      "prompt": "A dancer performs graceful flowing Chinese classical dance. The left arm sweeps outward in a wide horizontal circle while the right hand stays near the waist, then the right arm circles outward while the left hand lowers. The torso turns gently to follow each arm. The dancer steps slowly sideways to the left, shifts weight, and finishes with arms softly extended."
+    },
+    {
+      "time": "2026-10-14T04:48:09.600Z",
+      "type": "TimelineKeyframeAddMessage",
+      "trackAlias": "new-rest-FullBody",
+      "frame": 164
+    },
+    {
+      "time": "2026-10-14T04:48:09.767Z",
+      "type": "TimelineKeyframeAddMessage",
+      "trackAlias": "new-rest-FullBody",
+      "frame": 178
+    }
+  ],
+  "targetCoordinatesContained": false,
+  "excluded": "random protocol IDs, all other binary messages, session URLs and browser state",
+  "originalIgnoredDecodedEventsSha256": "1975f84262f55377367fdf0a1647f630b19c92d1c36a8a9ec8e3a93ea570b59c"
+}

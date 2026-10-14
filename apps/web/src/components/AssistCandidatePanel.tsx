@@ -10,7 +10,7 @@ export function AssistCandidatePanel({ summary, target, quality, feasibility, li
   return <section className="assist-candidate" aria-label="AI 候选">
     <div className="assist-candidate-copy">
       <div className="assist-candidate-heading">
-        <strong>AI 动作候选</strong>
+        <strong>已有素材编排候选</strong>
         <small aria-label="候选目标区间">{target.mode === 'interval'
           ? `仅替换 ${Number(target.startSeconds.toFixed(2))}–${Number(target.endSeconds.toFixed(2))} 秒；两端与区间外保持。`
           : `替换整段 0–${Number(target.endSeconds.toFixed(2))} 秒人物动作。`} 原动作可撤销恢复。</small>

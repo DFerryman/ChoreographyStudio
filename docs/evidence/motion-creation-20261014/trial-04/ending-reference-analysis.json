@@ -1,0 +1,460 @@
+{
+  "schemaVersion": "native-ending-reference-audit-1",
+  "inputSha256": "d7327134ca4e2c54f39d14ddcaffaee7dcd591bc058a0471521628c766e41d70",
+  "actualConstraintFrames": [
+    164,
+    178
+  ],
+  "frameCount": 180,
+  "fps": 30,
+  "referenceBodyJointNames": [
+    "Hips",
+    "Spine1",
+    "Spine2",
+    "Chest",
+    "Neck1",
+    "Neck2",
+    "Head",
+    "LeftShoulder",
+    "LeftArm",
+    "LeftForeArm",
+    "LeftHand",
+    "LeftLeg",
+    "LeftShin",
+    "LeftFoot",
+    "LeftToeBase",
+    "LeftToeEnd",
+    "RightShoulder",
+    "RightArm",
+    "RightForeArm",
+    "RightHand",
+    "RightLeg",
+    "RightShin",
+    "RightFoot",
+    "RightToeBase",
+    "RightToeEnd"
+  ],
+  "referenceMeaning": "Official neutral T-pose body joint positions and identity body orientations; root-relative reference, not an independently captured full browser constraint payload.",
+  "referenceLimits": [
+    "The normal UI messages record keyframe indices, not all target pose coordinates.",
+    "Fixed relaxed finger poses are omitted; comparing them to straight neutral finger offsets would introduce an unrelated false target error.",
+    "Absolute world error against Hips=(0,1,0) is nominal-reference evidence only. Provider postprocessing may translate the root vertically.",
+    "Orientation comparison uses diagnostic nearest-SO3 global matrices. Full-body generation conditions positions rather than guaranteeing all rotations.",
+    "Native arrays are unchanged; this is not site-rig retargeting, continuous-curve verification, endpoint-velocity locking or a dance-style certificate.",
+    "Two factors changed together relative to the unconstrained sample: sparse constraints and provider postprocessing. Their individual effects are not isolated."
+  ],
+  "frames": [
+    {
+      "frame": 163,
+      "timeSeconds": 5.433333333333334,
+      "isActualConstraintFrame": false,
+      "rootPositionMeters": [
+        -0.00039483042201027274,
+        1.0099594593048096,
+        -0.00013218610547482967
+      ],
+      "rootOffsetFromNominalOneMeterMeters": [
+        -0.00039483042201027274,
+        0.00995945930480957,
+        -0.00013218610547482967
+      ],
+      "absoluteBodyErrorAgainstNominalOneMeterRestMeters": {
+        "mean": 0.010436531526666981,
+        "p95": 0.012682081111389942,
+        "max": 0.014497745509270295
+      },
+      "hipAlignedBodyRestPositionErrorMeters": {
+        "mean": 0.0008948236965061814,
+        "p95": 0.003047518621081235,
+        "max": 0.0049709476621274725
+      },
+      "globalBodyRotationFromRestDegreesDiagnostic": {
+        "mean": 0.42073533573801386,
+        "p95": 1.2051455689511903,
+        "max": 1.3408994243191115
+      },
+      "bodyParentChildBoneDirectionFromRestDegrees": {
+        "mean": 0.22711487336954886,
+        "p95": 0.6939231074183146,
+        "max": 0.7093534549962524
+      },
+      "wrists": {
+        "LeftHand": {
+          "worldPositionMeters": [
+            0.7234183549880981,
+            1.4419465065002441,
+            -0.012133922427892685
+          ],
+          "hipRelativePositionMeters": [
+            0.7238131854101084,
+            0.43198704719543457,
+            -0.012001736322417855
+          ],
+          "hipAlignedRestPositionErrorMeters": 0.0029656921663586606
+        },
+        "RightHand": {
+          "worldPositionMeters": [
+            -0.7236217260360718,
+            1.4428350925445557,
+            -0.014958939515054226
+          ],
+          "hipRelativePositionMeters": [
+            -0.7232268956140615,
+            0.4328756332397461,
+            -0.014826753409579396
+          ],
+          "hipAlignedRestPositionErrorMeters": 0.0049709476621274725
+        }
+      }
+    },
+    {
+      "frame": 164,
+      "timeSeconds": 5.466666666666667,
+      "isActualConstraintFrame": true,
+      "rootPositionMeters": [
+        0.0,
+        1.0087084770202637,
+        0.0
+      ],
+      "rootOffsetFromNominalOneMeterMeters": [
+        0.0,
+        0.008708477020263672,
+        0.0
+      ],
+      "absoluteBodyErrorAgainstNominalOneMeterRestMeters": {
+        "mean": 0.008708483125182416,
+        "p95": 0.008708541950597679,
+        "max": 0.008708559932741895
+      },
+      "hipAlignedBodyRestPositionErrorMeters": {
+        "mean": 2.6749922212098515e-08,
+        "p95": 6.659889163474505e-08,
+        "max": 8.291322537786392e-08
+      },
+      "globalBodyRotationFromRestDegreesDiagnostic": {
+        "mean": 1.19528310731599e-07,
+        "p95": 8.049601500954763e-07,
+        "max": 1.9820075806706263e-06
+      },
+      "bodyParentChildBoneDirectionFromRestDegrees": {
+        "mean": 6.890597557164964e-06,
+        "p95": 2.7337663083874835e-05,
+        "max": 4.4338726831902825e-05
+      },
+      "wrists": {
+        "LeftHand": {
+          "worldPositionMeters": [
+            0.7236105799674988,
+            1.4378714561462402,
+            -0.012884140945971012
+          ],
+          "hipRelativePositionMeters": [
+            0.7236105799674988,
+            0.42916297912597656,
+            -0.012884140945971012
+          ],
+          "hipAlignedRestPositionErrorMeters": 5.1530337650548525e-08
+        },
+        "RightHand": {
+          "worldPositionMeters": [
+            -0.7230129837989807,
+            1.4373029470443726,
+            -0.012309533543884754
+          ],
+          "hipRelativePositionMeters": [
+            -0.7230129837989807,
+            0.4285944700241089,
+            -0.012309533543884754
+          ],
+          "hipAlignedRestPositionErrorMeters": 3.564872927111922e-08
+        }
+      }
+    },
+    {
+      "frame": 165,
+      "timeSeconds": 5.5,
+      "isActualConstraintFrame": false,
+      "rootPositionMeters": [
+        0.0002502850256860256,
+        1.0101875066757202,
+        7.082532101776451e-05
+      ],
+      "rootOffsetFromNominalOneMeterMeters": [
+        0.0002502850256860256,
+        0.010187506675720215,
+        7.082532101776451e-05
+      ],
+      "absoluteBodyErrorAgainstNominalOneMeterRestMeters": {
+        "mean": 0.009928219663140073,
+        "p95": 0.010264758527046941,
+        "max": 0.010400045572784596
+      },
+      "hipAlignedBodyRestPositionErrorMeters": {
+        "mean": 0.0006198814625194883,
+        "p95": 0.002307353830919336,
+        "max": 0.004280055375259682
+      },
+      "globalBodyRotationFromRestDegreesDiagnostic": {
+        "mean": 0.21019274862115164,
+        "p95": 0.6171865715118795,
+        "max": 0.7561464563563507
+      },
+      "bodyParentChildBoneDirectionFromRestDegrees": {
+        "mean": 0.12356006122105301,
+        "p95": 0.408520340920165,
+        "max": 0.4488818661050799
+      },
+      "wrists": {
+        "LeftHand": {
+          "worldPositionMeters": [
+            0.7238573431968689,
+            1.437499761581421,
+            -0.013362406753003597
+          ],
+          "hipRelativePositionMeters": [
+            0.7236070581711829,
+            0.4273122549057007,
+            -0.013433232074021362
+          ],
+          "hipAlignedRestPositionErrorMeters": 0.0019304161372783182
+        },
+        "RightHand": {
+          "worldPositionMeters": [
+            -0.7226746678352356,
+            1.4356063604354858,
+            -0.009370530024170876
+          ],
+          "hipRelativePositionMeters": [
+            -0.7229249528609216,
+            0.4254188537597656,
+            -0.00944135534518864
+          ],
+          "hipAlignedRestPositionErrorMeters": 0.004280055375259682
+        }
+      }
+    },
+    {
+      "frame": 177,
+      "timeSeconds": 5.9,
+      "isActualConstraintFrame": false,
+      "rootPositionMeters": [
+        0.000721657183021307,
+        1.0103451013565063,
+        0.0002912950876634568
+      ],
+      "rootOffsetFromNominalOneMeterMeters": [
+        0.000721657183021307,
+        0.010345101356506348,
+        0.0002912950876634568
+      ],
+      "absoluteBodyErrorAgainstNominalOneMeterRestMeters": {
+        "mean": 0.01012943015413861,
+        "p95": 0.010515879884167138,
+        "max": 0.010667607894824946
+      },
+      "hipAlignedBodyRestPositionErrorMeters": {
+        "mean": 0.0007617498782774051,
+        "p95": 0.0020493129515535254,
+        "max": 0.0038337956998418053
+      },
+      "globalBodyRotationFromRestDegreesDiagnostic": {
+        "mean": 0.26514161347497595,
+        "p95": 0.6090329062651882,
+        "max": 0.7892023140488699
+      },
+      "bodyParentChildBoneDirectionFromRestDegrees": {
+        "mean": 0.15855637073607265,
+        "p95": 0.4625835541566746,
+        "max": 0.4917410437055161
+      },
+      "wrists": {
+        "LeftHand": {
+          "worldPositionMeters": [
+            0.7249379754066467,
+            1.4390467405319214,
+            -0.012063528411090374
+          ],
+          "hipRelativePositionMeters": [
+            0.7242163182236254,
+            0.42870163917541504,
+            -0.01235482349875383
+          ],
+          "hipAlignedRestPositionErrorMeters": 0.0009272934580982063
+        },
+        "RightHand": {
+          "worldPositionMeters": [
+            -0.7220517992973328,
+            1.435254693031311,
+            -0.010987645946443081
+          ],
+          "hipRelativePositionMeters": [
+            -0.7227734564803541,
+            0.4249095916748047,
+            -0.011278941034106538
+          ],
+          "hipAlignedRestPositionErrorMeters": 0.0038337956998418053
+        }
+      }
+    },
+    {
+      "frame": 178,
+      "timeSeconds": 5.933333333333334,
+      "isActualConstraintFrame": true,
+      "rootPositionMeters": [
+        0.0,
+        1.0087084770202637,
+        0.0
+      ],
+      "rootOffsetFromNominalOneMeterMeters": [
+        0.0,
+        0.008708477020263672,
+        0.0
+      ],
+      "absoluteBodyErrorAgainstNominalOneMeterRestMeters": {
+        "mean": 0.008708483125182416,
+        "p95": 0.008708541950597679,
+        "max": 0.008708559932741895
+      },
+      "hipAlignedBodyRestPositionErrorMeters": {
+        "mean": 2.6749922212098515e-08,
+        "p95": 6.659889163474505e-08,
+        "max": 8.291322537786392e-08
+      },
+      "globalBodyRotationFromRestDegreesDiagnostic": {
+        "mean": 1.19528310731599e-07,
+        "p95": 8.049601500954763e-07,
+        "max": 1.9820075806706263e-06
+      },
+      "bodyParentChildBoneDirectionFromRestDegrees": {
+        "mean": 6.890597557164964e-06,
+        "p95": 2.7337663083874835e-05,
+        "max": 4.4338726831902825e-05
+      },
+      "wrists": {
+        "LeftHand": {
+          "worldPositionMeters": [
+            0.7236105799674988,
+            1.4378714561462402,
+            -0.012884140945971012
+          ],
+          "hipRelativePositionMeters": [
+            0.7236105799674988,
+            0.42916297912597656,
+            -0.012884140945971012
+          ],
+          "hipAlignedRestPositionErrorMeters": 5.1530337650548525e-08
+        },
+        "RightHand": {
+          "worldPositionMeters": [
+            -0.7230129837989807,
+            1.4373029470443726,
+            -0.012309533543884754
+          ],
+          "hipRelativePositionMeters": [
+            -0.7230129837989807,
+            0.4285944700241089,
+            -0.012309533543884754
+          ],
+          "hipAlignedRestPositionErrorMeters": 3.564872927111922e-08
+        }
+      }
+    },
+    {
+      "frame": 179,
+      "timeSeconds": 5.966666666666667,
+      "isActualConstraintFrame": false,
+      "rootPositionMeters": [
+        -0.0006951665855012834,
+        1.010629415512085,
+        -0.00028510743868537247
+      ],
+      "rootOffsetFromNominalOneMeterMeters": [
+        -0.0006951665855012834,
+        0.010629415512084961,
+        -0.00028510743868537247
+      ],
+      "absoluteBodyErrorAgainstNominalOneMeterRestMeters": {
+        "mean": 0.011016622209174305,
+        "p95": 0.012536995083644491,
+        "max": 0.01454685907639174
+      },
+      "hipAlignedBodyRestPositionErrorMeters": {
+        "mean": 0.0007592453582184947,
+        "p95": 0.0020995616656217754,
+        "max": 0.003968204142070221
+      },
+      "globalBodyRotationFromRestDegreesDiagnostic": {
+        "mean": 0.2536006205094936,
+        "p95": 0.5952333337095624,
+        "max": 0.7566413679468368
+      },
+      "bodyParentChildBoneDirectionFromRestDegrees": {
+        "mean": 0.1532581561095868,
+        "p95": 0.4161888466221592,
+        "max": 0.43569705953880833
+      },
+      "wrists": {
+        "LeftHand": {
+          "worldPositionMeters": [
+            0.7223183512687683,
+            1.4404244422912598,
+            -0.013561820611357689
+          ],
+          "hipRelativePositionMeters": [
+            0.7230135178542696,
+            0.4297950267791748,
+            -0.013276713172672316
+          ],
+          "hipAlignedRestPositionErrorMeters": 0.0009540201413795371
+        },
+        "RightHand": {
+          "worldPositionMeters": [
+            -0.723954975605011,
+            1.4430526494979858,
+            -0.013607785105705261
+          ],
+          "hipRelativePositionMeters": [
+            -0.7232598090195097,
+            0.4324232339859009,
+            -0.013322677667019889
+          ],
+          "hipAlignedRestPositionErrorMeters": 0.003968204142070221
+        }
+      }
+    }
+  ],
+  "lastFifteenSamples": {
+    "startFrame": 165,
+    "endFrame": 179,
+    "largestSingleAxisRangeMetersAcrossAll77Joints": 0.027066946029663086,
+    "largestEuclideanPairwiseSeparationMetersAcrossAll77Joints": 0.02904577788168239,
+    "peakPairFrames": [
+      173,
+      179
+    ],
+    "peakJoint": "RightHandMiddleEnd",
+    "largestBodyHipAlignedRestErrorMeters": 0.01649075431284042,
+    "largestWristHipAlignedRestErrorMeters": 0.01649075431284042,
+    "bodyBoneDirectionRestErrorDegrees": {
+      "mean": 0.29875556933212927,
+      "p95": 1.1085750193363315,
+      "max": 1.6748706402603821
+    },
+    "bodyGlobalRotationRestErrorDegreesDiagnostic": {
+      "mean": 0.4834714486258434,
+      "p95": 1.494319145425428,
+      "max": 2.210272651967436
+    },
+    "wristWorldSpeedMetersPerSecond": {
+      "mean": 0.06390932392000294,
+      "p95": 0.16007630933957287,
+      "max": 0.18623144301801614
+    },
+    "rootPositionAxisRangeMeters": [
+      0.002939523372333497,
+      0.001920938491821289,
+      0.0017445742851123214
+    ]
+  },
+  "inputUnchanged": true
+}

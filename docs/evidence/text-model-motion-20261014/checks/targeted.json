@@ -1,0 +1,7 @@
+{
+  "command": "vitest run packages/core/src/aiMotion.test.ts packages/core/src/aiMotionTrack.test.ts --maxWorkers=1",
+  "start": "2026-10-14T05:36:22.666Z",
+  "end": "2026-10-14T05:36:26.978Z",
+  "exit": 0,
+  "signal": null
+}

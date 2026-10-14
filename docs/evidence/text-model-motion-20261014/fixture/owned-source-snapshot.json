@@ -1,0 +1,415 @@
+{
+  "title": "自有32秒静止实验原稿，无音乐文件",
+  "countMap": {
+    "id": "owned-text-motion-countmap-32-120bpm-20261014",
+    "version": 1,
+    "bpm": 120,
+    "musicBeatsPerDanceCount": 1,
+    "firstCountSourceSeconds": 0,
+    "sourceOffsetSeconds": 0,
+    "durationSeconds": 32,
+    "octetCount": 8,
+    "countTimesSeconds": [
+      0,
+      0.5,
+      1,
+      1.5,
+      2,
+      2.5,
+      3,
+      3.5,
+      4,
+      4.5,
+      5,
+      5.5,
+      6,
+      6.5,
+      7,
+      7.5,
+      8,
+      8.5,
+      9,
+      9.5,
+      10,
+      10.5,
+      11,
+      11.5,
+      12,
+      12.5,
+      13,
+      13.5,
+      14,
+      14.5,
+      15,
+      15.5,
+      16,
+      16.5,
+      17,
+      17.5,
+      18,
+      18.5,
+      19,
+      19.5,
+      20,
+      20.5,
+      21,
+      21.5,
+      22,
+      22.5,
+      23,
+      23.5,
+      24,
+      24.5,
+      25,
+      25.5,
+      26,
+      26.5,
+      27,
+      27.5,
+      28,
+      28.5,
+      29,
+      29.5,
+      30,
+      30.5,
+      31,
+      31.5,
+      32
+    ],
+    "confirmed": true
+  },
+  "plan": null,
+  "take": {
+    "id": "owned-static-relaxed-arms-source-20261014",
+    "schemaVersion": "preview-1",
+    "planId": "owned-static-source-no-arrangement",
+    "countMapId": "owned-text-motion-countmap-32-120bpm-20261014",
+    "durationSeconds": 32,
+    "times": [
+      0,
+      32
+    ],
+    "poses": [
+      {
+        "root": [
+          0,
+          1.05,
+          0
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Chest": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Neck": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Head": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperArm": [
+            0,
+            0,
+            0.1305261922200516,
+            0.9914448613738105
+          ],
+          "LeftForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperArm": [
+            0,
+            0,
+            -0.1305261922200516,
+            0.9914448613738105
+          ],
+          "RightForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      },
+      {
+        "root": [
+          0,
+          1.05,
+          0
+        ],
+        "joints": {
+          "Hips": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Spine": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Chest": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Neck": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "Head": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperArm": [
+            0,
+            0,
+            0.1305261922200516,
+            0.9914448613738105
+          ],
+          "LeftForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightShoulder": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperArm": [
+            0,
+            0,
+            -0.1305261922200516,
+            0.9914448613738105
+          ],
+          "RightForeArm": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHand": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHandTip": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "LeftHeel": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightUpperLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightLowerLeg": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightFoot": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightToe": [
+            0,
+            0,
+            0,
+            1
+          ],
+          "RightHeel": [
+            0,
+            0,
+            0,
+            1
+          ]
+        }
+      }
+    ],
+    "provenance": "synthetic-demo"
+  },
+  "audioOffsetSeconds": 0
+}

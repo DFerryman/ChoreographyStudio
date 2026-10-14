@@ -1,0 +1,28 @@
+{
+  "actualModel": "gpt-6.1-sol",
+  "provider": "codex-session",
+  "externalAPICalls": 0,
+  "specializedMotionModelsUsed": false,
+  "catalogOrRecordedClipsRead": false,
+  "audioRead": false,
+  "contextSHA256": {
+    "work/model-selection-20261014/text-motion-experiment/chinese-classical.request.json": "817b062ad030bcdc89c5539915a7092966071c62cb6bf66f5fe2ff883f926f5a",
+    "packages/core/src/motionFeasibility.ts": "b3b47a4de98bc9210e20eb7e5a7395c23be647b895f84e0ed3690d0a5982ab0f",
+    "packages/core/src/humanoid.ts": "9f01217d4fa6168effc7561d8c96509bb7be763a8082e43717d2f78088806883",
+    "packages/core/src/humanProfile.ts": "e5458fdbdea4309bb036e51df8169c48ab565fcd3277e13049356792f419f0fc",
+    "AGENTS.md": "712ddd3d7e8d3cab7076c31b76012812ad2801ce10e8878bc194bef2b7462d4f"
+  },
+  "rawSHA256": {
+    "ballet.raw.json": "c6b84b29f041b4de7adcb6ac3c7b6acd071ab59c599375b956a09d873346e458",
+    "chinese-classical.raw.json": "3097a267e82c8cd452c10a4f0db00c624d08b8642d6f0d1b1c43efaf4d03c859",
+    "hip-hop.raw.json": "b3f4589904d56bba19cfec5441b732d5181d0d7ac51cb16290a30b9159153a16"
+  },
+  "method": "General text model authored original simultaneous whole-body numerical key poses in this session. Local Python serializes authored pose rows, propagates inherited zero/relaxed-arm posture and applies a simple bilateral knee-height trigonometric approximation. No motion template/prior, external inference, training or audio was read. All marker joints retain zero rotation. No endpoint, outside trajectory or boundary velocity is generated; existing program must freeze them.",
+  "limits": [
+    "Not a Cloudflare inference; no provider API token/cost receipt is available for this Codex-session creation.",
+    "Sparse Euler poses do not establish continuous-time joint limits, contact, balance, collision, speed or acceleration.",
+    "Simple root height approximation is not IK or validated contact; stepping may slide and relevé contact is unvalidated.",
+    "Genre summaries express intent, not a style or naturalness score. Three short phrases do not establish arbitrary-genre capability."
+  ],
+  "revisionPolicy": "First raw output immutable; any later corrections must use separate revision-N files."
+}

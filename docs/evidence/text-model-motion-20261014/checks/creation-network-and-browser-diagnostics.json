@@ -1,0 +1,10 @@
+{
+  "diagnostics": {
+    "errors": [],
+    "warnings": [],
+    "expectedHttpErrors": [],
+    "apiRequests": []
+  },
+  "posts": [],
+  "motionPriorRequests": []
+}

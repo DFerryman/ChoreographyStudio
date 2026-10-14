@@ -1,0 +1,70 @@
+{
+  "sessionCount": 1,
+  "remoteOpenedAt": "2026-10-14T05:00:34.381Z",
+  "endedAt": "2026-10-14T05:03:42.125Z",
+  "inferenceClicks": 0,
+  "examplesLoaded": 0,
+  "uploads": 0,
+  "protocolInjected": false,
+  "visibleEditingControls": [
+    "Gizmo space:Local/World",
+    "Enter/Exit Editing Mode",
+    "Snap to Constraint",
+    "Reset Constraint",
+    "Undo Move",
+    "Make Smooth Path",
+    "Show only Current",
+    "Clear All Constraints"
+  ],
+  "poseParameterBoxesFound": false,
+  "jointPickerFound": false,
+  "gizmoUpdateCount": 20,
+  "gizmoDragStartEndCount": [
+    1,
+    1
+  ],
+  "changedJointIndex": 12,
+  "changedJointNameFromSomaMetadata": "LeftArm",
+  "finalVisibleUiGeneratedGizmoParameters": {
+    "type": "TransformControlsUpdateMessage",
+    "name": "/character0/gizmo_joint_12",
+    "wxyz": [
+      -0.4508542778660907,
+      0.8925975689692672,
+      0,
+      -1.0356810341455261e-32
+    ],
+    "position": [
+      0.16527769707014453,
+      1.4378714166076507,
+      -0.012884350363538764
+    ]
+  },
+  "inferredRootFromStaticGizmoPositionMinusOfficialNeutralJointMeters": [
+    0.0,
+    1.0087084839474643,
+    -4.163336342344337e-17
+  ],
+  "inferredRootScope": "Same-session static neutral geometry reference, not an independently captured full pose or earlier trial target",
+  "endEffectorKeyframesRecorded": 0,
+  "outcome": "Ordinary UI FK gizmo generated real LeftArm rotation parameters and enabled Undo Move; the selected axis rotated along the outstretched arm, so a non-T wrist-position target and End-Effectors record were not achieved in this one bounded session.",
+  "constraintCreationCapability": "Source UI supports Left Hand/Right Hand tracks, but this probe did not empirically record those constraints.",
+  "limitations": [
+    "No Generate was clicked; no generation or style outcome exists.",
+    "No numeric angle/XYZ box or accessible joint picker was observed; posing uses small stage gizmos.",
+    "GPU-process CPU consumption observed about292% of one core with aggregate4-core cgroup quota during editing; 20 mouse steps took roughlyone minute including command scheduling/render updates.",
+    "Session closed without retry or reopening.",
+    "A fresh static T pose and local rotation edit are newly authored controls, not a recording excerpt."
+  ],
+  "estimatedWorkloadAsPlanningOnly": {
+    "threeDifferentIntermediateHandPoses": "At least2-4 shoulder/upper-arm/elbow rotations per pose, plus3 frame selections and6 Left/Right Hand keyframes; actual axis-selection/drags may require correction.",
+    "sideStepGoal": "Additional root translation and coherent foot/Root goals; hand shorthand also constrains Hips, so goals must agree.",
+    "timeAssessment": "Current CPU-rendered probe does not support a three-minute reliable bound for three poses. Only one20-step drag was tested; no throughput extrapolation is established.",
+    "nextStepRequirement": "Show a distinct wrist-position target and record its visible hand-track keyframe before approving another generator run; do not mistake an axial T-arm rotation for a new cloud-hand trajectory."
+  },
+  "measuredGizmoDragStartToEndSeconds": 24.658,
+  "measuredGizmoDragTimesUtc": [
+    "2026-10-14T05:02:29.437Z",
+    "2026-10-14T05:02:54.095Z"
+  ]
+}
