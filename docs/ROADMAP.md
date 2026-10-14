@@ -1,10 +1,20 @@
 # 阶段路线
 
+## 2026-10-14 · 普通街舞连续腿部已实现并发布 native47
+
+逐素材本地来源Schema、绝对选区提示、派生binary64边界和六项安全原因反馈已实现。一次获授权普通描述／owned32秒／4–9.5秒真实请求取得HTTP200合法规划，原候选在7.96秒因上腿约373.52rad/s²超过250被正确拒绝。随后仅复用冻结结果，泛用UpperLeg与Knee50ms连续调理新候选，保留Salsa专属站姿／胫骨配置、原Root算法、固定两端及原物理门槛；不新增模型调用。
+
+运行源码ea88654/tree2abb已main／native47。准确PR13 CI38493625664成功；同SHA main push另自动触发，尚未取得其终态。最终本地949／48、专项12及同批13浏览器通过；clean证书profile下的独立公网冻结回放provider0、实际曲线门禁accepted、完整有限覆盖0违规和12姿态匹配。首次public旧profile恢复四个localhost请求被严格blocked的FAILED、首轮947／949超时、UpperLeg-only失败及local源码守卫失败各自保留，详情见[验证](VERIFICATION.md)、[部署](DEPLOYMENT.md)。
+
+后续仍需评估一般跨π衔接、更多动作覆盖及适配保真／质量／成功率；复杂地板和倒置不据此视为全面成立，完整人体力学、MHR皮肤、连续无碰撞、音乐理解和可选AI修订保持原边界。实际1440／390布局无溢出、候选按钮可用，toast下沿遮挡及旧五处编辑参考提示仍保留。原one-shot已耗尽；下方全部旧pending、部署及失败原文完整保留。
+
+原五页Notion原生更新全部succeeded，完整读回5／5保留原raw正文后缀、标题／自定义属性／icon／cover及原资产，新增marker与最终证据确认；[原项目页](https://www.notion.so/3dfe5c88f85f8124be4ec66c263b1989)保持原位置，私有全文仅工具内存。正常TLS额外health GET200、推理0。最终纯Markdown提交复用已发布native47；原生deployment message记录最终main完整SHA及运行source ea886549f1027c8223fe14235002a7e46d2e9b30/tree2abb703515ef79de1edc9dbdf4b0f1ded13fd28a，保持同version100%，无代码／资产重上传或推理，完整关联以原生收据为准。
+
 ## 2026-10-13 · 普通街舞规划故障修复与待验证范围
 
 已处理32秒场景4–9.5秒选区中普通“来段复杂街舞”反复 `AI_OUTPUT_INVALID` 的规划边界问题：Schema按选中clip的实际本地时长限制来源范围，提示明确非零绝对选区，派生duration／transition兼容binary64端点算术，并通过六项白名单原因码提供安全反馈。精确目标端点及原3mm／250rad/s²物理门槛保持，不增加单次操作的AI请求或自动重试。
 
-后续仍须验证新Schema的真实模型兼容性和自由描述成功率；当前尚无修复后成功实测证据。本地浏览器、准确源码CI、真实验证及新版发布只按[验证记录](VERIFICATION.md)和[部署记录](DEPLOYMENT.md)最终实际收据更新，不沿用下方native45结果作为新修复验收。下方全部原文与历史保持。
+2026-10-14 用户已明确授权本轮提交main、发布Cloudflare，以及在自建32秒场景4–9.5秒区间进行一次真实验证。后续仍须验证新Schema的真实模型兼容性和自由描述成功率；当前尚无修复后成功实测证据。本地浏览器、准确源码CI、真实验证及新版发布只按[验证记录](VERIFICATION.md)和[部署记录](DEPLOYMENT.md)最终实际收据更新，不沿用下方native45结果作为新修复验收。下方全部原文与历史保持。
 
 ## 当前实施状态 · 2026-10-13 · 选择性 AI 自然动作（已实现并发布 native45）
 

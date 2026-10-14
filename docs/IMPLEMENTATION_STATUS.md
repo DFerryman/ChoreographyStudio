@@ -1,10 +1,22 @@
 # 实现状态
 
+## 2026-10-14 · 普通描述规划与连续腿部修复已发布 native47
+
+最终source `ea886549f1027c8223fe14235002a7e46d2e9b30`／tree `2abb703515ef79de1edc9dbdf4b0f1ded13fd28a` 已main，Cloudflare native47/version `cd23036c-8157-42b6-8545-aecf1914eb15` 单100%。逐clip本地来源Schema、绝对选区、派生时间误差与受控reasonCode已实现。native46那次普通“来段复杂街舞”／32秒／4–9.5秒真实请求HTTP200且规划合法，原候选因RightUpperLeg约373.52>250被拒绝；用户那张旧截图的原模型回包未保留，不能将某个独立契约漏洞认定为其唯一具体原因。
+
+只复用冻结真实响应，新候选统一执行UpperLeg SO3及Knee屈伸50ms连续调理；Salsa站姿／胫骨校准仍按来源单独启用。固定端点／切线／外部、来源文件、普通播放、3mm／250门槛和原Root算法保持。独立实际浏览器曲线 `correct:false` accepted：783几何点、165span／330模板／660导数姿态、两个coverage完整、违规0，maxacc238.728775，接地修正约37.1499mm；汇总接触力／摩擦违规0。四完整pure-hoist夹具逐值与JSONSHA完全一致；腿部适配有姿态／脚路径代价，不扩展成完整人体或复杂地板认证。
+
+最终单worker949／48、210.68秒，专项12／12、26.76秒，source build／Worker／dry-run全0；同批13浏览器500.902702秒、13mock POST、错误／警告0及两个预期HTTP错误。准确PR13 CI38493625664成功，同SHA main push终态尚未读取。最终clean公网0provider回放accepted、15响应9唯一路径SHA一致、12姿态max1.3878e−17；原947／949两个超时、UpperLeg-only物理失败、local源码守卫失败与首次public四个旧localhost请求blocked的FAILED完整保留。
+
+Root实际1440／390截图确认候选按钮可用、无溢出；toast仍覆盖部分舞台下缘，旧“超出编辑参考范围·5处”仍显示，与新门禁实际结论和日志warnings0分别记录。最终发布／验证详情见[部署](DEPLOYMENT.md)、[验证](VERIFICATION.md)。one-shot已使用完，后续provider0。下方旧待授权、native46／native45和全部原文为保留历史。
+
+原五页Notion原生任务全部成功，完整读回5／5确认原raw正文后缀、标题／自定义属性／icon／cover和原资产保持，新增marker／全部最终证据存在；[原项目页](https://www.notion.so/3dfe5c88f85f8124be4ec66c263b1989)等原页面继续使用，私有全文只在工具内存。额外正常TLS一次health GET200，推理0。最终纯Markdown提交复用已发布native47；原生deployment message记录最终main完整SHA及运行source ea886549f1027c8223fe14235002a7e46d2e9b30/tree2abb703515ef79de1edc9dbdf4b0f1ded13fd28a，保持同version100%，无代码／资产重上传或推理，完整关联以原生收据为准。
+
 ## 2026-10-13 · 普通街舞规划校验修复（新版真实验证待完成）
 
 用户在32秒场景选择4–9.5秒，输入普通“来段复杂街舞”反复收到 `AI_OUTPUT_INVALID`。当前修复将规划source Schema从统一最大56.25秒改为逐clip本地范围，明确提示非零绝对目标时间；派生duration／transition的binary64端点误拒绝得到处理，目标精确端点不被舍入。六项白名单reasonCode只显示受控原因，不泄露模型原始输出。原稿、区间两端和3mm地面／250rad/s²角加速度标准保持，不增加AI请求或重试路径。
 
-修复后的Schema与真实模型兼容性、自由描述成功率尚未取得成功实测证据。已有本地专项与全单元检查不作为真实推理成功记录；最终浏览器批次、准确源码CI、真实验证和新版发布状态见[验证记录](VERIFICATION.md)、[部署记录](DEPLOYMENT.md)最终收据。下方native45及其全部原文收据保持，不将其改记为本次修复已发布。
+2026-10-14 用户已明确授权本轮提交main、发布Cloudflare，以及在自建32秒场景4–9.5秒区间进行一次真实验证。修复后的Schema与真实模型兼容性、自由描述成功率尚未取得成功实测证据。已有本地专项与全单元检查不作为真实推理成功记录；最终浏览器批次、准确源码CI、真实验证和新版发布状态见[验证记录](VERIFICATION.md)、[部署记录](DEPLOYMENT.md)最终收据。下方native45及其全部原文收据保持，不将其改记为本次修复已发布。
 
 ## 当前实现 · 2026-10-13 · 语义编排、真人先验与候选门禁（已实现并发布 native45）
 

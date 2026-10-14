@@ -1,5 +1,17 @@
 # 真实编舞体验：IK、接触与物理方案评估
 
+## 2026-10-14 · 普通街舞连续腿部实施与 native47 实际验收
+
+普通“来段复杂街舞”／owned32秒／4–9.5秒经一次获授权真实规划，在native46返回合法来源计划，却因7.96秒RightUpperLeg约373.52rad/s²超过原250而被程序拒绝。合法结构与动作来源仍须接受实际轨迹检查，原稿不改，额外模型调用不自动开启；该one-shot已使用完。
+
+最终sourceea88654/tree2abb只复用冻结结果，泛用UpperLeg SO3与Knee50ms连续调理新候选，Salsa站姿／胫骨配置保持来源专属；原Root算法、3mm／250阈值、固定两端／切线／外部、来源和普通播放保持。纯不变量前移四完整夹具逐值和JSONSHA完全一致。实际浏览器冻结曲线独立correct:false accepted：783几何点、165span／330模板／660姿态、双coverage完整、违规0、maxacc238.728775<250、Root接地约37.1499mm，汇总力／摩擦违规0。
+
+准确PR13 CI38493625664、本地949／48及同批13浏览器通过，已main／native47。最终clean公网仅冻结回放provider0，12实际姿态按原精度一致、15静态响应9唯一路径SHA一致、原稿／音频和源码保持；首轮public旧profile恢复四个localhost请求严格blocked的FAILED和所有旧超时／修订失败原样保留。同SHA main push另运行、终态尚未读取，完整状态见[验证](VERIFICATION.md)、[部署](DEPLOYMENT.md)。
+
+这是已声明工程P0/P1范围的改进：仍有限Quaternius代理、角曲率和汇总接触力，不构成全人体动力学、连续蒙皮／临床证明、MHR、复杂地板／倒置全面覆盖或任意描述自然度。人物及脚路径适配有保真代价，来源只两条，一般跨π接缝／覆盖不足仍可拒绝，P3可选AI修订与音乐理解未启用。实际截图保留toast下沿遮挡及旧五处编辑参考提示；原阶段计划与下方native45等全部收据保持历史。
+
+原五页Notion原生任务全部成功，完整读回5／5保留原raw正文后缀、标题／自定义属性／icon／cover及原资产，当前marker和最终证据出现；[原项目页](https://www.notion.so/3dfe5c88f85f8124be4ec66c263b1989)等原页面继续使用，私有全文只在工具内存。正常TLS额外health GET200、推理0。最终纯Markdown提交复用已发布native47；原生deployment message记录最终main完整SHA及运行source ea886549f1027c8223fe14235002a7e46d2e9b30/tree2abb703515ef79de1edc9dbdf4b0f1ded13fd28a，保持同version100%，无代码／资产重上传或推理，完整关联以原生收据为准。
+
 ## 2026-10-13 · 当前实现已验收并发布 native45
 
 上轮 `baafe889` 的代码已保存，本轮续接至运行源码 `47ea623d8bc50d36c39a2e4d14b42f02b1dae6e5`，准确CI成功并上线native45。一次AI语义规划、两来源十四片段真人动作先验、连续人体／Foot／Root求解、独立工程采用门槛已实现；固定端点预检也已共享最终真实足部地面oracle，3mm容差不变。原文件、原播放、区间两端／外部不修改。

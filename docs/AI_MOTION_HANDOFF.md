@@ -1,5 +1,23 @@
 # AI 动作实现交接
 
+## 2026-10-14 · 连续腿部修复已发布 native47，one-shot已使用完
+
+最新运行source `ea886549f1027c8223fe14235002a7e46d2e9b30`／tree `2abb703515ef79de1edc9dbdf4b0f1ded13fd28a` 已main／native47，version `cd23036c-8157-42b6-8545-aecf1914eb15`，初始单100%deployment `e0e5eaa8-7d51-46ba-bf6c-84576e14e3d1`。准确源码PR13 CI38493625664/job115624307274 completed/success，updated01:17:35 UTC；同SHA main自动run尚未拿终态，不冒称PR结果是main重复运行成功。旧native46/main435 CI38490113946与旧0f PR38492677805另保留。
+
+用户批准的一次owned32秒／4–9.5秒／普通“来段复杂街舞”真实请求已在native46执行：HTTP200、合法supported规划、cmu-85-12本地0–5.5秒，但7.96秒RightUpperLeg约373.52rad/s²超过250，产品拒绝、原稿保持。授权已使用完，不再请求模型。后续全部复用冻结请求／响应和公开素材，只重绑明确操作身份；旧REST401、remote-binding是否推理未知和审批拒绝仍为历史。
+
+泛用UpperLeg SO3＋Knee50ms连续场只调理新候选，Salsa站姿／胫骨专属配置保持独立，Root算法、原3mm／250门槛、端点／切线／外部与来源文件不改。同一冻结计划的独立门禁accepted，783几何点、165span／330模板／660姿态、双coverage完整、违规0，maxacc238.728775、接地修正37.1499mm；纯不变量前移四完整夹具逐值与JSONSHA相同。完整人体力学、复杂地板／倒置、连续皮肤或普遍自然度仍不在完成范围。
+
+最终本地949／48、210.68秒、专项12／12、26.76秒、build／Worker／dry-run0；同批13浏览器500.902702秒、全mock且13份错误／警告0、两个预期HTTP错误。原UpperLeg-only失败、full947／949两个旧超时、local12实际姿态匹配但source-diff守卫失败，以及首轮public因持久profile恢复四个localhost资产请求而FAILED均保留。
+
+第二轮public使用clean profile，只复制已核验相同ServerCertificate DB，不带旧tabs／session／site data，正常TLS/proxy不变。01:23:15.650–01:23:48.719 UTC，provider0／一次冻结mock，status accepted；实际浏览器曲线独立correct:false0违规，12姿态以原1e−12比较max1.3877787807814457e−17，15公网响应9唯一路径与冻结SHA相同，原稿／音频hash、runtime diff和原provider ledger保持。Root亲审1440／390图：候选按钮可用、无溢出，toast下沿遮挡及旧五处编辑参考提示仍保留。
+
+239非Markdown／41dist已冻结。详细证据分别在ignored `work/planner-release-20261014/`、`work/planner-frozen-review-20261014/` 与 `work/arm-hoist-review-20261014/`；私有原文件／音频／Notion全文不提交。原五页Notion原生更新全部succeeded，完整读回5／5确认原raw正文完整后缀、标题／自定义属性／icon／cover及原资产保留，新marker和全部最终证据出现；[原项目页](https://www.notion.so/3dfe5c88f85f8124be4ec66c263b1989)等原页面不替换，私有全文只在工具内存。正常TLS额外health GET200、推理0。最终纯Markdown提交复用已发布native47；原生deployment message记录最终main完整SHA及运行source ea886549f1027c8223fe14235002a7e46d2e9b30/tree2abb703515ef79de1edc9dbdf4b0f1ded13fd28a，保持同version100%，无代码／资产重上传或推理，完整关联以原生收据为准；下方旧pending／native46／native45及全部原交接正文保留为历史。
+
+## 2026-10-14 · 用户已明确批准发布及一次真实验证
+
+用户针对上一轮最终的main／Cloudflare发布和一次自建场景真实验证问题明确回答“允许”。旧自动审批拒绝仍保留为历史，这次对应授权已具备，不再把旧pending当作当前阻挡。批准范围是本草稿PR12修复、自建32秒／4–9.5秒／“来段复杂街舞”的一次实际规划，无用户场景或音频上传，无自动重试；后续结果以新的实际收据为准。
+
 ## 2026-10-13 · 普通街舞规划修复：本地完成，发布／真实验证待授权
 
 最新用户反馈32秒新场景、4–9.5秒、“来段复杂街舞”总报无法使用规划。本地源码 `2d989dba04250d23639290985def589d28f55867`／tree `9cdad4e087e0ae6560baff29079f7d00783767ae` 已提交，修复逐clip本地秒Schema、非零选区提示、派生速率／过渡边界的binary64误拒绝，并以六个安全reasonCode显示具体原因。未捕获用户那次原始模型数据，不宣称已确定其某条精确原因；旧Schema可接受录制偏移24–29.5而短窗口仅8秒的独立反例已验证。原端点／来源界限、原稿及物理门槛保持。

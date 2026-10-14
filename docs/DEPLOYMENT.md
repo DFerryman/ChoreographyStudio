@@ -1,5 +1,21 @@
 # Cloudflare 预览部署
 
+## 2026-10-14 · 普通街舞连续腿部修复发布 native47
+
+运行源码 [`ea886549f1027c8223fe14235002a7e46d2e9b30`](https://github.com/DFerryman/ChoreographyStudio/commit/ea886549f1027c8223fe14235002a7e46d2e9b30)／tree `2abb703515ef79de1edc9dbdf4b0f1ded13fd28a` 已main并发布[工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。native47／version `cd23036c-8157-42b6-8545-aecf1914eb15` 于01:19:14.350748 UTC创建，初始deployment `e0e5eaa8-7d51-46ba-bf6c-84576e14e3d1` 于01:19:15.154159 UTC创建，单版本100%。两份原生annotations精确绑定source／tree，非ASSETS binding完整值和script_runtime保持，239非Markdown／41dist冻结。
+
+准确 [PR13 CI38493625664](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38493625664)／job115624307274 completed/success，updated01:17:35 UTC，含完整e2e；同SHA main push另触发但终态尚未读取，不能把PR结果写成main重复运行成功。旧0f PR38492677805成功与native46 main435 CI38490113946成功各自保留。最终本地949／48、210.68秒、专项12／12、26.76秒、sourcebuild／Worker／dry-run0、同批13浏览器500.902702秒通过；首947／949两个旧超时及所有失败另记[验证](VERIFICATION.md)。
+
+native46/source435924f那次已获授权普通描述／owned32秒／4–9.5秒真实请求HTTP200且计划合法，但候选7.96秒RightUpperLeg约373.52>250被程序拒绝，原稿保持；one-shot已耗尽。native47只复用该冻结响应，泛用UpperLeg＋Knee50ms连续调理新候选，Salsa专属校准、原Root算法、原3mm／250门槛和固定两端保持，不再调用模型。UpperLeg-only失败及首次local12姿态匹配但source-diff守卫FAILED完整保留。
+
+首次native47公网冻结回放01:20:43.202–01:21:33.530 UTC，候选及独立门禁accepted、12姿态匹配、原稿保持，但旧持久profile恢复四个localhost资产GET被严格blocked，整份status FAILED保留。第二轮只复制相同已核验证书DB到clean profile，不带旧tabs／session／site data；DB SHA `a5b08a341644d9b78093d48125168cd2e9bdf946274415135e67882cfbe6a791`前后相同，正常TLS／proxy与严格请求审计不改。
+
+第二轮01:23:15.650–01:23:48.719 UTC独立accepted，provider0／一次冻结mock。实际捕获浏览器曲线由未改门禁correct:false独立accepted：783几何点、165spans／330模板／660导数姿态、双coverage完整、违规0，maxacc238.728775<250；12实际舞台姿态在原1e−12容差内、max1.3877787807814457e−17。十五个公网静态响应／九唯一路径与冻结文件SHA一致，含素材和NOTICE；错误／警告／失败请求／预期API错误／blockedRequests均空，原项目／音频hash、runtime diff及原provider ledger保持。公网只安装owned本机fixture并预览，未采用或保存候选，没有用户场景／音频上传或额外真实推理。
+
+Root亲审1440／390px截图，候选按钮可用、无溢出；手机Timeline86.5px，toast仍覆盖部分舞台下缘，旧五处编辑参考提示仍显示，不能由诊断warnings0推断这些UI提示消失。工程代理／有限曲率／汇总接触验收不推广为完整人体物理、复杂地板／倒置、皮肤连续碰撞、设备帧率、音乐理解或普遍自然度。来源仍两条、人物适配代价披露，可选AI修订关闭。
+
+原五页Notion原生更新任务全部succeeded，完整读回5／5确认原raw正文完整后缀、标题／自定义属性、icon／cover和原资产保持，新marker及全部最终证据已出现；[原项目页](https://www.notion.so/3dfe5c88f85f8124be4ec66c263b1989)等原页面保留，私有全文仅工具内存。额外正常TLS一次health GET200、推理0，见ignored `final-health.json`。最终纯Markdown提交复用已发布native47；原生deployment message记录最终main完整SHA及运行source ea886549f1027c8223fe14235002a7e46d2e9b30/tree2abb703515ef79de1edc9dbdf4b0f1ded13fd28a，保持同version100%，无代码／资产重上传或推理，完整关联以原生收据为准。详细ignored证据见 `work/planner-release-20261014/` 与 `work/planner-frozen-review-20261014/`。以下native46／native45、旧待授权和更早全部正文原样保留。
+
 ## 2026-10-13 · 普通街舞规划修复待发布
 
 本地修复源码 `2d989dba04250d23639290985def589d28f55867` 已提交：各素材窗口本地时间与Schema绑定、当前非零绝对选区说明、派生时长的端点误差处理、安全失败分类。全单测948、最终专项59及同批浏览器12项通过，Worker类型／dry-run／构建通过，详情见 [验证记录](VERIFICATION.md)。这是程序契约与mock浏览器验收，不是新模型自由描述成功率证明。

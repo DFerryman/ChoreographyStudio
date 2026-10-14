@@ -1,5 +1,27 @@
 # 预览验证记录
 
+## 2026-10-14 · 普通街舞冻结真实规划连续腿部修复 · native47最终验收
+
+最终运行源码 [`ea886549f1027c8223fe14235002a7e46d2e9b30`](https://github.com/DFerryman/ChoreographyStudio/commit/ea886549f1027c8223fe14235002a7e46d2e9b30)／tree `2abb703515ef79de1edc9dbdf4b0f1ded13fd28a` 已main／native47。准确 [PR13 CI38493625664](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38493625664)／job115624307274 于01:03:36–01:17:34 UTC实际completed/success，updated01:17:35 UTC，包含完整e2e。旧0f PR38492677805成功和native46 main435 CI38490113946成功分别为历史；同ea SHA另触发的main push尚未取得终态，未将PR成功改记为main重复运行成功。
+
+一次已获授权的真实验证在native46/source435924f于00:37:23.819–00:38:42.620 UTC执行：owned32秒场景、精确4–9.5秒、普通提示“来段复杂街舞”，provider1／HTTP200／typedPlanValid／supported，选择cmu-85-12本地0–5.5秒，范围合法。产品原候选在7.96秒RightUpperLeg约373.52rad/s²超过原250门槛拒绝，generationAccepted false、auditCompleted true、原稿保持。这是合法规划的单次证据，未证明可采用动作或普遍自由描述成功率；授权已使用完，之后provider0。用户截图原始回包未保存，不将独立证实的Schema问题认定为其唯一精确原因。
+
+仅冻结重建原plan／source／端点：UpperLeg-only首修仍物理失败，原收据保留。泛用UpperLeg SO3与Knee50ms连续场后，Salsa专属站姿／胫骨校准及原Root算法保持；独立门禁accepted，783几何点、165spans／330单侧模板／660额外姿态，几何／导数coverage均complete、违规0，maxacc238.7287751719145<250，汇总接触力／摩擦违规0，接地Root修正0.03714990370490946m，inputUnchanged true。原3mm／250标准、来源、冻结两端／切线／外部、原稿与普通播放不变。
+
+本地最终单worker48文件949／949、Vitest210.68秒（命令墙时211.428850秒），专项12／12、26.76秒，最终source build／Worker／dry-run EXIT0；保留Vite大chunk及Wrangler proxy提示。首轮full947／949、两个既有同步用例超时、263.59秒（墙时264.537939秒）为独立失败；不修改时限或改记首轮通过。四完整夹具的pure invariant geometry hoist逐值、JSONSHA、输入保持完全相同，不修改迭代次数／阈值，也不推断普遍设备性能。
+
+最终本地浏览器单批01:08:22.101 UTC开始，13／13、500.902702秒，skip／unexpected／flaky0。十三份诊断errors／warnings0，十三规划POST全部mock，两个预期HTTP错误，真实provider0；包括固定用户区间的真实素材／求解及采用撤销保护。首次localhost冻结结果回放曾产品accepted、12实际姿态max约1.39e−17，但source-diff守卫发现运行期间源码／测试变动，整批FAILED保留，不作为最终冻结源码验收。
+
+首轮native47公网冻结回放01:20:43.202–01:21:33.530 UTC实际FAILED：产品accepted、独立曲线门禁及12姿态匹配、原稿保护均完成，但旧持久profile恢复四个localhost GLB／rigJSON GET，被严格blocked。errors／warnings／failedRequests／expectedApiErrors和failures数组为空不改变其failed状态；源码和原provider ledger不变、provider0。随后仅准备clean profile，复制已核验相同 `Default/ServerCertificate`，不带旧session／tabs／site data；原／复制DB SHA均 `a5b08a341644d9b78093d48125168cd2e9bdf946274415135e67882cfbe6a791`，信任metadata `0a020803`，正常TLS／proxy及helper审计标准保持。
+
+独立第二轮clean公网01:23:15.650–01:23:48.719 UTC，status accepted，provider0／一次冻结响应mock，只重绑请求身份。只读捕获真实浏览器候选曲线，未改门禁 `correct:false` 独立accepted、sourceUnchanged true：783几何点、165spans／330模板／660姿态、双coverage完整、违规0、修正0，maxacc238.7287751719145rad/s²。12个舞台实际时刻与该冻结曲线在原1e−12精度内一致，maxcomponent `1.3877787807814457e−17`。十五个公网静态响应／九唯一路径与冻结文件SHA一致，含CMU素材及NOTICE；blockedRequests／errors／warnings／failedRequests／expectedApiErrors／failures均空。owned项目／CountMap／Take／manual／音频hash、runtimeWorkingDiff和原provider ledger均保持；未采用或保存公网候选，未上传用户文件／音频。
+
+Root亲审第二轮1440／390px实际PNG：候选按钮可用、无横向溢出，页面宽等于scrollWidth；桌面Timeline132px、手机86.5px。toast仍遮住舞台下缘部分，旧“超出编辑参考范围·5处”仍显示，作为旧编辑参考提示保留；日志warnings0与此UI提示分别记录，门禁结论依据上述实际报告。检查仍是Quaternius工程代理、有限轨迹／单侧曲率及汇总接触力，不证明完整人体力学、临床范围、连续皮肤、MHR、复杂地板／倒置全面覆盖、音乐理解或任意提示成功率。
+
+239非Markdown tracked／41dist最终manifest已冻结，运行代码与资产不因文档变动重传。新版本／binding见[部署](DEPLOYMENT.md)，来源／保真代价见[MOTION_PRIORS](MOTION_PRIORS.md)。详细ignored证据在 `work/planner-release-20261014/`、`work/planner-frozen-review-20261014/`、`work/arm-hoist-review-20261014/`；私有原文件／音频／Notion全文不提交。以下全部旧pending、审批拒绝、超时与失败保持原文。
+
+最终原五页Notion原生更新任务全部succeeded，完整读回5／5：原raw正文完整后缀、标题／自定义属性、icon／cover及原资产保持，新marker和全部最终证据出现；仅新前缀为合法Markdown转义／链接渲染。[原项目页](https://www.notion.so/3dfe5c88f85f8124be4ec66c263b1989)与其余原页面保留，私有全文仅工具内存、未落盘。额外正常TLS一次health GET200，推理0，见ignored `final-health.json`。最终纯Markdown提交复用已发布native47；原生deployment message记录最终main完整SHA及运行source ea886549f1027c8223fe14235002a7e46d2e9b30/tree2abb703515ef79de1edc9dbdf4b0f1ded13fd28a，保持同version100%，无代码／资产重上传或推理，完整关联以原生收据为准。
+
 ## 2026-10-13 · 普通街舞规划报错修复：本地验收完成，发布与真实验证待授权
 
 针对32秒新场景、4–9.5秒选区、“来段复杂街舞”的 `AI_OUTPUT_INVALID`，本地修复源码 `2d989dba04250d23639290985def589d28f55867`／tree `9cdad4e087e0ae6560baff29079f7d00783767ae` 已提交。没有取得用户截图那次原始模型回包，不能把某个推测写成其确定原因；已独立证实三处契约问题：旧Schema按全目录56.25秒限制所有来源，允许8秒子窗口填写24–29.5秒原录制时间；非零场景时间与窗口本地时间易混用；十进制端点相减导致速率0.5／2和过渡三分之一的合法边界被误拒绝。
