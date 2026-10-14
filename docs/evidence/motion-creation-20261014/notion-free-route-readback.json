@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "notion-allowed-summary-readback-1",
+  "pages": [
+    {
+      "id": "3dfe5c88f85f8124be4ec66c263b1989",
+      "taskId": "task_d28a1dedc4874b5da48f1682a122c0ee",
+      "status": "succeeded",
+      "originalBodySuffixPreserved": true,
+      "titlePreserved": true,
+      "metadataPreserved": true,
+      "coverPreserved": true,
+      "iconPreserved": true,
+      "newMarker": true,
+      "noPaid": true,
+      "originalBodyCharacters": 92009,
+      "currentBodyCharacters": 93039,
+      "truncated": false
+    },
+    {
+      "id": "3dfe5c88f85f817e9671f1357f39bf15",
+      "taskId": "task_c24c23b4b9ad4b9fa5aa7749331da0df",
+      "status": "succeeded",
+      "originalBodySuffixPreserved": true,
+      "titlePreserved": true,
+      "metadataPreserved": true,
+      "coverPreserved": true,
+      "iconPreserved": true,
+      "newMarker": true,
+      "noPaid": true,
+      "originalBodyCharacters": 106006,
+      "currentBodyCharacters": 107056,
+      "truncated": false
+    },
+    {
+      "id": "3dfe5c88f85f81c9b53be650364a5b6b",
+      "taskId": "task_3839ee17e79f4da99e66bf6e9f109d4e",
+      "status": "succeeded",
+      "originalBodySuffixPreserved": true,
+      "titlePreserved": true,
+      "metadataPreserved": true,
+      "coverPreserved": true,
+      "iconPreserved": true,
+      "newMarker": true,
+      "noPaid": true,
+      "originalBodyCharacters": 94986,
+      "currentBodyCharacters": 96031,
+      "truncated": false
+    },
+    {
+      "id": "3dfe5c88f85f8100a08adfe1043e0a4d",
+      "taskId": "task_320a8ea0af3246d3910f6bfb5286b3c1",
+      "status": "succeeded",
+      "originalBodySuffixPreserved": true,
+      "titlePreserved": true,
+      "metadataPreserved": true,
+      "coverPreserved": true,
+      "iconPreserved": true,
+      "newMarker": true,
+      "noPaid": true,
+      "originalBodyCharacters": 111013,
+      "currentBodyCharacters": 112053,
+      "truncated": false
+    },
+    {
+      "id": "3dfe5c88f85f81e1930dca61e054a36a",
+      "taskId": "task_4d029b82275042b0922c1d61dc1fb245",
+      "status": "succeeded",
+      "originalBodySuffixPreserved": true,
+      "titlePreserved": true,
+      "metadataPreserved": true,
+      "coverPreserved": true,
+      "iconPreserved": true,
+      "newMarker": true,
+      "noPaid": true,
+      "originalBodyCharacters": 86030,
+      "currentBodyCharacters": 87098,
+      "truncated": false
+    }
+  ],
+  "privateFullTextWrittenToFilesystem": false
+}

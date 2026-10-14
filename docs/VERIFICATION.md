@@ -1,3 +1,13 @@
+## 2026-10-14 · 本轮准确代码完整 CI 通过，生成质量仍未通过
+
+代码0a0424d／[草稿PR14](https://github.com/DFerryman/ChoreographyStudio/pull/14)对应 [CI38510847006](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38510847006)，job115678754167，实际completed/success；日志checkout为0a0424d合入b89b0f28的12f7e13375d49809ca824f3ec15ba7dd3ca4245d。973／973单元（49文件、59.62s）、65／65全量浏览器（13.0m）、前端类型／Vite构建、Worker类型、人体代理检查及Python6（0.619s）通过，旧大包警告保持。原始本地2／3夹具失败与后续分轮通过仍在下方，不改记为首轮通过。公开精选日志行与run身份见 [CI回执](evidence/motion-creation-20261014/ci-code-0a0424d.json)；此结果不证明新文档head独立CI或舞蹈质量。
+
+免费Kimodo累计4次Generate、3份输出；第3次下载超时没有NPZ、推理完成未知，第4次单次主动重试（0自动生成重试）。第4份180×77、raw SHA d7327134…41d70保持，实际新T FullBody约束164／178与后处理同时改变。身体相对T约束帧误差很小，但约2.4秒起长期T静止趋势、末15帧最大两帧29.05mm、腕速峰0.186m/s；交替云手／侧步／中国舞风格及站点重定向／曲线门禁没有通过。固定v2相似性未旗标，最近2s窗距0.44851515只高阈值3.69%，路径成本复算误差2.22e−16，不能当原创性验收。
+
+用户已拒绝付费服务：TokenHub submits0、付费任务0、Workers AI新增0、用户场景／音频上传0。四次完整原始工作回执留ignored work；公开归档只有选定参数／事件、SHA、三个生成样本及分析，不含profile／Cookies／会话URL／全WS二进制。详细事实与范围见 [评估](MOTION_CREATION_EVALUATION.md)。当前仍草稿PR、线上native47未变。
+
+普通UI独立probe在一新会话、0Generate下产生20条LeftArm gizmo更新与Undo Move，但沿手臂轴旋转，没有改变T腕位置或记录手脚部分约束；不标成新姿态／舞蹈通过。新的静止参考RootY约1.008708484说明第四份8.71mm不是已证实的后处理位移。五页最新Notion补充全部succeeded、完整读回5／5原正文后缀／标题／metadata／icon／cover保持，私有全文未写文件，见 [读回摘要](evidence/motion-creation-20261014/notion-free-route-readback.json)。
+
 ## 2026-10-14 · 新素材创作与已有素材编排分离（本轮未发布）
 
 当前源码定向Vitest101／3全部通过（04:06:49Z起、1.10s）、前端tsc／Vite build通过（旧大包警告保持），API Worker类型通过。两份本地分析CLI分别处理120／180帧真实Kimodo输出；原raw SHA不变，允许pickle=false。相似性44个已知copy控制均检出且来源正确，两原始样本有限筛查没有旗标；此证据不包含风格／自然度／目标曲线验收。

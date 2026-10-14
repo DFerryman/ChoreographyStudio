@@ -1,3 +1,9 @@
+## 2026-10-14 · 草稿 PR14 与免费评估已保存；尚未发布新服务
+
+修正代码0a0424d已推送 [草稿PR14](https://github.com/DFerryman/ChoreographyStudio/pull/14)，对应CI38510847006完整973单元／65浏览器及构建／Worker／Python检查成功。之后补充评估证据或说明不改变此准确代码CI身份。尚未合并main、上传Cloudflare或建立新的推理后端；当前线上仍b89b0f28／native47。四次免费官方Kimodo试验仅取回三份输出，第三次下载失败／完成未知；所有取回样本仍未达到要求的中国舞质量，也没有站点曲线验收。不能发布成中国舞成功或用官方共享演示充当生产服务。
+
+用户明确暂不使用付费服务；腾讯submit0、新增Workers AI0、用户场景／音频上传0。最近GPT-OSS-120B规划被catalog-only代码限制，不应据此宣称文本模型能力差。原5页Notion原文与历史发布记录保留。精确结果见 [评估](MOTION_CREATION_EVALUATION.md) 与 [验证](VERIFICATION.md)。
+
 ## 2026-10-14 · 新素材创作纠正仍为本地待发布源码
 
 默认创作与显式素材编排已分开，专用新动作服务未接入，不静默剪旧素材。当前生产仍main b89b0f28／native47／version cd23036c-8157-42b6-8545-aecf1914eb15；本轮没有新Cloudflare上传、版本、部署或生产模型调用。两次官方NVIDIA演示Generate只用于新模型评估，不是当前Cloudflare接入；样本尚未通过中国舞效果和目标轨迹验收，不能标成生产可用。详见 [新素材评估](MOTION_CREATION_EVALUATION.md)。源码将在独立可审查提交／草稿PR中保留，下方旧部署回执不作本轮证据。

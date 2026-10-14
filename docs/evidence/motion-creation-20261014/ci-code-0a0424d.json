@@ -1,0 +1,33 @@
+{
+  "headSha": "0a0424d9d89ccfe6d8931d044e23f14d29c7ba28",
+  "runId": 38510847006,
+  "jobId": 115678754167,
+  "runStatus": "completed",
+  "conclusion": "success",
+  "lines": [
+    "2026-10-14T04:20:29.1100451Z Ran 6 tests in 0.619s",
+    "2026-10-14T04:21:29.2511246Z  Test Files  49 passed (49)",
+    "2026-10-14T04:21:29.2518089Z       Tests  973 passed (973)",
+    "2026-10-14T04:21:29.2521512Z    Duration  59.62s (tests 97%, import 2%, transform 1%)",
+    "2026-10-14T04:34:47.6144687Z   65 passed (13.0m)"
+  ],
+  "checkoutMergeSha": "12f7e13375d49809ca824f3ec15ba7dd3ca4245d",
+  "baseMainSha": "b89b0f28e6836343e9a3e38aecd9cefefbbcf040",
+  "unitTests": {
+    "files": 49,
+    "passed": 973,
+    "failed": 0,
+    "durationSeconds": 59.62
+  },
+  "endToEnd": {
+    "passed": 65,
+    "failed": 0,
+    "reportedDuration": "13.0m"
+  },
+  "avatarFitPython": {
+    "passed": 6,
+    "durationSeconds": 0.619
+  },
+  "modelQualityVerified": false,
+  "newProductionProviderCalls": 0
+}

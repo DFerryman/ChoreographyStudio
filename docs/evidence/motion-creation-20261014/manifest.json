@@ -3,13 +3,18 @@
   "files": [
     {
       "path": "NOTICE.md",
-      "bytes": 1793,
-      "sha256": "f35768151edaee197638e7f8580611ebcdcef60049f7e81587987a9fc9f111a3"
+      "bytes": 2357,
+      "sha256": "2265f4e89455aba2f81818fbb3d5bf11be2a0163b1a1912187c8f6da40f95c9c"
     },
     {
       "path": "browser-verification.json",
       "bytes": 4144,
       "sha256": "096e3a43a6a1b37b6939b42139d6f6abfbcb8fb60aa812895ce124e681037c9b"
+    },
+    {
+      "path": "ci-code-0a0424d.json",
+      "bytes": 979,
+      "sha256": "5fd34127646cb4dbb5c3fd9585ee766708475bd6a833ed0b0d15590ffe5ee418"
     },
     {
       "path": "creation-ui-1440.png",
@@ -20,6 +25,11 @@
       "path": "creation-ui-390.png",
       "bytes": 69263,
       "sha256": "d07d8a399948281057cd6dba4df39ef306e3fb54c8b5973f76f2ade803555610"
+    },
+    {
+      "path": "notion-free-route-readback.json",
+      "bytes": 2432,
+      "sha256": "7a24f4e829ea60dfdcd395961bd316d6e5a8f9c7b494e272d7558b39ab3abdb6"
     },
     {
       "path": "similarity/README-original-experiment.md",
@@ -65,6 +75,11 @@
       "path": "similarity/receipt-trial-02-v2.json",
       "bytes": 329089,
       "sha256": "be48a97df42ba5a63b37576c1d36439ff2d49ea63ae09ed458c943e90ee95bd6"
+    },
+    {
+      "path": "similarity/receipt-trial-04-v2.json",
+      "bytes": 326606,
+      "sha256": "2ca4320181ba39466200df2b5b43c4bd79ece2f32b5875562ae9d8f99eb98da2"
     },
     {
       "path": "similarity/receipt.json",
@@ -125,11 +140,74 @@
       "path": "trial-02/trial.json",
       "bytes": 1412,
       "sha256": "d6f1a667664501ada938c7d92dbac1f42816d03b188a2a89ba65e4b7c21e9b01"
+    },
+    {
+      "path": "trial-03/trial.json",
+      "bytes": 2472,
+      "sha256": "08b528617402a3f8707bb708f838f7229af9ffa35983691145e225b21b081307"
+    },
+    {
+      "path": "trial-04/constraint-events.json",
+      "bytes": 1120,
+      "sha256": "4776ae144a04dc8ffefabcc6b6bb5953709a3fac2dea547007c6dfd9f7955694"
+    },
+    {
+      "path": "trial-04/ending-reference-analysis.json",
+      "bytes": 14150,
+      "sha256": "8007d9e828a4cd4a74e8a39b701a4a3789b5446303089e7320883589e478a22f"
+    },
+    {
+      "path": "trial-04/motion-analysis.json",
+      "bytes": 37673,
+      "sha256": "71bf9dc9ab67363cae57eedf0768674206df655375fa2eea0bb6fe1bf25d8581"
+    },
+    {
+      "path": "trial-04/motion-contact-sheet.png",
+      "bytes": 123104,
+      "sha256": "b1d21303e7ae1cacc41a1f42b33921c9332cc587e2a3b58d5ed6df90613997ab"
+    },
+    {
+      "path": "trial-04/motion-front-side.mp4",
+      "bytes": 156491,
+      "sha256": "8fd28abddc0573c5dd5723df9be1d2c51d84cba90c4c2a346a67c47ae6bebb4e"
+    },
+    {
+      "path": "trial-04/raw.npz",
+      "bytes": 1168798,
+      "sha256": "d7327134ca4e2c54f39d14ddcaffaee7dcd591bc058a0471521628c766e41d70"
+    },
+    {
+      "path": "trial-04/trial.json",
+      "bytes": 2189,
+      "sha256": "151953f683ad94949ad9d89f4b1e398cc4a86183cdc3a857caa5ce6915717218"
+    },
+    {
+      "path": "ui-pose-probe/after.png",
+      "bytes": 335734,
+      "sha256": "f14a829a4966f4ba429ca5c26c373f1500b2a19e38b048cbf6cd25e0ae6a7d50"
+    },
+    {
+      "path": "ui-pose-probe/before.png",
+      "bytes": 307043,
+      "sha256": "3c77160e21aabc71b22967ad78750de6327e7db0ebbac31fc20a4b872ec702d7"
+    },
+    {
+      "path": "ui-pose-probe/ui-probe-result.json",
+      "bytes": 3252,
+      "sha256": "45a9780bfd298792aae44770d1d557672d6b37e952d23c9e93b561d9f8b3fb6d"
     }
   ],
   "inferenceCalls": {
-    "dedicatedModel": 2,
-    "workersAi": 0
+    "dedicatedModel": 4,
+    "dedicatedModelGenerateClicks": 4,
+    "outputsRetrieved": 3,
+    "inferenceCompletionUnknown": 1,
+    "workersAi": 0,
+    "paidServiceTasks": 0,
+    "automaticGenerationRetries": 0,
+    "additionalUiProbeGenerateClicks": 0
   },
-  "userScenePublished": false
+  "userScenePublished": false,
+  "browserProfilePublished": false,
+  "fullWebSocketTracePublished": false
 }
