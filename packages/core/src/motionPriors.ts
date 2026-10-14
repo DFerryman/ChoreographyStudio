@@ -205,12 +205,13 @@ function rotationVector(rotation: Quaternion): Vector3 {
   const sine = Math.hypot(rotation.x, rotation.y, rotation.z), angle = 2 * Math.atan2(sine, rotation.w);
   return sine < 1e-12 ? new Vector3() : new Vector3(rotation.x, rotation.y, rotation.z).multiplyScalar(angle / sine);
 }
-/** Symmetric SO(3) low-pass filtering conditions only a newly generated arm
- * trajectory. A 75ms Gaussian retains the capture's steps/gesture timing while
- * removing retarget/IK high-frequency changes. Frozen ends and their boundary
- * velocities stay exact through a C2 fade of the correction. */
-function* conditionArmTrajectory(samples: MotionPriorComposition['samples'], start: AIMotionBoundary,
-  end: AIMotionBoundary, mode: 'full' | 'interval', conditionStance = false, selection: 'all' | 'body' | 'arms' = 'all'): Generator<void, void, void> {
+/** Symmetric SO(3) filtering conditions only newly generated trajectories.
+ * Arms use 75ms and body/thighs 50ms to retain capture timing while controlling
+ * retarget/IK noise and actual Hermite curvature. Thigh filtering applies to
+ * every donor; it does not impose Salsa stance on other motion. Frozen ends and
+ * their velocities stay exact through a C2 fade of the correction. */
+function* conditionJointTrajectory(samples: MotionPriorComposition['samples'], start: AIMotionBoundary,
+  end: AIMotionBoundary, mode: 'full' | 'interval', conditionUpperLegs = false, selection: 'all' | 'body' | 'arms' = 'all'): Generator<void, void, void> {
   const original = samples.map(sample => ({ time: sample.time, pose: clonePose(sample.pose) }));
   const width = .075, radius = 3 * width, fade = Math.min(.5, (end.time - start.time) / 4);
   const fullEnd: AIMotionBoundary = { ...end, pose: original.at(-1)!.pose,
@@ -220,7 +221,7 @@ function* conditionArmTrajectory(samples: MotionPriorComposition['samples'], sta
     const amount = smooth((sample.time - start.time) / fade) * smooth((end.time - sample.time) / fade);
     const joints = [...(selection === 'body' ? [] : ARM_JOINTS),
       ...(selection === 'arms' ? [] : ['Neck', 'Head', 'Spine'] as const),
-      ...(conditionStance && selection !== 'arms' ? ['LeftUpperLeg', 'RightUpperLeg'] as const : [])];
+      ...(conditionUpperLegs && selection !== 'arms' ? ['LeftUpperLeg', 'RightUpperLeg'] as const : [])];
     if (amount > 0) for (const joint of joints) {
       const localWidth = ARM_JOINTS.includes(joint) ? width : .05;
       const jointWidth = localWidth, jointRadius = ARM_JOINTS.includes(joint) ? radius : 3 * jointWidth;
@@ -243,7 +244,7 @@ function* conditionArmTrajectory(samples: MotionPriorComposition['samples'], sta
       }
       samples[index].pose.joints[joint] = new Quaternion(...sample.pose.joints[joint]).slerp(mean, amount).normalize().toArray() as Quat;
     }
-    if (conditionStance && selection !== 'arms' && amount > 0) {
+    if (conditionUpperLegs && selection !== 'arms' && amount > 0) {
       const before = evaluatePose(sample.pose), after = evaluatePose(samples[index].pose);
       for (const side of ['Left', 'Right'] as const) {
         const lower = `${side}LowerLeg` as const, foot = `${side}Foot` as const;
@@ -323,13 +324,14 @@ export function adaptMotionPriorStance(input: Pose): Pose {
   }
   return result;
 }
-/** Smooth only longitudinal tibial rotation, not knee flexion or step timing.
- * Pairing its inverse at the foot preserves the ankle and world sole exactly
- * until the unchanged foot budget requires an explicitly recorded soft goal. */
-function* conditionShinTwistTrajectory(samples: MotionPriorComposition['samples'], start: AIMotionBoundary,
-  end: AIMotionBoundary): Generator<void, void, void> {
+/** Filter knee flexion for every donor, with measured Salsa shin twist handled
+ * separately. Pairing the inverse lower-leg correction at the foot retains the
+ * world sole direction until the unchanged foot envelope needs a soft goal.
+ * A C2 fade preserves the frozen endpoint poses and velocities. */
+function* conditionLowerLegTrajectory(samples: MotionPriorComposition['samples'], start: AIMotionBoundary,
+  end: AIMotionBoundary, conditionShinTwist: boolean): Generator<void, void, void> {
   const original = samples.map(sample => ({ time: sample.time, pose: clonePose(sample.pose) }));
-  const width = .075, radius = Math.ceil(3 * width * 30), fade = Math.min(.5, (end.time - start.time) / 4), y = new Vector3(0, 1, 0), x = new Vector3(1, 0, 0), rad = Math.PI / 180;
+  const width = .075, radius = Math.ceil(3 * width * 30), fade = Math.min(.5, (end.time - start.time) / 4), y = new Vector3(0, 1, 0), x = new Vector3(1, 0, 0);
   const twist = (pose: Pose, joint: JointName) => { const q = pose.joints[joint]; return principal(2 * Math.atan2(q[1], q[3])); };
   const flexion = (pose: Pose, joint: JointName) => { const direction = new Vector3(0, -1, 0).applyQuaternion(new Quaternion(...pose.joints[joint])); return Math.atan2(direction.z, -direction.y); };
   for (const [index, sample] of original.entries()) {
@@ -340,7 +342,7 @@ function* conditionShinTwistTrajectory(samples: MotionPriorComposition['samples'
       for (let offset = -radius; offset <= radius; offset++) {
         const neighbor = original[Math.max(0, Math.min(original.length - 1, index + offset))];
         const weight = Math.exp(-.5 * ((offset / 30) / width) ** 2);
-        average += (reference + principal(twist(neighbor.pose, lower) - reference)) * weight; total += weight;
+        if (conditionShinTwist) { average += (reference + principal(twist(neighbor.pose, lower) - reference)) * weight; total += weight; }
         if (Math.abs(offset) <= Math.ceil(3 * .05 * 30)) {
           const flexWeight = Math.exp(-.5 * ((offset / 30) / .05) ** 2);
           averageFlexion += flexion(neighbor.pose, lower) * flexWeight; totalFlexion += flexWeight;
@@ -351,9 +353,12 @@ function* conditionShinTwistTrajectory(samples: MotionPriorComposition['samples'
       // A parent-X increment changes only flexion; source lateral bend is
       // retained, including inside a bridge to immutable interval anchors.
       const fittedLower = new Quaternion().setFromAxisAngle(x, -deltaFlexion).multiply(sourceLower);
-      const fittedTwist = principal(2 * Math.atan2(fittedLower.y, fittedLower.w));
-      const targetTwist = reference + (average / total - reference) * amount;
-      fittedLower.multiply(new Quaternion().setFromAxisAngle(y, principal(targetTwist - fittedTwist))).normalize();
+      if (conditionShinTwist) {
+        const fittedTwist = principal(2 * Math.atan2(fittedLower.y, fittedLower.w));
+        const targetTwist = reference + (average / total - reference) * amount;
+        fittedLower.multiply(new Quaternion().setFromAxisAngle(y, principal(targetTwist - fittedTwist)));
+      }
+      fittedLower.normalize();
       samples[index].pose.joints[lower] = fittedLower.toArray() as Quat;
       const pairedFoot = fittedLower.clone().invert().multiply(sourceLower).multiply(new Quaternion(...sample.pose.joints[foot])).normalize().toArray() as Quat;
       samples[index].pose.joints[foot] = boundedFootRotation(pairedFoot);
@@ -738,8 +743,10 @@ function* composeMotionPriorPlanSteps(request: AIMotionPlanRequest, inputResult:
   // decides whether their frozen endpoints can admit a feasible trajectory.
   if (!samples.length) { const time = target.startSeconds + span / 2; samples.push({ time, pose: poseAt(time) }); }
   const hasStanceCalibration = result.sources.some(source => source.clipId.startsWith('cmu-61-08'));
-  if (hasStanceCalibration) yield* conditionShinTwistTrajectory(samples, start, end);
-  yield* conditionArmTrajectory(samples, start, end, target.mode, hasStanceCalibration, 'body');
+  yield* conditionLowerLegTrajectory(samples, start, end, hasStanceCalibration);
+  // All source families need coherent thighs on the actual Hermite curve.
+  // Donor-specific stance/shin calibration remains separate from this filter.
+  yield* conditionJointTrajectory(samples, start, end, target.mode, true, 'body');
   // Re-evaluate actual filtered Head/Spine/thigh geometry. Before conditioning,
   // a donor-frame head target cannot anticipate the resulting palm/head fit.
   // This bounded pass is source seeded in the already coherent candidate.
@@ -751,7 +758,7 @@ function* composeMotionPriorPlanSteps(request: AIMotionPlanRequest, inputResult:
     sample.pose = blendPose(source, fitted, amount); previousFit = { source, fitted: clonePose(sample.pose) };
     if (index % 16 === 15) yield;
   }
-  yield* conditionArmTrajectory(samples, start, end, target.mode, false, 'arms');
+  yield* conditionJointTrajectory(samples, start, end, target.mode, false, 'arms');
   let endingAdaptation: MotionPriorComposition['endingAdaptation'];
   if (target.mode === 'full') {
     const seconds = Math.min(1.5, span / 4), final = samples.at(-1)!.pose;
@@ -787,8 +794,8 @@ function* composeMotionPriorPlanSteps(request: AIMotionPlanRequest, inputResult:
   return { samples, ...(endingAdaptation ? { endingAdaptation } : {}), origin: { kind: 'human-motion-prior', catalogVersion: result.catalogVersion,
     ...(endingAdaptation ? { endingAdaptation: { ...endingAdaptation } } : {}),
     sources: result.sources.map(source => ({ ...source })), segments: result.segments.map(segment => ({ ...segment, travelXZ: [...segment.travelXZ] })),
-    adaptations: [MOTION_PRIOR_ARM_ADAPTATION_VERSION, MOTION_PRIOR_ARM_TRAJECTORY_VERSION, MOTION_PRIOR_NECK_TRAJECTORY_VERSION, MOTION_PRIOR_HEAD_TRAJECTORY_VERSION, MOTION_PRIOR_SPINE_TRAJECTORY_VERSION,
-      ...(hasStanceCalibration ? [MOTION_PRIOR_STANCE_ADAPTATION_VERSION, MOTION_PRIOR_SHIN_TRAJECTORY_VERSION, MOTION_PRIOR_KNEE_TRAJECTORY_VERSION, MOTION_PRIOR_UPPER_LEG_TRAJECTORY_VERSION] : []),
+    adaptations: [MOTION_PRIOR_ARM_ADAPTATION_VERSION, MOTION_PRIOR_ARM_TRAJECTORY_VERSION, MOTION_PRIOR_NECK_TRAJECTORY_VERSION, MOTION_PRIOR_HEAD_TRAJECTORY_VERSION, MOTION_PRIOR_SPINE_TRAJECTORY_VERSION, MOTION_PRIOR_UPPER_LEG_TRAJECTORY_VERSION, MOTION_PRIOR_KNEE_TRAJECTORY_VERSION,
+      ...(hasStanceCalibration ? [MOTION_PRIOR_STANCE_ADAPTATION_VERSION, MOTION_PRIOR_SHIN_TRAJECTORY_VERSION] : []),
       ...(endingAdaptation ? [MOTION_PRIOR_HOLD_ADAPTATION_VERSION] : [])],
     adaptationMetrics: { maxHandDisplacementMeters: maximum, rmsHandDisplacementMeters: Math.sqrt(squared / (samples.length * 2)),
       maxFootDisplacementMeters: maximumFoot, rmsFootDisplacementMeters: Math.sqrt(squaredFoot / (samples.length * 2)), maxKneeDisplacementMeters: maximumKnee,

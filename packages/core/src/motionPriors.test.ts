@@ -6,10 +6,12 @@ import { AI_MOTION_MODEL } from './aiMotion';
 import { makeAIMotionFixture } from './aiMotion.fixture';
 import { makeAIMotionPlanRequest, motionPlanSources, type AIMotionPlanResult } from './aiMotionPlan';
 import { evaluatePose } from './humanoid';
-import { measureFunctionalJoint, CANONICAL_MOTION_FEASIBILITY_PROFILE } from './motionFeasibility';
+import { measureFunctionalJoint, CANONICAL_MOTION_FEASIBILITY_PROFILE, solveAIMotionFeasibility } from './motionFeasibility';
 import { getCapsuleCollisions } from './capsuleCollision';
 import { loadRapierBackend } from './rapierBackend';
 import { rotationFromDegrees } from './keyframes';
+import { compileAIMotionPosePatch, createAIMotionSampler } from './aiMotionTrack';
+import { conditionMotionGroundingCurve, conditionMotionLegContacts } from './motionGrounding';
 import { MOTION_PRIOR_CATALOG, adaptMotionPriorArmTargets, composeMotionPriorPlan, composeMotionPriorPlanAsync, decodeMotionPrior, sampleMotionPrior, type MotionPriorClip } from './motionPriors';
 import { JOINT_NAMES } from './motion-types';
 
@@ -239,6 +241,54 @@ describe('licensed, pinned human-motion priors (no model calls)', () => {
     expect(composition.endingAdaptation).toEqual({ kind: 'stable-hold', seconds: 1.5 });
     expect(composition.origin.adaptations).toContain('full-hold-settle-1');
   });
+
+  it('conditions the captured Street plan for 4..9.5 under the unchanged full curve gate without altering source or anchors', async ({ signal }) => {
+    // Same numeric plan as the real ordinary-Street failure, with synthetic
+    // protocol identities and metadata only; no saved scene or audio is read.
+    const motion = makeAIMotionFixture('interval');
+    motion.context.target.endSeconds = 9.5;
+    motion.context.boundaries.end.time = 9.5;
+    motion.context.initialPose.joints.LeftUpperArm = rotationFromDegrees([0, 0, 15]);
+    motion.context.initialPose.joints.RightUpperArm = rotationFromDegrees([0, 0, -15]);
+    const base = () => structuredClone(motion.context.initialPose);
+    motion.context.boundaries.start.pose = base(); motion.context.boundaries.end.pose = base();
+    motion.context.before = [{ time: 3, pose: base() }]; motion.context.after = [{ time: 10.5, pose: base() }];
+    const request = makeAIMotionPlanRequest(motion, MOTION_PRIOR_CATALOG), source = clip('cmu-85-12');
+    const output = { summary: '真人街舞连续站立步法', intentMatch: 'supported' as const, limitations: [], segments: [{
+      clipId: source.id, startSeconds: 4, endSeconds: 9.5, sourceStartSeconds: 0, sourceEndSeconds: 5.5,
+      yawDegrees: 0, travelXZ: [0, 0] as [number, number], transitionSeconds: 0, contactHint: 'floor' as const,
+    }] };
+    const result: AIMotionPlanResult = { ...output, protocol: 'ai-motion-plan-1', provider: 'cloudflare-workers-ai', model: AI_MOTION_MODEL,
+      requestId: motion.context.requestId, sourceHash: motion.context.sourceHash, target: motion.context.target,
+      catalogVersion: request.catalog.version, sources: motionPlanSources(output, request.catalog) };
+    const originalSource = JSON.stringify(source), originalRequest = JSON.stringify(request), originalResult = JSON.stringify(result);
+    const composition = composeMotionPriorPlan(request, result, new Map([[source.id, source]]), base);
+    expect(composition.origin.adaptations).toContain('upperleg-so3-trajectory-1');
+    expect(composition.origin.adaptations).toContain('knee-flex-trajectory-1');
+    expect(composition.origin.adaptations).not.toContain('quaternius-cmu61-stance-1');
+    expect(composition.origin.adaptations).not.toContain('shin-axial-trajectory-1');
+    expect(composition.adaptation.maxFootDisplacementMeters).toBeGreaterThan(0);
+    expect(composition.adaptation.maxFootDisplacementMeters).toBeLessThan(.15);
+    expect(composition.adaptation.maxKneeDisplacementMeters).toBeLessThan(.08);
+    const feet = await conditionMotionLegContacts(composition.samples, { target: motion.context.target, boundaries: motion.context.boundaries, signal });
+    const origin = { ...composition.origin, adaptations: [...composition.origin.adaptations!, 'motion-leg-contact-conditioning-1', 'motion-curve-grounding-1'],
+      adaptationMetrics: { ...composition.origin.adaptationMetrics!, maxSoleSmoothingRadians: feet.report.maxSoleOrientationChangeRadians,
+        maxFootMarkerDisplacementMeters: feet.report.maxFootMarkerPositionChangeMeters } };
+    const draft = compileAIMotionPosePatch(motion, result, feet.samples, base, origin);
+    const options = { sourceSampler: base, durationSeconds: 32, signal, contacts: [{ startSeconds: 4, endSeconds: 9.5, mode: 'supported' as const }] };
+    const grounded = await conditionMotionGroundingCurve(draft, options);
+    const checked = await solveAIMotionFeasibility(grounded.patch, { ...options,
+      conditionCandidate: async (patch, repairSignal) => (await conditionMotionGroundingCurve(patch, { ...options, signal: repairSignal })).patch });
+    expect(checked.report.status, JSON.stringify(checked.report.violations)).toBe('accepted');
+    expect(checked.report.totalViolations).toBe(0);
+    expect(checked.report.coverage.complete).toBe(true); expect(checked.report.derivativeCoverage.complete).toBe(true);
+    expect(checked.report.metrics.maxJointAccelerationRadiansPerSecondSquared).toBeLessThanOrEqual(CANONICAL_MOTION_FEASIBILITY_PROFILE.maxJointAccelerationRadiansPerSecondSquared);
+    expect(grounded.report.maxRootCorrectionMeters).toBeLessThanOrEqual(.060000001);
+    expect(checked.patch!.knots[0]).toEqual(draft.knots[0]); expect(checked.patch!.knots.at(-1)).toEqual(draft.knots.at(-1));
+    const sampler = createAIMotionSampler(base, { schema: 'ai-motion-track-1', countMapId: motion.context.timing.id, durationSeconds: 32, patches: [checked.patch!] });
+    for (const time of [0, 3.997, 4, 9.5, 9.503, 16, 32]) expect(sampler(time)).toEqual(base());
+    expect(JSON.stringify(source)).toBe(originalSource); expect(JSON.stringify(request)).toBe(originalRequest); expect(JSON.stringify(result)).toBe(originalResult);
+  }, 30000);
 
   it('omits a grid knot numerically adjacent to a frozen interval endpoint', () => {
     const { motion, base } = planned();

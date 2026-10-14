@@ -499,19 +499,30 @@ test('@ai-motion actual Street three-second capture passes a four-second interva
   expect(calls).toHaveLength(1);
 });
 
-test('@ai-motion user street prompt on a 32-second scene accepts a 4-to-9.5 interval with original endpoints and undo preserved', async ({ page }, info) => {
+for (const scenario of [
+  { name: 'partial standing Street plan', clipId: 'cmu-85-12-a', sourceEnd: 3, transition: .5,
+    intentMatch: 'partial' as const, summary: '以真人街舞前三秒站立步法编排，复杂地板技巧未覆盖。',
+    limitations: ['当前选择只覆盖站立街舞步法，不包含倒置或地板技巧。'], contactHint: 'standing' as const, compensateTravel: true, file: 'partial' },
+  // Freeze the actual HTTP200 planning choices from the authorized live check.
+  // Mock only the provider; never shorten the capture or repair its travel/yaw.
+  { name: 'frozen real 5.5-second Street plan', clipId: 'cmu-85-12', sourceEnd: 5.5, transition: 0,
+    intentMatch: 'supported' as const, summary: '使用 cmu-85-12 的前 5.5 秒街舞片段，提供连续的站立转身与步法，满足复杂街舞需求。',
+    limitations: [], contactHint: 'floor' as const, compensateTravel: false, file: 'frozen-real' },
+]) test(`@ai-motion ${scenario.name} on a 32-second scene accepts a 4-to-9.5 interval with original endpoints and undo preserved`, async ({ page }, info) => {
   test.setTimeout(180_000);
   const calls = await mockMotion(page, async (request, _index, route) => {
     const { target, requestId, sourceHash } = request.motion.context;
     expect(target).toEqual({ mode: 'interval', startSeconds: 4, endSeconds: 9.5 });
     expect(request.motion.prompt).toBe('来段复杂街舞');
     expect(request.motion.context.timing.durationSeconds).toBe(32);
-    const clip = request.catalog.clips.find(clip => clip.id === 'cmu-85-12-a'); expect(clip).toBeTruthy();
-    const output = { summary: '以真人街舞前三秒站立步法编排，复杂地板技巧未覆盖。', intentMatch: 'partial' as const,
-      limitations: ['当前选择只覆盖站立街舞步法，不包含倒置或地板技巧。'], segments: [{
+    const clip = request.catalog.clips.find(clip => clip.id === scenario.clipId); expect(clip).toBeTruthy();
+    if (!scenario.compensateTravel) expect(clip!.sourceHash).toBe('641cc765dbce56267b4a16a087174e487bdf16842a705e6fdc1cbb99329096bd');
+    const output = { summary: scenario.summary, intentMatch: scenario.intentMatch,
+      limitations: scenario.limitations, segments: [{
         clipId: clip!.id, startSeconds: target.startSeconds, endSeconds: target.endSeconds,
-        sourceStartSeconds: 0, sourceEndSeconds: 3, yawDegrees: 0, travelXZ: await intervalTravel(request, clip!.id, 0, 3),
-        transitionSeconds: .5, contactHint: 'standing' as const,
+        sourceStartSeconds: 0, sourceEndSeconds: scenario.sourceEnd, yawDegrees: 0,
+        travelXZ: scenario.compensateTravel ? await intervalTravel(request, clip!.id, 0, scenario.sourceEnd) : [0, 0] as [number, number],
+        transitionSeconds: scenario.transition, contactHint: scenario.contactHint,
       }] };
     const result = validateAIMotionPlanResult({ ...output, protocol: AI_MOTION_PLAN_PROTOCOL, provider: 'cloudflare-workers-ai', model: AI_MOTION_MODEL,
       requestId, sourceHash, target, catalogVersion: request.catalog.version, sources: motionPlanSources(output, request.catalog) }, request);
@@ -523,10 +534,10 @@ test('@ai-motion user street prompt on a 32-second scene accepts a 4-to-9.5 inte
   await generate(page, '来段复杂街舞');
   await expectFeasibleCandidate(page);
   expect(calls).toHaveLength(1);
-  await expect(candidate(page)).toContainText('不包含倒置或地板技巧');
+  for (const limitation of scenario.limitations) await expect(candidate(page)).toContainText(limitation);
   await candidate(page).getByRole('button', { name: '预览候选', exact: true }).click();
   const preview = new Map<number, Pose>();
-  for (const at of [4.25, 5.317, 6.75, 8.173, 9.25]) {
+  for (const at of [4.25, 5.317, 6.75, 7.96, 8.173, 9.25]) {
     await seek(page, at); const shown = await pose(page); preview.set(at, shown);
     expectCapturedAvatarFloor(shown);
     expect(shown).not.toEqual(sampleTake(original.take!, at));
@@ -535,7 +546,7 @@ test('@ai-motion user street prompt on a 32-second scene accepts a 4-to-9.5 inte
   expect((await backup(page)).scene.project).toEqual(before.scene.project);
   expect(await audioHash(page)).toBe(beforeAudio);
   await seek(page, 6.75);
-  await screenshot(page, info, 'ai-motion-user-street-4-9p5.png');
+  await screenshot(page, info, `ai-motion-user-street-4-9p5-${scenario.file}.png`);
   await candidate(page).getByRole('button', { name: '采用候选', exact: true }).click();
   const adopted = await backup(page), patch = current(adopted).aiMotion!.patches[0];
   expectOriginal(current(adopted), original);
@@ -543,9 +554,15 @@ test('@ai-motion user street prompt on a 32-second scene accepts a 4-to-9.5 inte
   expect(adopted.scene.project.history).toHaveLength(before.scene.project.history.length + 1);
   expect(adopted.scene.project.revision).toBe(before.scene.project.revision + 1);
   expectCurrentPipelineOrigin(patch, calls[0]);
-  expect(patch.motionOrigin!.sources.map(source => source.clipId)).toEqual(['cmu-85-12-a']);
-  await writeFile(info.outputPath('accepted-user-street-4-9p5-curve.json'), JSON.stringify({
-    scope: 'Real browser solver and adoption for a mocked partial Street plan on the user-reported 32-second scene and 4..9.5-second interval.',
+  expect(patch.motionOrigin!.sources.map(source => source.clipId)).toEqual([scenario.clipId]);
+  expect(patch.motionOrigin!.segments).toEqual([{
+    clipId: scenario.clipId, startSeconds: 4, endSeconds: 9.5, sourceStartSeconds: 0, sourceEndSeconds: scenario.sourceEnd,
+    yawDegrees: 0, travelXZ: scenario.compensateTravel ? await intervalTravel(calls[0], scenario.clipId, 0, scenario.sourceEnd) : [0, 0],
+    transitionSeconds: scenario.transition, contactHint: scenario.contactHint,
+  }]);
+  expect(patch.motionOrigin!.adaptations).toContain('upperleg-so3-trajectory-1');
+  await writeFile(info.outputPath(`accepted-user-street-4-9p5-${scenario.file}-curve.json`), JSON.stringify({
+    scope: `Real browser solver and adoption for a mocked ${scenario.name} on the user-reported 32-second scene and 4..9.5-second interval. Zero provider calls.`,
     base: original.take!.poses[0], duration: original.countMap.durationSeconds, patch,
     preview: [...preview].map(([time, pose]) => ({ time, pose })),
   }));
