@@ -1,5 +1,15 @@
 # 预览验证记录
 
+## 2026-10-15 · revision 2 release verification · native50
+
+Runtime source `e44803cef257851eb9eaf9400ff88572dc70fcc9` / tree `e5d9b3ef79672550d1455f0fb6a9e704a55c9dcc`. Locked npm ci restored Rapier0.21.0; no application/test/config edits. `npm run check` exited0:48 files,927/927 tests,174.29s, frontend TypeScript and Vite build passed. Worker types and latest-dist dry-run exited0; retain existing Vite large-chunk and Wrangler proxy notices. The earlier pre-build dry-run read stale6-file dist and is not release validation; the later current-dist dry-run is the one used for deployment.
+
+Local `tests/ai-dance.spec.ts`:3/3 passed in1.5m. Full-scene preview/adopt/undo/redo28.7s;503 planner fallback and fresh second generation33.8s;off-beat interval endpoint/outside preservation20.8s. Four planner POSTs across3 cases were mocked. All3 diagnostics have empty errors/warnings; no unmocked API calls or real model inference. Existing source Haiku stand-in/stress evidence remains separate and does not establish Workers AI compatibility.
+
+Native50 version `9fb6a58a-292c-44a3-9751-534055d21761` / deployment `3adc0d59-6153-4cb0-99b3-cad0c0eb6527` is single100%; native annotations exactly bind runtime source/tree. Online normal-TLS5 GETs all passed: homepage/mainJS/CSS bytes and SHA equal built dist, health and capabilities200. New protocol/keypose capability verified. Public Chromium smoke failed at navigation with proxy CA `ERR_CERT_AUTHORITY_INVALID`, before application load; errors/warnings/API arrays being empty does not turn that failure into acceptance. No certificate bypass or repeat production loop. Exact-source [CI38720629809](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38720629809) remains in_progress at last read; full-CI result pending.
+
+Deployment was followed by the requested five-page Notion sync. Native tasks5/5 succeeded; complete readback5/5 preserved original full body suffix, title/icon/cover and historical content, with one current marker each. Real Workers AI requests0, user scene/audio uploads0, D1 writes0. Actual20B output compatibility, cost/latency, dance quality and real iPad remain unverified. Earlier no-deployment/no-credentials headings below describe their original sessions, superseded for release status by this entry. Final receipts change Markdown only and reuse the verified runtime/assets.
+
 ## 2026-10-15 · AI choreography revision 2: AI-authored keyposes (local verification; not deployed, no Workers AI inference)
 
 Design: [AI_DANCE_ENGINE.md](AI_DANCE_ENGINE.md) (`ai-dance-plan-3`, `dance-synth-2`). All Workers AI responses in tests are mocked. This session has no Cloudflare credentials, so nothing was deployed and `@cf/openai/gpt-oss-20b` was not called for real.

@@ -1,5 +1,15 @@
 # Cloudflare 预览部署
 
+## 2026-10-15 · AI choreography revision 2 published as native50
+
+Pulled and fast-forwarded to main `e44803cef257851eb9eaf9400ff88572dc70fcc9`, tree `e5d9b3ef79672550d1455f0fb6a9e704a55c9dcc`. No application or deployment configuration changes. Restored locked dependencies with workspace npm cache (Rapier 0.21.0); default sandbox networking initially failed, while supported network permissions worked with the inherited proxy and credentials. Wrangler's initial deployment-list command failed reading an old version with API 9106; the connected Cloudflare API read the current deployment successfully. Actual deployment succeeded with Wrangler.
+
+`wrangler deploy --keep-vars --tag native50 --message ...` exited 0. Version `9fb6a58a-292c-44a3-9751-534055d21761`, native number50, created `2026-10-15T10:46:54.454796Z`; deployment `3adc0d59-6153-4cb0-99b3-cad0c0eb6527` at `10:46:55.198098Z` (18:46:55 Asia/Shanghai), single100%. Native version and deployment annotations both match the full source/tree above. Uploaded2 new assets, reused36. AI, API20/min, AI2/min, ASSETS and RELEASE_STAGE bindings retained; SPA fallback, API-first routing, compatibility settings and security headers read back.
+
+Current 927/927 unit tests, frontend build, Worker types, current-dist dry-run and local AI dance browser3/3 passed. Normal-TLS HTTP5/5 passed: index/JS/CSS byte/SHA match dist, health/capabilities GET200; capabilities expose `ai-dance-plan-3` and keyposeAuthoring. Public Chromium smoke failed before application load with `ERR_CERT_AUTHORITY_INVALID` from environment proxy CA trust; not counted as browser acceptance. No TLS bypass. Exact-source main CI38720629809 was still in_progress at last read; no complete-CI success claim. Real Workers AI, user scene/audio upload and D1 writes0. See [verification](VERIFICATION.md).
+
+After deployment, all five original Notion pages (project, product, full specification, development and acceptance) received current revision2/source/deployment/verification and limitations. All five native async tasks succeeded; full readback5/5 confirmed one native50 marker, complete original body suffix and original icon/cover retained. Older fixed19-move/native49 descriptions are explicitly historical; revision2 uses model-authored keyposes, random variation, 55s/60s/240s deadlines and disclosed in-place fallback. Delivery receipts are documentation-only and reuse native50 without another asset upload or public test loop. [Open preview](https://choreo-studio-preview.danuberiverferryman.workers.dev/).
+
 ## 2026-10-15 · iPad Timeline 已发布 native48，环境阻塞已排除
 
 用户要求自行排查后，环境实际状态已为 revision3：network enforced、Cloudflare token/account ready。保持原代理与凭据注入，仅给命令启用所需网络权限后，正常git fetch成功；并非要求用户改配置。npm默认HOME缓存不可写的安装失败保留，改用work内npm cache后npm ci成功恢复锁定Rapier0.21.0。此前0.12.0构建失败已由依赖恢复解决，无源码／类型弱化。
