@@ -7,12 +7,15 @@ export const AI_MOTION_PROTOCOL = 'ai-motion-1' as const;
 export const AI_MOTION_MODEL = '@cf/openai/gpt-oss-120b' as const;
 /** Historical motion layers retain their original model provenance. This list
  * permits restoration, never automatic inference or provider fallback. */
-/** Semantic dance planner (ai-dance-plan-2): a small, cheap model is enough
- * because it only picks moves from a fixed vocabulary. */
-export const DANCE_PLAN_MODEL = '@cf/openai/gpt-oss-20b' as const;
+/** Dance keypose planner (ai-dance-plan-3). gpt-oss-120b with this calling
+ * convention is the model actually verified on this account; gpt-oss-20b
+ * (native50) returned no usable plans in production. */
+export const DANCE_PLAN_MODEL = '@cf/openai/gpt-oss-120b' as const;
+/** Planner model used by native50; patches adopted then keep this provenance. */
+export const LEGACY_DANCE_PLAN_MODEL = '@cf/openai/gpt-oss-20b' as const;
 /** Deterministic rule planner used when the model is unavailable. */
 export const LOCAL_DANCE_PLANNER = 'local-dance-planner-1' as const;
-export const AI_MOTION_SUPPORTED_MODELS = [AI_MOTION_MODEL, '@cf/qwen/qwen3-30b-a3b-fp8', DANCE_PLAN_MODEL, LOCAL_DANCE_PLANNER] as const;
+export const AI_MOTION_SUPPORTED_MODELS = [AI_MOTION_MODEL, '@cf/qwen/qwen3-30b-a3b-fp8', LEGACY_DANCE_PLAN_MODEL, LOCAL_DANCE_PLANNER] as const;
 export type AIMotionModel = typeof AI_MOTION_SUPPORTED_MODELS[number];
 export const AI_MOTION_REQUEST_MAX_BYTES = 64 * 1024;
 export const AI_MOTION_RESULT_MAX_BYTES = 96 * 1024;

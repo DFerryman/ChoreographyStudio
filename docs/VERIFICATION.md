@@ -1,5 +1,22 @@
 # 预览验证记录
 
+## 2026-10-15 · planner reply fix (revision 2.1) · local verification; not deployed
+
+User report on native50: every AI generation fell back with "the AI plan was unusable". This container cannot reach the preview (the proxy returns 403 for the workers.dev host) and has no Cloudflare credentials, so the actual production reply and logs were not inspected. Diagnosis and changes are in [AI_DANCE_ENGINE.md](AI_DANCE_ENGINE.md) (revision 2.1): back to the account-verified `gpt-oss-120b` with 8192 tokens and a non-strict schema; tolerant reply extraction; truncated-JSON salvage; shape-only logging; fixed user-visible details.
+
+- Planner, Worker, client, aiMotion, aiMotionTrack and sceneBackup tests: 6 files, 237/237 passed. New cases:
+  - Replies cut off at every character position keep only complete poses and never invent any.
+  - Chat replies with `finish_reason: length`, and incomplete Responses envelopes, still yield the complete poses.
+  - Content-part lists and an empty `response` field next to `output` are handled.
+  - JSON found only in reasoning text is used.
+  - The three fixed details are returned; the log never contains model text.
+  - The client ignores unknown details.
+  - Old `gpt-oss-20b` patch provenance still validates.
+- Full `vitest run`: 931 passed, 4 failed. These are the same four load-related timeouts as the previous entry: three in legacy motionPriors, one in compactScene under parallel load. The release run of revision 2 passed 927/927.
+- Root and Worker `tsc`, and `vite build`, passed.
+- `tests/ai-dance.spec.ts` initially failed 1 of 5 repeats of its fallback case. That was a test race: it read the 6.2 s pose before the preview had rendered. The test now waits for the preview pose; the app is unchanged. The whole file then passed 3 repeats × 3 tests = 9/9.
+- Real Workers AI requests: 0. The fix still needs one bounded real check after deployment.
+
 ## 2026-10-15 · revision 2 release verification · native50
 
 Runtime source `e44803cef257851eb9eaf9400ff88572dc70fcc9` / tree `e5d9b3ef79672550d1455f0fb6a9e704a55c9dcc`. Locked npm ci restored Rapier0.21.0; no application/test/config edits. `npm run check` exited0:48 files,927/927 tests,174.29s, frontend TypeScript and Vite build passed. Worker types and latest-dist dry-run exited0; retain existing Vite large-chunk and Wrangler proxy notices. The earlier pre-build dry-run read stale6-file dist and is not release validation; the later current-dist dry-run is the one used for deployment.

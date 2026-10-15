@@ -12,13 +12,17 @@ describe('dance plan client', () => {
     respond(200, { protocol: DANCE_PLAN_PROTOCOL, source: 'ai', model: DANCE_PLAN_MODEL, plan });
     expect(await requestDancePlan(input, new AbortController().signal)).toMatchObject({ source: 'ai', plan });
   });
-  it.each([[503, { code: 'AI_UNAVAILABLE' }, 'temporarily unavailable'], [429, { code: 'AI_RATE_LIMITED' }, 'per minute'], [502, { code: 'AI_OUTPUT_INVALID' }, 'unusable'], [200, { nonsense: true }, 'unusable']])(
+  it.each([[503, { code: 'AI_UNAVAILABLE' }, 'temporarily unavailable'], [429, { code: 'AI_RATE_LIMITED' }, 'per minute'], [502, { code: 'AI_OUTPUT_INVALID' }, 'unusable'], [502, { code: 'AI_OUTPUT_INVALID', detail: 'empty reply' }, 'unusable (empty reply)'], [200, { nonsense: true }, 'unusable']])(
     'falls back to the local planner on HTTP %i', async (status, value, reason) => {
       respond(status, value);
       const result = await requestDancePlan(input, new AbortController().signal);
       expect(result.source).toBe('local'); expect(result.model).toBe('local-dance-planner-1');
       expect(result.fallbackReason).toContain(reason); expect(result.plan.style).toBe('hiphop');
     });
+  it('shows only fixed server details, never arbitrary text', async () => {
+    respond(502, { code: 'AI_OUTPUT_INVALID', detail: 'provider said something' });
+    expect((await requestDancePlan(input, new AbortController().signal)).fallbackReason).toBe('the AI plan was unusable');
+  });
   it('falls back to the local composer when the planner exceeds its deadline', async () => {
     vi.stubGlobal('fetch', vi.fn((_url: string, init: RequestInit) => new Promise((_resolve, reject) => init.signal!.addEventListener('abort', () => reject(init.signal!.reason)))));
     const result = await requestDancePlan(input, new AbortController().signal, 20);

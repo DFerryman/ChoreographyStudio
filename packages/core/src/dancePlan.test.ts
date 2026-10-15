@@ -37,6 +37,22 @@ describe('keypose dance plan (ai-dance-plan-3)', () => {
     expect(dancePlanFromModelText(`thinking...\n\`\`\`json\n${JSON.stringify({ phrases: [{ poses: [pose([1, 1, 1, 1, 1, 1])] }] })}\n\`\`\``)!.order).toEqual([{ phrase: 0, mirror: false }]);
     expect(dancePlanFromModelText('not json')).toBeUndefined();
   });
+  it('salvages every complete pose from a reply cut off at any point', () => {
+    const full = JSON.stringify({ summary: 'Brace { and quote \\" in text', style: 'pop', energy: 'high',
+      phrases: [{ poses: [pose([1, 2, 3, 4, 5, 6], 'L-side'), pose([6, 5, 4, 3, 2, 1])] }, { poses: [pose([9, 9, 9, 0, 0, 0], 'turn-L')] }], order: [{ phrase: 1, mirror: true }] });
+    expect(dancePlanFromModelText(full)!.phrases).toHaveLength(2);
+    let previous = 0;
+    for (let length = 1; length < full.length; length++) {
+      const plan = dancePlanFromModelText(`Here: ${full.slice(0, length)}`);
+      const count = plan ? plan.phrases.reduce((total, phrase) => total + phrase.poses.length, 0) : 0;
+      // Never invents poses and never loses one that was already complete.
+      expect(count).toBeLessThanOrEqual(3); expect(count).toBeGreaterThanOrEqual(previous); previous = count;
+      if (plan) for (const value of plan.phrases.flatMap(phrase => phrase.poses)) expect(value.arms).toHaveLength(6);
+    }
+    const cut = full.slice(0, full.indexOf('"turn-L"'));
+    const plan = dancePlanFromModelText(cut)!;
+    expect(plan.phrases[0].poses).toHaveLength(2); expect(plan.style).toBe('pop'); expect(plan.order).toEqual([{ phrase: 0, mirror: false }, { phrase: 1, mirror: false }].slice(0, plan.phrases.length));
+  });
   it('mirrors a pose left/right', () => {
     const value = { arms: [9, 1, 2, 3, 4, 5], torso: [1, 2, 3], head: [1, 2], hips: [3, 4], step: 'turn-L' } as DancePose;
     expect(mirrorDancePose(value)).toEqual({ arms: [3, 4, 5, 9, 1, 2], torso: [1, -2, -3], head: [1, -2], hips: [-3, 4], step: 'turn-R' });
@@ -56,8 +72,10 @@ describe('keypose dance plan (ai-dance-plan-3)', () => {
   });
   it('validates the Worker result and its provenance', () => {
     const plan = localDancePlan('pop', 16, 5);
-    expect(validateDancePlanResult({ protocol: DANCE_PLAN_PROTOCOL, source: 'ai', model: '@cf/openai/gpt-oss-20b', plan })!.plan).toEqual(plan);
+    expect(validateDancePlanResult({ protocol: DANCE_PLAN_PROTOCOL, source: 'ai', model: '@cf/openai/gpt-oss-120b', plan })!.plan).toEqual(plan);
+    // Worker and page deploy together: a reply naming the old planner model is not accepted.
+    expect(validateDancePlanResult({ protocol: DANCE_PLAN_PROTOCOL, source: 'ai', model: '@cf/openai/gpt-oss-20b', plan })).toBeUndefined();
     expect(validateDancePlanResult({ protocol: DANCE_PLAN_PROTOCOL, source: 'ai', model: 'local-dance-planner-1', plan })).toBeUndefined();
-    expect(validateDancePlanResult({ protocol: 'ai-dance-plan-2', source: 'ai', model: '@cf/openai/gpt-oss-20b', plan })).toBeUndefined();
+    expect(validateDancePlanResult({ protocol: 'ai-dance-plan-2', source: 'ai', model: '@cf/openai/gpt-oss-120b', plan })).toBeUndefined();
   });
 });

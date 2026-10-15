@@ -250,33 +250,61 @@ async function generateMotion(request: Request, env: Env): Promise<Response> {
   }
 }
 
-/** Text of the single assistant message from any Workers AI envelope, or an
- * already-parsed JSON object. Anything else yields undefined (never throws). */
+/**
+ * The text (or parsed object) of a planner reply. Workers AI may answer with a
+ * plain `response`, a chat-completions `choices` envelope or a Responses
+ * `output` list; message content may be a string or a list of text parts.
+ * A truncated reply is still returned: the parser keeps every complete pose.
+ * Reasoning text is only a last resort when no message text exists.
+ */
+function textOfParts(content: unknown): string | undefined {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return;
+  let text = '';
+  for (const part of content) if (part && typeof part === 'object' && typeof (part as { text?: unknown }).text === 'string') text += (part as { text: string }).text;
+  return text || undefined;
+}
 function modelOutputValue(output: unknown): unknown {
   if (typeof output === 'string') return output;
   if (!output || typeof output !== 'object' || Array.isArray(output)) return;
   const record = output as Record<string, unknown>;
-  if (Object.hasOwn(record, 'response')) return record.response;
+  if (Object.hasOwn(record, 'response') && record.response != null && record.response !== '') return record.response;
   if (Array.isArray(record.choices) && record.choices.length) {
     const choice = record.choices[0] as Record<string, unknown> | null;
-    if (!choice || typeof choice !== 'object' || choice.finish_reason === 'length') return;
+    if (!choice || typeof choice !== 'object') return;
     const message = choice.message as Record<string, unknown> | undefined;
-    return message && typeof message === 'object' ? message.content : choice.text;
+    const text = message && typeof message === 'object' ? textOfParts(message.content) : textOfParts(choice.text);
+    if (text) return text;
+    if (message && typeof message === 'object') return textOfParts(message.reasoning_content) ?? textOfParts(message.reasoning);
+    return;
   }
   if (Array.isArray(record.output)) {
-    let text = '';
+    let text = '', reasoning = '';
     for (const item of record.output as Record<string, unknown>[]) {
-      if (!item || typeof item !== 'object' || item.type !== 'message' || !Array.isArray(item.content)) continue;
-      for (const part of item.content as Record<string, unknown>[]) if (part && part.type === 'output_text' && typeof part.text === 'string') text += part.text;
+      if (!item || typeof item !== 'object') continue;
+      if (item.type === 'message') text += textOfParts(item.content) ?? '';
+      else if (item.type === 'reasoning') reasoning += textOfParts(item.content) ?? '';
     }
-    return text || undefined;
+    if (!text && typeof record.output_text === 'string') text = record.output_text;
+    return text || reasoning || undefined;
   }
+  if (typeof record.output_text === 'string') return record.output_text;
+}
+/** Shape of an unusable reply for the Worker log: never the model text itself. */
+function describeModelOutput(output: unknown, value: unknown): Record<string, unknown> {
+  const record = output && typeof output === 'object' && !Array.isArray(output) ? output as Record<string, unknown> : undefined;
+  const choice = Array.isArray(record?.choices) ? record!.choices[0] as Record<string, unknown> | undefined : undefined;
+  return { outputType: Array.isArray(output) ? 'array' : typeof output, keys: record ? Object.keys(record).slice(0, 12) : [],
+    object: record?.object, status: record?.status, finishReason: choice?.finish_reason ?? record?.finish_reason,
+    incomplete: record?.incomplete_details ?? undefined, usage: record?.usage ?? undefined,
+    outputItems: Array.isArray(record?.output) ? (record!.output as Record<string, unknown>[]).map(item => item?.type) : undefined,
+    valueType: typeof value, valueLength: typeof value === 'string' ? value.length : undefined };
 }
 
 /**
- * Semantic dance planning (ai-dance-plan-2). The model picks a style, energy
- * and an ordered list of moves from a fixed vocabulary; it never sends times,
- * angles or positions, and only coarse musical framing leaves the browser.
+ * Dance keypose planning (ai-dance-plan-3). The model composes phrases of
+ * bounded anatomical keyposes; it never sends times, angles or positions, and
+ * only the description and coarse musical framing leave the browser.
  * Output is normalized leniently. Any failure is a typed error, and the client
  * then continues with its deterministic local planner, so generation never
  * depends on this call succeeding.
@@ -319,10 +347,14 @@ async function planDance(request: Request, env: Env): Promise<Response> {
         { role: 'system', content: dancePlanSystemPrompt(input) },
         { role: 'user', content: `Dance description: ${JSON.stringify(input.prompt)}\nVariation #${variation}: create fresh movement that differs from common routines. Reply with the JSON only.` },
       ],
-      response_format: { type: 'json_schema', json_schema: { name: 'dance_plan', schema: dancePlanOutputSchema(), strict: true } },
+      // Non-strict like the verified motion call: strict mode is not needed
+      // because every reply is normalized leniently anyway.
+      response_format: { type: 'json_schema', json_schema: { name: 'dance_plan', schema: dancePlanOutputSchema(), strict: false } },
       stream: false, temperature: 0.9, reasoning_effort: 'low', max_tokens: DANCE_PLAN_MAX_OUTPUT_TOKENS,
     }, { signal });
-  } catch {
+  } catch (error) {
+    // Provider errors are logged for diagnosis; the client only sees a code.
+    console.warn('dance plan model call failed', error instanceof Error ? `${error.name}: ${error.message}`.slice(0, 300) : typeof error);
     if (request.signal.aborted) return aiError('REQUEST_CANCELLED', 'Generation cancelled.', 499);
     if (timeout.aborted) return aiError('AI_TIMEOUT', 'AI planning timed out.', 504);
     return aiError('AI_GENERATION_FAILED', 'AI planning failed.', 502);
@@ -330,7 +362,12 @@ async function planDance(request: Request, env: Env): Promise<Response> {
   if (request.signal.aborted) return aiError('REQUEST_CANCELLED', 'Generation cancelled.', 499);
   const value = modelOutputValue(output);
   const plan = typeof value === 'string' ? dancePlanFromModelText(value) : normalizeDancePlan(value);
-  if (!plan) return aiError('AI_OUTPUT_INVALID', 'The AI returned an unusable dance plan.', 502);
+  if (!plan) {
+    // Visible in Workers observability; contains only the reply's shape.
+    console.warn('dance plan unusable', JSON.stringify(describeModelOutput(output, value)));
+    return Response.json({ code: 'AI_OUTPUT_INVALID', message: 'The AI returned an unusable dance plan.',
+      detail: value == null || value === '' ? 'empty reply' : typeof value === 'string' && !value.includes('{') ? 'no JSON in reply' : 'no usable poses in reply' }, { status: 502, headers });
+  }
   const result: DancePlanResult = { protocol: DANCE_PLAN_PROTOCOL, source: 'ai', model: DANCE_PLAN_MODEL, plan };
   return Response.json(result, { headers });
 }

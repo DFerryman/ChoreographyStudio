@@ -1,5 +1,9 @@
 # Working in Choreo Studio
 
+## Planner reply fix (revision 2.1) · 2026-10-15 · pushed to main; not deployed
+
+Native50 (revision 2, deployed by another session) always fell back with "the AI plan was unusable" for the user. The planner is now `@cf/openai/gpt-oss-120b`, the model verified on this account, with max_tokens 8192 and a non-strict schema; patches adopted under `gpt-oss-20b` keep validating. The Worker reads every reply shape and salvages truncated JSON. It logs only the reply's shape (never model text) to Workers observability, and returns a fixed detail that the client shows. The production reply was not inspected (no preview access or Cloudflare credentials in this session). Deploy, then make one bounded real request and read the Worker log if it still falls back. See docs/AI_DANCE_ENGINE.md and docs/VERIFICATION.md.
+
 ## AI choreography revision 2 · 2026-10-15 · pushed to main; not deployed
 
 The user reported that generation timed out or repeated the same movements, then asked for English as the working language of the dance plan with no Chinese in the dance-pipeline code, a somewhat longer timeout, and a push to main. Changes:

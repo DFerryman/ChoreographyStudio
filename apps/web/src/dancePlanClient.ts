@@ -14,6 +14,8 @@ const fallbackReasons: Record<string, string> = {
   AI_TIMEOUT: 'AI planning timed out',
   FEATURE_NOT_ENABLED: 'AI planning is not enabled on this deployment',
 };
+/** The only server details shown to the user (fixed strings, never model text). */
+const outputDetails: Record<string, true> = { 'empty reply': true, 'no JSON in reply': true, 'no usable poses in reply': true };
 function cancelled(signal: AbortSignal): void {
   if (signal.aborted) throw new DOMException('Generation cancelled.', 'AbortError');
 }
@@ -69,7 +71,9 @@ export async function requestDancePlan(input: DancePlanRequest, signal: AbortSig
   if (response.status === 499) throw new DOMException('Generation cancelled.', 'AbortError');
   if (!response.ok) {
     const code = value && typeof value === 'object' && Object.hasOwn(value, 'code') ? (value as { code: unknown }).code : null;
-    return localDancePlanResult(request, typeof code === 'string' && Object.hasOwn(fallbackReasons, code) ? fallbackReasons[code] : 'AI planning failed');
+    const detail = value && typeof value === 'object' && Object.hasOwn(value, 'detail') ? (value as { detail: unknown }).detail : null;
+    const reason = typeof code === 'string' && Object.hasOwn(fallbackReasons, code) ? fallbackReasons[code] : 'AI planning failed';
+    return localDancePlanResult(request, typeof detail === 'string' && Object.hasOwn(outputDetails, detail) ? `${reason} (${detail})` : reason);
   }
   return validateDancePlanResult(value) ?? localDancePlanResult(request, 'the AI plan was unusable');
 }

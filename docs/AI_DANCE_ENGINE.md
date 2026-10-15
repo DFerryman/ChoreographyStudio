@@ -21,7 +21,14 @@ The model composes the choreography itself. It returns up to four phrases of eig
 
 Every value on these scales maps inside the rig's joint envelope, so any pose the model invents is meaningful. Values outside a scale are clamped and malformed items dropped; a plan is never rejected as a whole. The request still contains only the description and coarse beat framing. The planner prompt, schema, summaries, keyword tables and all dance-pipeline messages are English only.
 
-Model: Workers AI `@cf/openai/gpt-oss-20b`, temperature 0.9, a random variation number per request, `max_tokens` 3072, one call, no retries.
+Model: Workers AI `@cf/openai/gpt-oss-120b` (since revision 2.1; native50 used `gpt-oss-20b`, see below), temperature 0.9, a random variation number per request, `max_tokens` 8192, non-strict JSON schema, compact single-line JSON requested, one call, no retries.
+
+**Revision 2.1 (planner reply fix).** On native50 every real request fell back with "the AI plan was unusable". No production log was available in that session, so the exact reply is unknown. It differed from the call already verified on this account (gpt-oss-120b for motion) in three ways: an untested model (20b), a 3072-token budget that the model's reasoning also consumes (the verified call used 8192), and a strict schema. The fix has five parts:
+- Return to the verified model and settings.
+- Parse every reply shape: plain `response`; chat `choices`, including content-part lists; Responses `output`, including incomplete status. Reasoning text is used only when no message text exists.
+- Salvage cut-off JSON by closing it after the last complete value, so every complete pose is kept.
+- Log only the reply's shape (keys, status, finish reason, lengths, never the model text) to Workers observability.
+- Show a fixed detail with the fallback reason (empty reply / no JSON in reply / no usable poses in reply).
 
 ### Local composer
 

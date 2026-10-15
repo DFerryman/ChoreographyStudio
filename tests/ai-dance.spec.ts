@@ -129,7 +129,10 @@ test('@ai-dance a failing planner falls back to the local planner and still yiel
   await seek(page, 6.2); const adopted = await pose(page);
   await generate(page, 'powerful hip-hop with punches');
   await candidate(page).getByRole('button', { name: 'Preview candidate', exact: true }).click();
-  await seek(page, 6.2); expect(maxDifference(await pose(page), adopted)).toBeGreaterThan(1e-3);
+  // The playhead is already at 6.2 s, so wait for the preview to render rather
+  // than for the time to change.
+  await seek(page, 6.2);
+  await expect.poll(async () => maxDifference(await pose(page), adopted)).toBeGreaterThan(1e-3);
 });
 
 test('@ai-dance an off-beat range is regenerated with both ends and the outside unchanged', async ({ page }) => {
