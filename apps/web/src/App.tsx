@@ -6,18 +6,15 @@ import {
   type CameraPose, type CameraTrack, type SampledCameraPose,
 } from '../../../packages/core/src';
 import { analyzeAIMotionPatch, appendAIMotionPatch, compileAIMotionPosePatch, createAIMotionSampler, type AIMotionQuality, type AIMotionTrack } from '../../../packages/core/src/aiMotionTrack';
-import { makeAIMotionPlanRequest } from '../../../packages/core/src/aiMotionPlan';
-import { composeMotionPriorPlanAsync, MOTION_PRIOR_CATALOG } from '../../../packages/core/src/motionPriors';
-import { CANONICAL_MOTION_FEASIBILITY_PROFILE, solveAIMotionFeasibility, type MotionContactHint, type MotionFeasibilityReport } from '../../../packages/core/src/motionFeasibility';
-import { conditionMotionGroundingCurve, conditionMotionLegContacts } from '../../../packages/core/src/motionGrounding';
+import { DANCE_MOVES, makeDancePlanRequest } from '../../../packages/core/src/dancePlan';
+import { generateDanceCandidate } from '../../../packages/core/src/danceGenerate';
+import { CANONICAL_MOTION_FEASIBILITY_PROFILE, type MotionFeasibilityReport } from '../../../packages/core/src/motionFeasibility';
 import type { AIMotionTarget } from '../../../packages/core/src/aiMotion';
 import { Stage, type StageCamera, type StageCameraFocus, type StageView } from './Stage';
 import { DEFAULT_AVATAR, isAvatarId, type AvatarId } from './Humanoid';
 import { SceneTimeline, type TimelineRange } from './Timeline';
 import AIPanel from './AIPanel';
-import { requestAIMotionPlan } from './aiMotionPlanClient';
-import { loadMotionPriorClips } from './motionPriors';
-import { checkAIMotionSourceBoundaries, INFEASIBLE_MOTION_SOURCE } from './motionSourcePreflight';
+import { requestDancePlan } from './dancePlanClient';
 import { buildAIMotionRequest, sourceStampForAIMotion } from './aiMotionContext';
 import { demoAudio } from './demoAudio';
 import { deleteScene, duplicateScene, listScenes, loadCurrentScene, loadScene, renameScene, saveScene, setCurrentScene as selectStoredScene } from './storage';
@@ -54,7 +51,7 @@ type ResetAction = 'music' | 'adoptAssist';
 /** Any action that must first resolve an in-progress camera gesture. */
 type GuardedAction = AudioMoveAction | { type: 'seek'; time: number } | { type: 'scene'; action: SceneAction } | { type: 'history'; direction: -1 | 1 }
   | { type: 'play' | 'save' | 'music' | 'teaching' | 'backup' | 'projectBackup' | 'adoptAssist' | 'previewAssist' } | { type: 'assist'; prompt: string };
-type AssistCandidate = { aiMotion: AIMotionTrack; target: AIMotionTarget; summary: string; limitations: string[]; maxHandAdaptationMeters: number; maxSoleAdaptationRadians: number; maxFootMarkerAdaptationMeters: number; maxFootAdaptationMeters: number; maxRetargetSoleRadians: number; endingAdaptationSeconds?: number; quality: AIMotionQuality; feasibility: MotionFeasibilityReport; sceneId: string; countMapId: string; baseRevision: number; sourceStamp: string };
+type AssistCandidate = { aiMotion: AIMotionTrack; target: AIMotionTarget; summary: string; planSource: 'ai' | 'local'; fallbackReason?: string; intensity: number; moves: string[]; quality: AIMotionQuality; feasibility: MotionFeasibilityReport; sceneId: string; countMapId: string; baseRevision: number; sourceStamp: string };
 type CameraGesture = { sceneId: string; revision: number; time: number; snapshot: Snapshot; before: CameraPose; latest: CameraPose; status: SaveStatus; version: number; override: boolean };
 type NamedTarget = { id: string; name: string };
 
@@ -627,52 +624,28 @@ export default function App() {
     try {
       const request = await buildAIMotionRequest({ prompt, sceneId: run.sceneId, baseRevision: run.revision, snapshot: source,
         range: targetRange, audioBlob, audioName, audioDurationSeconds: session.audioDuration, audioClips, signal: run.controller.signal });
-      if (!valid()) return;
-      await checkAIMotionSourceBoundaries(request, run.controller.signal);
-      if (!valid()) return;
-      const planRequest = makeAIMotionPlanRequest(request, MOTION_PRIOR_CATALOG);
-      const response = await requestAIMotionPlan(planRequest, run.controller.signal);
       if (!valid() || !currentMotionSampler) return;
-      if (response.intentMatch === 'unsupported') throw new Error('当前动作素材无法支持这段描述，请调整描述。原动作未改变。');
-      const clips = await loadMotionPriorClips(response.sources.map(source => source.clipId), { signal: run.controller.signal });
+      // 1. Semantic plan: the model only picks moves; the local planner covers any failure.
+      setNotice('正在规划动作；原动作保持。');
+      const plan = await requestDancePlan(makeDancePlanRequest(prompt, request.context.target, source.countMap), run.controller.signal);
       if (!valid()) return;
-      const composition = await composeMotionPriorPlanAsync(planRequest, response, clips, currentMotionSampler, { signal: run.controller.signal });
+      // 2. Constraint-first synthesis, checked by the feasibility gate, with intensity backoff.
+      setNotice(plan.source === 'ai' ? '正在合成动作并检查关节、碰撞与支撑；原动作保持。'
+        : `${plan.fallbackReason ?? 'AI 规划不可用'}，已改用本地规则规划；正在合成并检查动作。`);
+      const generated = await generateDanceCandidate({ request, plan, sourceSampler: currentMotionSampler, signal: run.controller.signal,
+        onAttempt: (attempt, index) => { if (attempt.status !== 'accepted' && valid()) setNotice(`第 ${index + 1} 次检查未通过，正在减小动作幅度后重新合成；原动作保持。`); } });
       if (!valid()) return;
-      const conditionedFeet = await conditionMotionLegContacts(composition.samples, { target: request.context.target,
-        boundaries: request.context.boundaries, sourceHash: request.context.sourceHash, signal: run.controller.signal });
-      if (!valid()) return;
-      const origin = { ...composition.origin, adaptations: [...(composition.origin.adaptations ?? []), 'motion-leg-contact-conditioning-1', 'motion-curve-grounding-1'],
-        adaptationMetrics: { ...composition.origin.adaptationMetrics!,
-          maxSoleSmoothingRadians: conditionedFeet.report.maxSoleOrientationChangeRadians,
-          maxFootMarkerDisplacementMeters: conditionedFeet.report.maxFootMarkerPositionChangeMeters } };
-      const draft = compileAIMotionPosePatch(request, response, conditionedFeet.samples, currentMotionSampler, origin);
-      const contacts: MotionContactHint[] = response.segments.map(segment => ({ startSeconds: segment.startSeconds, endSeconds: segment.endSeconds,
-        mode: segment.contactHint === 'standing' || segment.contactHint === 'floor' ? 'supported' : segment.contactHint === 'airborne' ? 'airborne' : 'unknown' }));
-      setNotice('正在处理完整播放曲线的支撑；原动作保持。');
-      const grounded = await conditionMotionGroundingCurve(draft, { sourceSampler: currentMotionSampler,
-        durationSeconds: source.countMap.durationSeconds, contacts, signal: run.controller.signal });
-      if (!valid()) return;
-      setNotice('正在检查关节、身体碰撞与支撑；原动作保持。');
-      const solved = await solveAIMotionFeasibility(grounded.patch, { sourceSampler: currentMotionSampler, durationSeconds: source.countMap.durationSeconds,
-        contacts, profile: CANONICAL_MOTION_FEASIBILITY_PROFILE, signal: run.controller.signal,
-        conditionCandidate: async (patch, signal) => (await conditionMotionGroundingCurve(patch, {
-          sourceSampler: currentMotionSampler, durationSeconds: source.countMap.durationSeconds, contacts, signal,
-        })).patch });
-      if (!valid()) return;
-      if (!solved.patch || solved.report.status !== 'accepted' || !solved.report.coverage.complete || !solved.report.derivativeCoverage.complete || solved.report.totalViolations !== 0) {
-        const first = solved.report.violations[0];
-        if (first?.code === 'locked-boundary') throw new Error(INFEASIBLE_MOTION_SOURCE);
-        throw new Error(`候选未通过动作约束检查${first ? `（${Number(first.startSeconds.toFixed(2))} 秒：${first.message}）` : ''}。原动作未改变，请调整描述或选区。`);
-      }
-      const patch = solved.patch;
+      const patch = generated.patch;
       const quality = analyzeAIMotionPatch(patch);
       const aiMotion = appendAIMotionPatch(source.aiMotion, patch, source.countMap);
-      const candidate: AssistCandidate = { aiMotion, target: request.context.target, summary: response.summary, limitations: response.limitations,
-        maxHandAdaptationMeters: composition.adaptation.maxHandDisplacementMeters,
-        maxSoleAdaptationRadians: conditionedFeet.report.maxSoleOrientationChangeRadians,
-        maxFootMarkerAdaptationMeters: conditionedFeet.report.maxFootMarkerPositionChangeMeters,
-        maxFootAdaptationMeters: origin.adaptationMetrics.maxFootDisplacementMeters ?? 0,
-        maxRetargetSoleRadians: origin.adaptationMetrics.maxSoleOrientationChangeRadians ?? 0, endingAdaptationSeconds: origin.endingAdaptation?.seconds, quality, feasibility: solved.report, sceneId: run.sceneId,
+      const labels: string[] = [];
+      for (const segment of generated.segments) {
+        const label = DANCE_MOVES.find(move => move.id === segment.move)?.label ?? segment.move;
+        if (labels.at(-1) !== label) labels.push(label);
+      }
+      const candidate: AssistCandidate = { aiMotion, target: request.context.target, summary: plan.plan.summary, planSource: plan.source,
+        ...(plan.fallbackReason ? { fallbackReason: plan.fallbackReason } : {}), intensity: generated.intensity, moves: labels,
+        quality, feasibility: generated.report, sceneId: run.sceneId,
         countMapId: run.countMapId, baseRevision: run.revision, sourceStamp: run.sourceStamp };
       assertSceneBackupCapacity(assistAdoptionDocument(candidate));
       if (!valid()) return;
@@ -1015,7 +988,7 @@ export default function App() {
             </div>
           </div>
           {ready && <TimelineDock ref={timelineDockRef}>
-            {assistCandidate && <AssistCandidatePanel summary={assistCandidate.summary} target={assistCandidate.target} quality={assistCandidate.quality} feasibility={assistCandidate.feasibility} limitations={assistCandidate.limitations} maxHandAdaptationMeters={assistCandidate.maxHandAdaptationMeters} maxSoleAdaptationRadians={assistCandidate.maxSoleAdaptationRadians} maxFootMarkerAdaptationMeters={assistCandidate.maxFootMarkerAdaptationMeters} maxFootAdaptationMeters={assistCandidate.maxFootAdaptationMeters} maxRetargetSoleRadians={assistCandidate.maxRetargetSoleRadians} endingAdaptationSeconds={assistCandidate.endingAdaptationSeconds} previewing={previewAssist} valid={validAssistCandidate()}
+            {assistCandidate && <AssistCandidatePanel summary={assistCandidate.summary} target={assistCandidate.target} quality={assistCandidate.quality} feasibility={assistCandidate.feasibility} planSource={assistCandidate.planSource} fallbackReason={assistCandidate.fallbackReason} intensity={assistCandidate.intensity} moves={assistCandidate.moves} previewing={previewAssist} valid={validAssistCandidate()}
               onTogglePreview={toggleAssistPreview} onAdopt={adoptAssistance} onClose={closeAssistCandidate} />}
             <SceneTimeline duration={duration} time={time} playing={playing} readOnly={!editing || workLocked || mirror}
               countTimes={active.countMap.countTimesSeconds} range={shownRange} onRange={changeRange} onTime={seek}

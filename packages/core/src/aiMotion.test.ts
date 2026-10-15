@@ -8,7 +8,7 @@ describe('direct structured motion contract (no inference)', () => {
   it('binds new generation to the current model while exposing historical provenance for stored layers', () => {
     const request = makeAIMotionFixture(), response = makeAIMotionResultFixture(request);
     expect(AI_MOTION_MODEL).toBe('@cf/openai/gpt-oss-120b');
-    expect(AI_MOTION_SUPPORTED_MODELS).toEqual(['@cf/openai/gpt-oss-120b', '@cf/qwen/qwen3-30b-a3b-fp8']);
+    expect(AI_MOTION_SUPPORTED_MODELS).toEqual(['@cf/openai/gpt-oss-120b', '@cf/qwen/qwen3-30b-a3b-fp8', '@cf/openai/gpt-oss-20b', 'local-dance-planner-1']);
     expect(validateAIMotionResult(response, request).model).toBe(AI_MOTION_MODEL);
     expect(() => validateAIMotionResult({ ...response, model: '@cf/qwen/qwen3-30b-a3b-fp8' }, request)).toThrow(/过期/);
   });

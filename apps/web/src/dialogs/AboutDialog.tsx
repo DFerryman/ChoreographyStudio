@@ -26,8 +26,8 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
       <h3>键盘快捷键</h3>
       <dl>{SHORTCUTS.map(([keys, action]) => <div key={keys}><dt><kbd>{keys}</kbd></dt><dd>{action}</dd></div>)}</dl>
     </section>
-    <div className="form-note">点击生成后，AI 根据描述、数拍与原动作上下文编排真人动捕片段；新轨迹经过关节、身体碰撞与接触检查，合格后才可预览和采用。当前素材以街舞和 Salsa 为主，未覆盖的动作会说明限制。选区两端和区间外保持，原场景动作与音乐不改，采用可撤销。检查使用简化身体模型，尚未验证完整人体力量与关节动力学；音乐字节不发送给模型。场景与音乐保存在本机，完整场景包保留原音乐，项目 JSON 不含音乐；当前不提供 MP4。</div>
-    <a className="form-note" href="/motion-priors/NOTICE.txt" target="_blank" rel="noreferrer">真人动作来源与许可：CMU 动捕，可纳入商业产品，不可直接转售动作数据本身。</a>
+    <div className="form-note">点击生成后，AI 根据描述从动作库挑选并排列动作（律动、点步、方块步、转身、摆胯、手臂波浪、出拳等）；AI 不可用时改用本地规则规划。程序按数拍合成步伐，双脚固定在地面、腿部按人体比例求解，并检查关节、身体碰撞与支撑受力，合格后才可预览和采用；不合格时自动减小幅度重试。选区两端和区间外保持，原场景动作与音乐不改，采用可撤销。检查使用简化身体模型，尚未验证完整人体力量与关节动力学；音乐字节不发送给模型。场景与音乐保存在本机，完整场景包保留原音乐，项目 JSON 不含音乐；当前不提供 MP4。</div>
+    <a className="form-note" href="/motion-priors/NOTICE.txt" target="_blank" rel="noreferrer">早期版本 AI 动作使用的 CMU 动捕来源与许可。</a>
     <a className="button primary full" href="https://github.com/DFerryman/ChoreographyStudio" target="_blank" rel="noreferrer">查看源码与阶段任务 <ArrowUpRight size={16} /></a>
   </Dialog>;
 }

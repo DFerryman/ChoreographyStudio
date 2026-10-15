@@ -3,7 +3,7 @@ import { JOINT_NAMES, type JointName, type Pose, type Quat, type Vec3 } from './
 import type { MotionPriorCompositionOrigin } from './motionPriors';
 import { hasAIMotionPlanMinimumDuration } from './aiMotionPlan';
 import {
-  AI_MOTION_SUPPORTED_MODELS, AI_MOTION_MAX_KEYFRAMES, validateAIMotionRequest, validateAIMotionResult,
+  AI_MOTION_SUPPORTED_MODELS, LOCAL_DANCE_PLANNER, AI_MOTION_MAX_KEYFRAMES, validateAIMotionRequest, validateAIMotionResult,
   type AIMotionBoundary, type AIMotionModel, type AIMotionRequest, type AIMotionResult, type AIMotionTarget,
 } from './aiMotion';
 
@@ -15,16 +15,29 @@ export interface AIMotionKnot {
   /** Parent-relative, body-frame angular velocity, in radians per second. */
   angularVelocity: Record<JointName, Vec3>;
 }
+/** Provenance of a procedurally synthesized dance (dance-synth-1). */
+export interface DanceSynthesisOrigin {
+  kind: 'dance-synthesis';
+  generator: 'dance-synth-1';
+  planSource: 'ai' | 'local';
+  style: string;
+  energy: 'low' | 'medium' | 'high';
+  /** Backoff scale actually used, in (0, 1]. */
+  intensity: number;
+  moves: { move: string; startSeconds: number; endSeconds: number; mirror: boolean }[];
+}
+export type AIMotionPatchProvider = 'cloudflare-workers-ai' | 'local';
 export interface AIMotionPatch {
   id: string;
-  provider: 'cloudflare-workers-ai';
+  /** `local` marks motion planned by the deterministic rule planner. */
+  provider: AIMotionPatchProvider;
   model: AIMotionModel;
   requestId: string;
   sourceHash: string;
   target: AIMotionTarget;
   knots: AIMotionKnot[];
   /** Local dense curves preserve their actual human-capture/plan provenance. */
-  motionOrigin?: MotionPriorCompositionOrigin;
+  motionOrigin?: MotionPriorCompositionOrigin | DanceSynthesisOrigin;
 }
 export interface AIMotionTrack {
   schema: 'ai-motion-track-1';
@@ -131,7 +144,22 @@ function record(input: unknown, required: readonly string[], optional: readonly 
   if (required.some(key => !Object.hasOwn(value, key)) || keys.some(key => forbidden.has(key) || !required.includes(key) && !optional.includes(key))) return fail();
   return value;
 }
+function validateDanceOrigin(input: unknown, range: AIMotionTarget): void {
+  const value = record(input, ['kind', 'generator', 'planSource', 'style', 'energy', 'intensity', 'moves']);
+  if (value.generator !== 'dance-synth-1' || value.planSource !== 'ai' && value.planSource !== 'local' ||
+    value.energy !== 'low' && value.energy !== 'medium' && value.energy !== 'high' ||
+    typeof value.intensity !== 'number' || !Number.isFinite(value.intensity) || value.intensity <= 0 || value.intensity > 1) return fail('AI 动作来源记录无效。');
+  text(value.style, 32);
+  if (!Array.isArray(value.moves) || value.moves.length > 200) return fail('AI 动作来源记录无效。');
+  for (const inputMove of value.moves) {
+    const move = record(inputMove, ['move', 'startSeconds', 'endSeconds', 'mirror']);
+    text(move.move, 32);
+    if (typeof move.mirror !== 'boolean' || typeof move.startSeconds !== 'number' || typeof move.endSeconds !== 'number' ||
+      !(move.startSeconds >= range.startSeconds) || !(move.endSeconds <= range.endSeconds) || !(move.endSeconds > move.startSeconds)) return fail('AI 动作来源记录无效。');
+  }
+}
 function validateMotionOrigin(input: unknown, range: AIMotionTarget): void {
+  if (input && typeof input === 'object' && (input as { kind?: unknown }).kind === 'dance-synthesis') return validateDanceOrigin(input, range);
   const value = record(input, ['kind', 'catalogVersion', 'sources', 'segments'], ['adaptations', 'adaptationMetrics', 'endingAdaptation']);
   if (value.kind !== 'human-motion-prior') return fail('AI 动作来源类型无效。');
   text(value.catalogVersion, 128);
@@ -216,7 +244,7 @@ export function validateAIMotionTrack(input: unknown, map: { id: string; duratio
     const patch = record(inputPatch, ['id', 'provider', 'model', 'requestId', 'sourceHash', 'target', 'knots'], ['motionOrigin']);
     text(patch.id); text(patch.requestId); text(patch.sourceHash);
     if (!/^[a-fA-F0-9]{64}$/.test(patch.sourceHash as string)) return fail('AI 动作轨道需要有效的原稿摘要。');
-    if (patch.provider !== 'cloudflare-workers-ai' || !AI_MOTION_SUPPORTED_MODELS.includes(patch.model as AIMotionModel) || ids.has(patch.id as string) || requests.has(patch.requestId as string)) return fail('AI 动作轨道来源或标识无效。');
+    if (patch.provider !== 'cloudflare-workers-ai' && patch.provider !== 'local' || (patch.provider === 'local') !== (patch.model === LOCAL_DANCE_PLANNER) || !AI_MOTION_SUPPORTED_MODELS.includes(patch.model as AIMotionModel) || ids.has(patch.id as string) || requests.has(patch.requestId as string)) return fail('AI 动作轨道来源或标识无效。');
     ids.add(patch.id as string); requests.add(patch.requestId as string);
     const range = target(patch.target, map.durationSeconds);
     if (patch.motionOrigin !== undefined) validateMotionOrigin(patch.motionOrigin, range);
@@ -328,13 +356,13 @@ export function compileAIMotionPatch(inputRequest: AIMotionRequest, inputResult:
  * Both interval seams are injected from the unchanged effective source sampler. */
 export function compileAIMotionPosePatch(
   inputRequest: AIMotionRequest,
-  metadata: Pick<AIMotionResult, 'provider' | 'model' | 'requestId' | 'sourceHash' | 'target'>,
+  metadata: { provider: AIMotionPatchProvider; model: AIMotionModel } & Pick<AIMotionResult, 'requestId' | 'sourceHash' | 'target'>,
   samples: readonly { time: number; pose: Pose }[],
   baseSampler: AIMotionPoseSampler,
-  motionOrigin: MotionPriorCompositionOrigin,
+  motionOrigin: MotionPriorCompositionOrigin | DanceSynthesisOrigin,
 ): AIMotionPatch {
   const request = validateAIMotionRequest(inputRequest), { target: range, timing } = request.context;
-  if (metadata.provider !== 'cloudflare-workers-ai' || metadata.requestId !== request.context.requestId || metadata.sourceHash !== request.context.sourceHash || metadata.target.mode !== range.mode || metadata.target.startSeconds !== range.startSeconds || metadata.target.endSeconds !== range.endSeconds) return fail('AI 编排与原稿目标不一致。');
+  if (metadata.provider !== 'cloudflare-workers-ai' && metadata.provider !== 'local' || (metadata.provider === 'local') !== (metadata.model === LOCAL_DANCE_PLANNER) || !AI_MOTION_SUPPORTED_MODELS.includes(metadata.model) || metadata.requestId !== request.context.requestId || metadata.sourceHash !== request.context.sourceHash || metadata.target.mode !== range.mode || metadata.target.startSeconds !== range.startSeconds || metadata.target.endSeconds !== range.endSeconds) return fail('AI 编排与原稿目标不一致。');
   validateMotionOrigin(motionOrigin, range);
   if (!Array.isArray(samples) || samples.length < (range.mode === 'full' ? 2 : 1) || samples.length > MAX_AI_MOTION_POSE_SAMPLES) return fail('本地动作采样数量超出范围。');
   const start = estimateAIMotionBoundary(baseSampler, range.startSeconds, 'before', timing.durationSeconds);

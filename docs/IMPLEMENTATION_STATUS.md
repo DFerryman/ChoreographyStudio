@@ -1,5 +1,9 @@
 # 实现状态
 
+## 2026-10-15 · AI 编舞核心重建（已推送 main，未部署）
+
+主流程改为 `/api/dance/plan` 语义规划（只选动作枚举，失败时本地规则规划）→ `danceSynth` 约束优先合成 → `compileAIMotionPosePatch` → 原可行性门禁（fail-fast、强度降级、端点继承问题容许）→ 预览／采用。旧 `/api/motion/plan`、CMU 片段加载与端点预检已移出产品路径；`motionPriors`／`motionGrounding` 保留用于历史层读取与门禁回归。详见 [AI_DANCE_ENGINE.md](AI_DANCE_ENGINE.md)。
+
 ## 2026-10-14 · 普通描述规划与连续腿部修复已发布 native47
 
 最终source `ea886549f1027c8223fe14235002a7e46d2e9b30`／tree `2abb703515ef79de1edc9dbdf4b0f1ded13fd28a` 已main，Cloudflare native47/version `cd23036c-8157-42b6-8545-aecf1914eb15` 单100%。逐clip本地来源Schema、绝对选区、派生时间误差与受控reasonCode已实现。native46那次普通“来段复杂街舞”／32秒／4–9.5秒真实请求HTTP200且规划合法，原候选因RightUpperLeg约373.52>250被拒绝；用户那张旧截图的原模型回包未保留，不能将某个独立契约漏洞认定为其唯一具体原因。

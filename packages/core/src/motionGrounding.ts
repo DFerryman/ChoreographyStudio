@@ -482,7 +482,8 @@ async function conditionMotionGroundingCurvePass(input: AIMotionPatch, options: 
       referenceOffsets.push(pose.root.map((value, axis) => value - originalRoot[axis]) as Vec3);
       const supportHeight = support.points.length ? Math.min(...support.points.map(point => point[1])) : null;
       supportHeights.push(supportHeight);
-      const contactHint = reference.motionOrigin?.segments.find(segment => time >= segment.startSeconds && time <= segment.endSeconds)?.contactHint;
+      const priorOrigin = reference.motionOrigin?.kind === 'human-motion-prior' ? reference.motionOrigin : undefined;
+      const contactHint = priorOrigin?.segments.find(segment => time >= segment.startSeconds && time <= segment.endSeconds)?.contactHint;
       const mode = options.contacts?.find(contact => time >= contact.startSeconds && time <= contact.endSeconds)?.mode;
       const supportedGoal = options.contacts !== undefined ? mode === 'supported' : contactHint === 'standing' || contactHint === 'floor';
       // A supported planning hint is a conditioning goal, never evidence that

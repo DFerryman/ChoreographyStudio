@@ -2,7 +2,7 @@
 
 ## 2026-10-13 · 产品内真人动作先验
 
-新编舞链路纳入 CMU Motion Capture Database 的 85_12 街舞和 61_08 Salsa 动作衍生素材，经固定骨架重定向、功能关节轴适配和 30 Hz 采样；不包含原始 `.choreo` 场景文件或演出／用户音频。它们用于产品内新动作编排，不是通用文本模型原创角度或六种程序化动作。来源、源数据 SHA、处理误差、适用范围与可复现脚本见 [动作素材说明](docs/MOTION_PRIORS.md)；随素材分发 [NOTICE](apps/web/public/motion-priors/NOTICE.txt)。
+2026-10-15 起，AI 编舞主流程改为程序化动作合成，不再加载这些素材；素材仍随站点分发，用于读取早期保存的 AI 层与回归测试。此前的编舞链路纳入 CMU Motion Capture Database 的 85_12 街舞和 61_08 Salsa 动作衍生素材，经固定骨架重定向、功能关节轴适配和 30 Hz 采样；不包含原始 `.choreo` 场景文件或演出／用户音频。它们用于产品内新动作编排，不是通用文本模型原创角度或六种程序化动作。来源、源数据 SHA、处理误差、适用范围与可复现脚本见 [动作素材说明](docs/MOTION_PRIORS.md)；随素材分发 [NOTICE](apps/web/public/motion-priors/NOTICE.txt)。
 
 [CMU 官方来源](http://mocap.cs.cmu.edu/)及 [FAQ](http://mocap.cs.cmu.edu/faqs.php)允许复制、修改、再分发及纳入商业产品，禁止直接转售动作数据本身（包括转换形式）。致谢 Carnegie Mellon University 与资助 NSF EIA-0196217；Bruce Hahne 的 BVH 转换没有增加限制。以下“无第三方动作”的声明属于纳入真人动作前的历史范围，不再代表当前产品内容；软件 MIT、人物和依赖许可各自继续保留。
 

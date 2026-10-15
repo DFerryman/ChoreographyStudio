@@ -137,6 +137,8 @@ export interface MotionFeasibilityReport {
   diagnostics?: MotionFeasibilityDiagnostic[];
   metrics: { maxRootSpeedMps: number; maxJointSpeedRadiansPerSecond: number; maxRootAccelerationMps2: number; maxJointAccelerationRadiansPerSecondSquared: number; maxSelfDepthMeters: number; maxFloorDepthMeters: number; supportedSamples: number; airborneSamples: number; unknownContactSamples: number; maxPoseCorrectionDegrees: number; maxRootCorrectionMeters: number; groundedForceSamples: number; minNormalForceNewtons: number; maxNormalForceNewtons: number; maxHorizontalContactForceNewtons: number; maxFrictionExcessNewtons: number };
   warnings: string[];
+  /** Count of samples whose issue was inherited from a fixed endpoint pose. */
+  inheritedBoundaryIssues?: number;
 }
 export interface SolveAIMotionFeasibilityOptions {
   sourceSampler: AIMotionPoseSampler;
@@ -151,6 +153,19 @@ export interface SolveAIMotionFeasibilityOptions {
   conditionCandidate?: (patch: AIMotionPatch, signal?: AbortSignal) => Promise<AIMotionPatch>;
   /** Knot-stage diagnostics are opt-in and never replace adaptive inspection. */
   diagnostics?: boolean;
+  /**
+   * Fixed endpoints are the user's own motion and cannot be changed. When set,
+   * joint-limit, self-contact and floor issues already present in a locked
+   * endpoint pose are reported as warnings instead of rejecting the candidate.
+   * Within `windowSeconds` of that endpoint, a joint that is already outside
+   * its envelope may stay outside while it returns, and self-contact or floor
+   * depth is tolerated up to the endpoint's own measured amount. All other
+   * joints, all new issues and the rest of the curve stay strict.
+   */
+  inheritBoundaryIssues?: { windowSeconds: number };
+  /** Stop inspecting at the first violation (the report is then a rejection
+   * with incomplete coverage). Used when only accept/reject matters. */
+  failFast?: boolean;
 }
 export interface MotionFeasibilityResult { patch?: AIMotionPatch; report: MotionFeasibilityReport }
 const RAD = Math.PI / 180, DEG = 180 / Math.PI;
@@ -194,6 +209,8 @@ export function measureFunctionalJoint(joint: JointName, rotation: Quat, profile
   return { twistDegrees: twist, flexionDegrees: flexion, lateralDegrees: lateral, swingDegrees: swing, errorDegrees: error };
 }
 export function isFunctionalJointWithinLimits(joint: JointName, rotation: Quat, profile = CANONICAL_MOTION_FEASIBILITY_PROFILE): boolean { return measureFunctionalJoint(joint, rotation, profile).errorDegrees <= 1e-5; }
+/** Nearest rotation inside the functional envelope (identity when already inside). */
+export function projectFunctionalJoint(joint: JointName, rotation: Quat, profile: MotionFeasibilityProfile = CANONICAL_MOTION_FEASIBILITY_PROFILE): Quat { return projectJoint(joint, rotation, profile); }
 function projectJoint(joint: JointName, rotation: Quat, profile: MotionFeasibilityProfile): Quat {
   const settings = profile.envelopes[joint], measurement = measureFunctionalJoint(joint, rotation, profile);
   if (!settings || measurement.errorDegrees <= 1e-5) return [...rotation];
@@ -578,7 +595,7 @@ type Sample = { time: number; pose: Pose; com: Vec3; support: ReturnType<typeof 
  * knot. Quarter-grid finite differences average that peak away, especially
  * across opposite endpoint curvatures. Probe each side independently without
  * spending additional Rapier/COM geometry evaluations. */
-async function inspectAngularCurvature(patch: AIMotionPatch, sampler: AIMotionPoseSampler, samples: readonly Sample[], options: SolveAIMotionFeasibilityOptions, profile: MotionFeasibilityProfile, report: MotionFeasibilityReport): Promise<void> {
+async function inspectAngularCurvature(patch: AIMotionPatch, sampler: AIMotionPoseSampler, samples: readonly Sample[], options: SolveAIMotionFeasibilityOptions, profile: MotionFeasibilityProfile, report: MotionFeasibilityReport, allowance: (time: number) => number = () => 0, inherited: () => void = () => {}): Promise<void> {
   const endpoints = new Map(samples.map(sample => [sample.time, sample.pose]));
   for (let index = 1; index < patch.knots.length; index++) {
     abort(options.signal);
@@ -606,7 +623,8 @@ async function inspectAngularCurvature(patch: AIMotionPatch, sampler: AIMotionPo
       report.metrics.maxJointSpeedRadiansPerSecond = Math.max(report.metrics.maxJointSpeedRadiansPerSecond, maximumSpeed);
       report.metrics.maxJointAccelerationRadiansPerSecondSquared = Math.max(report.metrics.maxJointAccelerationRadiansPerSecondSquared, maximumAcceleration);
       if (maximumSpeed > profile.maxJointSpeedRadiansPerSecond + EPS) addViolation(report, { code: 'angular-speed', startSeconds: times[0], endSeconds: times[2], joint: fastest, measured: maximumSpeed, limit: profile.maxJointSpeedRadiansPerSecond, message: '插值近端点角速度超出配置。' });
-      if (maximumAcceleration > profile.maxJointAccelerationRadiansPerSecondSquared + EPS) addViolation(report, { code: 'acceleration', startSeconds: times[0], endSeconds: times[2], joint: accelerating, measured: maximumAcceleration, limit: profile.maxJointAccelerationRadiansPerSecondSquared, message: '插值近端点单侧角曲率超过配置。' });
+      if (maximumAcceleration > profile.maxJointAccelerationRadiansPerSecondSquared + EPS && maximumAcceleration <= allowance(times[1])) inherited();
+      else if (maximumAcceleration > profile.maxJointAccelerationRadiansPerSecondSquared + EPS) addViolation(report, { code: 'acceleration', startSeconds: times[0], endSeconds: times[2], joint: accelerating, measured: maximumAcceleration, limit: profile.maxJointAccelerationRadiansPerSecondSquared, message: '插值近端点单侧角曲率超过配置。' });
       report.derivativeCoverage.stencils++;
     }
     report.derivativeCoverage.spans++;
@@ -622,24 +640,40 @@ async function inspect(patch: AIMotionPatch, options: SolveAIMotionFeasibilityOp
   try { times = getMotionFeasibilitySampleTimes(patch, maxSamples); } catch { addViolation(report, { code: 'coverage', startSeconds: patch.target.startSeconds, endSeconds: patch.target.endSeconds, message: '动作过快或检测预算不足，无法覆盖整段插值，请缩短区间或降低动作速度。' }); return report; }
   const sampler = createAIMotionSampler(options.sourceSampler, { schema: 'ai-motion-track-1', countMapId: 'feasibility', durationSeconds: options.durationSeconds, patches: [patch] });
   const samples: Sample[] = [], plantAnchors = new Map<MotionContactHint, Map<MotionSupportEffector, { position: Vec3; rotation: Quat }>>();
+  const inherited = options.inheritBoundaryIssues ? boundaryIssues(patch, profile, options.sourceSampler, options.durationSeconds) : undefined;
+  const window = Math.max(0, options.inheritBoundaryIssues?.windowSeconds ?? 0);
+  let inheritedCount = 0;
+  const near = (time: number) => inherited?.filter(issue => Math.abs(issue.time - time) <= window) ?? [];
+  // Next to a fixed endpoint whose own motion is already this abrupt, the
+  // seam may match (never exceed by more than 15%) that original acceleration.
+  const accelerationAllowance = (time: number) => Math.max(0, ...near(time).map(issue => issue.acceleration * 1.15));
+  const tolerated = (time: number, isLocked: boolean, amount: (issue: BoundaryIssues) => number | undefined, measured: number) => {
+    if (!inherited) return false;
+    const allowed = Math.max(0, ...near(time).map(issue => amount(issue) ?? -1));
+    if (isLocked || measured <= allowed + 1e-6) { inheritedCount++; return true; }
+    return false;
+  };
   let quietSince = patch.target.startSeconds;
   for (const [index, time] of times.entries()) {
     abort(options.signal);
+    if (options.failFast && report.totalViolations) break;
     if (index && index % 64 === 0) { await yieldTask(); abort(options.signal); }
     const pose = sampler(time), com = centerOfMass(pose), support = supportPoints(pose, profile.bodyProfile);
     const sample = { time, pose, com, support }; samples.push(sample); report.coverage.samples++;
     const isLocked = time === patch.target.startSeconds || patch.target.mode === 'interval' && time === patch.target.endSeconds;
     for (const joint of JOINT_NAMES) {
       const measured = measureFunctionalJoint(joint, pose.joints[joint], profile);
-      if (measured.errorDegrees > 1e-5) addViolation(report, { code: isLocked ? 'locked-boundary' : 'joint-limit', startSeconds: time, endSeconds: time, joint, measured: measured.errorDegrees, limit: 0, message: isLocked ? '原动作的只读端点不符合当前功能关节配置，请另选区间或先进行明确的重定向。' : '插值姿态超出功能关节活动范围。' });
+      if (measured.errorDegrees > 1e-5 && !tolerated(time, isLocked, issue => issue.joints.has(joint) ? Infinity : undefined, measured.errorDegrees)) addViolation(report, { code: isLocked ? 'locked-boundary' : 'joint-limit', startSeconds: time, endSeconds: time, joint, measured: measured.errorDegrees, limit: 0, message: isLocked ? '原动作的只读端点不符合当前功能关节配置，请另选区间或先进行明确的重定向。' : '插值姿态超出功能关节活动范围。' });
     }
     const collisions = getCapsuleCollisions(pose, profile.bodyProfile);
     for (const collision of collisions.selfCollisions) {
       report.metrics.maxSelfDepthMeters = Math.max(report.metrics.maxSelfDepthMeters, collision.depthMeters);
+      if (tolerated(time, isLocked, issue => issue.self.get(pairKey(collision.segments)), collision.depthMeters)) continue;
       addViolation(report, { code: isLocked ? 'locked-boundary' : 'self-collision', startSeconds: time, endSeconds: time, segments: collision.segments, measured: collision.depthMeters, limit: SELF_TOLERANCE, message: isLocked ? '原动作只读端点存在身体代理穿插，请另选区间。' : '插值动作出现身体代理穿插。' });
     }
     for (const collision of motionFloorDepths(pose, profile.bodyProfile).filter(contact => contact.depthMeters > FLOOR_TOLERANCE)) {
       report.metrics.maxFloorDepthMeters = Math.max(report.metrics.maxFloorDepthMeters, collision.depthMeters);
+      if (tolerated(time, isLocked, issue => issue.floor.get(collision.segmentId), collision.depthMeters)) continue;
       addViolation(report, { code: isLocked ? 'locked-boundary' : 'floor-penetration', startSeconds: time, endSeconds: time, segments: [collision.segmentId], measured: collision.depthMeters, limit: FLOOR_TOLERANCE, message: isLocked ? '原动作只读端点穿入地面，请另选区间。' : '插值动作穿入地面。' });
     }
     if (support.points.length) report.metrics.supportedSamples++; else report.metrics.airborneSamples++;
@@ -693,7 +727,9 @@ async function inspect(patch: AIMotionPatch, options: SolveAIMotionFeasibilityOp
     const angularAcceleration = Math.max(...angularAccelerations), acceleratingJoint = JOINT_NAMES[angularAccelerations.indexOf(angularAcceleration)];
     if (![rootAcceleration, angularAcceleration].every(Number.isFinite)) throw new Error('动作加速度计算未得到有限值。');
     report.metrics.maxRootAccelerationMps2 = Math.max(report.metrics.maxRootAccelerationMps2, rootAcceleration); report.metrics.maxJointAccelerationRadiansPerSecondSquared = Math.max(report.metrics.maxJointAccelerationRadiansPerSecondSquared, angularAcceleration);
-    if (rootAcceleration > profile.maxRootAccelerationMps2 + EPS || angularAcceleration > profile.maxJointAccelerationRadiansPerSecondSquared + EPS) addViolation(report, { code: 'acceleration', startSeconds: older.time, endSeconds: time, ...(rootAcceleration > profile.maxRootAccelerationMps2 ? {} : { joint: acceleratingJoint }), measured: rootAcceleration > profile.maxRootAccelerationMps2 ? rootAcceleration : angularAcceleration, limit: rootAcceleration > profile.maxRootAccelerationMps2 ? profile.maxRootAccelerationMps2 : profile.maxJointAccelerationRadiansPerSecondSquared, message: '动作出现超过配置的加速度跳变。' });
+    const inheritedAngular = rootAcceleration <= profile.maxRootAccelerationMps2 + EPS && angularAcceleration > profile.maxJointAccelerationRadiansPerSecondSquared + EPS && angularAcceleration <= accelerationAllowance(time);
+    if (inheritedAngular) inheritedCount++;
+    else if (rootAcceleration > profile.maxRootAccelerationMps2 + EPS || angularAcceleration > profile.maxJointAccelerationRadiansPerSecondSquared + EPS) addViolation(report, { code: 'acceleration', startSeconds: older.time, endSeconds: time, ...(rootAcceleration > profile.maxRootAccelerationMps2 ? {} : { joint: acceleratingJoint }), measured: rootAcceleration > profile.maxRootAccelerationMps2 ? rootAcceleration : angularAcceleration, limit: rootAcceleration > profile.maxRootAccelerationMps2 ? profile.maxRootAccelerationMps2 : profile.maxJointAccelerationRadiansPerSecondSquared, message: '动作出现超过配置的加速度跳变。' });
     const comAcceleration = acceleration(com, previous.com, older.com);
     if (!comAcceleration.every(Number.isFinite)) throw new Error('质心加速度计算未得到有限值。');
     // Newton's aggregate contact balance on the horizontal floor. This checks
@@ -710,23 +746,64 @@ async function inspect(patch: AIMotionPatch, options: SolveAIMotionFeasibilityOp
       else { report.metrics.minNormalForceNewtons = Math.min(report.metrics.minNormalForceNewtons, normal); report.metrics.maxNormalForceNewtons = Math.max(report.metrics.maxNormalForceNewtons, normal); }
       report.metrics.maxHorizontalContactForceNewtons = Math.max(report.metrics.maxHorizontalContactForceNewtons, horizontal);
       report.metrics.maxFrictionExcessNewtons = Math.max(report.metrics.maxFrictionExcessNewtons, horizontal - available);
-      if (normal < -tolerance) addViolation(report, { code: 'ground-force', startSeconds: older.time, endSeconds: time, measured: normal, limit: -tolerance, message: '支撑状态要求地面向下拉人体，汇总接触力不成立。' });
-      if (horizontal > available + tolerance) addViolation(report, { code: 'ground-friction', startSeconds: older.time, endSeconds: time, measured: horizontal, limit: available + tolerance, message: '支撑所需水平力超过当前摩擦与法向力允许值。' });
+      // Support inferred while leaving an endpoint that is itself below the
+      // floor is not meaningful; that transition inherits the endpoint's state.
+      const invalidFloor = near(time).some(issue => issue.floor.size > 0);
+      if ((normal < -tolerance || horizontal > available + tolerance) && invalidFloor) inheritedCount++;
+      else if (normal < -tolerance) addViolation(report, { code: 'ground-force', startSeconds: older.time, endSeconds: time, measured: normal, limit: -tolerance, message: '支撑状态要求地面向下拉人体，汇总接触力不成立。' });
+      else if (horizontal > available + tolerance) addViolation(report, { code: 'ground-friction', startSeconds: older.time, endSeconds: time, measured: horizontal, limit: available + tolerance, message: '支撑所需水平力超过当前摩擦与法向力允许值。' });
     }
     if (!support.points.length && !previous.support.points.length && !older.support.points.length) {
       const acc = comAcceleration, gravityError = Math.abs(acc[1] + profile.gravityMps2), horizontal = Math.hypot(acc[0], acc[2]);
-      if (gravityError > 4 || horizontal > 3) addViolation(report, { code: 'unsupported-flight', startSeconds: older.time, endSeconds: time, measured: Math.max(gravityError, horizontal), limit: gravityError > 4 ? 4 : 3, message: '无支撑的质心轨迹不符合近似重力运动，发现悬浮或无来源的加速。' });
+      // Leaving an endpoint that is itself below the floor cannot be classified
+      // as supported; that transition inherits the endpoint's invalid contact.
+      const fromInvalidFloor = near(time).some(issue => issue.floor.size > 0);
+      if ((gravityError > 4 || horizontal > 3) && fromInvalidFloor) inheritedCount++;
+      else if (gravityError > 4 || horizontal > 3) addViolation(report, { code: 'unsupported-flight', startSeconds: older.time, endSeconds: time, measured: Math.max(gravityError, horizontal), limit: gravityError > 4 ? 4 : 3, message: '无支撑的质心轨迹不符合近似重力运动，发现悬浮或无来源的加速。' });
     }
+  }
+  if (inheritedCount) {
+    report.inheritedBoundaryIssues = inheritedCount;
+    report.warnings.push('固定端点的原动作本身超出人体包络或存在接触穿插；仅在端点衔接时段内容许这些原有问题逐步恢复，其余部分仍按原标准检查。');
   }
   report.coverage.complete = report.coverage.samples === times.length && report.coverage.maxGapSeconds <= MAX_GAP + EPS && report.coverage.maxRootStepMeters <= MAX_ROOT_STEP + EPS && report.coverage.maxJointStepRadians <= MAX_JOINT_STEP + EPS;
   if (!report.coverage.complete) addViolation(report, { code: 'coverage', startSeconds: patch.target.startSeconds, endSeconds: patch.target.endSeconds, message: '插值变化超过检测步长，不能采用覆盖不完整的候选。' });
-  try { await inspectAngularCurvature(patch, sampler, samples, options, profile, report); }
+  if (options.failFast && report.totalViolations) { report.status = 'rejected'; return report; }
+  try { await inspectAngularCurvature(patch, sampler, samples, options, profile, report, time => {
+    const allowed = accelerationAllowance(time);
+    return allowed > profile.maxJointAccelerationRadiansPerSecondSquared ? allowed : 0;
+  }, () => inheritedCount++); }
   catch (error) {
     if (!(error instanceof Error) || error.message !== 'motion-feasibility-derivative-coverage') throw error;
     addViolation(report, { code: 'coverage', startSeconds: patch.target.startSeconds, endSeconds: patch.target.endSeconds, message: '单侧角曲率采样无法完整表示或超过预算，候选不能采用。' });
   }
   report.status = !report.totalViolations && report.coverage.complete && report.derivativeCoverage.complete ? 'accepted' : 'rejected';
   return report;
+}
+
+type BoundaryIssues = { time: number; joints: Map<JointName, number>; self: Map<string, number>; floor: Map<string, number>; acceleration: number };
+const pairKey = (segments: readonly string[]) => [...segments].sort().join('|');
+/** Measured issues of the locked endpoint poses, used only as inherited allowances. */
+function boundaryIssues(patch: AIMotionPatch, profile: MotionFeasibilityProfile, source: AIMotionPoseSampler, duration: number): BoundaryIssues[] {
+  const knots = patch.target.mode === 'interval' ? [patch.knots[0], patch.knots.at(-1)!] : [patch.knots[0]];
+  return knots.map((knot, index) => {
+    // The original motion's own angular acceleration just outside the seam.
+    let acceleration = 0;
+    const h = 1 / 60, direction = index === 0 ? -1 : 1, times = [0, 1, 2].map(step => knot.time + direction * step * h);
+    if (times.every(time => time >= 0 && time <= duration)) {
+      const poses = times.map(time => source(time));
+      for (const joint of JOINT_NAMES) {
+        const first = new Vector3(...logRotation(poses[0].joints[joint], poses[1].joints[joint])).applyQuaternion(normalized(poses[0].joints[joint])).divideScalar(h);
+        const second = new Vector3(...logRotation(poses[1].joints[joint], poses[2].joints[joint])).applyQuaternion(normalized(poses[1].joints[joint])).divideScalar(h);
+        acceleration = Math.max(acceleration, second.distanceTo(first) / h);
+      }
+    }
+    const joints = new Map<JointName, number>(), self = new Map<string, number>(), floor = new Map<string, number>();
+    for (const joint of JOINT_NAMES) { const error = measureFunctionalJoint(joint, knot.pose.joints[joint], profile).errorDegrees; if (error > 1e-5) joints.set(joint, error); }
+    for (const collision of getCapsuleCollisions(knot.pose, profile.bodyProfile).selfCollisions) self.set(pairKey(collision.segments), Math.max(self.get(pairKey(collision.segments)) ?? 0, collision.depthMeters + .003));
+    for (const contact of motionFloorDepths(knot.pose, profile.bodyProfile)) if (contact.depthMeters > FLOOR_TOLERANCE) floor.set(contact.segmentId, contact.depthMeters + .003);
+    return { time: knot.time, joints, self, floor, acceleration };
+  });
 }
 
 /** Small newly generated errors only; never silently rescue an impossible action. */

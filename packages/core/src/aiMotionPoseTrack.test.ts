@@ -48,7 +48,7 @@ describe('local dense motion curves and saved provenance', () => {
     expect(patch.knots.at(-1)!.linearVelocity).toEqual([0, 0, 0]);
     expect(Object.values(patch.knots.at(-1)!.angularVelocity).flat().every(value => value === 0)).toBe(true);
     origin.sources[0].sourceHash = 'd'.repeat(64);
-    expect(patch.motionOrigin!.sources[0].sourceHash).toBe('c'.repeat(64));
+    expect((patch.motionOrigin as MotionPriorCompositionOrigin).sources[0].sourceHash).toBe('c'.repeat(64));
   });
 
   it('requires real provenance for dense curves while leaving sparse legacy limits strict', () => {

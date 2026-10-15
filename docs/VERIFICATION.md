@@ -1,5 +1,15 @@
 # 预览验证记录
 
+## 2026-10-15 · AI 编舞核心重建（本地验证；未部署、无真实推理）
+
+设计见 [AI_DANCE_ENGINE.md](AI_DANCE_ENGINE.md)。所有 AI 响应均为 mock 或本地规则规划；本会话没有 Cloudflare 凭据，新型号 `@cf/openai/gpt-oss-20b` 未做真实调用，未部署。
+
+- 单元：`npx vitest run` 共 48 文件 922 项，919 通过；失败 3 项均为旧 `motionPriors.test.ts` 的 CMU 片段组合用例超出默认 5/10 秒时限，在 **未改动的原代码（git stash）上同样 3 项超时**，属于本机速度问题，且该组合路径已不在产品流程中。新加：`dancePlan.test.ts`（6）、`danceGenerate.test.ts`（5，真实门禁）、`apps/api/src/dancePlan.test.ts`（7，mock 绑定）、`dancePlanClient.test.ts`（6）。前端 `tsc`、Vite 构建、Worker `tsc -p tsconfig.worker.json`（`wrangler types` 后）通过。
+- 门禁覆盖（真实门禁，强度 100%，不降级）：19 种动作 × 60/120/170/230 BPM 整段 16 秒全部通过；30 个随机计划 × 随机 BPM 整段生成 30/30 通过。
+- 随机压力（真实门禁，含降级）：每批 40 例，60% 以已生成舞蹈为底（端点处于迈步、转身中），随机 0.3–12 秒非整拍选区或整段、50–220 BPM、随机计划。最终代码三批：39/40、39/40、38/40，合计 116/120。未通过的 4 例均为 ≤2 秒选区、端点处于高速运动，失败于近端点腿部角加速度或接缝内两腿接触；失败时原动作不变并显示具体时刻与原因。
+- 浏览器（`tests/ai-dance.spec.ts`，Chromium，AI 接口 mock，合成／Rapier 门禁／采用／撤销为真实路径）3/3：整段生成→预览→采用→撤销→重做；AI 接口 503 时本地规则兜底仍得到合格候选；非整拍选区采用后两端与区间外与原渲染差 < 1e-12。回归 `preview.spec.ts` 7/7、`scene.spec.ts` 3/3 通过。整段候选桌面截图已人工查看（转身中背向、双脚着地）。
+- 旧 `tests/ai-motion.spec.ts`（依赖已移除的 `/api/motion/plan` 与 CMU 加载）删除，由上面新浏览器用例取代。
+
 ## 2026-10-15 · iPad Timeline 已发布 native48，环境阻塞已排除
 
 用户要求自行排查后，环境实际状态已为 revision3：network enforced、Cloudflare token/account ready。保持原代理与凭据注入，仅给命令启用所需网络权限后，正常git fetch成功；并非要求用户改配置。npm默认HOME缓存不可写的安装失败保留，改用work内npm cache后npm ci成功恢复锁定Rapier0.21.0。此前0.12.0构建失败已由依赖恢复解决，无源码／类型弱化。

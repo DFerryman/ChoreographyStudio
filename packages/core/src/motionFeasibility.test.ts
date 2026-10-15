@@ -1,3 +1,4 @@
+import type { MotionPriorCompositionOrigin } from './motionPriors';
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { makeAIMotionFixture } from './aiMotion.fixture';
@@ -131,7 +132,7 @@ describe('offline candidate feasibility', () => {
     const solved = await solveAIMotionFeasibility(patch, { sourceSampler: () => source, durationSeconds: 32, contacts: [{ startSeconds: 4, endSeconds: 8, mode: 'supported' }] });
     expect(solved.report.violations).toEqual([]);
     expect(solved.report.status).toBe('accepted'); expect(solved.report.coverage.complete).toBe(true);
-    expect(solved.patch!.motionOrigin?.sources[0]).toEqual({ clipId: entry.id, sourceHash: entry.sourceHash });
+    expect((solved.patch!.motionOrigin as MotionPriorCompositionOrigin | undefined)?.sources[0]).toEqual({ clipId: entry.id, sourceHash: entry.sourceHash });
     expect(solved.patch!.knots.length).toBeGreaterThan(48); expect(JSON.stringify(patch)).toBe(inputHash); expect(JSON.stringify(clip)).toBe(priorHash);
   }, 30000);
   it('reports the full actual Salsa prior without changing source data or relaxing the gate', async () => {
