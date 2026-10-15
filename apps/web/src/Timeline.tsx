@@ -2,7 +2,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperti
 import { Camera, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Diamond, Maximize2, Music2, Plus, Repeat2, Scissors, SkipBack, SkipForward, Trash2, Volume2, VolumeX, X } from 'lucide-react';
 import { frameAtTime, frameTime, lastFrame, type CameraPose, type CameraTrack, type Vec3 } from '../../../packages/core/src';
 import { audioSegmentTrimBounds, audioTrackOffsetBounds, audioTrackSegments, splitAudioTrack, trimAudioSegment, type AudioTrackSegment } from './audioTracks';
-import { timelineAnchorAtFraction, timelineEdgeScroll, timelineMajorTickFrames, timelineTimeAtX, timelineWidth, timelineXAtTime, timelineZoomAtWidth } from './timelineGeometry';
+import { timelineAnchorAtFraction, timelineEdgeScroll, timelinePinchZoom, timelineMajorTickFrames, timelineTimeAtX, timelineWidth, timelineXAtTime, timelineZoomAtWidth } from './timelineGeometry';
+import { isInteractiveTarget } from './useEditorShortcuts';
 import './Timeline.css';
 
 /** A frame-aligned time range; view state for playback and future AI edits. */
@@ -127,7 +128,11 @@ function CameraValues({ time, value, keyTime, duration, disabled, onChange, onMo
   </div>;
 }
 
-type DragBase = { pointerId: number; element: HTMLElement; startX: number; pointerX: number; startContentX: number; moved: boolean };
+type DragBase = { pointerId: number; element: HTMLElement; startX: number; pointerX: number; startContentX: number; moved: boolean; touch: boolean };
+/** Two touch points zoom around their midpoint; fraction is the content position under it at the start. */
+type Pinch = { ids: [number, number]; startDistance: number; startWidth: number; fraction: number };
+const DOUBLE_TAP_MS = 320;
+const DOUBLE_TAP_PIXELS = 24;
 type CameraDrag = DragBase & { kind: 'camera'; sourceTime: number; targetTime: number };
 /** trackId is absent for the primary CountMap music. */
 type AudioDrag = DragBase & { kind: 'audio'; trackId?: string; sourceOffset: number; targetOffset: number };
@@ -151,6 +156,7 @@ export function SceneTimeline(props: TimelineProps) {
   const [geometry, setGeometry] = useState({ visibleWidth: 1, labelWidth: 84 });
   const [panning, setPanning] = useState(false);
   const [scrubbing, setScrubbing] = useState(false);
+  const [pinching, setPinching] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
@@ -163,6 +169,11 @@ export function SceneTimeline(props: TimelineProps) {
   const panRef = useRef<{ pointerId: number; startX: number; startScroll: number; moved: boolean } | null>(null);
   const scrubRef = useRef<{ pointerId: number; element: HTMLInputElement } | null>(null);
   const scrollAnimation = useRef<number | null>(null);
+  const touches = useRef(new Map<number, { x: number; y: number }>());
+  const pinchRef = useRef<Pinch | null>(null);
+  const lastTap = useRef<{ at: number; x: number } | null>(null);
+  /** When a touch double-tap was handled; the browser's synthesized dblclick that follows is ignored. */
+  const touchDoubleTap = useRef(-Infinity);
   const zoomAnchor = useRef<{ fraction: number; x: number } | null>(null);
   const suppressClick = useRef(false);
   const timeWidth = timelineWidth(geometry.visibleWidth, duration, zoom);
@@ -221,7 +232,7 @@ export function SceneTimeline(props: TimelineProps) {
 
   function changeZoom(next: number, pointerX?: number) {
     const container = viewport.current;
-    if (!container || dragRef.current || panRef.current || scrubRef.current) return;
+    if (!container || dragRef.current || panRef.current || scrubRef.current || pinchRef.current) return;
     const bounded = Math.max(0, Math.min(100, next));
     if (bounded === zoom) return;
     let fraction = timelineXAtTime(time, 1, duration), x = fraction * timeWidth - container.scrollLeft;
@@ -310,11 +321,11 @@ export function SceneTimeline(props: TimelineProps) {
     scrollAnimation.current = requestAnimationFrame(scrollWhileDragging);
   }
   function beginDrag(event: ReactPointerEvent<HTMLElement>, payload: Omit<CameraDrag, keyof DragBase> | Omit<AudioDrag, keyof DragBase> | Omit<TrimDrag, keyof DragBase> | Omit<RangeDrag, keyof DragBase>) {
-    if (event.button !== 0 || !event.isPrimary || (payload.kind === 'range' ? playing : locked) || dragRef.current || panRef.current || scrubRef.current) return;
+    if (event.button !== 0 || !event.isPrimary || (payload.kind === 'range' ? playing : locked) || dragRef.current || panRef.current || scrubRef.current || pinchRef.current) return;
     if (payload.kind === 'audio' && (payload.trackId ? audioTracks.tracks.find(track => track.id === payload.trackId)?.missing !== false : audio.disabled)) return;
     if (payload.kind === 'trim' && audioTracks.tracks.find(track => track.id === payload.trackId)?.missing !== false) return;
     event.stopPropagation();
-    const active = { ...payload, pointerId: event.pointerId, element: event.currentTarget, startX: event.clientX, pointerX: event.clientX, startContentX: laneContentX(event.currentTarget, event.clientX), moved: false } as Drag;
+    const active = { ...payload, pointerId: event.pointerId, element: event.currentTarget, startX: event.clientX, pointerX: event.clientX, startContentX: laneContentX(event.currentTarget, event.clientX), moved: false, touch: event.pointerType === 'touch' } as Drag;
     event.currentTarget.setPointerCapture(event.pointerId); dragRef.current = active; setDrag(active);
     scrollAnimation.current = requestAnimationFrame(scrollWhileDragging);
   }
@@ -337,7 +348,15 @@ export function SceneTimeline(props: TimelineProps) {
     if (cancel || (active.kind === 'range' ? playing : locked)) return;
     if (!active.moved) {
       // A plain press in the count row positions the playhead.
-      if (active.kind === 'range' && active.mode === 'create') props.onTime(active.anchor);
+      if (active.kind === 'range' && active.mode === 'create') {
+        props.onTime(active.anchor);
+        // Touch has no reliable dblclick: a second tap nearby selects the eight-count.
+        if (active.touch) {
+          const now = performance.now(), previous = lastTap.current;
+          if (previous && now - previous.at <= DOUBLE_TAP_MS && Math.abs(previous.x - active.startX) <= DOUBLE_TAP_PIXELS) { lastTap.current = null; touchDoubleTap.current = now; selectOctetAtTime(active.anchor); }
+          else lastTap.current = { at: now, x: active.startX };
+        }
+      }
       return;
     }
     if (active.kind === 'camera' && active.sourceTime !== active.targetTime) camera.onMove(active.sourceTime, active.targetTime);
@@ -366,16 +385,19 @@ export function SceneTimeline(props: TimelineProps) {
   }
   /** Double-clicking an eight-count in the count row selects that whole phrase. */
   function selectOctetAt(event: React.MouseEvent<HTMLDivElement>) {
-    if (playing || (event.target as Element).closest('button')) return;
+    if (playing || fromTouchDoubleTap() || (event.target as Element).closest('button')) return;
     const rect = event.currentTarget.getBoundingClientRect();
-    const at = timelineTimeAtX(event.clientX - rect.left, rect.width, duration);
+    selectOctetAtTime(timelineTimeAtX(event.clientX - rect.left, rect.width, duration));
+  }
+  function fromTouchDoubleTap() { return performance.now() - touchDoubleTap.current < 600; }
+  function selectOctetAtTime(at: number) {
     const octet = octets.find(item => at >= item.start && at < item.end) ?? octets.at(-1);
     if (octet) props.onRange({ start: snap(octet.start), end: snap(octet.end) });
   }
 
   // ── Panning and ruler scrubbing ───────────────────────────────────────────
   function beginPan(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!event.isPrimary || event.button !== 0 || dragRef.current || panRef.current || scrubRef.current || !(event.target instanceof HTMLDivElement) || !event.target.classList.contains('tl-pannable')) return;
+    if (!event.isPrimary || event.button !== 0 || dragRef.current || panRef.current || scrubRef.current || pinchRef.current || !(event.target instanceof HTMLDivElement) || !event.target.classList.contains('tl-pannable')) return;
     panRef.current = { pointerId: event.pointerId, startX: event.clientX, startScroll: event.currentTarget.scrollLeft, moved: false };
   }
   function movePan(event: ReactPointerEvent<HTMLDivElement>) {
@@ -396,11 +418,95 @@ export function SceneTimeline(props: TimelineProps) {
   }
   function scrubAt(element: HTMLInputElement, clientX: number) { const rect = element.parentElement!.getBoundingClientRect(); props.onTime(Math.max(0, Math.min(duration, timelineTimeAtX(clientX - rect.left, rect.width, duration)))); }
   function beginScrub(event: ReactPointerEvent<HTMLInputElement>) {
-    if (!event.isPrimary || event.button !== 0 || playing || dragRef.current || panRef.current || scrubRef.current) return;
+    if (!event.isPrimary || event.button !== 0 || playing || dragRef.current || panRef.current || scrubRef.current || pinchRef.current) return;
     event.preventDefault(); event.stopPropagation(); scrubRef.current = { pointerId: event.pointerId, element: event.currentTarget }; setScrubbing(true); event.currentTarget.setPointerCapture(event.pointerId); scrubAt(event.currentTarget, event.clientX);
   }
   function finishScrub() { const scrub = scrubRef.current; if (!scrub) return; scrubRef.current = null; setScrubbing(false); if (scrub.element.hasPointerCapture(scrub.pointerId)) scrub.element.releasePointerCapture(scrub.pointerId); }
   useEffect(() => { if (locked) { finishPan(true); finishScrub(); } }, [locked]);
+
+  // ── Touch pinch, trackpad gestures and keyboard zoom ──────────────────────
+  /** Anchor a zoom so the content fraction stays under viewport X (relative to the lane area). */
+  function zoomAround(nextZoom: number, fraction: number, clientX: number) {
+    const container = viewport.current;
+    if (!container) return;
+    const x = Math.max(0, Math.min(geometry.visibleWidth, clientX - container.getBoundingClientRect().left - geometry.labelWidth));
+    const bounded = Math.max(0, Math.min(100, nextZoom));
+    zoomAnchor.current = { fraction, x };
+    if (bounded === zoom) { container.scrollLeft = timelineAnchorAtFraction(fraction, timeWidth, x, geometry.visibleWidth); zoomAnchor.current = null; }
+    else setZoom(bounded);
+  }
+  function fractionAt(clientX: number) {
+    const container = viewport.current!;
+    const x = Math.max(0, Math.min(geometry.visibleWidth, clientX - container.getBoundingClientRect().left - geometry.labelWidth));
+    return Math.max(0, Math.min(1, (container.scrollLeft + x) / timeWidth));
+  }
+  function touchDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.pointerType !== 'touch') return;
+    touches.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (touches.current.size !== 2 || pinchRef.current || !viewport.current) return;
+    // A second finger turns any pending one-finger gesture into a pinch; the
+    // first gesture is cancelled, never committed.
+    finishDrag(true); finishPan(true); finishScrub();
+    const [[idA, a], [idB, b]] = [...touches.current.entries()];
+    pinchRef.current = { ids: [idA, idB], startDistance: Math.hypot(a.x - b.x, a.y - b.y), startWidth: timeWidth, fraction: fractionAt((a.x + b.x) / 2) };
+    lastTap.current = null; setPinching(true);
+    event.preventDefault(); event.stopPropagation();
+  }
+  function touchMove(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.pointerType !== 'touch' || !touches.current.has(event.pointerId)) return;
+    touches.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const pinch = pinchRef.current;
+    if (!pinch) return;
+    event.preventDefault(); event.stopPropagation();
+    const a = touches.current.get(pinch.ids[0]), b = touches.current.get(pinch.ids[1]);
+    if (!a || !b) return;
+    // Spreading zooms; moving both fingers together also pans the midpoint.
+    zoomAround(timelinePinchZoom(geometry.visibleWidth, duration, pinch.startWidth, pinch.startDistance, Math.hypot(a.x - b.x, a.y - b.y)), pinch.fraction, (a.x + b.x) / 2);
+  }
+  function touchUp(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.pointerType !== 'touch') return;
+    touches.current.delete(event.pointerId);
+    const pinch = pinchRef.current;
+    if (pinch && pinch.ids.includes(event.pointerId)) {
+      pinchRef.current = null; setPinching(false);
+      suppressClick.current = true; window.setTimeout(() => { suppressClick.current = false; }, 0);
+    }
+  }
+  useEffect(() => {
+    // Safari: trackpad pinch (macOS) and touch pinch (iPad) arrive as gesture
+    // events. Always keep them from zooming the page; touch pinches are
+    // already handled through pointer events above.
+    const container = viewport.current;
+    if (!container) return;
+    let start: { width: number; fraction: number } | null = null;
+    type Gesture = Event & { scale: number; clientX?: number };
+    const centre = (event: Gesture) => event.clientX ?? container.getBoundingClientRect().left + geometry.labelWidth + geometry.visibleWidth / 2;
+    const begin = (event: Event) => { event.preventDefault(); start = touches.current.size ? null : { width: timeWidth, fraction: fractionAt(centre(event as Gesture)) }; };
+    const change = (event: Event) => {
+      event.preventDefault();
+      const gesture = event as Gesture;
+      if (!start || touches.current.size || dragRef.current || panRef.current || scrubRef.current || !Number.isFinite(gesture.scale)) return;
+      zoomAround(timelineZoomAtWidth(geometry.visibleWidth, duration, start.width * gesture.scale), start.fraction, centre(gesture));
+    };
+    const finish = (event: Event) => { event.preventDefault(); start = null; };
+    container.addEventListener('gesturestart', begin);
+    container.addEventListener('gesturechange', change);
+    container.addEventListener('gestureend', finish);
+    return () => { container.removeEventListener('gesturestart', begin); container.removeEventListener('gesturechange', change); container.removeEventListener('gestureend', finish); };
+  });
+  useEffect(() => {
+    // = / - zoom around the playhead; backslash fits the whole scene (also with a
+    // hardware keyboard on iPad). Focused controls and dialogs keep their keys.
+    const keydown = (event: globalThis.KeyboardEvent) => {
+      if (!expanded || event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey
+        || document.querySelector('[aria-modal="true"]') || isInteractiveTarget(document.activeElement) || event.composedPath().some(isInteractiveTarget)) return;
+      const step = event.key === '=' || event.key === '+' ? 10 : event.key === '-' || event.key === '_' ? -10 : 0;
+      if (step) { event.preventDefault(); changeZoom(zoom + step); }
+      else if (event.key === '\\') { event.preventDefault(); changeZoom(0); }
+    };
+    window.addEventListener('keydown', keydown);
+    return () => window.removeEventListener('keydown', keydown);
+  });
   useEffect(() => {
     const keydown = (event: globalThis.KeyboardEvent) => {
       if (event.key !== 'Escape') return;
@@ -452,7 +558,7 @@ export function SceneTimeline(props: TimelineProps) {
   const pixelsPerFrame = timeWidth / end;
   const tickStep = timelineMajorTickFrames(pixelsPerFrame);
   const ticks = Array.from({ length: Math.floor(end / tickStep) + 1 }, (_, i) => i * tickStep).filter(tick => tick < end);
-  const gestureActive = !!drag || panning || scrubbing;
+  const gestureActive = !!drag || panning || scrubbing || pinching;
   const shownRange = drag?.kind === 'range' && drag.moved ? drag.target : range;
   const rangeStyle = shownRange ? { left: `${position(shownRange.start)}%`, width: `${position(shownRange.end) - position(shownRange.start)}%` } : undefined;
   const rangeShade = shownRange && <span className="tl-range-shade" style={rangeStyle} aria-hidden="true" />;
@@ -490,7 +596,7 @@ export function SceneTimeline(props: TimelineProps) {
       </div>
       {expanded && <div className="tl-zoom-controls" aria-label="时间线视图缩放">
         <button className={zoom === 0 ? 'active' : ''} aria-label="适合整段时间线" disabled={gestureActive} onClick={() => changeZoom(0)}>全段</button>
-        <input aria-label="时间线缩放" aria-valuetext={`每帧间距 ${pixelsPerFrame.toFixed(2)} 像素`} type="range" min={0} max={100} step={.5} value={zoom} disabled={gestureActive} onChange={event => changeZoom(Number(event.target.value))} />
+        <input aria-label="时间线缩放" title="缩放：双指捏合、Ctrl/⌘+滚轮或 = / -；\ 显示全段" aria-valuetext={`每帧间距 ${pixelsPerFrame.toFixed(2)} 像素`} type="range" min={0} max={100} step={.5} value={zoom} disabled={gestureActive} onChange={event => changeZoom(Number(event.target.value))} />
         <button className={zoom === 100 ? 'active' : ''} aria-label="逐帧查看时间线" disabled={gestureActive} onClick={() => changeZoom(100)}>逐帧</button>
       </div>}
       <details ref={moreDisclosure} className="tl-more" aria-label="更多时间线选项"><summary title="时间线选项">时间线选项</summary><div className="tl-popover">
@@ -502,6 +608,7 @@ export function SceneTimeline(props: TimelineProps) {
       <button className="tl-collapse" aria-label={expanded ? '收起时间线' : '展开时间线'} aria-expanded={expanded} title={expanded ? '收起时间线' : '展开时间线'} onClick={() => { finishDrag(true); finishPan(true); finishScrub(); setExpanded(!expanded); }}>{expanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}</button>
     </div>
     {expanded && <div ref={viewport} className={`tl-viewport ${panning ? 'tl-panning' : ''}`} aria-label="分轨时间线" onPointerDown={beginPan} onPointerMove={movePan}
+      onPointerDownCapture={touchDown} onPointerMoveCapture={touchMove} onPointerUpCapture={touchUp} onPointerCancelCapture={touchUp}
       onPointerUp={event => { if (event.pointerId === panRef.current?.pointerId) finishPan(); }} onPointerCancel={event => { if (event.pointerId === panRef.current?.pointerId) finishPan(true); }}
       onScroll={() => { if (dragRef.current?.moved) updateDrag(dragRef.current); }}>
       <div className="tl-lanes" data-pixels-per-frame={pixelsPerFrame} style={{ width: `${geometry.labelWidth + timeWidth}px`, '--tl-minor-spacing': `${pixelsPerFrame >= 8 ? pixelsPerFrame : 1000000}px`, '--tl-major-spacing': `${pixelsPerFrame * tickStep}px` } as CSSProperties}>
@@ -520,7 +627,7 @@ export function SceneTimeline(props: TimelineProps) {
           <div className="tl-lane-track tl-count-track" data-range-start={range?.start} data-range-end={range?.end} onPointerDown={beginRange} onDoubleClick={selectOctetAt} {...dragHandlers}>
             {octets.map(octet => <span key={octet.index} className="tl-octet" style={{ left: `${position(octet.start)}%`, width: `${position(octet.end) - position(octet.start)}%` }} aria-hidden="true">{octet.index + 1}</span>)}
             {shownRange && <span className={`tl-range ${inRange ? 'contains-playhead' : ''}`} style={rangeStyle}>
-              <button className="tl-range-body" aria-label="拖动移动选区" title="拖动移动选区；双击缩放到选区" disabled={playing} onPointerDown={event => range && beginDrag(event, { kind: 'range', mode: 'move', anchor: range.start, source: range, target: range })} onDoubleClick={zoomToRange} {...dragHandlers} />
+              <button className="tl-range-body" aria-label="拖动移动选区" title="拖动移动选区；双击缩放到选区" disabled={playing} onPointerDown={event => range && beginDrag(event, { kind: 'range', mode: 'move', anchor: range.start, source: range, target: range })} onDoubleClick={() => { if (!fromTouchDoubleTap()) zoomToRange(); }} {...dragHandlers} />
               <button className="tl-range-handle start" aria-label="拖动选区起点" disabled={playing} onPointerDown={event => range && beginDrag(event, { kind: 'range', mode: 'start', anchor: range.end, source: range, target: range })} {...dragHandlers} />
               <button className="tl-range-handle end" aria-label="拖动选区终点" disabled={playing} onPointerDown={event => range && beginDrag(event, { kind: 'range', mode: 'end', anchor: range.start, source: range, target: range })} {...dragHandlers} />
             </span>}

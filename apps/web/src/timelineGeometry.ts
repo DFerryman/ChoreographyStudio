@@ -118,3 +118,13 @@ export function timelineDragFrame(sourceFrame: number, deltaPointer: number, del
   if (!contentWidth || !end) return source;
   return clamp(Math.round(source + (finite(deltaPointer) + finite(deltaScroll)) / contentWidth * end), 0, end);
 }
+
+/**
+ * Two-finger pinch: scale the content width by the finger-distance ratio and
+ * return the matching 0–100 zoom position. Tiny start distances are floored so
+ * nearly coincident fingers cannot explode the scale.
+ */
+export function timelinePinchZoom(fitWidth: number, duration: number, startWidth: number, startDistance: number, distance: number): number {
+  const ratio = positive(distance) / Math.max(24, positive(startDistance));
+  return timelineZoomAtWidth(fitWidth, duration, positive(startWidth) * ratio);
+}

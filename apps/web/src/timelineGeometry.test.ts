@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { frameAtTime, frameTime, lastFrame } from '../../../packages/core/src';
 import {
   TIMELINE_MAX_FRAME_PIXELS, timelineAnchorAtFraction, timelineAnchorScroll, timelineDragFrame, timelineDragTime, timelineEdgeScroll,
-  timelineMajorTickFrames, timelineTimeAtX, timelineWidth, timelineXAtTime, timelineZoomAtWidth,
+  timelineMajorTickFrames, timelineTimeAtX, timelineWidth, timelineXAtTime, timelineZoomAtWidth, timelinePinchZoom,
 } from './timelineGeometry';
 
 describe('timeline display geometry', () => {
@@ -216,5 +216,19 @@ describe('timeline display geometry', () => {
     expect(timelineDragTime(10, 100, 100, 0, 37.5)).toBe(10);
     expect(timelineTimeAtX(-100, 390, 37.5)).toBeLessThan(0);
     expect(timelineTimeAtX(1000, 390, 37.5)).toBeGreaterThan(37.5);
+  });
+
+  it('maps a two-finger pinch to the same logarithmic zoom scale, bounded at fit and per-frame', () => {
+    const fit = 800, duration = 16;
+    const half = timelineWidth(fit, duration, 50);
+    // Spreading the fingers to twice their distance doubles the content width.
+    expect(timelineWidth(fit, duration, timelinePinchZoom(fit, duration, half, 100, 200))).toBeCloseTo(half * 2, 6);
+    expect(timelinePinchZoom(fit, duration, half, 100, 100)).toBeCloseTo(50, 10);
+    // Pinching in past fit and out past the per-frame maximum stays bounded.
+    expect(timelinePinchZoom(fit, duration, fit, 200, 20)).toBe(0);
+    expect(timelinePinchZoom(fit, duration, half, 10, 4000)).toBe(100);
+    // Nearly coincident fingers cannot explode the scale.
+    expect(timelineWidth(fit, duration, timelinePinchZoom(fit, duration, fit, 1, 48))).toBeCloseTo(fit * 2, 6);
+    expect(timelinePinchZoom(fit, duration, Number.NaN, 100, 200)).toBe(0);
   });
 });

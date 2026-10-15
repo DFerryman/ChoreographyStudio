@@ -1,5 +1,12 @@
 # 预览验证记录
 
+## 2026-10-15 · Timeline iPad 触控／捏合／键盘缩放 · 本地验证，未部署
+
+- `npm run check`：48 文件 950／950 单元测试通过（新增捏合几何 1 项），前端类型与 Vite 构建 EXIT0。
+- 新增 `tests/timeline-touch.spec.ts` 2／2 通过：Chromium `hasTouch` 1180×820 与 820×1180，经 CDP `Input.dispatchTouchEvent` 发送真实触摸点。覆盖：`(pointer: coarse)` 生效、单指拖出选区并吸附节拍、拖动终点手柄、单击定位、双击触摸选中八拍且合成 dblclick 不再缩放、双指张开使内容宽度 >2.5 倍且中点时间偏差 <24px、捏合不改选区与播放线、捏回全段、`=`／`-`／`\` 键盘缩放、无横向溢出、场景 project 前后完全相等；诊断 errors／warnings／API 为 0。首次运行暴露“双击触摸后合成 dblclick 又缩放到新选区”的真实缺陷，已修复并加断言。
+- 相关浏览器批 27 项中 26 通过：timeline-range 4、timeline-playback 3、shortcuts 10、audio-tracks 4、camera-track 3、timeline-touch 2。唯一失败 `camera-track.spec.ts:414` 为既有环境问题：下载 `suggestedFilename()` 为 `download` 而非 `.choreo`（与此前记录的环境文件名失败相同），单独复跑同样失败，与本次改动无关；未修改该测试。
+- 本地 Chromium 使用 `/opt/pw-browsers/chromium`。触控仿真不等于真实 iPad Safari：Safari `gesture*` 路径与真实手指手感仍待真机确认。未部署 Cloudflare、未调用真实模型、未写数据库。
+
 ## 2026-10-14 · 普通街舞冻结真实规划连续腿部修复 · native47最终验收
 
 最终运行源码 [`ea886549f1027c8223fe14235002a7e46d2e9b30`](https://github.com/DFerryman/ChoreographyStudio/commit/ea886549f1027c8223fe14235002a7e46d2e9b30)／tree `2abb703515ef79de1edc9dbdf4b0f1ded13fd28a` 已main／native47。准确 [PR13 CI38493625664](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38493625664)／job115624307274 于01:03:36–01:17:34 UTC实际completed/success，updated01:17:35 UTC，包含完整e2e。旧0f PR38492677805成功和native46 main435 CI38490113946成功分别为历史；同ea SHA另触发的main push尚未取得终态，未将PR成功改记为main重复运行成功。

@@ -180,3 +180,26 @@
   .tl-trim-handle.start::after { left: 11px; }
   .tl-trim-handle.end::after { left: 8px; }
 }
+
+/*
+ * Touch-first tablets (iPad portrait and landscape): larger hit
+ * areas for range edges, keys and trim handles, and taller rows to drag in.
+ * Phones (≤680px) keep their own rules above; mouse sizing is unchanged.
+ */
+@media (pointer: coarse) and (min-width: 681px) {
+  .tl-viewport button, .tl-toolbar button, .tl-toolbar summary { touch-action: manipulation; }
+  .tl-lane { height: 42px; }
+  .tl-count-lane { height: 36px; }
+  .tl-octet { line-height: 28px; }
+  .tl-key { top: 5px; width: 28px; height: 32px; }
+  .tl-audio-clip, .tl-audio-ghost { top: 6px; height: 30px; }
+  .tl-range-handle { width: 26px; }
+  .tl-range-handle.start { left: -14px; }
+  .tl-range-handle.end { right: -14px; }
+  .tl-range-handle::after { left: 11px; }
+  .tl-trim-handle { top: 6px; width: 22px; height: 30px; }
+  .tl-trim-handle.start::after { left: 11px; }
+  .tl-trim-handle.end::after { left: 8px; }
+  .tl-transport .icon-button, .tl-frame-controls .icon-button, .tl-range-controls > button, .tl-zoom-controls > button, .tl-collapse, .tl-more > summary { min-width: 40px; min-height: 40px; }
+  .tl-zoom-controls > input[type='range'] { height: 40px; }
+}

@@ -28,7 +28,8 @@ const interactiveSelector = [
   '[role="radio"]', '[role="switch"]', '[role="tab"]',
 ].join(',');
 
-function interactive(target: EventTarget | null): boolean {
+/** Focused controls keep their own keys; shared with Timeline zoom shortcuts. */
+export function isInteractiveTarget(target: EventTarget | null): boolean {
   return target instanceof Element && (
     !!target.closest(interactiveSelector)
     || (target instanceof HTMLElement && target.isContentEditable)
@@ -44,7 +45,7 @@ export function useEditorShortcuts(options: EditorShortcutOptions): void {
     function onKeyDown(event: KeyboardEvent) {
       const callbacks = latest.current;
       if (!callbacks.enabled || event.defaultPrevented || event.isComposing || event.altKey
-        || interactive(document.activeElement) || event.composedPath().some(interactive)) return;
+        || isInteractiveTarget(document.activeElement) || event.composedPath().some(isInteractiveTarget)) return;
 
       const key = event.key.toLowerCase();
       let action: (() => void) | undefined;
