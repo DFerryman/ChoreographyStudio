@@ -1,5 +1,17 @@
 # Cloudflare 预览部署
 
+## 2026-10-15 · iPad Timeline 已发布 native48，环境阻塞已排除
+
+用户要求自行排查后，环境实际状态已为 revision3：network enforced、Cloudflare token/account ready。保持原代理与凭据注入，仅给命令启用所需网络权限后，正常git fetch成功；并非要求用户改配置。npm默认HOME缓存不可写的安装失败保留，改用work内npm cache后npm ci成功恢复锁定Rapier0.21.0。此前0.12.0构建失败已由依赖恢复解决，无源码／类型弱化。
+
+运行功能源码 [78588c17f864b51d0a61d39c10b0e4bc81b246d5](https://github.com/DFerryman/ChoreographyStudio/commit/78588c17f864b51d0a61d39c10b0e4bc81b246d5)／tree7c43ca8a930c0c6008c853ef579c009ca05f98bf，发布checkout899314dd7bf4777c0618a51e8f70f998beffb6fd／tree86b32630514b824cba0d57d98655f2f2c593fce9，两者业务运行源码相同。恢复依赖后前端类型／Vite构建、Worker类型、对最新产物的dry-run均EXIT0；最终dist41文件冻结。Wrangler预检报Read45（含目录遍历口径），不等于冻结41文件相互冲突。本地缩放几何17/17、触控横／竖屏2/2（22.9s）通过；首默认sandbox本地webServer未启动失败保留，启用正常网络权限后通过。准确源码 [main push CI38679277577](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38679277577)／job116239864668／attempt1此前已completed/success，含完整e2e；本次未重复全量CI。
+
+Cloudflare `wrangler deploy --keep-vars --message` EXIT0，native48／version `dd4c4842-22ab-45c9-a83c-10784b02e0a2` 于2026-10-15T05:13:11.526854Z创建，单100%初deployment `f85f8a62-ac0e-4110-b273-6ad3cee97fc1` 于05:13:12.021113Z创建（北京时间13:13）。两份原生annotations准确关联发布checkout/source/tree；与native47比较五项binding完整值、script_runtime完全相同。上传3新静态文件、复用35，未变业务配置。正常TLS有界7 GET全部200／verify0：入口、主JS、CSS、Rapier、人物GLB五项与本地dist字节/SHA一致，另health与capabilities成功。[打开已发布工作台](https://choreo-studio-preview.danuberiverferryman.workers.dev/)。
+
+首公网浏览器批0/2在page.goto阶段ERR_CERT_AUTHORITY_INVALID，未进入应用，保留失败。检索Chromium官方当前证书数据库／protobuf schema，只将现有environment-proxy-ca写入work内临时ServerCertificate，trust限制本Worker域名，不改HOME、不忽略TLS；两用例各用只复制该证书DB的clean profile，原测试断言不变，仅scratch副本换context fixture。唯一修正公网批05:16:57.162Z开始／20.6633s，横屏1180×820和竖屏820×1180两项2/2，skip／unexpected／flaky0。两份实际diagnostics errors／warnings／expectedHttpErrors／apiRequests均空；选区拖动／双击八拍／双指缩放／键盘缩放和原scene.project精确保持通过。Root亲审本批1180与820实际截图：时间线可用、无横向溢出，提示条仍覆盖舞台下沿；Chromium仿真不代表真实iPad Safari或设备帧率。
+
+原五页Notion最终同步任务5/5 succeeded；完整读回5/5确认原raw正文完整后缀、title／properties／icon／cover保持，新native48 marker各1且version准确。之前阻塞状态与所有历史正文保留。文本创作／免费路线草稿PR14未合并，不能冒充本次main或已上线功能。新增真实模型调用、用户场景／音频上传、数据库写入均0。本轮最终仅修改交付Markdown，复用native48及已验运行资产，以同版100%deployment message关联最终main，不重复上传或公网测试。最小本地收据在ignored work/remote-sync-20261015/。
+
 ## 2026-10-15 · 同步 iPad Timeline main，部署受环境阻塞
 
 已通过 GitHub 连接器同步远端 main `78588c17f864b51d0a61d39c10b0e4bc81b246d5`／tree `7c43ca8a930c0c6008c853ef579c009ca05f98bf`。因环境代理 proxy:8080 拒绝连接，普通 git fetch 失败；改由 GitHub 原生工具读取10个变更blob并逐SHA核对，重建签名提交对象及完整tree，与远端SHA精确相同，原工作区干净。无业务源码修改。
