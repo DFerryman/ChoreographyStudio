@@ -1,5 +1,17 @@
 # Working in Choreo Studio
 
+## AI choreography revision 2 · 2026-10-15 · pushed to main; not deployed
+
+The user reported that generation timed out or repeated the same movements, then asked for English as the working language of the dance plan with no Chinese in the dance-pipeline code, a somewhat longer timeout, and a push to main. Changes:
+- The model (`@cf/openai/gpt-oss-20b`, protocol `ai-dance-plan-3`) authors its own keyposes as bounded anatomical integers plus a footwork step. Normalization clamps and drops values; it never rejects a whole plan.
+- The local composer is seeded with a fresh random value on every generation.
+- Synthesis is `dance-synth-2`.
+- The gate is unchanged and runs fail-fast. Intensity backoff is 1/0.65/0.35/0.15, then in-place footwork at 0.65/0.25.
+- Timeouts: Worker 55 s, browser planner 60 s, whole operation 240 s.
+- Dance-pipeline code, prompt, messages and the AI panel/candidate accessible names are English. The rest of the app chrome is still Chinese.
+
+On the user's suggestion, Claude Haiku stood in for the planner model to test the prompt and protocol with a real model. Its 4 plans gave 8/8 accepted generations. Mixed random stress passed 28/28. Not deployed, and no Workers AI inference (no Cloudflare credentials). The model id still needs one bounded real check after deployment. See docs/AI_DANCE_ENGINE.md and docs/VERIFICATION.md.
+
 ## AI choreography core rebuilt · 2026-10-15 · pushed to main; not deployed
 
 The user asked to rebuild the AI choreography core because generation frequently produced no usable output (plan validation failures or "cannot generate for this range"). Root causes: the model had to compute exact float source/scene times; only two CMU sources; retargeted capture was generated-then-rejected by a strict gate with no fallback; and locked endpoints that were themselves outside the envelope made ranges ungeneratable. The new core (docs/AI_DANCE_ENGINE.md): the model (`@cf/openai/gpt-oss-20b`, protocol `ai-dance-plan-2`, `/api/dance/plan`) only picks style/energy/moves from a 19-move enum vocabulary and receives only the prompt plus coarse beat framing; any planner failure falls back to the deterministic local rule planner (labelled in the candidate). `packages/core/src/danceSynth.ts` constructs motion inside the constraints (beat-aligned footwork, planted feet without sliding, analytic leg IK, weight transfer, tempo-limited layer amplitudes, envelope projection, velocity-matched displacement-mapped seams). `danceGenerate.ts` compiles and runs the unchanged feasibility gate (thresholds not relaxed) with intensity backoff; issues already present in the user's fixed endpoint poses are tolerated only inside the seam window, up to their original amount, and reported. Patches may now have provider `local` with model `local-dance-planner-1` and `motionOrigin.kind: 'dance-synthesis'`. Old `/api/motion/plan`, the CMU prior loader and the endpoint preflight were removed from the product path. Not deployed and no real inference in this session (no Cloudflare credentials); the new model id still needs one bounded real check after deployment. Earlier sections are historical.

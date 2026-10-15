@@ -1,7 +1,7 @@
 import { ACTIONS } from '../../../packages/core/src/index';
 import { AI_MODEL, AI_PROTOCOL, AI_REQUEST_MAX_BYTES, AI_RESULT_MAX_BYTES, aiArrangementSchema, parseAIJson, validateAIArrangement, validateAIRequest } from '../../../packages/core/src/aiChoreography';
 import { AI_MOTION_MODEL, AI_MOTION_PROTOCOL, AI_MOTION_REQUEST_MAX_BYTES, AI_MOTION_RESULT_MAX_BYTES, AI_MOTION_MAX_OUTPUT_TOKENS, aiMotionOutputSchema, parseAIMotionJson, validateAIMotionRequest, validateAIMotionOutput, validateAIMotionResult, type AIMotionContext } from '../../../packages/core/src/aiMotion';
-import { DANCE_MOVE_IDS, DANCE_PLAN_MAX_OUTPUT_TOKENS, DANCE_PLAN_MODEL, DANCE_PLAN_PROTOCOL, DANCE_PLAN_REQUEST_MAX_BYTES, LOCAL_DANCE_PLANNER, dancePlanFromModelText, dancePlanOutputSchema, dancePlanSystemPrompt, normalizeDancePlan, validateDancePlanRequest, type DancePlanRequest, type DancePlanResult } from '../../../packages/core/src/dancePlan';
+import { DANCE_STEPS, DANCE_PLAN_MAX_OUTPUT_TOKENS, DANCE_PLAN_MODEL, DANCE_PLAN_PROTOCOL, DANCE_PLAN_REQUEST_MAX_BYTES, LOCAL_DANCE_PLANNER, dancePlanFromModelText, dancePlanOutputSchema, dancePlanSystemPrompt, normalizeDancePlan, validateDancePlanRequest, type DancePlanRequest, type DancePlanResult } from '../../../packages/core/src/dancePlan';
 
 const headers = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' };
 const retryHeaders = { ...headers, 'retry-after': '60' };
@@ -281,51 +281,56 @@ function modelOutputValue(output: unknown): unknown {
  * then continues with its deterministic local planner, so generation never
  * depends on this call succeeding.
  */
+/** Longer than a typical small-model reply, shorter than the client deadline. */
+const DANCE_PLAN_SERVER_TIMEOUT_MS = 55_000;
 async function planDance(request: Request, env: Env): Promise<Response> {
   if (request.headers.get('origin') !== new URL(request.url).origin || request.headers.get('sec-fetch-site') === 'cross-site') {
-    return aiError('ORIGIN_NOT_ALLOWED', '请从编舞编辑器发起生成。', 403);
+    return aiError('ORIGIN_NOT_ALLOWED', 'Start generation from the choreography editor.', 403);
   }
   if (!/^application\/json(?:\s*;\s*charset=utf-8)?\s*$/i.test(request.headers.get('content-type') ?? '')) {
-    return aiError('INVALID_CONTENT_TYPE', '生成请求必须使用 JSON。', 415);
+    return aiError('INVALID_CONTENT_TYPE', 'Generation requests must use JSON.', 415);
   }
-  if (request.signal.aborted) return aiError('REQUEST_CANCELLED', '生成已取消。', 499);
+  if (request.signal.aborted) return aiError('REQUEST_CANCELLED', 'Generation cancelled.', 499);
   let input: DancePlanRequest;
   try { input = validateDancePlanRequest(parseAIMotionJson(await boundedBody(request, DANCE_PLAN_REQUEST_MAX_BYTES), DANCE_PLAN_REQUEST_MAX_BYTES)); }
   catch (error) {
-    if (request.signal.aborted) return aiError('REQUEST_CANCELLED', '生成已取消。', 499);
+    if (request.signal.aborted) return aiError('REQUEST_CANCELLED', 'Generation cancelled.', 499);
     return error instanceof Error && error.message === 'BODY_TOO_LARGE'
-      ? aiError('BODY_TOO_LARGE', '生成请求超过大小限制。', 413)
-      : aiError('INVALID_DANCE_PLAN_REQUEST', '请检查动作描述和生成区间。', 400);
+      ? aiError('BODY_TOO_LARGE', 'The generation request is too large.', 413)
+      : aiError('INVALID_DANCE_PLAN_REQUEST', 'Check the description and the generation range.', 400);
   }
-  if (!env.AI || !env.AI_RATE_LIMITER) return aiError('AI_UNAVAILABLE', 'AI 生成暂时不可用。', 503);
+  if (!env.AI || !env.AI_RATE_LIMITER) return aiError('AI_UNAVAILABLE', 'AI generation is temporarily unavailable.', 503);
   try {
     // All generation protocols share the same paid-inference allowance.
     const limited = await env.AI_RATE_LIMITER.limit({ key: `choreo-ai:ip:${request.headers.get('cf-connecting-ip')}` });
-    if (limited.success === false) return Response.json({ code: 'AI_RATE_LIMITED', message: 'AI 生成每分钟最多两次，请稍后再试。' }, { status: 429, headers: retryHeaders });
+    if (limited.success === false) return Response.json({ code: 'AI_RATE_LIMITED', message: 'AI generation is limited to two requests per minute; try again later.' }, { status: 429, headers: retryHeaders });
     if (limited.success !== true) return unavailable();
   } catch { return unavailable(); }
-  if (request.signal.aborted) return aiError('REQUEST_CANCELLED', '生成已取消。', 499);
-  const timeout = AbortSignal.timeout(30_000), signal = AbortSignal.any([request.signal, timeout]);
+  if (request.signal.aborted) return aiError('REQUEST_CANCELLED', 'Generation cancelled.', 499);
+  const timeout = AbortSignal.timeout(DANCE_PLAN_SERVER_TIMEOUT_MS), signal = AbortSignal.any([request.signal, timeout]);
   let output: unknown;
+  // A fresh variation number nudges the model away from repeating itself when
+  // the same description is generated again.
+  const variation = crypto.getRandomValues(new Uint32Array(1))[0] % 10000;
   try {
     // One call, no retries; tests inject a mock binding and never run real inference.
     output = await env.AI.run(DANCE_PLAN_MODEL, {
       messages: [
         { role: 'system', content: dancePlanSystemPrompt(input) },
-        { role: 'user', content: `舞蹈描述：${JSON.stringify(input.prompt)}\n仅返回规定 JSON。` },
+        { role: 'user', content: `Dance description: ${JSON.stringify(input.prompt)}\nVariation #${variation}: create fresh movement that differs from common routines. Reply with the JSON only.` },
       ],
       response_format: { type: 'json_schema', json_schema: { name: 'dance_plan', schema: dancePlanOutputSchema(), strict: true } },
-      stream: false, temperature: 0.6, reasoning_effort: 'low', max_tokens: DANCE_PLAN_MAX_OUTPUT_TOKENS,
+      stream: false, temperature: 0.9, reasoning_effort: 'low', max_tokens: DANCE_PLAN_MAX_OUTPUT_TOKENS,
     }, { signal });
   } catch {
-    if (request.signal.aborted) return aiError('REQUEST_CANCELLED', '生成已取消。', 499);
-    if (timeout.aborted) return aiError('AI_TIMEOUT', 'AI 规划超时。', 504);
-    return aiError('AI_GENERATION_FAILED', 'AI 规划失败。', 502);
+    if (request.signal.aborted) return aiError('REQUEST_CANCELLED', 'Generation cancelled.', 499);
+    if (timeout.aborted) return aiError('AI_TIMEOUT', 'AI planning timed out.', 504);
+    return aiError('AI_GENERATION_FAILED', 'AI planning failed.', 502);
   }
-  if (request.signal.aborted) return aiError('REQUEST_CANCELLED', '生成已取消。', 499);
+  if (request.signal.aborted) return aiError('REQUEST_CANCELLED', 'Generation cancelled.', 499);
   const value = modelOutputValue(output);
   const plan = typeof value === 'string' ? dancePlanFromModelText(value) : normalizeDancePlan(value);
-  if (!plan) return aiError('AI_OUTPUT_INVALID', 'AI 返回的动作规划不可用。', 502);
+  if (!plan) return aiError('AI_OUTPUT_INVALID', 'The AI returned an unusable dance plan.', 502);
   const result: DancePlanResult = { protocol: DANCE_PLAN_PROTOCOL, source: 'ai', model: DANCE_PLAN_MODEL, plan };
   return Response.json(result, { headers });
 }
@@ -341,7 +346,7 @@ export default {
       if (path === '/api/dance/plan' && request.method === 'POST') return planDance(request, env);
       if (request.method !== 'GET') return Response.json({ code: 'FEATURE_NOT_ENABLED', message: '此公开预览仅提供本机演示，不接受项目或音频上传。' }, { status: 501, headers });
       if (path === '/api/health') return Response.json({ status: 'ok', stage: env.RELEASE_STAGE, version: '0.1.0', protocol: 'preview-1', motionProvenance: 'synthetic-demo' }, { headers });
-      if (path === '/api/capabilities') return Response.json({ protocol: 'preview-1', localPreview: { manualCountMap: true, templateArrangement: true, syntheticMotion: true, singleOctetReplacement: true, undoRedo: true, indexedDbSave: true }, serverProjectStorage: false, modelGeneration: Boolean(env.AI && env.AI_RATE_LIMITER), aiArrangement: { protocol: AI_PROTOCOL, model: AI_MODEL, legacy: true, explicitRequestOnly: true, uploadsAudio: false, proceduralMotion: true, maximumRequestsPerMinutePerIp: 2 }, aiMotion: { protocol: AI_MOTION_PROTOCOL, model: AI_MOTION_MODEL, legacy: true, directBoneMotion: true, rangeGeneration: true, immutableContext: true, audioUnderstanding: false, uploadsAudio: false, explicitRequestOnly: true, maximumRequestsPerMinutePerIp: 2 }, aiDancePlanning: { protocol: DANCE_PLAN_PROTOCOL, model: DANCE_PLAN_MODEL, localFallback: LOCAL_DANCE_PLANNER, moveVocabulary: DANCE_MOVE_IDS.length, semanticPlanningOnly: true, directBoneMotion: false, constraintFirstSynthesis: true, physicalValidationLocation: 'client', articulatedDynamics: false, rangeGeneration: true, immutableContext: true, audioUnderstanding: false, uploadsAudio: false, explicitRequestOnly: true, maximumRequestsPerMinutePerIp: 2 }, licensedMotionPack: false, teacherFinalization: false, mp4Export: false, creativeIK: true, freeTimelineEditing: false }, { headers });
+      if (path === '/api/capabilities') return Response.json({ protocol: 'preview-1', localPreview: { manualCountMap: true, templateArrangement: true, syntheticMotion: true, singleOctetReplacement: true, undoRedo: true, indexedDbSave: true }, serverProjectStorage: false, modelGeneration: Boolean(env.AI && env.AI_RATE_LIMITER), aiArrangement: { protocol: AI_PROTOCOL, model: AI_MODEL, legacy: true, explicitRequestOnly: true, uploadsAudio: false, proceduralMotion: true, maximumRequestsPerMinutePerIp: 2 }, aiMotion: { protocol: AI_MOTION_PROTOCOL, model: AI_MOTION_MODEL, legacy: true, directBoneMotion: true, rangeGeneration: true, immutableContext: true, audioUnderstanding: false, uploadsAudio: false, explicitRequestOnly: true, maximumRequestsPerMinutePerIp: 2 }, aiDancePlanning: { protocol: DANCE_PLAN_PROTOCOL, model: DANCE_PLAN_MODEL, localFallback: LOCAL_DANCE_PLANNER, keyposeAuthoring: true, stepVocabulary: DANCE_STEPS.length, semanticPlanningOnly: true, directBoneMotion: false, constraintFirstSynthesis: true, physicalValidationLocation: 'client', articulatedDynamics: false, rangeGeneration: true, immutableContext: true, audioUnderstanding: false, uploadsAudio: false, explicitRequestOnly: true, maximumRequestsPerMinutePerIp: 2 }, licensedMotionPack: false, teacherFinalization: false, mp4Export: false, creativeIK: true, freeTimelineEditing: false }, { headers });
       return Response.json({ code: 'FEATURE_NOT_ENABLED', message: '此接口尚未接入生产服务。' }, { status: 501, headers });
     }
     return env.ASSETS.fetch(request);

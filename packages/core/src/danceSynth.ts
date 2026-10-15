@@ -27,9 +27,9 @@ import { evaluatePose } from './humanoid';
 import { JOINT_NAMES, type JointName, type Pose, type Quat, type Vec3 } from './motion-types';
 import { getCapsuleCollisions } from './capsuleCollision';
 import { CANONICAL_MOTION_FEASIBILITY_PROFILE, getMotionMinimumFloorHeight, isFunctionalJointWithinLimits, projectFunctionalJoint, type MotionFeasibilityProfile } from './motionFeasibility';
-import { DANCE_MOVES, type DanceEnergy, type DanceMoveId, type DancePlan } from './dancePlan';
+import { mirrorDancePose, type DanceEnergy, type DancePlan, type DancePose } from './dancePlan';
 
-export const DANCE_SYNTH_VERSION = 'dance-synth-1' as const;
+export const DANCE_SYNTH_VERSION = 'dance-synth-2' as const;
 const THIGH = .46, SHIN = .45, HIP_DROP = .05, HIP_HALF_WIDTH = .112;
 /** Ankle height above the floor when the calibrated Foot hull just touches it. */
 export const DANCE_ANKLE_FLOOR_HEIGHT = .0836 + .0015;
@@ -58,7 +58,7 @@ const SYNTH_PROFILE: MotionFeasibilityProfile = { ...CANONICAL_MOTION_FEASIBILIT
 type Foot = 'L' | 'R';
 interface FootState { x: number; z: number; yaw: number }
 interface Swing { foot: Foot; t0: number; t1: number; from: FootState; to: FootState; height: number; reach?: { lateral: number; forward: number; height: number } }
-export interface DanceSegment { move: DanceMoveId; startSeconds: number; endSeconds: number; mirror: boolean }
+export interface DanceSegment { move: string; startSeconds: number; endSeconds: number; mirror: boolean }
 export interface DanceSynthInput {
   target: AIMotionTarget;
   start: AIMotionBoundary;
@@ -109,119 +109,32 @@ function addScaled(target: Layers, source: Layers, weight: number): void {
   for (const side of ['left', 'right'] as const) for (const key of ARM_KEYS) target[side][key] += (source[side][key] - base[side][key]) * weight;
 }
 
-/**
- * Layer functions. `beat` is the time in beats since the move began (0 = on
- * the count), `side` is +1 (lead left) or -1 (lead right), `amp(a, period)`
- * returns the amplitude limited by tempo for an oscillation of `period` beats.
- */
-type Amp = (amplitude: number, periodBeats: number, linear?: boolean) => number;
-function moveLayers(move: DanceMoveId, beat: number, side: number, amp: Amp, energy: number): Layers {
-  const l = neutralLayers(), L = l.left, R = l.right;
-  const lead = side > 0 ? L : R, trail = side > 0 ? R : L;
-  const c1 = Math.cos(TAU * beat), s1 = Math.sin(TAU * beat);
-  const c2 = Math.cos(TAU * beat / 2), s2 = Math.sin(TAU * beat / 2);
-  const s4 = Math.sin(TAU * beat / 4);
-  const down = (a: number) => amp(a, 1, true) * (.5 + .5 * c1); // deepest on the count
-  const e = energy;
-  // Arms: `elev` is the angle from hanging (0) towards overhead (π), `fwd` the
-  // azimuth from the side plane (0) towards the front (π/2).
-  const swingArms = (base: number, size: number, period: number) => {
-    const wave = amp(size, period) * (period === 2 ? s2 : s1);
-    L.elev = base + Math.max(0, wave); R.elev = base + Math.max(0, -wave); L.fwd = R.fwd = 1.1;
-  };
-  switch (move) {
-    case 'groove':
-      l.bounce = down(.035 * e); l.swayX = amp(.03 * e, 2, true) * s2; l.spineSide = amp(.05, 2) * s2;
-      l.headTilt = amp(.05, 2) * s2;
-      L.elev = .3 + amp(.25 * e, 2) * (.5 + .5 * s2); R.elev = .3 + amp(.25 * e, 2) * (.5 - .5 * s2); L.fwd = R.fwd = 1.2; L.elbow = R.elbow = .8;
-      break;
-    case 'bounce':
-      l.bounce = down(.06 * e); l.spineFlex = amp(.08, 1) * (.5 + .5 * c1); l.headNod = amp(.12, 1) * (.5 + .5 * c1);
-      L.elev = R.elev = .5; L.fwd = R.fwd = 1; L.elbow = R.elbow = 1.2 + amp(.35 * e, 1) * c1;
-      break;
-    case 'step-touch': case 'side-step':
-      l.bounce = down(.025 * e); swingArms(.3, .35 * e, 2); L.elbow = R.elbow = .9;
-      l.spineTwist = amp(.08, 2) * s2; l.headTurn = -amp(.06, 2) * s2;
-      break;
-    case 'forward-back': case 'box-step': case 'v-step':
-      l.bounce = down(.02 * e); l.chestTwist = amp(.1, 2) * s2;
-      lead.elev = .4 + amp(.3 * e, 2) * (.5 - .5 * c2); trail.elev = .4 + amp(.3 * e, 2) * (.5 + .5 * c2);
-      L.fwd = R.fwd = .5; L.elbow = R.elbow = .7;
-      break;
-    case 'march':
-      swingArms(.2, .45 * e, 2); L.elbow = R.elbow = 1; l.spineTwist = amp(.06, 2) * s2;
-      break;
-    case 'turn':
-      l.bounce = .015 * e; L.elev = R.elev = .95 + amp(.15, 4) * s4; L.fwd = R.fwd = .35; L.elbow = R.elbow = .35;
-      l.headTurn = .12 * side;
-      break;
-    case 'hip-sway':
-      l.swayX = amp(.06 * e, 2, true) * s2; l.hipRoll = amp(.07 * e, 2) * s2; l.weightBias = amp(.45, 2, true) * s2;
-      l.spineSide = -amp(.06, 2) * s2; l.chestSide = -amp(.04, 2) * s2; l.bounce = down(.015);
-      L.elev = R.elev = .6; L.fwd = R.fwd = .95; L.elbow = R.elbow = 1.25; L.twist = R.twist = .3;
-      break;
-    case 'arm-wave': {
-      const wave = amp(.3 * e, 2) * s2;
-      L.elev = 2 + wave; R.elev = 2 - wave; L.fwd = R.fwd = .45; L.elbow = .3 - .2 * s2; R.elbow = .3 + .2 * s2;
-      L.wrist = amp(.3, 1) * s1; R.wrist = -amp(.3, 1) * s1;
-      l.spineSide = amp(.07, 2) * -s2; l.swayX = amp(.03, 2, true) * s2; l.bounce = down(.015);
-      break;
-    }
-    case 'reach-up': {
-      const up = .5 - .5 * c2;
-      lead.elev = .35 + amp(2 * e, 2) * up; lead.elbow = .5 - .35 * up;
-      trail.elev = .35 + amp(2 * e, 2) * (1 - up); trail.elbow = .5 - .35 * (1 - up);
-      L.fwd = R.fwd = .75; l.spineSide = amp(.06, 2) * (side > 0 ? -1 : 1) * (2 * up - 1); l.headNod = -.06; l.bounce = down(.015);
-      break;
-    }
-    case 'punch': {
-      const out = (phase: number) => Math.max(0, Math.sin(TAU * phase / 2)) ** 2;
-      const pl = out(beat), pr = out(beat + 1);
-      // sin² pulses oscillate once per beat with half their peak amplitude.
-      const pulse = (a: number) => 2 * amp(a / 2, 1);
-      L.elev = .5 + pulse(1 * e) * pl; L.elbow = 1.8 - pulse(1.5 * e) * pl;
-      R.elev = .5 + pulse(1 * e) * pr; R.elbow = 1.8 - pulse(1.5 * e) * pr;
-      L.fwd = R.fwd = 1.4; l.chestTwist = pulse(.14 * e) * (pr - pl); l.bounce = down(.04 * e); l.spineFlex = .06;
-      break;
-    }
-    case 'body-roll': {
-      const roll = (lag: number) => Math.sin(TAU * (beat / 2 - lag));
-      l.chestFlex = amp(.18 * e, 2) * roll(0); l.spineFlex = amp(.12 * e, 2) * roll(.12); l.hipPitch = -amp(.08 * e, 2) * roll(.25);
-      l.headNod = amp(.12, 2) * roll(-.1); l.bounce = amp(.03, 2, true) * (.5 + .5 * roll(.25));
-      L.elev = R.elev = .45; L.fwd = R.fwd = .6; L.elbow = R.elbow = .9;
-      break;
-    }
-    case 'clap': {
-      const close = Math.max(0, Math.cos(TAU * beat / 2)) ** 3;
-      L.elev = R.elev = .75 + .25 * close; L.fwd = R.fwd = 1.05 + .3 * close; L.twist = R.twist = .2 + .55 * close;
-      L.elbow = R.elbow = 1.1; l.bounce = down(.03 * e); l.headNod = amp(.06, 1) * c1;
-      break;
-    }
-    case 'kick':
-      l.spineFlex = -.04; L.elev = R.elev = .7; L.fwd = R.fwd = .3; L.elbow = R.elbow = .9; l.bounce = down(.015);
-      break;
-    case 'lunge': {
-      const hold = smoother(beat / 1.2) * (1 - smoother((beat - 2) / 1.2));
-      l.lunge = .09 * e * hold; lead.elev = .35 + 1.15 * hold; lead.fwd = .25; lead.elbow = .5 - .35 * hold;
-      trail.elev = .35 + .55 * hold; trail.fwd = .4; trail.elbow = .9; l.spineSide = -.1 * side * hold; l.headTurn = .25 * side * hold;
-      break;
-    }
-    case 'shoulder-pop': {
-      const pop = (phase: number) => Math.max(0, Math.cos(TAU * phase / 2)) ** 2;
-      L.shrug = 2 * amp(.11 * e, 1) * pop(beat); R.shrug = 2 * amp(.11 * e, 1) * pop(beat + 1);
-      l.chestSide = amp(.05, 2) * (pop(beat + 1) - pop(beat)); l.bounce = down(.025 * e);
-      L.elev = R.elev = .45; L.fwd = R.fwd = .9; L.elbow = R.elbow = 1.4;
-      break;
-    }
-    case 'pose': {
-      const breath = amp(.04, 4) * s4;
-      lead.elev = 2.1; lead.fwd = .5; lead.elbow = .15; trail.elev = .65; trail.fwd = .4; trail.elbow = .45;
-      l.spineSide = -.07 * side; l.headTurn = .2 * side; l.headNod = -.05 + breath; l.chestFlex = -.04 + breath;
-      break;
-    }
-  }
+/** Absolute layer values for one AI/local keypose (see DancePose scales). */
+function poseLayers(pose: DancePose): Layers {
+  const l = neutralLayers(), [lr, lf, lb, rr, rf, rb] = pose.arms;
+  const arm = (raise: number, direction: number, bend: number): ArmParams => ({ elev: .15 + raise * .235, fwd: direction * .157, twist: 0, elbow: .1 + bend * .22, wrist: 0, shrug: 0 });
+  l.left = arm(lr, lf, lb); l.right = arm(rr, rf, rb);
+  l.spineFlex = l.chestFlex = pose.torso[0] * .05;
+  l.spineSide = l.chestSide = pose.torso[1] * .05;
+  l.spineTwist = l.chestTwist = pose.torso[2] * .06;
+  l.headNod = pose.head[0] * .07; l.headTurn = pose.head[1] * .13;
+  l.swayX = pose.hips[0] * .012; l.hipRoll = -pose.hips[0] * .012; l.weightBias = pose.hips[0] * .05;
+  l.bounce = pose.hips[1] * .014;
   return l;
 }
+const flatten = (layers: Layers) => [...SCALAR_KEYS.map(key => layers[key]), ...ARM_KEYS.map(key => layers.left[key]), ...ARM_KEYS.map(key => layers.right[key])];
+function unflatten(values: readonly number[]): Layers {
+  const l = neutralLayers();
+  SCALAR_KEYS.forEach((key, index) => { l[key] = values[index]; });
+  ARM_KEYS.forEach((key, index) => { l.left[key] = values[SCALAR_KEYS.length + index]; l.right[key] = values[SCALAR_KEYS.length + ARM_KEYS.length + index]; });
+  return l;
+}
+/** Linear (metres) layers get a centre-of-mass budget; the rest are angles. */
+const LINEAR_KEYS = new Set<string>(['bounce', 'swayX', 'swayZ', 'lunge', 'weightBias']);
+/** Trunk rotations move most of the body mass: their acceleration budget is
+ * set by the centre-of-mass (friction) budget, not the joint limit. */
+const TRUNK_KEYS = new Set<string>(['hipRoll', 'hipPitch', 'hipYaw', 'spineFlex', 'spineSide', 'spineTwist', 'chestFlex', 'chestSide', 'chestTwist']);
+const TRUNK_ACCELERATION = 9, ARM_ACCELERATION = 70;
 
 // ── Footwork ───────────────────────────────────────────────────────────────
 interface Stance { L: FootState; R: FootState; center: [number, number]; facing: number; travelOrigin: [number, number] }
@@ -234,92 +147,6 @@ const homeFoot = (stance: Stance, foot: Foot, lateral = 0, forward = 0, yaw = 0)
   const [x, z] = local(stance, (foot === 'L' ? FOOT_HALF_WIDTH : -FOOT_HALF_WIDTH) + lateral, forward);
   return { x, z, yaw: stance.facing + yaw };
 };
-type FootOp = { beat: number; foot: Foot; to: (stance: Stance) => FootState; height?: number; reach?: Swing['reach']; recenter?: boolean };
-function moveFootwork(move: DanceMoveId, beats: number, side: number, scale: number): { ops: FootOp[]; facingDelta?: number } {
-  const lead: Foot = side > 0 ? 'L' : 'R', trail: Foot = side > 0 ? 'R' : 'L';
-  const d = .22 * scale, ops: FootOp[] = [];
-  const repeat = (pattern: (offset: number) => FootOp[]) => { for (let offset = 0; offset + 4 <= beats + 1e-9; offset += 4) ops.push(...pattern(offset)); };
-  switch (move) {
-    case 'step-touch':
-      repeat(o => [
-        { beat: o, foot: lead, to: s => homeFoot(s, lead, side * d) },
-        { beat: o + 1, foot: trail, to: s => homeFoot(s, trail, side * d) },
-        { beat: o + 2, foot: trail, to: s => homeFoot(s, trail) },
-        { beat: o + 3, foot: lead, to: s => homeFoot(s, lead) },
-      ]);
-      break;
-    case 'side-step':
-      // Travel two step-togethers to one side; the stance centre moves with it.
-      repeat(o => [
-        { beat: o, foot: lead, to: s => homeFoot(s, lead, side * d) },
-        { beat: o + 1, foot: trail, to: s => homeFoot(s, trail, side * d), recenter: true },
-        { beat: o + 2, foot: lead, to: s => homeFoot(s, lead, side * d) },
-        { beat: o + 3, foot: trail, to: s => homeFoot(s, trail, side * d), recenter: true },
-      ]);
-      break;
-    case 'forward-back':
-      repeat(o => [
-        { beat: o, foot: lead, to: s => homeFoot(s, lead, 0, d) },
-        { beat: o + 1, foot: lead, to: s => homeFoot(s, lead) },
-        { beat: o + 2, foot: trail, to: s => homeFoot(s, trail, 0, -d * .8) },
-        { beat: o + 3, foot: trail, to: s => homeFoot(s, trail) },
-      ]);
-      break;
-    case 'box-step':
-      repeat(o => [
-        { beat: o, foot: lead, to: s => homeFoot(s, lead, 0, d) },
-        { beat: o + 1, foot: trail, to: s => homeFoot(s, trail, -side * d * .5, d) },
-        { beat: o + 2, foot: lead, to: s => homeFoot(s, lead) },
-        { beat: o + 3, foot: trail, to: s => homeFoot(s, trail) },
-      ]);
-      break;
-    case 'v-step':
-      repeat(o => [
-        { beat: o, foot: lead, to: s => homeFoot(s, lead, side * d * .55, d * .8, side * .2) },
-        { beat: o + 1, foot: trail, to: s => homeFoot(s, trail, -side * d * .55, d * .8, -side * .2) },
-        { beat: o + 2, foot: lead, to: s => homeFoot(s, lead) },
-        { beat: o + 3, foot: trail, to: s => homeFoot(s, trail) },
-      ]);
-      break;
-    case 'march':
-      for (let beat = 0; beat < beats; beat++) {
-        const foot = beat % 2 ? trail : lead;
-        ops.push({ beat, foot, to: s => homeFoot(s, foot), height: .06 * scale + .02 });
-      }
-      break;
-    case 'kick':
-      for (let beat = 0; beat + 2 <= beats; beat += 2) {
-        const foot = (beat / 2) % 2 ? trail : lead;
-        ops.push({ beat, foot, to: s => homeFoot(s, foot), height: .04, reach: { lateral: 0, forward: .24 * scale, height: .14 * scale } });
-      }
-      break;
-    case 'lunge':
-      repeat(o => [
-        { beat: o, foot: lead, to: s => homeFoot(s, lead, side * .2 * scale) },
-        { beat: o + 3, foot: lead, to: s => homeFoot(s, lead) },
-      ]);
-      break;
-    case 'turn': {
-      // Alternate feet, each turning 90° per step, so both feet advance 90° every
-      // two beats and the pelvis (their circular mean) never twists >45°.
-      const first: Foot = side > 0 ? 'L' : 'R', second: Foot = first === 'L' ? 'R' : 'L';
-      const steps = Math.floor(beats);
-      for (let beat = 0; beat < steps; beat++) {
-        const foot = beat % 2 ? second : first, quarter = Math.floor(beat / 2) + 1;
-        ops.push({ beat, foot, to: s => {
-          const yaw = s.facing + side * Math.PI / 2 * quarter;
-          const lateral = foot === 'L' ? FOOT_HALF_WIDTH : -FOOT_HALF_WIDTH;
-          return { x: s.center[0] + lateral * Math.cos(yaw), z: s.center[1] - lateral * Math.sin(yaw), yaw };
-        } });
-      }
-      // Complete the second foot when an odd number of steps was scheduled.
-      return { ops, facingDelta: side * Math.PI / 2 * Math.ceil(steps / 2) };
-    }
-    default: break;
-  }
-  return { ops };
-}
-
 // ── Leg IK ─────────────────────────────────────────────────────────────────
 /** Exact two-bone IK. Returns world rotations of thigh and shin. */
 function solveLeg(hip: Vector3, ankle: Vector3, knee: Vector3Like): { thigh: Quaternion; shin: Quaternion } {
@@ -346,7 +173,10 @@ function solveLeg(hip: Vector3, ankle: Vector3, knee: Vector3Like): { thigh: Qua
 type Vector3Like = { x: number; y: number; z: number };
 
 function armRotation(params: ArmParams, sign: number): Quaternion {
-  const down = new Vector3(0, -1, 0), elev = clamp(params.elev, 0, 2.6), fwd = clamp(params.fwd, -.3, 1.57);
+  const elev = clamp(params.elev, 0, 2.6);
+  // Above the shoulder the arm cannot point behind the body: lift the minimum
+  // direction smoothly so overhead arms never cross the flexion wrap-around.
+  const down = new Vector3(0, -1, 0), fwd = Math.max(clamp(params.fwd, -.3, 1.57), .25 * smoother((elev - 1.1) / .6));
   const direction = new Vector3(sign * Math.sin(elev) * Math.cos(fwd), -Math.cos(elev), Math.sin(elev) * Math.sin(fwd)).normalize();
   return new Quaternion().setFromUnitVectors(down, direction).multiply(new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), sign * params.twist));
 }
@@ -467,19 +297,24 @@ function poseDistance(a: Pose, b: Pose): number {
 
 // ── Scheduling ─────────────────────────────────────────────────────────────
 const ENERGY: Record<DanceEnergy, number> = { low: .6, medium: .85, high: 1 };
-export function scheduleDanceSegments(plan: DancePlan, startSeconds: number, endSeconds: number, beatSeconds: number): DanceSegment[] {
-  const segments: DanceSegment[] = [];
-  const firstBeat = Math.ceil(startSeconds / beatSeconds - 1e-6);
-  const lastBeat = Math.floor(endSeconds / beatSeconds + 1e-6);
-  let beat = firstBeat, index = 0, cycle = 0;
-  while (beat < lastBeat && plan.moves.length) {
-    const item = plan.moves[index], beats = Math.min(item.beats, lastBeat - beat);
-    if (beats >= 1) segments.push({ move: item.move, startSeconds: beat * beatSeconds, endSeconds: (beat + beats) * beatSeconds, mirror: item.mirror !== (cycle % 2 === 1) });
-    beat += beats; index++;
-    if (index >= plan.moves.length) { index = 0; cycle++; }
+/** Pose keys on the beat grid between `start` and `end`, cycling the plan's order. */
+export function scheduleDancePoses(plan: DancePlan, startSeconds: number, endSeconds: number, beatSeconds: number): { keys: { time: number; pose: DancePose }[]; segments: DanceSegment[] } {
+  const keys: { time: number; pose: DancePose }[] = [], segments: DanceSegment[] = [];
+  const firstBeat = Math.ceil(startSeconds / beatSeconds - 1e-6), lastBeat = Math.floor(endSeconds / beatSeconds + 1e-6);
+  let beat = firstBeat, index = 0;
+  while (beat <= lastBeat && plan.order.length) {
+    const ref = plan.order[index % plan.order.length], phrase = plan.phrases[ref.phrase] ?? plan.phrases[0];
+    const begin = beat;
+    for (const pose of phrase.poses) {
+      if (beat > lastBeat) break;
+      keys.push({ time: beat * beatSeconds, pose: ref.mirror ? mirrorDancePose(pose) : pose }); beat++;
+    }
+    segments.push({ move: `phrase-${String.fromCharCode(65 + ref.phrase)}${ref.mirror ? "'" : ''}`, startSeconds: begin * beatSeconds, endSeconds: Math.min(beat, lastBeat) * beatSeconds, mirror: ref.mirror });
+    index++;
   }
-  return segments;
+  return { keys, segments: segments.filter(segment => segment.endSeconds > segment.startSeconds) };
 }
+
 
 export function synthesizeDance(input: DanceSynthInput): DanceSynthResult {
   const { target, beatSeconds: b, plan } = input;
@@ -503,8 +338,8 @@ export function synthesizeDance(input: DanceSynthInput): DanceSynthResult {
   const estimatedEnd = interval ? fadeWidth(neutralDisplacement(input.end, endStance!), b, duration, seamScale) : 0;
   const footStart = t0 + Math.max(startBlend, .7 * estimatedStart), footEnd = t1 - Math.max(endBlend, .7 * estimatedEnd);
 
-  // Schedule moves on the musical beat grid between the blend windows.
-  const segments = footEnd - footStart >= b ? scheduleDanceSegments(plan, footStart, footEnd, b) : [];
+  // Keyposes on the musical beat grid between the blend windows.
+  const { keys: poseKeys, segments: scheduled } = footEnd - footStart >= b ? scheduleDancePoses(plan, footStart, footEnd, b) : { keys: [], segments: [] };
   // Reserve beats at the end for steps that reach the end stance.
   const stance: Stance = { L: { ...startStance.L }, R: { ...startStance.R }, center: [(startStance.L.x + startStance.R.x) / 2, (startStance.L.z + startStance.R.z) / 2], facing: facing0, travelOrigin: [startPose.root[0], startPose.root[2]] };
   const swings: Swing[] = [];
@@ -551,33 +386,59 @@ export function synthesizeDance(input: DanceSynthInput): DanceSynthResult {
   const returnBeats = (() => {
     if (!interval) return 2;
     const span = Math.max(Math.hypot(endStance!.L.x - startStance.L.x, endStance!.L.z - startStance.L.z), Math.hypot(endStance!.R.x - startStance.R.x, endStance!.R.z - startStance.R.z));
-    return 2 * Math.max(plan.moves.some(move => move.move === 'turn') ? 2 : 1, Math.ceil(span / .3));
+    return 2 * Math.max(poseKeys.some(key => key.pose.step.startsWith('turn')) ? 2 : 1, Math.ceil(span / .3));
   })();
-  const scheduled: DanceSegment[] = [];
   const footworkEnd = footEnd - returnBeats * b;
-  for (const segment of segments) {
-    if (segment.startSeconds >= footworkEnd - 1e-9) { scheduled.push({ ...segment }); continue; }
-    scheduled.push(segment);
-    const info = DANCE_MOVES.find(move => move.id === segment.move)!;
-    if (!info.footwork) continue;
-    const beats = Math.round((segment.endSeconds - segment.startSeconds) / b);
-    let side = segment.mirror ? 1 : -1;
-    // Keep travel inside the stage: lead away from the far side.
-    const offset = [stance.center[0] - stance.travelOrigin[0], stance.center[1] - stance.travelOrigin[1]];
-    if (Math.hypot(...offset) > STAGE_RADIUS * .55) {
-      const lateralAxis = [Math.cos(stance.facing), -Math.sin(stance.facing)];
-      side = offset[0] * lateralAxis[0] + offset[1] * lateralAxis[1] > 0 ? -1 : 1;
-    }
-    // Shorter steps at fast tempos keep the swing-leg acceleration in budget.
-    const { ops } = moveFootwork(segment.move, beats, side, clamp(intensity * (.55 + .45 * energy), .15, 1) * clamp((b / .5) ** 1.5, .6, 1));
-    const segmentStance: Stance = { ...stance, L: { ...stance.L }, R: { ...stance.R }, center: [...stance.center] as [number, number] };
-    for (const op of ops) {
-      // Steps land on the count; they must finish before the reserved return.
-      const land = segment.startSeconds + (op.beat + 1) * b - (op.reach ? .5 * b : 0);
-      if (land > footworkEnd + 1e-9 || land - swingSeconds < footStart - 1e-9) continue;
-      const destination = op.to(segmentStance);
-      addSwing(op.foot, op.reach ? segment.startSeconds + (op.beat + 1.5) * b : land, destination, op.height ?? .07, op.reach, op.reach ? b : swingSeconds);
-      if (op.recenter) { recenter(); segmentStance.center = [...stance.center]; }
+  // Footwork: each keypose's step lands on its count. Step length shrinks at
+  // fast tempos so the swing-leg acceleration stays in budget.
+  {
+    const d = .22 * clamp(intensity * (.55 + .45 * energy), .15, 1) * clamp((b / .5) ** 1.5, .6, 1);
+    let home: Stance = { ...stance, L: { ...stance.L }, R: { ...stance.R }, center: [...stance.center] as [number, number] };
+    let pendingTurn: Foot | undefined, lastFoot: Foot = 'R';
+    const offHome = (foot: Foot) => { const h = homeFoot(home, foot); return Math.hypot(stance[foot].x - h.x, stance[foot].z - h.z) + Math.abs(wrapAngle(stance[foot].yaw - h.yaw)) * .2; };
+    for (const { time: land, pose } of poseKeys) {
+      if (pose.step === 'none' || land > footworkEnd + 1e-9 || land - swingSeconds < footStart - 1e-9) continue;
+      const step = pose.step;
+      let foot: Foot, to: FootState;
+      if (step === 'together') {
+        if (pendingTurn) { foot = pendingTurn; pendingTurn = undefined; }
+        else { foot = offHome('L') >= offHome('R') ? 'L' : 'R'; if (offHome(foot) < .03) continue; }
+        to = homeFoot(home, foot);
+      } else if (step === 'turn-L' || step === 'turn-R') {
+        if (pendingTurn) { foot = pendingTurn; pendingTurn = undefined; to = homeFoot(home, foot); }
+        else {
+          // Only turn further when there is time left to turn back to the
+          // fixed end facing with comfortable quarter-turn steps.
+          const facing = home.facing + (step === 'turn-L' ? 1 : -1) * Math.PI / 2;
+          const finalFacing = interval ? (endStance!.L.yaw + endStance!.R.yaw) / 2 : facing;
+          const quartersBack = Math.ceil(Math.abs(wrapAngle(facing - finalFacing)) / (Math.PI / 2) - 1e-6);
+          if (footworkEnd - land < (quartersBack * 2 + 2) * b) continue;
+          // Rotate the stance a quarter turn; the leading foot steps now, the
+          // other follows on the next turn/together count.
+          home = { ...home, facing };
+          foot = step === 'turn-L' ? 'L' : 'R'; pendingTurn = foot === 'L' ? 'R' : 'L';
+          to = homeFoot(home, foot);
+        }
+      } else if (step === 'travel-L' || step === 'travel-R') {
+        const side = step === 'travel-L' ? 1 : -1, travelled = [home.center[0] - home.travelOrigin[0], home.center[1] - home.travelOrigin[1]];
+        const lateral = [Math.cos(home.facing), -Math.sin(home.facing)];
+        // Stay on the stage: travelling further out becomes closing the feet.
+        if (Math.hypot(...travelled) > STAGE_RADIUS * .55 && (travelled[0] * lateral[0] + travelled[1] * lateral[1]) * side > 0) { foot = offHome('L') >= offHome('R') ? 'L' : 'R'; to = homeFoot(home, foot); }
+        else {
+          // Alternate open (lead foot) and close (trail foot): the centre moves half a step each time.
+          const lead: Foot = side > 0 ? 'L' : 'R';
+          foot = lastFoot === lead ? (lead === 'L' ? 'R' : 'L') : lead;
+          home = { ...home, center: local(home, side * d / 2, 0) };
+          to = homeFoot(home, foot);
+        }
+      } else {
+        foot = step.startsWith('L') ? 'L' : 'R';
+        const out = foot === 'L' ? 1 : -1;
+        to = step.endsWith('side') ? homeFoot(home, foot, out * d) : step.endsWith('front') ? homeFoot(home, foot, 0, d) : homeFoot(home, foot, 0, -d * .8);
+      }
+      if (pendingTurn && foot === pendingTurn && !step.startsWith('turn') && step !== 'together') continue;
+      addSwing(foot, land, to, .06);
+      lastFoot = foot;
     }
     recenter();
   }
@@ -592,21 +453,39 @@ export function synthesizeDance(input: DanceSynthInput): DanceSynthResult {
     const distance = Math.max(Math.hypot(final.L.x - fromL.x, final.L.z - fromL.z), Math.hypot(final.R.x - fromR.x, final.R.z - fromR.z));
     const turn = Math.max(Math.abs(wrapAngle(final.L.yaw - fromL.yaw)), Math.abs(wrapAngle(final.R.yaw - fromR.yaw)));
     // Enough alternating steps that none is longer than 30 cm or turns > 80°.
-    const begin = Math.max(footStart, swings.at(-1)?.t1 ?? footStart) + .05;
+    const wanted = Math.max(1, Math.ceil(distance / .3), Math.ceil(turn / (80 * RAD)));
+    let begin = Math.max(footStart, swings.at(-1)?.t1 ?? footStart) + .05;
+    // In short ranges a long start seam can leave no room to reach the end
+    // stance; the return steps then start right after the start blend rather
+    // than leaving the end seam to slide (or turn) the feet over the floor.
+    if ((distance > .05 || turn > 10 * RAD) && Math.floor((footEnd - begin) / (2 * .3)) < wanted) begin = Math.max(t0 + startBlend, swings.at(-1)?.t1 ?? t0) + .05;
     // Steps never run into the end seam: fewer, longer steps when time is short
     // (the seam displacement absorbs any remainder).
     const fit = Math.floor((footEnd - begin) / (2 * .3));
-    const pairs = Math.min(fit, Math.max(1, Math.ceil(distance / .3), Math.ceil(turn / (80 * RAD))));
+    const pairs = Math.min(fit, wanted);
     const stepSeconds = pairs > 0 ? Math.min(b, (footEnd - begin) / (2 * pairs)) : 0;
     const duration = Math.min(swingSeconds, stepSeconds * .85);
+    // Body-frame offset of a foot from a stance centre (inverse of `local`).
+    const bodyOffset = (foot: FootState, centre: [number, number], facing: number): [number, number] => {
+      const dx = foot.x - centre[0], dz = foot.z - centre[1], c = Math.cos(facing), sn = Math.sin(facing);
+      return [dx * c - dz * sn, dx * sn + dz * c];
+    };
+    const fromCentre: [number, number] = [(fromL.x + fromR.x) / 2, (fromL.z + fromR.z) / 2], toCentre: [number, number] = [(final.L.x + final.R.x) / 2, (final.L.z + final.R.z) / 2];
+    const fromFacing = fromL.yaw + wrapAngle(fromR.yaw - fromL.yaw) / 2, toFacing = final.L.yaw + wrapAngle(final.R.yaw - final.L.yaw) / 2;
+    const turnBy = wrapAngle(toFacing - fromFacing);
     const order: Foot[] = Math.hypot(final.L.x - fromL.x, final.L.z - fromL.z) >= Math.hypot(final.R.x - fromR.x, final.R.z - fromR.z) ? ['L', 'R'] : ['R', 'L'];
     let land = begin;
     for (let pair = 1; pair <= pairs; pair++) {
       for (const foot of order) {
         land += stepSeconds;
-        if (land - duration < footStart) continue;
+        if (land - duration < begin - .05) continue;
         const from = foot === 'L' ? fromL : fromR, to = final[foot], u = pair / pairs;
-        addSwing(foot, land, { x: lerp(from.x, to.x, u), z: lerp(from.z, to.z, u), yaw: from.yaw + wrapAngle(to.yaw - from.yaw) * u }, .05, undefined, duration);
+        // Intermediate stances turn about the moving stance centre (feet keep
+        // their own sides), instead of sliding straight across each other.
+        const facing = fromFacing + turnBy * u, c = Math.cos(facing), sn = Math.sin(facing);
+        const [lateral, forward] = [lerp(bodyOffset(from, fromCentre, fromFacing)[0], bodyOffset(to, toCentre, toFacing)[0], u), lerp(bodyOffset(from, fromCentre, fromFacing)[1], bodyOffset(to, toCentre, toFacing)[1], u)];
+        const cx = lerp(fromCentre[0], toCentre[0], u), cz = lerp(fromCentre[1], toCentre[1], u);
+        addSwing(foot, land, { x: cx + lateral * c + forward * sn, z: cz - lateral * sn + forward * c, yaw: from.yaw + wrapAngle(to.yaw - from.yaw) * u }, .05, undefined, duration);
       }
     }
   }
@@ -619,23 +498,42 @@ export function synthesizeDance(input: DanceSynthInput): DanceSynthResult {
   for (let index = 1; index <= steps; index++) times.push(index === steps ? t1 : t0 + duration * index / steps);
   if (interval) times.pop();
 
-  // Tempo-aware amplitude limit for an oscillation of `period` beats.
-  const amp: Amp = (amplitude, period, linear) => {
-    const omega = TAU / (period * b);
-    const limit = (linear ? COM_ACCELERATION : LAYER_ACCELERATION) / (omega * omega);
-    return Math.sign(amplitude) * Math.min(Math.abs(amplitude) * intensity, limit);
-  };
-  const envelope = (time: number) => smoother((time - t0) / startBlend) * (interval ? smoother((t1 - time) / endBlend) : smoother((t1 - .4 - time) / Math.max(.3, endBlend - .4)));
+  // Keypose curves: each parameter passes through its pose on the count with
+  // smooth (C1, cubic Hermite) transitions. A change between neighbouring
+  // counts is limited so that its peak acceleration fits the joint (angles)
+  // or centre-of-mass (metres) budget at this tempo; intensity scales every
+  // deviation from neutral.
+  const neutral = flatten(neutralLayers());
+  const budgets = [...SCALAR_KEYS.map(key => LINEAR_KEYS.has(key) ? COM_ACCELERATION : TRUNK_KEYS.has(key) ? TRUNK_ACCELERATION : LAYER_ACCELERATION),
+    ...ARM_KEYS.map(() => ARM_ACCELERATION), ...ARM_KEYS.map(() => ARM_ACCELERATION)];
+  const curve = poseKeys.map(key => flatten(poseLayers(key.pose)).map((value, index) => neutral[index] + (value - neutral[index]) * intensity * (.75 + .25 * energy)));
+  for (let k = 1; k < curve.length; k++) for (let index = 0; index < neutral.length; index++) {
+    const limit = budgets[index] * b * b / 7.5;
+    curve[k][index] = clamp(curve[k][index], curve[k - 1][index] - limit, curve[k - 1][index] + limit);
+  }
+  const groove = energy * intensity * Math.min(.018, COM_ACCELERATION / (TAU / b) ** 2);
+  const envelope = (time: number) => smoother((time - t0) / Math.max(startBlend, Math.min(1, duration * .3))) * (interval ? smoother((t1 - time) / Math.max(endBlend, Math.min(1, duration * .3))) : smoother((t1 - .4 - time) / Math.max(.3, endBlend - .4)));
   const layersAt = (time: number): Layers => {
-    const result = neutralLayers(), half = .5 * b;
-    for (const segment of scheduled) {
-      if (time < segment.startSeconds - half || time > segment.endSeconds + half) continue;
-      const weight = smoother((time - segment.startSeconds + half) / (2 * half)) * (1 - smoother((time - segment.endSeconds + half) / (2 * half)));
-      if (weight <= 0) continue;
-      addScaled(result, moveLayers(segment.move, (time - segment.startSeconds) / b, segment.mirror ? 1 : -1, amp, energy), weight);
+    let values = neutral;
+    if (curve.length) {
+      const first = poseKeys[0].time, k = clamp(Math.floor((time - first) / b), -1, curve.length - 1);
+      if (k < 0 || k === curve.length - 1) values = curve[clamp(k, 0, curve.length - 1)];
+      else {
+        const u = (time - poseKeys[k].time) / b, u2 = u * u, u3 = u2 * u;
+        const h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u, h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
+        const before = curve[Math.max(0, k - 1)], a = curve[k], c = curve[k + 1], after = curve[Math.min(curve.length - 1, k + 2)];
+        // Tangents at half Catmull–Rom strength: flowing but still landing on the count.
+        values = a.map((value, index) => h00 * value + h10 * .25 * (c[index] - before[index]) + h01 * c[index] + h11 * .25 * (after[index] - value));
+      }
+    }
+    const layers = unflatten(values);
+    // A light knee groove on every count keeps the body alive between poses.
+    if (curve.length) {
+      const span = smoother((time - poseKeys[0].time + b) / b) * smoother((poseKeys.at(-1)!.time + b - time) / b);
+      layers.bounce += span * groove * (.5 + .5 * Math.cos(TAU * (time - poseKeys[0].time) / b));
     }
     const scaled = neutralLayers();
-    addScaled(scaled, result, envelope(time));
+    addScaled(scaled, layers, envelope(time));
     return scaled;
   };
   const footAt = (foot: Foot, time: number): { x: number; y: number; z: number; yaw: number; swing: number } => {
@@ -658,9 +556,14 @@ export function synthesizeDance(input: DanceSynthInput): DanceSynthResult {
   };
   // Weight transfer: on the stance foot at each swing middle, centred otherwise.
   const keys: { time: number; value: number }[] = [{ time: t0, value: .5 }];
-  const shift = clamp((b / .55) ** 2, .35, 1) * .42;
+  // The shift is sized by the actual time to the neighbouring steps (quick
+  // return steps can be closer than a beat), so the side-to-side pelvis
+  // acceleration stays within the friction budget.
+  const middle = (swing: Swing) => (swing.t0 + swing.t1) / 2;
   for (const [index, swing] of swings.entries()) {
-    keys.push({ time: (swing.t0 + swing.t1) / 2, value: swing.foot === 'L' ? .5 - shift : .5 + shift });
+    const gap = Math.min(b, index > 0 ? middle(swing) - middle(swings[index - 1]) : b, index + 1 < swings.length ? middle(swings[index + 1]) - middle(swing) : b);
+    const shift = clamp((gap / .55) ** 2, .2, 1) * .42;
+    keys.push({ time: middle(swing), value: swing.foot === 'L' ? .5 - shift : .5 + shift });
     // Long double-support gaps return the weight to the centre between steps.
     const next = swings[index + 1];
     if (!next || next.t0 - swing.t1 > 1.4 * b) {
@@ -764,14 +667,17 @@ export function synthesizeDance(input: DanceSynthInput): DanceSynthResult {
       frame.capY = Math.min(frame.capY, foot.y + HIP_DROP + Math.sqrt(Math.max(.04, MAX_REACH * MAX_REACH - horizontal * horizontal)));
     }
   }
-  // Pelvis height: reach cap by erosion then blur, so it never exceeds the cap.
-  const radius = Math.max(2, Math.round(.12 / (duration / steps)));
-  const raw = frames.map(frame => Math.min(frame.desiredY, frame.capY));
-  const eroded = raw.map((_, index) => { let low = Infinity; for (let k = Math.max(0, index - 2 * radius); k <= Math.min(raw.length - 1, index + 2 * radius); k++) low = Math.min(low, raw[k]); return low; });
-  const heights = eroded.map((_, index) => {
+  // Pelvis height: the (smooth) desired height minus a smooth reach excess.
+  // The excess over the leg-reach cap is dilated by three standard deviations
+  // and then Gaussian-blurred, so the result still stays under the cap while
+  // its own acceleration stays small (no min-filter corners).
+  const step = duration / steps, sigma = .1, spread = Math.max(1, Math.ceil(3 * sigma / step));
+  const excess = frames.map(frame => Math.max(0, frame.desiredY - frame.capY));
+  const dilated = excess.map((_, index) => { let high = 0; for (let k = Math.max(0, index - spread); k <= Math.min(excess.length - 1, index + spread); k++) high = Math.max(high, excess[k]); return high; });
+  const heights = frames.map((frame, index) => {
     let total = 0, weight = 0;
-    for (let k = Math.max(0, index - radius); k <= Math.min(raw.length - 1, index + radius); k++) { const w = 1 - Math.abs(k - index) / (radius + 1); total += eroded[k] * w; weight += w; }
-    return Math.min(total / weight, raw[index]);
+    for (let k = Math.max(0, index - spread); k <= Math.min(dilated.length - 1, index + spread); k++) { const w = Math.exp(-.5 * ((k - index) * step / sigma) ** 2); total += dilated[k] * w; weight += w; }
+    return frame.desiredY - Math.max(total / weight, excess[index]);
   });
 
   // Second pass: construct poses.
@@ -787,7 +693,7 @@ export function synthesizeDance(input: DanceSynthInput): DanceSynthResult {
   const startGrounded = touchesFloor(startPose), endGrounded = interval && touchesFloor(endPose);
   const outside = new Set<JointName>();
   for (const pose of interval ? [startPose, endPose] : [startPose]) for (const joint of JOINT_NAMES) if (!isFunctionalJointWithinLimits(joint, pose.joints[joint])) outside.add(joint);
-  const result: { time: number; pose: Pose }[] = [];
+  const result: { time: number; pose: Pose }[] = [], lifts: { lift: number; fade: number }[] = [];
   for (const [index, frame] of frames.entries()) {
     if (index === 0) continue;
     if (interval && index === frames.length - 1) continue;
@@ -796,12 +702,26 @@ export function synthesizeDance(input: DanceSynthInput): DanceSynthResult {
       { displacement: startDisplacement, tau: tau0, width: startWidth, sign: 1 },
       ...(endDisplacement ? [{ displacement: endDisplacement, tau: tau1, width: endWidth, sign: -1 as const }] : []),
     ]);
-    // Displaced legs are no longer exactly solved; lift the pelvis a few
-    // millimetres if that dips a foot into the floor.
-    if (tau0 < startWidth || endDisplacement && tau1 < endWidth) {
+    // Displaced legs no longer reach the feet exactly. Re-solve them by IK to
+    // the (already seam-displaced) foot targets and blend that in from the
+    // boundary, where the original legs are kept exactly, so planted feet do
+    // not dip or slide while the rest of the body is displaced.
+    const legWeight = Math.min(1 - fadeWeights(tau0, Math.min(startWidth, .6))[0], endDisplacement ? 1 - fadeWeights(tau1, Math.min(endWidth, .6))[0] : 1);
+    if (legWeight > 0 && (tau0 < startWidth || !!endDisplacement && tau1 < endWidth)) {
+      const solved = legJoints(new Quaternion(...pose.joints.Hips), pose.root, frame.L, frame.R);
+      for (const [joint, rotation] of Object.entries(solved) as [JointName, Quaternion][]) {
+        if (outside.has(joint)) continue;
+        pose.joints[joint] = projectFunctionalJoint(joint, toQuat(new Quaternion(...pose.joints[joint]).slerp(rotation, legWeight)), SYNTH_PROFILE);
+      }
+    }
+    // Lift the pelvis a few millimetres if anything still dips into the floor.
+    const inSeam = tau0 < startWidth || !!endDisplacement && tau1 < endWidth;
+    if (inSeam) {
       // Joints that are inside the envelope at the boundary stay inside; joints
       // the boundary itself places outside are left to return gradually.
       for (const joint of JOINT_NAMES) if (!outside.has(joint)) pose.joints[joint] = projectFunctionalJoint(joint, pose.joints[joint], SYNTH_PROFILE);
+    }
+    {
       // Keep the lowest point on the floor while the seam mixes two leg
       // configurations: lift small dips, and lower small hovers when the
       // boundary itself stands on the floor. Continuous in the measured
@@ -809,15 +729,41 @@ export function synthesizeDance(input: DanceSynthInput): DanceSynthResult {
       // left alone for the inherited tolerance and the gate.
       const lowest = getMotionMinimumFloorHeight(pose);
       const grounded = tau0 < startWidth && startGrounded || !!endDisplacement && tau1 < endWidth && endGrounded;
-      const error = lowest - .0015;
+      // Seams move the legs quickly; keep more clearance there so the curve
+      // between samples cannot dip below the floor tolerance.
+      const error = lowest - (inSeam ? .008 : .003);
       // Both corrections fade in from zero at the fixed boundary itself.
       const seamFade = smoother(tau0 / .12) * (endDisplacement ? smoother(tau1 / .12) : 1);
-      const weight = seamFade * (error < 0 ? 1 - smoother((-error - .025) / .025) : grounded ? 1 - smoother((error - .015) / .025) : 0);
-      if (weight > 0) pose = { ...pose, root: [pose.root[0], pose.root[1] - error * weight, pose.root[2]] };
+      // Outside seams only dips are lifted (deep knee bends with a tilted foot).
+      const weight = error < 0 ? 1 - smoother((-error - .025) / .025) : inSeam && grounded ? 1 - smoother((error - .015) / .025) : 0;
+      lifts.push({ lift: -error * weight, fade: seamFade });
     }
     result.push({ time: frame.time, pose });
   }
-  repairArmContacts(result, time => time - t0 < startWidth || interval && t1 - time < endWidth,
+  // The lowest body point switches between heel, toe and other parts, so the
+  // raw per-sample lift has corners. Lifts are dilated then blurred (and
+  // never less than needed); lowerings are blurred and may exceed the raw amount by
+  // at most 4 mm (they target 8 mm clearance, so the floor is still clear).
+  // Both still fade to zero at fixed boundaries.
+  {
+    const sigma = .05, spread = Math.max(1, Math.ceil(3 * sigma / (duration / steps)));
+    // A one-sigma dilation keeps the blurred lift at (or within a fraction of
+    // a millimetre of) the raw lift without holding the body up for long.
+    const near = Math.max(1, Math.ceil(sigma / (duration / steps)));
+    const window = (values: number[], pick: (a: number, b: number) => number) => values.map((value, index) => {
+      let out = value; for (let k = Math.max(0, index - near); k <= Math.min(values.length - 1, index + near); k++) out = pick(out, values[k]); return out; });
+    const blur = (values: number[]) => values.map((_, index) => {
+      let total = 0, weight = 0;
+      for (let k = Math.max(0, index - spread); k <= Math.min(values.length - 1, index + spread); k++) { const w = Math.exp(-.5 * ((k - index) * (duration / steps) / sigma) ** 2); total += values[k] * w; weight += w; }
+      return total / weight; });
+    const up = blur(window(lifts.map(item => Math.max(0, item.lift)), Math.max));
+    const down = blur(lifts.map(item => Math.max(0, -item.lift)));
+    for (const [index, sample] of result.entries()) {
+      const lift = Math.max(up[index], Math.max(0, lifts[index].lift)) - Math.min(down[index], Math.max(0, -lifts[index].lift) + .004);
+      if (lift) sample.pose = { ...sample.pose, root: [sample.pose.root[0], sample.pose.root[1] + lift * lifts[index].fade, sample.pose.root[2]] };
+    }
+  }
+  repairArmContacts(result, () => true,
     // The correction itself fades to zero at fixed boundaries.
     time => smoother((time - t0) / .3) * (interval ? smoother((t1 - time) / .3) : 1), duration / steps, outside);
   return { samples: result, segments: scheduled, steps: swings.length, blendSeconds: { start: Math.max(startBlend, startWidth), end: interval ? Math.max(endBlend, endWidth) : endBlend } };
@@ -836,8 +782,16 @@ function repairArmContacts(samples: { time: number; pose: Pose }[], inSeam: (tim
     const joint = `${side}UpperArm` as JointName;
     if (outside.has(joint)) continue;
     const touches = (pose: Pose) => collisions(pose).selfCollisions.some(collision => collision.segments.some(segment => segment.startsWith(`${side}-`) && /arm|hand/i.test(segment)));
-    const rotate = (pose: Pose, angle: number): Pose => ({ ...pose, joints: { ...pose.joints, [joint]: projectFunctionalJoint(joint,
-      toQuat(new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), sign * angle).multiply(new Quaternion(...pose.joints[joint]))), SYNTH_PROFILE) } });
+    const fore = `${side}ForeArm` as JointName;
+    // Open the arm away from the body and straighten the elbow a little: this
+    // frees a hand from the pelvis, thighs and the head alike.
+    const rotate = (pose: Pose, angle: number): Pose => {
+      const elbow = new Quaternion(...pose.joints[fore]), bent = 2 * Math.atan2(Math.hypot(elbow.x, elbow.y, elbow.z), Math.abs(elbow.w));
+      const opened = elbow.multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.min(angle * .8, Math.max(0, bent - .1))));
+      return { ...pose, joints: { ...pose.joints,
+        [joint]: projectFunctionalJoint(joint, toQuat(new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), sign * angle).multiply(new Quaternion(...pose.joints[joint]))), SYNTH_PROFILE),
+        [fore]: outside.has(fore) ? pose.joints[fore] : projectFunctionalJoint(fore, toQuat(opened), SYNTH_PROFILE) } };
+    };
     const needed = samples.map(sample => {
       if (!inSeam(sample.time) || !touches(sample.pose)) return 0;
       for (let angle = 4 * RAD; angle <= 36 * RAD; angle += 4 * RAD) if (!touches(rotate(sample.pose, angle))) return angle + 2 * RAD;
@@ -854,6 +808,23 @@ function repairArmContacts(samples: { time: number; pose: Pose }[], inSeam: (tim
     });
     for (const [index, sample] of samples.entries()) { const angle = smooth[index] * fade(sample.time); if (angle > 1e-6) sample.pose = rotate(sample.pose, angle); }
   }
+}
+
+type FootTarget = { x: number; y: number; z: number; yaw: number };
+/** Legs by analytic IK from the pelvis (root + Hips rotation) to the ankle targets. */
+function legJoints(hips: Quaternion, root: Vec3, left: FootTarget, right: FootTarget): Partial<Record<JointName, Quaternion>> {
+  const joints: Partial<Record<JointName, Quaternion>> = {};
+  for (const [side, sign, foot] of [['Left', 1, left], ['Right', -1, right]] as const) {
+    const hip = new Vector3(sign * HIP_HALF_WIDTH, -HIP_DROP, 0).applyQuaternion(hips).add(new Vector3(...root));
+    const footWorld = yawQuat(foot.yaw);
+    // Knees track the toes, turned slightly out.
+    const knee = new Vector3(0, 0, 1).applyQuaternion(footWorld).add(new Vector3(sign * .3, 0, 0).applyQuaternion(footWorld));
+    const { thigh, shin } = solveLeg(hip, new Vector3(foot.x, foot.y, foot.z), knee);
+    joints[`${side}UpperLeg`] = hips.clone().invert().multiply(thigh);
+    joints[`${side}LowerLeg`] = thigh.clone().invert().multiply(shin);
+    joints[`${side}Foot`] = shin.clone().invert().multiply(footWorld);
+  }
+  return joints;
 }
 
 function neutralStandingPose(reference: Pose, stance: { L: FootState; R: FootState }): Pose {
@@ -879,18 +850,7 @@ function buildPose(frame: { layers: Layers; L: { x: number; y: number; z: number
     joints[`${side}Hand`] = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), params.wrist);
   }
   const root: Vec3 = [frame.root[0], height, frame.root[1]];
-  // Legs: hip joint positions from the pelvis, analytic IK to the ankle targets.
-  const hipsWorld = hips.clone();
-  for (const [side, sign, foot] of [['Left', 1, frame.L], ['Right', -1, frame.R]] as const) {
-    const hip = new Vector3(sign * HIP_HALF_WIDTH, -HIP_DROP, 0).applyQuaternion(hipsWorld).add(new Vector3(...root));
-    const footWorld = yawQuat(foot.yaw);
-    // Knees track the toes, turned slightly out.
-    const knee = new Vector3(0, 0, 1).applyQuaternion(footWorld).add(new Vector3(sign * .3, 0, 0).applyQuaternion(footWorld));
-    const { thigh, shin } = solveLeg(hip, new Vector3(foot.x, foot.y, foot.z), knee);
-    joints[`${side}UpperLeg`] = hipsWorld.clone().invert().multiply(thigh);
-    joints[`${side}LowerLeg`] = thigh.clone().invert().multiply(shin);
-    joints[`${side}Foot`] = shin.clone().invert().multiply(footWorld);
-  }
+  Object.assign(joints, legJoints(hips, root, frame.L, frame.R));
   const pose: Pose = { root, joints: {} as Pose['joints'] };
   for (const joint of JOINT_NAMES) pose.joints[joint] = projectFunctionalJoint(joint, toQuat(joints[joint]), SYNTH_PROFILE);
   return pose;

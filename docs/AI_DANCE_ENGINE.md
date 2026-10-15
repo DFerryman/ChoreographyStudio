@@ -1,63 +1,51 @@
-# AI 编舞核心 · 约束优先合成（dance-synth-1）
+# AI choreography core
 
-2026-10-15 重建。取代 `ai-motion-plan-1`（AI 选择 CMU 片段区间 → 重定向 → 拒绝式门禁）作为主流程。
+## 2026-10-15 (revision 2) · AI-authored keyposes (`ai-dance-plan-3`, `dance-synth-2`)
 
-## 为什么旧流程经常拿不到结果
+User feedback on the previous core: generation either timed out or kept producing the same set of movements, so it could not create new movements or poses. Both were structural:
 
-逐项排查旧代码与历史收据后，失败集中在四个结构性原因，而不是个别报错文案：
+- **Same movements.** The model could only choose from 19 fixed procedural moves (and the earlier pipeline only from two motion-capture sources). The local fallback was seeded by the description text, so the same description always produced the same dance.
+- **Timeouts.** A failed gate attempt also ran the gate's three correction passes (each a full inspection), up to five attempts; the planner had a 30 s server timeout and no client deadline; the whole operation was capped at 120 s.
 
-1. **模型负责精确数值。** 旧协议要求模型输出每段的场景起止秒、来源本地秒、0.5–2 倍速比、`transitionSeconds ≤ 段长/3`、首尾必须与选区端点逐位相等且连续。任何一处算错，整份规划被 `PLAN_COVERAGE / PLAN_SPEED / PLAN_TRANSITION / PLAN_SOURCE_RANGE` 拒绝，且不重试、不修复。文本模型做这种浮点算术本来就不可靠。
-2. **素材只有两条来源。** 14 个片段全部来自 CMU 街舞和 Salsa。描述稍有不同（爵士、韩舞、温柔舒缓……），模型只能诚实地回 `unsupported`（“无法为该区间生成”），或勉强拼接。
-3. **先生成、后拒绝。** 动捕片段经过重定向后再交给严格门禁（250 rad/s² 角加速度、3 mm 地面、碰撞、摩擦力……），只要有一处超限就整体拒绝。真实记录里就有 `RightUpperLeg 373 rad/s² > 250` 这种在合法规划上的拒绝。拒绝后没有降级路径。
-4. **固定端点本身不合格就直接拒绝。** 预检把“用户自己原动作的端点超出功能包络 / 穿地 / 穿插”判为不可生成（公开 Street/Salsa 场景的首帧就是这样），用户无法对这些区间生成任何东西。
+### What the model now does
 
-## 新流程
+The model composes the choreography itself. It returns up to four phrases of eight keyposes (one pose per count) plus the order in which phrases, or their mirror images, are danced. A pose is a handful of bounded integers with anatomical meaning, plus one footwork step:
 
-```
-描述 + 节拍信息 ──► 语义规划（AI，失败则本地规则） ──► 约束优先合成 ──► 编译稠密曲线 ──► 可行性门禁
-                                                         ▲                                │未通过
-                                                         └──── 降低强度 / 加长衔接重试 ◄────┘
-```
+| Field | Meaning |
+| --- | --- |
+| `arms` | left raise 0..10, left direction -2..10, left elbow 0..10, then the same for the right arm (0 = hanging, 5 = shoulder height, 10 = overhead; direction 0 = to the side, 10 = forward) |
+| `torso` | lean -5..5, side tilt -5..5, twist -5..5 |
+| `head` | nod -5..5, turn -5..5 |
+| `hips` | sway -5..5, knee level 0..10 (0 standing tall, 10 deep bend) |
+| `step` | `none`, `L-side`, `R-side`, `L-front`, `R-front`, `L-back`, `R-back`, `together`, `travel-L`, `travel-R`, `turn-L`, `turn-R` |
 
-### 1. 语义规划 `ai-dance-plan-2`（`packages/core/src/dancePlan.ts`、`/api/dance/plan`）
+Every value on these scales maps inside the rig's joint envelope, so any pose the model invents is meaningful. Values outside a scale are clamped and malformed items dropped; a plan is never rejected as a whole. The request still contains only the description and coarse beat framing. The planner prompt, schema, summaries, keyword tables and all dance-pipeline messages are English only.
 
-- 模型只输出 **枚举**：风格（8 种）、能量（低/中/高）、按顺序的动作列表（19 种动作 × 2/4/8 拍 × 是否镜像）。没有时间、角度、坐标或来源区间字段，因此不存在“数值不合法”的规划。
-- 请求只发送描述、模式（整段/选区）、时长、BPM、拍长、拍数——不发送姿态、音频、文件名或场景。
-- 输出宽松归一化：未知动作丢弃、拍数取最近合法值、多余字段忽略、Markdown 包裹或推理前缀里的 JSON 也能取出。只有“完全没有可用动作”才算失败。
-- **任何失败都不阻断生成**：限频、超时、服务不可用、网络错误、无效输出时，浏览器改用同一动作库的本地规则规划（按关键词识别风格、能量和被点名的动作），候选上明确标注“本地规则规划”及原因。取消仍然是取消。
+Model: Workers AI `@cf/openai/gpt-oss-20b`, temperature 0.9, a random variation number per request, `max_tokens` 3072, one call, no retries.
 
-**模型选择。** 新任务是小型受约束分类，不需要大模型的推理与长输出：默认改用 Workers AI `@cf/openai/gpt-oss-20b`（与原 `gpt-oss-120b` 同一请求格式和 JSON Schema 支持，单价约为其一半或更低，延迟更短），`max_tokens` 1536、`reasoning_effort: low`、超时 30 秒、单次调用不重试，共用原有 AI 2 次/分钟/IP 限额。旧层的 `gpt-oss-120b` / `qwen3` 型号仍可读取（历史保存数据）。本次会话没有 Cloudflare 凭据，**未对新型号做真实推理验证**；由于本地规则兜底，型号不可用时功能仍可用，但需在部署后做一次受控真实调用确认。
+### Local composer
 
-### 2. 约束优先合成（`packages/core/src/danceSynth.ts`）
+When the planner is unavailable, slow or returns nothing usable, a seeded local composer invents phrases from the description (style and energy from English keywords; non-English descriptions default to a pop profile). Every generation uses a fresh random seed, so generating again gives a different dance. Phrases have motifs (a pose, its development, a mirrored answer, an accent) and the order repeats and mirrors them as a routine would.
 
-姿态不是“先生成再检查”，而是在人体包络内 **构造** 出来：
+### Synthesis
 
-- **节拍对齐**：动作排在 CountMap 的拍点网格上（拍长被归一到 0.4–1 秒），选区可以从任意非整拍位置开始和结束；计划不足会循环、过长会截断。
-- **步伐与接触**：每只脚是“固定在地面的位置 + 在拍点上落地的摆动”。支撑脚不滑动（单元测试检查逐帧水平位移 < 4 mm），抬脚与落地的竖直速度和加速度均为零。转身用两脚交替、每步 90°，骨盆朝向为双脚平均，腿部扭转不超过约 45°。
-- **重心**：骨盆沿平滑的重心转移曲线移动到支撑脚上方；双支撑间隙较长时回到中间。
-- **腿**：两段骨解析 IK，膝盖朝脚尖略向外；骨盆高度受腿长上限（侵蚀+模糊，保证不超过上限），支撑脚总能被够到。
-- **上半身**：每个动作是拍相位的平滑函数（律动、波浪、出拳、拍手……），振幅按 `a·ω² ≤ 110 rad/s²`（关节）/ `3.2 m/s²`（重心）随速度自动缩小，因此 60–240 BPM 都在门禁的 250 rad/s² 与摩擦力约束之内。
-- **关节包络**：所有关节最后投影到比门禁包络再收紧 1.5° 的范围，避免曲线插值越界。
-- **固定端点衔接（位移映射）**：选区两端和整段起点使用五次 Hermite 位移映射——在端点处姿态、速度完全等于原动作，随后以零斜率零曲率淡出；淡出宽度按位移量和加速度预算自动计算。先在位置空间处理骨盆和双脚（落脚点、动量吸收、支撑），再对剩余的关节差做旋转空间映射（含右雅可比修正，接缝处速度精确匹配）。原动作正处于迈步中的端点，会把这一步“接住”落在骨盆停下的位置下方。
-- **接缝修补**：接缝内若手臂扫过身体，按需平滑外展上臂；足部最低点保持在地面上（小下陷抬起、小悬空落地，均连续且在端点处为零）。
+Keyposes land on the counts and are joined by C1 cubic curves. The change of each parameter between neighbouring counts is limited by its acceleration budget at the current tempo: arms 70 rad/s², trunk 9 rad/s² (trunk rotation moves most of the body mass, so its budget comes from the friction/centre-of-mass limit), linear pelvis terms 3.2 m/s². Steps are turned into planted footwork with leg IK, weight transfer and balance as before. Quarter turns are only taken when there is time left to turn back to a fixed end facing. Arm-body contacts are repaired everywhere by opening the arm and straightening the elbow a little. Inside boundary seams the legs are re-solved by IK to the seam-displaced foot targets, so planted feet do not dip or slide. Pelvis height uses a smooth reach-cap correction rather than a min-filter. The small floor-clearance lift (heel/toe/other lowest point) is smoothed over time instead of applied per sample, because its corners otherwise appear as fake ground-force spikes. The side-to-side weight shift is sized by the actual time between neighbouring steps, not by the beat. When a short range has little room after its start seam, the steps back to the fixed end stance start right after the start blend, and intermediate stances rotate about the stance centre so the feet keep their own sides while turning back.
 
-### 3. 门禁与降级（`packages/core/src/danceGenerate.ts`、`motionFeasibility.ts`）
+### Time limits
 
-- 门禁仍是原有独立检测（关节功能包络、Quaternius 身体代理碰撞、真实 Foot 凸包地面、汇总接触力与摩擦、速度、加速度、单侧近端点角曲率、覆盖完整性），阈值 **没有放宽**。
-- 合成结果未通过时，以较低强度（100% → 72% → 50% → 30% → 15%）和更长的端点衔接重新合成再检查。检查采用 fail-fast，失败的尝试很便宜。
-- **继承端点问题**：固定端点就是用户自己的动作，不可改变。端点本身已有的关节超限、身体穿插、穿地以及原动作在端点处的加速度，在衔接时段内按不超过原有程度容许，并在报告 `inheritedBoundaryIssues` 与候选面板中说明；区间其余部分仍按原标准。旧流程在这种情况下直接拒绝。
-- 预览、采用、撤销、原稿/音乐不变、区间外与两端逐位保持、冻结曲线播放——这些不变式全部保留。
+- Planner: 55 s on the Worker, 60 s in the browser; past that the local composer takes over.
+- Gate attempts run fail-fast without correction passes; intensity levels are 1, 0.65, 0.35, 0.15.
+- If none passes, two last attempts (0.65, 0.25) keep the same keyposes but dance them in place: only the steps needed to reach the end stance remain. The candidate says so ("Footwork in place").
+- The whole explicit generation may take up to 240 s (was 120 s).
 
-## 验证（本地，模拟 AI）
+### Verification (local, mocked AI)
 
-- 19 种动作 × {60, 120, 170, 230} BPM 的整段生成：全部在 100% 强度一次通过门禁。
-- 30 个随机计划、随机 BPM 的整段生成：30/30 一次通过。
-- 随机压力：在 **已生成的舞蹈**（端点正处于迈步、转身中）或静止场景上，随机 0.3–12 秒、非整拍的选区和随机计划，每批 40 例：结果见 [VERIFICATION.md](VERIFICATION.md) 本次章节。剩余失败集中在极短选区内端点正在高速运动、或两腿在接缝内交错的情况；失败时原动作不变并给出具体原因。
-- 浏览器端到端（`tests/ai-dance.spec.ts`，AI 接口 mock、合成/门禁/Rapier/采用/撤销走真实路径）：整段生成预览采用撤销重做、AI 服务 503 时本地规则兜底仍得到合格候选、非整拍选区两端与区间外逐位不变。
+See [VERIFICATION.md](VERIFICATION.md) for the exact counts of this revision. A real small model (Claude Haiku, run as a stand-in for the planner role with the exact system prompt, schema and user message) produced plans that all parsed and passed; this checks the prompt and protocol, not the Workers AI model itself.
 
-## 范围与限制
+### Limits
 
-- 动作库是 19 种程序化舞蹈元素的组合，不是动作捕捉，也不是文本到任意动作的生成；没有空翻、倒立、地板动作，模型被要求用最接近的动作代替并在摘要中说明。
-- 检查仍是简化运动学/汇总受力代理，不是完整关节动力学、肌力或连续时间证明；不验证 MHR 皮肤。
-- 没有音乐理解（只有 BPM/拍点）。
-- 旧 `ai-motion-plan-1` 端点与 CMU 片段加载已从产品路径移除；`motionPriors`/`motionGrounding` 等核心模块保留，用于读取历史保存的层和门禁回归测试。
+Standing choreography only: no floor work, inversions or flips. The check is the existing simplified kinematic and aggregate-force model, not full joint dynamics. No music understanding beyond BPM and counts. The new prompt and model id have not been called for real in this session (no Cloudflare credentials).
+
+## 2026-10-15 (revision 1) · semantic planning + constraint-first synthesis
+
+The first rebuild replaced the clip-timing planner (`ai-motion-plan-1`) with a model that picked moves from a fixed 19-move vocabulary (`ai-dance-plan-2`) and a constraint-first synthesizer (`dance-synth-1`). Root causes it addressed: the model had to produce exact float source/scene times; only two motion-capture sources; capture was generated then rejected with no fallback; fixed endpoints already outside the envelope made ranges ungeneratable. Seams use velocity-matched displacement mapping; the unchanged gate tolerates issues already present in fixed endpoint poses only inside the seam window. Revision 2 above supersedes its fixed vocabulary.

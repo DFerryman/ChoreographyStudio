@@ -1,5 +1,9 @@
 # 八拍 · Choreo Studio
 
+## 2026-10-15 · AI choreography revision 2: the model invents the poses
+
+Feedback: generation timed out or kept producing the same movements. Now the planner model composes keyposes itself (`ai-dance-plan-3`: bounded integers for arms, torso, head and hips plus a footwork step per count). The application turns them into constrained motion (`dance-synth-2`), and the unchanged feasibility gate accepts or retries it at lower intensity, finally with footwork in place. The local fallback composer uses a fresh random seed each time, so generating again gives a new dance. The planner prompt, schema and dance-pipeline messages are English. Time limits: 55 s for the Worker planner and 60 s in the browser (then the local composer takes over); 240 s for the whole operation. See [AI choreography core](docs/AI_DANCE_ENGINE.md) and [VERIFICATION.md](docs/VERIFICATION.md). Pushed to main; not deployed and not called against Workers AI in this session (no Cloudflare credentials).
+
 ## 2026-10-15 · AI 编舞核心重建：语义规划 + 约束优先合成
 
 旧流程（AI 计算 CMU 片段的精确时间区间 → 重定向 → 严格门禁拒绝）经常拿不到结果：模型算错任一浮点时间即整体无效，两条素材覆盖不了多数描述，重定向后的动捕常超出加速度／地面阈值被拒，而选区端点本身不合格时直接无法生成。现已重建为：

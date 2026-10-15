@@ -18,7 +18,7 @@ export interface AIMotionKnot {
 /** Provenance of a procedurally synthesized dance (dance-synth-1). */
 export interface DanceSynthesisOrigin {
   kind: 'dance-synthesis';
-  generator: 'dance-synth-1';
+  generator: 'dance-synth-1' | 'dance-synth-2';
   planSource: 'ai' | 'local';
   style: string;
   energy: 'low' | 'medium' | 'high';
@@ -146,7 +146,7 @@ function record(input: unknown, required: readonly string[], optional: readonly 
 }
 function validateDanceOrigin(input: unknown, range: AIMotionTarget): void {
   const value = record(input, ['kind', 'generator', 'planSource', 'style', 'energy', 'intensity', 'moves']);
-  if (value.generator !== 'dance-synth-1' || value.planSource !== 'ai' && value.planSource !== 'local' ||
+  if (value.generator !== 'dance-synth-1' && value.generator !== 'dance-synth-2' || value.planSource !== 'ai' && value.planSource !== 'local' ||
     value.energy !== 'low' && value.energy !== 'medium' && value.energy !== 'high' ||
     typeof value.intensity !== 'number' || !Number.isFinite(value.intensity) || value.intensity <= 0 || value.intensity > 1) return fail('AI 动作来源记录无效。');
   text(value.style, 32);

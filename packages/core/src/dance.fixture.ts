@@ -19,7 +19,7 @@ export function makeDanceRequest(options: { sampler?: AIMotionPoseSampler; mode?
   const mode = options.mode ?? 'full';
   const startSeconds = mode === 'full' ? 0 : options.start ?? 4, endSeconds = mode === 'full' ? duration : options.end ?? 8;
   const start = estimateAIMotionBoundary(sampler, startSeconds, 'before', duration), end = estimateAIMotionBoundary(sampler, endSeconds, 'after', duration);
-  const request: AIMotionRequest = { protocol: AI_MOTION_PROTOCOL, prompt: options.prompt ?? '来一段流行舞', context: {
+  const request: AIMotionRequest = { protocol: AI_MOTION_PROTOCOL, prompt: options.prompt ?? 'a pop dance', context: {
     requestId: `request-${Math.random().toString(36).slice(2)}`, sceneId: 'scene-dance', baseRevision: 1, sourceHash: 'a'.repeat(64),
     target: { mode, startSeconds, endSeconds },
     skeleton: { id: RIG_CALIBRATION_VERSION, coordinateSystem: 'right-handed-y-up-z-forward', rotationConvention: 'local-euler-xyz-degrees',

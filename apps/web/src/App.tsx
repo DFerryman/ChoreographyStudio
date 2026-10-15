@@ -6,7 +6,7 @@ import {
   type CameraPose, type CameraTrack, type SampledCameraPose,
 } from '../../../packages/core/src';
 import { analyzeAIMotionPatch, appendAIMotionPatch, compileAIMotionPosePatch, createAIMotionSampler, type AIMotionQuality, type AIMotionTrack } from '../../../packages/core/src/aiMotionTrack';
-import { DANCE_MOVES, makeDancePlanRequest } from '../../../packages/core/src/dancePlan';
+import { makeDancePlanRequest } from '../../../packages/core/src/dancePlan';
 import { generateDanceCandidate } from '../../../packages/core/src/danceGenerate';
 import { CANONICAL_MOTION_FEASIBILITY_PROFILE, type MotionFeasibilityReport } from '../../../packages/core/src/motionFeasibility';
 import type { AIMotionTarget } from '../../../packages/core/src/aiMotion';
@@ -49,9 +49,11 @@ type SceneAction = { type: 'new' } | { type: 'open' | 'copy' | 'delete'; id: str
 type AudioMoveAction = { type: 'moveAudio'; offsetSeconds: number; sceneId: string; countMapId: string };
 type ResetAction = 'music' | 'adoptAssist';
 /** Any action that must first resolve an in-progress camera gesture. */
+/** One explicit generation (planning, synthesis and checking) may take this long. */
+const AI_GENERATION_DEADLINE_MS = 240_000;
 type GuardedAction = AudioMoveAction | { type: 'seek'; time: number } | { type: 'scene'; action: SceneAction } | { type: 'history'; direction: -1 | 1 }
   | { type: 'play' | 'save' | 'music' | 'teaching' | 'backup' | 'projectBackup' | 'adoptAssist' | 'previewAssist' } | { type: 'assist'; prompt: string };
-type AssistCandidate = { aiMotion: AIMotionTrack; target: AIMotionTarget; summary: string; planSource: 'ai' | 'local'; fallbackReason?: string; intensity: number; moves: string[]; quality: AIMotionQuality; feasibility: MotionFeasibilityReport; sceneId: string; countMapId: string; baseRevision: number; sourceStamp: string };
+type AssistCandidate = { aiMotion: AIMotionTrack; target: AIMotionTarget; summary: string; planSource: 'ai' | 'local'; fallbackReason?: string; intensity: number; inPlace: boolean; moves: string[]; quality: AIMotionQuality; feasibility: MotionFeasibilityReport; sceneId: string; countMapId: string; baseRevision: number; sourceStamp: string };
 type CameraGesture = { sceneId: string; revision: number; time: number; snapshot: Snapshot; before: CameraPose; latest: CameraPose; status: SaveStatus; version: number; override: boolean };
 type NamedTarget = { id: string; name: string };
 
@@ -618,39 +620,39 @@ export default function App() {
     // selected local motion loading and offline solving; never a retry loop.
     const deadline = window.setTimeout(() => {
       if (!valid()) return;
-      const message = '动作生成与检查超时，原动作未改变，请稍后手动重试。';
+      const message = 'Generation and checking took too long. The original motion is unchanged; please try again.';
       setAssistError(message); setNotice(message); run.controller.abort();
-    }, 120_000);
+    }, AI_GENERATION_DEADLINE_MS);
     try {
       const request = await buildAIMotionRequest({ prompt, sceneId: run.sceneId, baseRevision: run.revision, snapshot: source,
         range: targetRange, audioBlob, audioName, audioDurationSeconds: session.audioDuration, audioClips, signal: run.controller.signal });
       if (!valid() || !currentMotionSampler) return;
       // 1. Semantic plan: the model only picks moves; the local planner covers any failure.
-      setNotice('正在规划动作；原动作保持。');
+      setNotice('Planning the dance; the original motion is unchanged.');
       const plan = await requestDancePlan(makeDancePlanRequest(prompt, request.context.target, source.countMap), run.controller.signal);
       if (!valid()) return;
       // 2. Constraint-first synthesis, checked by the feasibility gate, with intensity backoff.
-      setNotice(plan.source === 'ai' ? '正在合成动作并检查关节、碰撞与支撑；原动作保持。'
-        : `${plan.fallbackReason ?? 'AI 规划不可用'}，已改用本地规则规划；正在合成并检查动作。`);
+      setNotice(plan.source === 'ai' ? 'Synthesizing and checking joints, collisions and support; the original motion is unchanged.'
+        : `${plan.fallbackReason ?? 'AI planning unavailable'}; composed locally instead. Synthesizing and checking the motion.`);
       const generated = await generateDanceCandidate({ request, plan, sourceSampler: currentMotionSampler, signal: run.controller.signal,
-        onAttempt: (attempt, index) => { if (attempt.status !== 'accepted' && valid()) setNotice(`第 ${index + 1} 次检查未通过，正在减小动作幅度后重新合成；原动作保持。`); } });
+        onAttempt: (attempt, index) => { if (attempt.status !== 'accepted' && valid()) setNotice(`Check ${index + 1} did not pass; re-synthesizing more conservatively. The original motion is unchanged.`); } });
       if (!valid()) return;
       const patch = generated.patch;
       const quality = analyzeAIMotionPatch(patch);
       const aiMotion = appendAIMotionPatch(source.aiMotion, patch, source.countMap);
       const labels: string[] = [];
       for (const segment of generated.segments) {
-        const label = DANCE_MOVES.find(move => move.id === segment.move)?.label ?? segment.move;
+        const label = segment.move.replace(/^phrase-/, 'phrase ');
         if (labels.at(-1) !== label) labels.push(label);
       }
       const candidate: AssistCandidate = { aiMotion, target: request.context.target, summary: plan.plan.summary, planSource: plan.source,
-        ...(plan.fallbackReason ? { fallbackReason: plan.fallbackReason } : {}), intensity: generated.intensity, moves: labels,
+        ...(plan.fallbackReason ? { fallbackReason: plan.fallbackReason } : {}), intensity: generated.intensity, inPlace: generated.footwork === 'in-place', moves: labels,
         quality, feasibility: generated.report, sceneId: run.sceneId,
         countMapId: run.countMapId, baseRevision: run.revision, sourceStamp: run.sourceStamp };
       assertSceneBackupCapacity(assistAdoptionDocument(candidate));
       if (!valid()) return;
       setAssistCandidate(candidate);
-      setNotice('候选已就绪。预览和采用分开操作，原稿尚未改变。');
+      setNotice('Candidate ready. Preview and adopt are separate steps; the original is not changed yet.');
     } catch (error) { if (valid()) { setAssistError(errorMessage(error)); setNotice(errorMessage(error)); } }
     finally { window.clearTimeout(deadline); if (assistRun.current === run) { assistRun.current = null; setAssistBusy(false); } }
   }
@@ -676,11 +678,11 @@ export default function App() {
     const start = assistCandidate.target.startSeconds;
     let prepared: SceneDocument<Session>;
     try { prepared = assistAdoptionDocument(assistCandidate); assertSceneBackupCapacity(prepared); }
-    catch (error) { const message = `无法采用候选：${errorMessage(error)} 原动作未改变。`; setAssistError(message); setNotice(message); return; }
+    catch (error) { const message = `Could not adopt the candidate: ${errorMessage(error)} The original motion is unchanged.`; setAssistError(message); setNotice(message); return; }
     const next = prepared.project.history.at(-1)!;
     commit(next, next.operation);
     setAssistCandidate(null); setPreviewAssist(false); seekDirect(start);
-    setNotice('已采用 AI 动作；原动作保留在撤销历史中。');
+    setNotice('AI dance adopted; the previous motion stays in the undo history.');
   }
   /** Check the exact prospective retained history before exposing/adopting a
    * dense candidate. A saved scene must still support both lossless backups. */
@@ -988,7 +990,7 @@ export default function App() {
             </div>
           </div>
           {ready && <TimelineDock ref={timelineDockRef}>
-            {assistCandidate && <AssistCandidatePanel summary={assistCandidate.summary} target={assistCandidate.target} quality={assistCandidate.quality} feasibility={assistCandidate.feasibility} planSource={assistCandidate.planSource} fallbackReason={assistCandidate.fallbackReason} intensity={assistCandidate.intensity} moves={assistCandidate.moves} previewing={previewAssist} valid={validAssistCandidate()}
+            {assistCandidate && <AssistCandidatePanel summary={assistCandidate.summary} target={assistCandidate.target} quality={assistCandidate.quality} feasibility={assistCandidate.feasibility} planSource={assistCandidate.planSource} fallbackReason={assistCandidate.fallbackReason} intensity={assistCandidate.intensity} inPlace={assistCandidate.inPlace} moves={assistCandidate.moves} previewing={previewAssist} valid={validAssistCandidate()}
               onTogglePreview={toggleAssistPreview} onAdopt={adoptAssistance} onClose={closeAssistCandidate} />}
             <SceneTimeline duration={duration} time={time} playing={playing} readOnly={!editing || workLocked || mirror}
               countTimes={active.countMap.countTimesSeconds} range={shownRange} onRange={changeRange} onTime={seek}

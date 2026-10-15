@@ -764,7 +764,7 @@ async function inspect(patch: AIMotionPatch, options: SolveAIMotionFeasibilityOp
   }
   if (inheritedCount) {
     report.inheritedBoundaryIssues = inheritedCount;
-    report.warnings.push('固定端点的原动作本身超出人体包络或存在接触穿插；仅在端点衔接时段内容许这些原有问题逐步恢复，其余部分仍按原标准检查。');
+    report.warnings.push('The fixed endpoint motion is itself outside the body envelope or in contact; only near those endpoints are these existing issues allowed to recover gradually. Everything else is checked with the unchanged limits.');
   }
   report.coverage.complete = report.coverage.samples === times.length && report.coverage.maxGapSeconds <= MAX_GAP + EPS && report.coverage.maxRootStepMeters <= MAX_ROOT_STEP + EPS && report.coverage.maxJointStepRadians <= MAX_JOINT_STEP + EPS;
   if (!report.coverage.complete) addViolation(report, { code: 'coverage', startSeconds: patch.target.startSeconds, endSeconds: patch.target.endSeconds, message: '插值变化超过检测步长，不能采用覆盖不完整的候选。' });

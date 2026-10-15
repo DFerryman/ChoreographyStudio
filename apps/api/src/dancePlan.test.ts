@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import worker from './index';
 import { DANCE_PLAN_MAX_OUTPUT_TOKENS, DANCE_PLAN_MODEL, DANCE_PLAN_PROTOCOL, dancePlanOutputSchema, makeDancePlanRequest } from '../../../packages/core/src/dancePlan';
 
-const output = { summary: '流行律动与转身。', style: 'pop', energy: 'medium', moves: [{ move: 'groove', beats: 4, mirror: false }, { move: 'turn', beats: 8, mirror: true }] };
+const pose = (raise: number, step = 'none') => ({ arms: [raise, 5, 2, 10 - raise, 3, 6], torso: [1, -2, 3], head: [0, 2], hips: [2, 4], step });
+const output = { summary: 'Pop groove with a turn.', style: 'pop', energy: 'medium',
+  phrases: [{ poses: [pose(2, 'L-side'), pose(6), pose(9, 'turn-L'), pose(4, 'turn-L')] }], order: [{ phrase: 0, mirror: false }, { phrase: 0, mirror: true }] };
 function fixture() {
   const limit = vi.fn<RateLimit['limit']>().mockResolvedValue({ success: true });
   const aiLimit = vi.fn<RateLimit['limit']>().mockResolvedValue({ success: true });
@@ -12,14 +14,14 @@ function fixture() {
     AI: Object.assign({} as Ai, { run }), ASSETS: { fetch, connect: vi.fn() } };
   return { env, limit, aiLimit, run, fetch };
 }
-const body = () => makeDancePlanRequest('来段流行舞', { mode: 'interval', startSeconds: 4, endSeconds: 9.5 }, { bpm: 120, musicBeatsPerDanceCount: 1 });
+const body = () => makeDancePlanRequest('a pop dance', { mode: 'interval', startSeconds: 4, endSeconds: 9.5 }, { bpm: 120, musicBeatsPerDanceCount: 1 });
 function request(value: unknown = body(), init: RequestInit = {}) {
   return new Request('https://preview.example/api/dance/plan', { method: 'POST', body: JSON.stringify(value),
     headers: { 'cf-connecting-ip': '192.0.2.1', origin: 'https://preview.example', 'content-type': 'application/json' }, ...init });
 }
 
 describe('Workers AI dance planning (mock binding, no real inference)', () => {
-  it('makes exactly one enum-only planning call with the small model', async () => {
+  it('makes exactly one keypose planning call with the small model', async () => {
     const { env, run, aiLimit, fetch } = fixture();
     const response = await worker.fetch(request(), env);
     expect(response.status).toBe(200);
@@ -28,20 +30,21 @@ describe('Workers AI dance planning (mock binding, no real inference)', () => {
     expect(run.mock.calls[0]).toMatchObject([DANCE_PLAN_MODEL, { stream: false, max_tokens: DANCE_PLAN_MAX_OUTPUT_TOKENS, reasoning_effort: 'low',
       response_format: { type: 'json_schema', json_schema: { name: 'dance_plan', schema: dancePlanOutputSchema(), strict: true } } }, { signal: expect.any(AbortSignal) }]);
     const messages = (run.mock.calls[0][1] as { messages: { content: string }[] }).messages;
-    expect(messages[0].content).toContain('step-touch'); expect(messages[1].content).toContain('来段流行舞');
+    expect(messages[0].content).toContain('turn-L'); expect(messages[0].content).toContain('arms = ['); expect(messages[1].content).toContain('a pop dance');
+    expect(messages.map(message => message.content).join()).not.toMatch(/[\u4e00-\u9fff]/);
   });
   it.each([
     ['chat completion text', { choices: [{ message: { content: `\`\`\`json\n${JSON.stringify(output)}\n\`\`\`` }, finish_reason: 'stop' }] }],
     ['responses envelope', { object: 'response', status: 'completed', output: [{ type: 'reasoning' }, { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: JSON.stringify(output) }] }] }],
-    ['string response', { response: JSON.stringify({ ...output, unknown: 1, moves: [...output.moves, { move: 'backflip', beats: 4, mirror: false }] }) }],
+    ['string response', { response: JSON.stringify({ ...output, unknown: 1 }) }],
   ])('normalizes a %s leniently', async (_name, value) => {
     const { env, run } = fixture(); run.mockResolvedValue(value);
     const result = await (await worker.fetch(request(), env)).json() as { plan: typeof output };
-    expect(result.plan.moves).toEqual(output.moves);
+    expect(result.plan.phrases).toEqual(output.phrases); expect(result.plan.order).toEqual(output.order);
   });
   it('returns a typed error the client can fall back from, never provider text', async () => {
     const { env, run } = fixture();
-    run.mockResolvedValue({ response: { moves: [{ move: 'backflip' }] } });
+    run.mockResolvedValue({ response: { phrases: [{ poses: ['backflip'] }] } });
     const invalid = await worker.fetch(request(), env);
     expect(invalid.status).toBe(502); expect(await invalid.json()).toMatchObject({ code: 'AI_OUTPUT_INVALID' });
     run.mockRejectedValue(new Error('secret provider detail'));

@@ -1,5 +1,16 @@
 # 预览验证记录
 
+## 2026-10-15 · AI choreography revision 2: AI-authored keyposes (local verification; not deployed, no Workers AI inference)
+
+Design: [AI_DANCE_ENGINE.md](AI_DANCE_ENGINE.md) (`ai-dance-plan-3`, `dance-synth-2`). All Workers AI responses in tests are mocked. This session has no Cloudflare credentials, so nothing was deployed and `@cf/openai/gpt-oss-20b` was not called for real.
+
+- Dance pipeline unit tests (dancePlan, danceGenerate, Worker dancePlan, client dancePlanClient, aiMotion, aiMotionTrack): 6 files, 75/75 passed.
+- Full `vitest run`: 923 passed, 4 failed. Three are the existing legacy `motionPriors.test.ts` timeouts (5 s/10 s; that module is no longer on the product path), and they fail again when run alone. The fourth, `compactScene.test.ts`, timed out under parallel load and passed when re-run on its own.
+- Root `tsc --noEmit`, Worker `tsc -p tsconfig.worker.json` and `vite build` passed (existing large-chunk warning).
+- Browser (Chromium, one worker): `tests/ai-dance.spec.ts` 3/3 and `tests/timeline-range.spec.ts` 4/4 passed. The planner is mocked; synthesis, the real feasibility gate (Rapier), preview, adoption, undo and redo run their application paths. A second local generation from the same description differs.
+- Random stress (throw-away script, not committed): 28/28 accepted across two seeds (16 + 12 cases). The cases are full scenes and random off-beat ranges at 50–220 BPM, many inside a previously generated dance with moving boundaries. About 40 % are "wild" plans with uniformly random poses and steps; the rest come from the local composer. Accepted intensities: 13 at 1, 8 at 0.65, 5 at 0.35, 1 at 0.15 and 1 in-place at 0.25. Before this round's fixes (smoothed floor lift, gap-sized weight shift, earlier rotating return steps, in-place fallback), the same seed failed about half of its cases.
+- Real-model protocol check: Claude Haiku was used as a stand-in for the planner role. It received the exact system prompt, schema and user message for four descriptions (hip-hop, a Chinese lyrical description, salsa, a Chinese street-dance request). All four replies parsed with no dropped poses. Eight generations (each plan run on a full 16 s scene and on an off-beat 4.37–9.81 s range) all produced accepted candidates on the plan's own footwork (intensity 1–0.35), each in 2.5–14.3 s. This is evidence for the prompt and protocol; the Workers AI model still needs one bounded real check after deployment.
+
 ## 2026-10-15 · AI 编舞核心重建（本地验证；未部署、无真实推理）
 
 设计见 [AI_DANCE_ENGINE.md](AI_DANCE_ENGINE.md)。所有 AI 响应均为 mock 或本地规则规划；本会话没有 Cloudflare 凭据，新型号 `@cf/openai/gpt-oss-20b` 未做真实调用，未部署。
