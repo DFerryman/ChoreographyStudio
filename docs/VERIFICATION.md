@@ -1,5 +1,13 @@
 # 预览验证记录
 
+## 2026-10-15 · 同步 iPad Timeline main，部署受环境阻塞
+
+已通过 GitHub 连接器同步远端 main `78588c17f864b51d0a61d39c10b0e4bc81b246d5`／tree `7c43ca8a930c0c6008c853ef579c009ca05f98bf`。因环境代理 proxy:8080 拒绝连接，普通 git fetch 失败；改由 GitHub 原生工具读取10个变更blob并逐SHA核对，重建签名提交对象及完整tree，与远端SHA精确相同，原工作区干净。无业务源码修改。
+新增 iPad／触控 Timeline 捏合、双击八拍、Safari gesture 路径、键盘缩放与平板命中区，范围见 [交互标准](EDITOR_INTERACTION_STANDARD.md)。真实 iPad Safari仍未验收。准确main push [CI38679277577](https://github.com/DFerryman/ChoreographyStudio/actions/runs/38679277577)／job116239864668／attempt1已读回completed/success，包含npm ci、avatar、check、Worker类型及完整e2e，updated2026-10-15T04:22:07Z。
+本轮本地缩放几何17/17通过。预装Rapier为0.12.0而lockfile要求0.21.0，前端tsc在capsuleCollision.ts的RawShapeContact.getComponents两处失败，无法视为完整本地构建通过；网络故障阻止恢复依赖。初次Wrangler因默认config目录不可用失败，改用work内XDG_CONFIG_HOME后Worker dry-run通过，但它读取的是旧预装dist的6文件，不是最新构建，不能据此上传或宣称前端资产一致；Worker完整类型未在失败build链之后执行。
+Cloudflare原生仍为native47／`cd23036c-8157-42b6-8545-aecf1914eb15`单100%，最近deployment `447fd67a-d276-425a-ad4e-e8b1a79392b2`；运行source ea886549f1027c8223fe14235002a7e46d2e9b30，message关联旧文档main b89b0f28e6836343e9a3e38aecd9cefefbbcf040。五项binding与runtime核对保持。网络代理拒绝连接、Cloudflare凭据注入就绪状态unknown、Wrangler whoami fetch failed；本次未上传／切换新版本，无新增公网功能核验，[线上预览](https://choreo-studio-preview.danuberiverferryman.workers.dev/)尚未包含78588 iPad更新。恢复环境后需先安装锁定依赖、重建当前main，再部署并核对原生source/tree及静态字节。
+原五页Notion已原生增补最新main、CI和准确阻塞状态，5个任务全部succeeded；完整读回5/5确认原raw正文后缀、title／properties／icon／cover保持，新marker各1。文本创作实验／免费路线／草稿PR14及历史失败全部保留，不合并为本次main或已上线成果。真实模型调用、用户场景／音频上传与数据库写入0。
+
 ## 2026-10-15 · Timeline iPad 触控／捏合／键盘缩放 · 本地验证，未部署
 
 - `npm run check`：48 文件 950／950 单元测试通过（新增捏合几何 1 项），前端类型与 Vite 构建 EXIT0。
